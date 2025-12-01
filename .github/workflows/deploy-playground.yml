@@ -33,6 +33,9 @@ jobs:
       - name: Build all packages
         run: bun run build
 
+      - name: Generate static site for Playground
+        run: cd apps/playground && bun run generate
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

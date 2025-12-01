@@ -7,4 +7,7 @@ export default defineNuxtConfig({
   ],
   css: ['~/assets/css/main.css'],
   devtools: { enabled: true },
+  app: {
+    baseURL: '/blockchain-commons-ts/',
+  },
 })
