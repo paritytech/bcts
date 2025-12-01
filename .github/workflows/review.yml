@@ -1,4 +1,4 @@
-name: Claude Code Review
+name: Code Review
 
 on:
   pull_request:
@@ -12,6 +12,7 @@ on:
 
 jobs:
   claude-review:
+    name: Claude
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
