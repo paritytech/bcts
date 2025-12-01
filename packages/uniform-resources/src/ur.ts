@@ -1,5 +1,5 @@
-import type { Cbor } from "@leonardocustodio/blockchain-commons/dcbor";
-import { decodeCbor } from "@leonardocustodio/blockchain-commons/dcbor";
+import type { Cbor } from "@blockchain-commons/dcbor";
+import { decodeCbor } from "@blockchain-commons/dcbor";
 import { InvalidSchemeError, TypeUnspecifiedError, UnexpectedTypeError, URError } from "./error.js";
 import { URType } from "./ur-type.js";
 

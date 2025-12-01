@@ -1,5 +1,5 @@
 {
-  "extends": "../../packages/tsconfig/library.json",
+  "extends": "@blockchain-commons/tsconfig/library.json",
   "compilerOptions": {},
   "include": [
     "src/**/*.ts",

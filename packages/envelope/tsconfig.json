@@ -1,5 +1,5 @@
 {
-  "extends": "@leonardocustodio/blockchain-commons/tsconfig/library.json",
+  "extends": "@blockchain-commons/tsconfig/library.json",
   "compilerOptions": {
     /* dcbor specifics */
     "lib": ["ES2022", "DOM"]  /* Include DOM for browser compatibility */

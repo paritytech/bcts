@@ -5,18 +5,18 @@
   "description": "Blockchain Commons Uniform Resources (UR) for TypeScript",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
+  "types": "dist/index.d.mts",
   "browser": "dist/index.global.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
       "browser": "./dist/index.global.js",
       "default": "./dist/index.mjs"
     },
     "./prelude": {
-      "types": "./dist/prelude.d.ts",
+      "types": "./dist/prelude.d.mts",
       "import": "./dist/prelude.mjs",
       "require": "./dist/prelude.cjs",
       "default": "./dist/prelude.mjs"

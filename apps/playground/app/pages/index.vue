@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { decodeCbor, hexToBytes, hexOpt, diagnosticOpt, type Cbor } from '@blockchain-commons/dcbor'
+import { decodeCbor, hexToBytes, hexOpt, diagnosticOpt, bytesToHex, type Cbor } from '@blockchain-commons/dcbor'
+import { UR } from '@blockchain-commons/uniform-resources'
 
 useHead({
   title: 'CBOR Diagnostic Tool - Blockchain Commons',
@@ -66,6 +67,19 @@ watch(hexInput, () => {
     parseCbor()
   }, 300)
 })
+
+// Load UR example
+function loadURExample() {
+  try {
+    const ur = UR.fromURString('ur:user/oeidiniecskgiejthsjnihisgejlisjtcxfyjlihjldnbwrl')
+    const cborData = ur.cbor()
+    const cborBytes = cborData.encode()
+    hexInput.value = bytesToHex(cborBytes)
+    parseCbor()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Failed to load UR example'
+  }
+}
 
 // Parse on mount
 onMounted(() => {
@@ -170,6 +184,17 @@ onMounted(() => {
                         >
                           <div class="text-left w-full">
                             <div class="text-xs font-semibold">Collection Example</div>
+                          </div>
+                        </UButton>
+                        <UButton
+                          @click="loadURExample()"
+                          variant="outline"
+                          size="xs"
+                          block
+                          class="justify-start hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                        >
+                          <div class="text-left w-full">
+                            <div class="text-xs font-semibold">UR Example</div>
                           </div>
                         </UButton>
                       </div>
