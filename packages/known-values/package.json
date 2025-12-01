@@ -1,8 +1,8 @@
 {
-  "name": "@blockchain-commons/dcbor",
+  "name": "@blockchain-commons/known-values",
   "version": "1.0.0-alpha.1",
   "type": "module",
-  "description": "Blockchain Commons Deterministic CBOR (dCBOR) for TypeScript",
+  "description": "Blockchain Commons Known Values for TypeScript",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -14,6 +14,12 @@
       "require": "./dist/index.cjs",
       "browser": "./dist/index.global.js",
       "default": "./dist/index.mjs"
+    },
+    "./prelude": {
+      "types": "./dist/prelude.d.ts",
+      "import": "./dist/prelude.mjs",
+      "require": "./dist/prelude.cjs",
+      "default": "./dist/prelude.mjs"
     }
   },
   "files": [
@@ -24,54 +30,39 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "jest --testPathIgnorePatterns=cli.test.ts",
+    "test": "jest",
     "test:watch": "jest --watch",
-    "test:cli": "jest cli.test.ts",
-    "test:examples": "npm run build && node scripts/test-examples.js",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "docs": "typedoc",
-    "docs:watch": "typedoc --watch",
-    "prepublishOnly": "npm run clean && npm run build && npm test"
+    "check-types": "tsc --noEmit"
   },
   "keywords": [
+    "known-values",
+    "blockchain-commons",
+    "ontology",
+    "encoding",
     "cbor",
     "dcbor",
-    "deterministic",
-    "blockchain-commons",
-    "encoding",
-    "serialization",
-    "codec",
-    "binary"
+    "deterministic"
   ],
-  "author": "Leonardo Custodio",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/leonardocustodio/blockchain-commons"
-  },
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
     "@blockchain-commons/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
-    "@types/collections": "^5.1.5",
     "@types/jest": "^30.0.0",
+    "@types/node": "^20.12.7",
+    "@types/pako": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.47.0",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",
+    "prettier": "^3.2.5",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "tsdown": "^0.16.6",
-    "typedoc": "^0.28.15",
     "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "byte-data": "^19.0.1",
-    "collections": "^5.1.13"
   }
 }

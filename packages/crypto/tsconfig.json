@@ -1,0 +1,10 @@
+{
+  "extends": "../../packages/tsconfig/library.json",
+  "compilerOptions": {
+    /* crypto specifics */
+  },
+  "include": [
+    "src/**/*.ts",
+    "types/**/*.d.ts"
+  ]
+}

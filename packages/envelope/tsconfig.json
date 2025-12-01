@@ -1,47 +1,11 @@
 {
+  "extends": "@blockchain-commons/tsconfig/library.json",
   "compilerOptions": {
-    /* Visit https://aka.ms/tsconfig to read more about this file */
-
-    /* Language and Environment */
-    "target": "ES2022",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "lib": ["ES2022", "DOM"],                            /* Specify a set of bundled library declaration files that describe the target runtime environment. */
-    "module": "ESNext",                                  /* Specify what module code is generated. */
-
-    /* Module Resolution */
-    "moduleResolution": "bundler",                       /* Specify how TypeScript looks up a file from a given module specifier. */
-    "resolveJsonModule": true,                           /* Enable importing .json files. */
-    "allowSyntheticDefaultImports": true,                /* Allow 'import x from y' when a module doesn't have a default export. */
-    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
-    "isolatedModules": true,                             /* Ensure that each file can be safely transpiled without relying on other imports. */
-
-    /* Emit */
-    "outDir": "./dist",                                  /* Specify an output folder for all emitted files. */
-    "declaration": true,                                 /* Generate .d.ts files from TypeScript and JavaScript files in your project. */
-    "declarationMap": true,                              /* Create sourcemaps for d.ts files. */
-    "sourceMap": true,                                   /* Create source map files for emitted JavaScript files. */
-
-    /* Type Checking */
-    "strict": true,                                      /* Enable all strict type-checking options. */
-    "noUncheckedIndexedAccess": true,                    /* Add 'undefined' to a type when accessed using an index. */
-    "noImplicitOverride": true,                          /* Ensure overriding members in derived classes are marked with an override modifier. */
-    "noPropertyAccessFromIndexSignature": true,          /* Enforces using indexed accessors for keys declared using an indexed type. */
-    "noFallthroughCasesInSwitch": true,                  /* Enable error reporting for fallthrough cases in switch statements. */
-    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
-
-    /* Completeness */
-    "skipLibCheck": true,                                /* Skip type-checking all .d.ts files. */
-
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ]
+    /* dcbor specifics */
+    "lib": ["ES2022", "DOM"]  /* Include DOM for browser compatibility */
   },
   "include": [
     "src/**/*.ts",
-    "tests/**/*.ts",
     "types/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules"
   ]
 }
