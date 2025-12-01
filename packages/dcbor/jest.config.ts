@@ -7,9 +7,6 @@ const config: Config = {
   },
   testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$",
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-  testEnvironment: "node",
-  // Setup file to initialize libsodium before tests
-  setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
 };
 
 export default config;
