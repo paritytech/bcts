@@ -66,6 +66,7 @@
     "jest": "^30.0.0-beta.6",
     "prettier": "^3.2.5",
     "ts-jest": "^29.4.5",
+    "tsdown": "^0.16.8",
     "typescript": "^5.9.3"
   }
 }
