@@ -1,4 +1,4 @@
-import type { Cbor } from "@leonardocustodio/dcbor";
+import type { Cbor } from "@blockchain-commons/dcbor";
 import { Envelope } from "./envelope";
 import { EnvelopeError } from "./error";
 
@@ -18,7 +18,7 @@ import { EnvelopeError } from "./error";
 /// @throws {EnvelopeError} If the envelope is not a leaf or cannot be converted
 export function extractString(envelope: Envelope): string {
   const cbor = envelope.tryLeaf();
-  const { tryIntoText } = require("@leonardocustodio/dcbor");
+  const { tryIntoText } = require("@blockchain-commons/dcbor");
   try {
     return tryIntoText(cbor);
   } catch (error) {
@@ -70,7 +70,7 @@ export function extractNumber(envelope: Envelope): number {
 /// @throws {EnvelopeError} If the envelope is not a leaf or cannot be converted
 export function extractBoolean(envelope: Envelope): boolean {
   const cbor = envelope.tryLeaf();
-  const { tryIntoBool } = require("@leonardocustodio/dcbor");
+  const { tryIntoBool } = require("@blockchain-commons/dcbor");
   try {
     return tryIntoBool(cbor);
   } catch (error) {
@@ -88,7 +88,7 @@ export function extractBoolean(envelope: Envelope): boolean {
 /// @throws {EnvelopeError} If the envelope is not a leaf or cannot be converted
 export function extractBytes(envelope: Envelope): Uint8Array {
   const cbor = envelope.tryLeaf();
-  const { tryIntoByteString } = require("@leonardocustodio/dcbor");
+  const { tryIntoByteString } = require("@blockchain-commons/dcbor");
   try {
     return tryIntoByteString(cbor);
   } catch (error) {
@@ -105,7 +105,7 @@ export function extractBytes(envelope: Envelope): Uint8Array {
 /// @throws {EnvelopeError} If the envelope is not a leaf containing null
 export function extractNull(envelope: Envelope): null {
   const cbor = envelope.tryLeaf();
-  const { isNull } = require("@leonardocustodio/dcbor");
+  const { isNull } = require("@blockchain-commons/dcbor");
   if (isNull(cbor)) {
     return null;
   }
@@ -174,7 +174,7 @@ export class EnvelopeDecoder {
   /// @throws {EnvelopeError} If the data is not valid CBOR or does not
   ///   represent a valid envelope structure
   static tryFromCborData(data: Uint8Array): Envelope {
-    const { decodeCbor } = require("@leonardocustodio/dcbor");
+    const { decodeCbor } = require("@blockchain-commons/dcbor");
     try {
       const cbor = decodeCbor(data);
       return EnvelopeDecoder.tryFromCbor(cbor);

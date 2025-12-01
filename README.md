@@ -1,8 +1,10 @@
 # Blockchain Commons - TypeScript
 
+> Disclaimer: This whole repository is still in its early stages and under heavy development. Please note that the APIs and interfaces are subject to change and are not yet stable.
+
 A comprehensive TypeScript monorepo implementing Blockchain Commons specifications for cryptographic data encoding, uniform resources, and secure information structures.
 
-This repository contains TypeScript implementations of specifications developed by [Blockchain Commons](https://www.blockchaincommons.com/), a research and development cooperative of blockchain and digital asset developers.
+This repository contains TypeScript implementations of specifications developed by [Blockchain Commons](https://www.blockchaincommons.com/).
 
 ## 📦 Packages
 
@@ -20,7 +22,7 @@ An interactive web application for experimenting with dCBOR encoding and Uniform
 
 **Try it locally:**
 ```bash
-bun dev
+bun run dev --filter=@blockchain-commons/playground
 ```
 
 **Live Demo:** https://leonardocustodio.github.io/blockchain-commons
@@ -39,24 +41,13 @@ bun install
 
 # Build all packages
 bun run build
-
-# Run development servers
-bun run dev
-
-# Run linting
-bun run lint
-
-# Type checking
-bun run check-types
 ```
 
 ## 📚 Specifications & Reference Implementations
-
-This project implements open specifications maintained by Blockchain Commons:
 
 - **[Deterministic CBOR (dCBOR)](https://github.com/BlockchainCommons/bc-dcbor-rust)** - A deterministic binary encoding format based on CBOR (RFC 7049)
 - **[Uniform Resources (UR)](https://github.com/BlockchainCommons/bc-ur-rust)** - A method for encoding binary data as URIs optimized for QR codes and text-based channels
 
 For complete specifications and reference implementations in other languages, visit:
-- [Blockchain Commons GitHub](https://github.com/BlockchainCommons)
-- [Blockchain Commons Documentation](https://www.blockchaincommons.com/)
+- [BlockchainCommons GitHub](https://github.com/BlockchainCommons)
+- [BlockchainCommons Documentation](https://www.blockchaincommons.com/)

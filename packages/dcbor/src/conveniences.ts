@@ -750,3 +750,91 @@ export const expectTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor => {
   }
   return content;
 };
+
+// ============================================================================
+// Envelope Compatibility Functions
+// These functions provide the API expected by the envelope package
+// ============================================================================
+
+import type { Tag } from "./tag";
+
+/**
+ * Extract tagged value as tuple [Tag, Cbor] if CBOR is tagged.
+ * This is used by envelope for decoding.
+ *
+ * @param cbor - CBOR value
+ * @returns [Tag, Cbor] tuple or undefined
+ */
+export const asTaggedValue = (cbor: Cbor): [Tag, Cbor] | undefined => {
+  if (cbor.type !== MajorType.Tagged) {
+    return undefined;
+  }
+  const tag: Tag = { value: cbor.tag, name: `tag-${cbor.tag}` };
+  return [tag, cbor.value];
+};
+
+/**
+ * Alias for asBytes - extract byte string value if type matches.
+ * Named asByteString for envelope compatibility.
+ *
+ * @param cbor - CBOR value
+ * @returns Byte string or undefined
+ */
+export const asByteString = asBytes;
+
+/**
+ * A wrapper around CBOR arrays that provides a get(index) method
+ * for envelope compatibility.
+ */
+export interface CborArrayWrapper {
+  readonly length: number;
+  get(index: number): Cbor | undefined;
+  [Symbol.iterator](): Iterator<Cbor>;
+}
+
+/**
+ * Extract array value with get() method for envelope compatibility.
+ *
+ * @param cbor - CBOR value
+ * @returns Array wrapper with get() method or undefined
+ */
+export const asCborArray = (cbor: Cbor): CborArrayWrapper | undefined => {
+  if (cbor.type !== MajorType.Array) {
+    return undefined;
+  }
+  const arr = cbor.value;
+  return {
+    length: arr.length,
+    get(index: number): Cbor | undefined {
+      return arr[index];
+    },
+    [Symbol.iterator](): Iterator<Cbor> {
+      return arr[Symbol.iterator]();
+    },
+  };
+};
+
+/**
+ * Alias for asMap - extract map value if type matches.
+ * Named asCborMap for envelope compatibility.
+ *
+ * @param cbor - CBOR value
+ * @returns Map or undefined
+ */
+export const asCborMap = asMap;
+
+/**
+ * Check if CBOR value is any numeric type (unsigned, negative, or float).
+ *
+ * @param cbor - CBOR value
+ * @returns True if value is numeric
+ */
+export const isNumber = (cbor: Cbor): boolean => {
+  if (cbor.type === MajorType.Unsigned || cbor.type === MajorType.Negative) {
+    return true;
+  }
+  if (cbor.type === MajorType.Simple) {
+    return isSimpleFloat(cbor.value);
+  }
+  return false;
+};

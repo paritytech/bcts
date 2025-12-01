@@ -93,3 +93,81 @@ export { encodeVarInt, decodeVarInt, decodeVarIntData } from "./varint";
 
 // Type utilities
 export { ByteString } from "./byte-string";
+
+// Convenience utilities - type guards
+export {
+  isUnsigned,
+  isNegative,
+  isInteger,
+  isBytes,
+  isText,
+  isArray,
+  isMap,
+  isTagged,
+  isSimple,
+  isBoolean,
+  isNull,
+  isFloat,
+} from "./conveniences";
+
+// Convenience utilities - safe extraction (returns undefined on type mismatch)
+export {
+  asUnsigned,
+  asNegative,
+  asInteger,
+  asBytes,
+  asText,
+  asArray,
+  asMap,
+  asBoolean,
+  asFloat,
+  asNumber,
+} from "./conveniences";
+
+// Convenience utilities - expectations (throw on type mismatch)
+export {
+  expectUnsigned,
+  expectNegative,
+  expectInteger,
+  expectBytes,
+  expectText,
+  expectArray,
+  expectMap,
+  expectBoolean,
+  expectFloat,
+  expectNumber,
+  // Aliases for envelope compatibility
+  expectText as tryIntoText,
+  expectBoolean as tryIntoBool,
+  expectBytes as tryIntoByteString,
+} from "./conveniences";
+
+// Convenience utilities - array operations
+export { arrayItem, arrayLength, arrayIsEmpty } from "./conveniences";
+
+// Convenience utilities - map operations
+export { mapValue, mapHas, mapKeys, mapValues, mapSize, mapIsEmpty } from "./conveniences";
+
+// Convenience utilities - tagged value operations
+export {
+  tagValue,
+  tagContent,
+  hasTag,
+  getTaggedContent,
+  expectTaggedContent,
+  // Alias for envelope compatibility
+  expectTaggedContent as tryExpectedTaggedValue,
+} from "./conveniences";
+
+// Extract native JavaScript value from CBOR
+export { extractCbor } from "./conveniences";
+
+// Envelope compatibility functions
+export {
+  asTaggedValue,
+  asByteString,
+  asCborArray,
+  type CborArrayWrapper,
+  asCborMap,
+  isNumber,
+} from "./conveniences";

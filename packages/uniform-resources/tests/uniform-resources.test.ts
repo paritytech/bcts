@@ -585,13 +585,13 @@ describe("CRC32 tests", () => {
     // "123456789" has CRC32 = 0xCBF43926 (IEEE polynomial)
     const data = new TextEncoder().encode("123456789");
     const checksum = crc32(data);
-    expect(checksum).toBe(0xCBF43926);
+    expect(checksum).toBe(0xcbf43926);
   });
 
   it("calculates CRC32 for single byte", () => {
     const data = new Uint8Array([0x00]);
     const checksum = crc32(data);
-    expect(checksum).toBe(0xD202EF8D);
+    expect(checksum).toBe(0xd202ef8d);
   });
 });
 
@@ -606,7 +606,9 @@ describe("Bytewords identifier tests", () => {
 
   it("throws for non-4-byte data", () => {
     const data = new Uint8Array([0, 1, 2]);
-    expect(() => encodeBytewordsIdentifier(data)).toThrow("Identifier data must be exactly 4 bytes");
+    expect(() => encodeBytewordsIdentifier(data)).toThrow(
+      "Identifier data must be exactly 4 bytes",
+    );
   });
 });
 
@@ -621,7 +623,9 @@ describe("Bytemoji identifier tests", () => {
 
   it("throws for non-4-byte data", () => {
     const data = new Uint8Array([0, 1, 2]);
-    expect(() => encodeBytemojisIdentifier(data)).toThrow("Identifier data must be exactly 4 bytes");
+    expect(() => encodeBytemojisIdentifier(data)).toThrow(
+      "Identifier data must be exactly 4 bytes",
+    );
   });
 
   it("contains 256 unique bytemojis", () => {

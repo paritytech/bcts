@@ -678,7 +678,10 @@ function uint32ToBytes(value: number): Uint8Array {
  * Encode data as bytewords with the specified style.
  * Includes CRC32 checksum.
  */
-export function encodeBytewords(data: Uint8Array, style: BytewordsStyle = BytewordsStyle.Minimal): string {
+export function encodeBytewords(
+  data: Uint8Array,
+  style: BytewordsStyle = BytewordsStyle.Minimal,
+): string {
   // Append CRC32 checksum
   const checksum = crc32(data);
   const checksumBytes = uint32ToBytes(checksum);
@@ -718,7 +721,10 @@ export function encodeBytewords(data: Uint8Array, style: BytewordsStyle = Bytewo
  * Decode bytewords string back to data.
  * Validates and removes CRC32 checksum.
  */
-export function decodeBytewords(encoded: string, style: BytewordsStyle = BytewordsStyle.Minimal): Uint8Array {
+export function decodeBytewords(
+  encoded: string,
+  style: BytewordsStyle = BytewordsStyle.Minimal,
+): Uint8Array {
   const lowercased = encoded.toLowerCase();
   let bytes: number[];
 
@@ -788,7 +794,7 @@ export function decodeBytewords(encoded: string, style: BytewordsStyle = Bytewor
 
   if (expectedChecksum !== actualChecksum) {
     throw new Error(
-      `Bytewords checksum mismatch: expected ${expectedChecksum.toString(16)}, got ${actualChecksum.toString(16)}`
+      `Bytewords checksum mismatch: expected ${expectedChecksum.toString(16)}, got ${actualChecksum.toString(16)}`,
     );
   }
 

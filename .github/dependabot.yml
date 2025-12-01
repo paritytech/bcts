@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    assignees: [ "leonardocustodio" ]
+    reviewers: [ "leonardocustodio" ]
+    labels: [ "dependencies" ]
+    groups:
+      node:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    labels: [ "dependencies" ]
+    assignees: ["leonardocustodio" ]
+    reviewers: ["leonardocustodio" ]
+    schedule:
+      interval: weekly
+    groups:
+      gh-actions:
+        patterns:
+          - "*"

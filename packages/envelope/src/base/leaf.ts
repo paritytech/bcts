@@ -1,4 +1,4 @@
-import type { Cbor } from "@leonardocustodio/dcbor";
+import type { Cbor } from "@blockchain-commons/dcbor";
 import { Envelope } from "./envelope";
 
 /// Provides methods for working with envelope leaf nodes,
@@ -72,7 +72,7 @@ declare module "./envelope" {
     /// Returns the leaf CBOR as a map if possible.
     ///
     /// @returns The map value or undefined
-    asMap(): import("@leonardocustodio/dcbor").CborMap | undefined;
+    asMap(): import("@blockchain-commons/dcbor").CborMap | undefined;
 
     /// Returns the leaf CBOR as text if possible.
     ///
@@ -134,7 +134,7 @@ Envelope.prototype.isNumber = function (this: Envelope): boolean {
     return false;
   }
 
-  const { isNumber } = require("@leonardocustodio/dcbor");
+  const { isNumber } = require("@blockchain-commons/dcbor");
   return isNumber(leaf);
 };
 
@@ -150,7 +150,7 @@ Envelope.prototype.isNaN = function (this: Envelope): boolean {
     return false;
   }
 
-  const { isNaN } = require("@leonardocustodio/dcbor");
+  const { isNaN } = require("@blockchain-commons/dcbor");
   return isNaN(leaf);
 };
 
@@ -190,7 +190,7 @@ Envelope.prototype.asArray = function (this: Envelope): Cbor[] | undefined {
     return undefined;
   }
 
-  const { asArray } = require("@leonardocustodio/dcbor");
+  const { asArray } = require("@blockchain-commons/dcbor");
   return asArray(leaf);
 };
 
@@ -201,7 +201,7 @@ Envelope.prototype.asMap = function (this: Envelope) {
     return undefined;
   }
 
-  const { asMap } = require("@leonardocustodio/dcbor");
+  const { asMap } = require("@blockchain-commons/dcbor");
   return asMap(leaf);
 };
 
@@ -212,7 +212,7 @@ Envelope.prototype.asText = function (this: Envelope): string | undefined {
     return undefined;
   }
 
-  const { asText } = require("@leonardocustodio/dcbor");
+  const { asText } = require("@blockchain-commons/dcbor");
   return asText(leaf);
 };
 

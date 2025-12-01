@@ -202,7 +202,7 @@ Envelope.prototype.compress = function (this: Envelope): Envelope {
 
   // Compress the entire envelope
   const cbor = this.taggedCbor();
-  const { cborData } = require("@leonardocustodio/dcbor");
+  const { cborData } = require("@blockchain-commons/dcbor");
   const decompressedData = cborData(cbor);
 
   const compressed = Compressed.fromDecompressedData(decompressedData, this.digest());
@@ -235,7 +235,7 @@ Envelope.prototype.decompress = function (this: Envelope): Envelope {
   const decompressedData = compressed.decompress();
 
   // Parse back to envelope
-  const { decodeCbor } = require("@leonardocustodio/dcbor");
+  const { decodeCbor } = require("@blockchain-commons/dcbor");
   const cbor = decodeCbor(decompressedData);
   const envelope = Envelope.fromTaggedCbor(cbor);
 

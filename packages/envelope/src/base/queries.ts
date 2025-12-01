@@ -1,4 +1,4 @@
-import type { Cbor } from "@leonardocustodio/dcbor";
+import type { Cbor } from "@blockchain-commons/dcbor";
 import { Envelope } from "./envelope";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
 import { EnvelopeError } from "./error";

@@ -197,6 +197,16 @@ export class CborMap {
   }
 
   /**
+   * Returns an iterator of [key, value] tuples for JavaScript Map API compatibility.
+   * This matches the standard JavaScript Map.entries() method behavior.
+   */
+  *entriesIterator(): IterableIterator<[Cbor, Cbor]> {
+    for (const entry of this.entries) {
+      yield [entry.key, entry.value];
+    }
+  }
+
+  /**
    * Inserts the next key-value pair into the map during decoding.
    * This is used for efficient map building during CBOR decoding.
    * Throws if the key is not in ascending order or is a duplicate.

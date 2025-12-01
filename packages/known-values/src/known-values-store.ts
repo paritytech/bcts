@@ -194,9 +194,9 @@ export class KnownValuesStore {
    * ```
    */
   static knownValueForRawValue(rawValue: number, knownValues?: KnownValuesStore): KnownValue {
-    if (knownValues) {
+    if (knownValues !== undefined) {
       const value = knownValues.knownValuesByRawValue.get(rawValue);
-      if (value) {
+      if (value !== undefined) {
         return value;
       }
     }
@@ -269,9 +269,9 @@ export class KnownValuesStore {
    * ```
    */
   static nameForKnownValue(knownValue: KnownValue, knownValues?: KnownValuesStore): string {
-    if (knownValues) {
+    if (knownValues !== undefined) {
       const assignedName = knownValues.assignedName(knownValue);
-      if (assignedName) {
+      if (assignedName !== undefined && assignedName !== "") {
         return assignedName;
       }
     }
@@ -296,7 +296,7 @@ export class KnownValuesStore {
   private _insert(knownValue: KnownValue): void {
     this.knownValuesByRawValue.set(knownValue.value(), knownValue);
     const assignedName = knownValue.assignedName();
-    if (assignedName) {
+    if (assignedName !== undefined && assignedName !== "") {
       this.knownValuesByAssignedName.set(assignedName, knownValue);
     }
   }

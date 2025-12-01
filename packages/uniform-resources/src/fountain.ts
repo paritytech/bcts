@@ -252,7 +252,11 @@ export class FountainDecoder {
     }
 
     // Validate consistency
-    if (part.seqLen !== this.seqLen || part.messageLen !== this.messageLen || part.checksum !== this.checksum) {
+    if (
+      part.seqLen !== this.seqLen ||
+      part.messageLen !== this.messageLen ||
+      part.checksum !== this.checksum
+    ) {
       throw new Error("Inconsistent part metadata");
     }
 

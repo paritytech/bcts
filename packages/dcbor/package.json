@@ -46,12 +46,6 @@
     "codec",
     "binary"
   ],
-  "author": "Leonardo Custodio",
-  "license": "ISC",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/leonardocustodio/blockchain-commons"
-  },
   "engines": {
     "node": ">=16.0.0"
   },

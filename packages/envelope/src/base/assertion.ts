@@ -2,8 +2,8 @@ import { Digest, DigestProvider } from "./digest";
 import { Envelope } from "./envelope";
 import { EnvelopeEncodable } from "./envelope-encodable";
 import { EnvelopeError } from "./error";
-import type { Cbor } from "@leonardocustodio/dcbor";
-import { CborMap } from "@leonardocustodio/dcbor";
+import type { Cbor } from "@blockchain-commons/dcbor";
+import { CborMap } from "@blockchain-commons/dcbor";
 
 /// A predicate-object relationship representing an assertion about a subject.
 ///
