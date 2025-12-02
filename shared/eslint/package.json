@@ -15,10 +15,10 @@
   },
   "devDependencies": {
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
-    "@vercel/style-guide": "^5.2.0",
-    "@vue/eslint-config-typescript": "^12.0.0",
+    "@vercel/style-guide": "^6.0.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
     "eslint-config-turbo": "^2.0.0",
-    "typescript": "5.5.4"
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "eslint": "^9.0.0",
