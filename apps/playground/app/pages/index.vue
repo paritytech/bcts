@@ -84,8 +84,17 @@ function parseInput(input: string, format: InputFormat): Uint8Array {
       const data = dataParts.join('/')
 
       if (urType === 'envelope') {
-        // Decode bytewords directly to preserve all CBOR tags
-        return decodeBytewords(data, BytewordsStyle.Minimal)
+        // For envelope URs, the bytewords-encoded data does NOT include tag 200
+        // The UR type 'envelope' implies tag 200, so we need to add it
+        // This matches the Rust bc-ur behavior where UR payloads use untagged CBOR
+        // and the tag is implied by the UR type
+        const untaggedBytes = decodeBytewords(data, BytewordsStyle.Minimal)
+        // Prepend envelope tag 200 (CBOR encoding: 0xd8 0xc8)
+        const taggedBytes = new Uint8Array(2 + untaggedBytes.length)
+        taggedBytes[0] = 0xd8 // Tag indicator for values 24-255
+        taggedBytes[1] = 0xc8 // 200 = envelope tag
+        taggedBytes.set(untaggedBytes, 2)
+        return taggedBytes
       }
 
       // For other UR types, use the standard UR decoding
@@ -165,8 +174,10 @@ function bytesToUR(bytes: Uint8Array): string {
     const isEnvelope = startsWithCborTag(bytes, ENVELOPE.value)
 
     if (isEnvelope) {
-      // For envelopes, encode the raw bytes directly as bytewords to preserve the tag
-      return 'ur:envelope/' + encodeBytewords(bytes, BytewordsStyle.Minimal)
+      // For envelopes, strip the tag 200 prefix (d8 c8) since the UR type 'envelope' implies it
+      // This matches the Rust bc-ur behavior where UR payloads use untagged CBOR
+      const untaggedBytes = bytes.slice(2) // Remove the 2-byte tag prefix
+      return 'ur:envelope/' + encodeBytewords(untaggedBytes, BytewordsStyle.Minimal)
     }
 
     // For other types, decode CBOR and create a dcbor UR
@@ -223,7 +234,7 @@ function parseCbor() {
         const envelope = envelopeFromCbor(freshCbor)
         envelopeFormat.value = envelope.treeFormat()
       } catch (err) {
-        console.warn('Failed to parse as envelope:', err)
+        console.error('Failed to parse as envelope:', err)
         const errorMsg = err instanceof Error ? err.message : String(err)
         envelopeFormat.value = `Error parsing envelope:\n${errorMsg}\n\nNote: The envelope tag (200) is present and the hex/diagnostic views show the data correctly.`
       }

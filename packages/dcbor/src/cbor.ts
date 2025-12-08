@@ -455,7 +455,7 @@ export const cborData = (value: CborInput): Uint8Array => {
       return new Uint8Array([...lengthBytes, ...flatArrayBytes]);
     }
     case MajorType.Map: {
-      const entries = c.value.entries;
+      const entries = c.value.entriesArray;
       const arrayBytes = entries.map(({ key, value }) =>
         concatBytes([cborData(key), cborData(value)]),
       );

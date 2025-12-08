@@ -2,12 +2,14 @@ import { Digest, type DigestProvider } from "./digest";
 import { Assertion } from "./assertion";
 import { EnvelopeError } from "./error";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
+import { KnownValue } from "@blockchain-commons/known-values";
 import type { Cbor } from "@blockchain-commons/dcbor";
 import {
   cbor,
   cborData,
   toTaggedValue,
   TAG_ENCODED_CBOR,
+  MajorType,
   asByteString,
   asCborArray,
   asCborMap,
@@ -87,9 +89,6 @@ export type EnvelopeCase =
       /// The compressed data
       value: Compressed;
     };
-
-// Placeholder types for features not yet implemented
-type KnownValue = unknown;
 
 // Import types from extension modules (will be available at runtime)
 import type { Compressed } from "../extension/compress";
@@ -312,14 +311,15 @@ export class Envelope implements DigestProvider {
 
   /// Creates an envelope with a known value.
   ///
-  /// @param value - The known value
+  /// @param value - The known value (can be a KnownValue instance or a number/bigint)
   /// @returns A new known value envelope
-  static newWithKnownValue(value: KnownValue): Envelope {
-    // TODO: Calculate digest for known value
-    const digest = Digest.fromImage(new Uint8Array()); // Placeholder
+  static newWithKnownValue(value: KnownValue | number | bigint): Envelope {
+    const knownValue = value instanceof KnownValue ? value : new KnownValue(value);
+    // Calculate digest from CBOR encoding of the known value
+    const digest = Digest.fromImage(knownValue.toCborData());
     return new Envelope({
       type: "knownValue",
-      value,
+      value: knownValue,
       digest,
     });
   }
@@ -661,8 +661,12 @@ export class Envelope implements DigestProvider {
       return Envelope.newWithAssertion(assertion);
     }
 
-    // TODO: Handle known values (unsigned integers)
-    // For now, treat as invalid
+    // Handle known values (unsigned integers)
+    if (cbor.type === MajorType.Unsigned) {
+      const knownValue = new KnownValue(cbor.value as number | bigint);
+      return Envelope.newWithKnownValue(knownValue);
+    }
+
     throw EnvelopeError.cbor("invalid envelope format");
   }
 

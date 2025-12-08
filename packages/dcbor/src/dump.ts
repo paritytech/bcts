@@ -211,7 +211,7 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
 
       items.push(new DumpItem(level, headerData, `map(${cbor.value.size})`));
 
-      for (const entry of cbor.value.entries) {
+      for (const entry of cbor.value.entriesArray) {
         items.push(...dumpItems(entry.key, level + 1, opts));
         items.push(...dumpItems(entry.value, level + 1, opts));
       }

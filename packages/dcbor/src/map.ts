@@ -180,7 +180,7 @@ export class CborMap {
    * Get the entries of the map as an array.
    * Keys are sorted in lexicographic order of their encoded CBOR bytes.
    */
-  get entries(): MapEntry[] {
+  get entriesArray(): MapEntry[] {
     return this.#dict.map((value: MapEntry, _key: MapKey) => ({
       key: value.key,
       value: value.value,
@@ -193,15 +193,15 @@ export class CborMap {
    * Matches Rust's Map::iter().
    */
   iter(): MapEntry[] {
-    return this.entries;
+    return this.entriesArray;
   }
 
   /**
    * Returns an iterator of [key, value] tuples for JavaScript Map API compatibility.
    * This matches the standard JavaScript Map.entries() method behavior.
    */
-  *entriesIterator(): IterableIterator<[Cbor, Cbor]> {
-    for (const entry of this.entries) {
+  *entries(): IterableIterator<[Cbor, Cbor]> {
+    for (const entry of this.entriesArray) {
       yield [entry.key, entry.value];
     }
   }
@@ -231,11 +231,11 @@ export class CborMap {
   }
 
   get debug(): string {
-    return `map({${this.entries.map(CborMap.entryDebug).join(", ")}})`;
+    return `map({${this.entriesArray.map(CborMap.entryDebug).join(", ")}})`;
   }
 
   get diagnostic(): string {
-    return `{${this.entries.map(CborMap.entryDiagnostic).join(", ")}}`;
+    return `{${this.entriesArray.map(CborMap.entryDiagnostic).join(", ")}}`;
   }
 
   private static entryDebug(this: void, entry: MapEntry): string {
@@ -293,14 +293,14 @@ export class CborMap {
   }
 
   *[Symbol.iterator](): Iterator<[Cbor, Cbor]> {
-    for (const entry of this.entries) {
+    for (const entry of this.entriesArray) {
       yield [entry.key, entry.value];
     }
   }
 
   toMap<K, V>(): Map<K, V> {
     const map = new Map<K, V>();
-    for (const entry of this.entries) {
+    for (const entry of this.entriesArray) {
       map.set(extractCbor(entry.key) as K, extractCbor(entry.value) as V);
     }
     return map;

@@ -321,7 +321,7 @@ function containsComplexStructure(items: readonly Cbor[]): boolean {
  */
 function formatMap(map: CborMap, opts: DiagFormatOpts): string {
   // Extract entries from CborMap or use empty array
-  const entries = map?.entries ?? [];
+  const entries = map?.entriesArray ?? [];
 
   if (entries.length === 0) {
     return "{}";

@@ -44,7 +44,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@blockchain-commons/dcbor": "workspace:*"
+    "@blockchain-commons/dcbor": "workspace:*",
+    "@blockchain-commons/tags": "workspace:*"
   },
   "devDependencies": {
     "@blockchain-commons/eslint": "workspace:*",

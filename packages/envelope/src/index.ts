@@ -15,6 +15,8 @@ export * from "./base";
 export * from "./extension";
 
 // Re-export everything from the format module
+// Import for side effects (registers prototype extensions like treeFormat)
+import "./format";
 export type * from "./format";
 
 // Re-export everything from the utils module

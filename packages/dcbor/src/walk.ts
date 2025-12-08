@@ -301,7 +301,7 @@ function walkMap<State>(
 ): State {
   let currentState = state;
 
-  for (const entry of cbor.value.entries) {
+  for (const entry of cbor.value.entriesArray) {
     const { key, value } = entry;
 
     // First, visit the key-value pair as a semantic unit

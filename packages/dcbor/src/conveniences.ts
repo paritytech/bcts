@@ -635,7 +635,7 @@ export const mapKeys = (cbor: Cbor): Cbor[] | undefined => {
   if (cbor.type !== MajorType.Map) {
     return undefined;
   }
-  return cbor.value.entries.map((e) => e.key);
+  return cbor.value.entriesArray.map((e) => e.key);
 };
 
 /**
@@ -648,7 +648,7 @@ export const mapValues = (cbor: Cbor): Cbor[] | undefined => {
   if (cbor.type !== MajorType.Map) {
     return undefined;
   }
-  return cbor.value.entries.map((e) => e.value);
+  return cbor.value.entriesArray.map((e) => e.value);
 };
 
 /**

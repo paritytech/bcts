@@ -67,6 +67,7 @@
   },
   "dependencies": {
     "@blockchain-commons/dcbor": "workspace:*",
+    "@blockchain-commons/known-values": "workspace:*",
     "@blockchain-commons/tags": "workspace:*",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^1.8.0",

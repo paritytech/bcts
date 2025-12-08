@@ -67,17 +67,20 @@ import {
   cborData,
   decodeCbor,
   MajorType,
-  TAG_KNOWN_VALUE,
 } from "@blockchain-commons/dcbor";
+import { KNOWN_VALUE } from "@blockchain-commons/tags";
 
-// Re-export the tag constant for convenience
-export { TAG_KNOWN_VALUE };
+/**
+ * The numeric value for the CBOR tag used for Known Values.
+ * This is Tag 40000 as defined in the Blockchain Commons registry.
+ */
+export const TAG_KNOWN_VALUE = KNOWN_VALUE.value;
 
 /**
  * The CBOR tag used for Known Values.
- * This is Tag 201 as defined in the Blockchain Commons registry.
+ * This is Tag 40000 as defined in the Blockchain Commons registry.
  */
-export const KNOWN_VALUE_TAG: Tag = { value: TAG_KNOWN_VALUE, name: "known-value" };
+export const KNOWN_VALUE_TAG: Tag = KNOWN_VALUE;
 
 /**
  * Type for values that can be used to create a KnownValue.

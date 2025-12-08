@@ -56,8 +56,8 @@ function formatAsDisplay(cborValue: Cbor): string {
     case 5: {
       // Map
       const map = cborValue.value as CborMap;
-      if (map && map.entries) {
-        const entries = map.entries.map(
+      if (map && map.entriesArray) {
+        const entries = map.entriesArray.map(
           (entry: MapEntry) => `${formatAsDisplay(entry.key)}: ${formatAsDisplay(entry.value)}`,
         );
         return `{${entries.join(", ")}}`;
