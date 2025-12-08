@@ -38,7 +38,7 @@ export { CborMap, type MapEntry } from "./map";
 export { CborSet } from "./set";
 
 // Tags and Tagged values
-export { type Tag } from "./tag";
+export { type Tag, createTag } from "./tag";
 export {
   type CborTagged,
   type CborTaggedEncodable,
@@ -46,7 +46,7 @@ export {
   type CborTaggedCodable,
   createTaggedCbor,
 } from "./cbor-tagged";
-export { TagsStore, type TagsStoreTrait, type CborSummarizer } from "./tags-store";
+export { TagsStore, type TagsStoreTrait, type CborSummarizer, getGlobalTagsStore } from "./tags-store";
 export * from "./tags";
 export { registerTags, registerTagsIn, tagsForValues } from "./tags";
 

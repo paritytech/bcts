@@ -19,7 +19,12 @@
   "packageManager": "bun@1.2.22",
   "workspaces": [
     "apps/*",
-    "packages/*",
+    "packages/components",
+    "packages/dcbor",
+    "packages/envelope",
+    "packages/known-values",
+    "packages/tags",
+    "packages/uniform-resources",
     "shared/*"
   ]
 }

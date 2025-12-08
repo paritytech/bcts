@@ -4,11 +4,13 @@ import {
   type CBORTaggedEncodable,
   type CBORTaggedDecodable,
   tagsForValues,
-  TAG_ENVELOPE,
   cborData,
   decodeCbor,
 } from "@blockchain-commons/dcbor";
+import { ENVELOPE } from "@blockchain-commons/tags";
 import { Envelope } from "./envelope";
+
+const TAG_ENVELOPE = ENVELOPE.value;
 
 /// Support for CBOR encoding and decoding of `Envelope`.
 ///

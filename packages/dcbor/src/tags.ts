@@ -128,44 +128,11 @@ export const TAG_BINARY_UUID = 257;
 export const TAG_SET = 258;
 
 // ============================================================================
-// Blockchain Commons dCBOR Tags
+// NOTE: Blockchain Commons envelope and extension tags (TAG_ENVELOPE, TAG_LEAF,
+// TAG_KNOWN_VALUE, TAG_COMPRESSED, etc.) are defined in the @blockchain-commons/tags
+// package, NOT in dcbor. This matches the Rust architecture where bc-dcbor-rust
+// only defines TAG_DATE, and bc-tags-rust defines all envelope-related tags.
 // ============================================================================
-
-/**
- * Tag 200: Envelope (Blockchain Commons)
- * IANA registered tag for Gordian Envelope
- */
-export const TAG_ENVELOPE = 200;
-
-/**
- * Tag 201: Leaf (Blockchain Commons)
- * IANA registered tag for dCBOR/Envelope Leaf
- *
- * Note: A previous version incorrectly used tag #6.24 (ENCODED_CBOR) for leaves.
- * Tag #6.201 is the correct, IANA-registered tag for envelope leaves.
- */
-export const TAG_LEAF = 201;
-
-/**
- * Tag 203: Tagged CBOR (Blockchain Commons)
- */
-export const TAG_TAGGED_CBOR = 203;
-
-// ============================================================================
-// Blockchain Commons Extension Tags (First-Come-First-Served range 40000+)
-// ============================================================================
-
-/**
- * Tag 40000: Known value (Blockchain Commons)
- * Moved from tag 201 to the FCFS range to avoid IANA specification requirements
- */
-export const TAG_KNOWN_VALUE = 40000;
-
-/**
- * Tag 40003: Compressed (Blockchain Commons)
- * Moved from tag 221 to the FCFS range to avoid IANA specification requirements
- */
-export const TAG_COMPRESSED = 40003;
 
 // ============================================================================
 // Self-describing CBOR

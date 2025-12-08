@@ -7,21 +7,26 @@ import {
   cbor,
   cborData,
   toTaggedValue,
-  TAG_ENVELOPE,
-  TAG_LEAF,
   TAG_ENCODED_CBOR,
-  TAG_COMPRESSED,
   asByteString,
   asCborArray,
   asCborMap,
   asTaggedValue,
   tryExpectedTaggedValue,
 } from "@blockchain-commons/dcbor";
+import {
+  ENVELOPE,
+  LEAF,
+  ENCRYPTED,
+  COMPRESSED,
+} from "@blockchain-commons/tags";
 
-/// Gordian Envelope extension tags (not in dcbor)
+/// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
-/// See: https://github.com/BlockchainCommons/bc-components-rust/blob/master/src/tags.rs
-const TAG_ENCRYPTED = 40002;  // Encrypted envelope
+const TAG_ENVELOPE = ENVELOPE.value;
+const TAG_LEAF = LEAF.value;
+const TAG_ENCRYPTED = ENCRYPTED.value;
+const TAG_COMPRESSED = COMPRESSED.value;
 
 /// The core structural variants of a Gordian Envelope.
 ///

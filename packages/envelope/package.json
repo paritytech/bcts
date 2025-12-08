@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "@blockchain-commons/dcbor": "workspace:*",
+    "@blockchain-commons/tags": "workspace:*",
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^1.8.0",
     "libsodium-wrappers": "^0.7.13",
