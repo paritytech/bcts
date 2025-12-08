@@ -19,8 +19,8 @@ const emit = defineEmits<{
             @click="emit('toggleSidebar')"
           />
           <UColorModeImage
-            light="/bc-logo-black.png"
-            dark="/bc-logo-white.png"
+            light="bc-logo-black.png"
+            dark="bc-logo-white.png"
             alt="Blockchain Commons Logo"
             class="h-8 w-auto shrink-0"
           />

@@ -123,7 +123,7 @@ function bytesToUR(bytes: Uint8Array): string {
     const cbor = decodeCbor(bytes)
     const ur = UR.new('dcbor', cbor)
     return ur.string()
-  } catch (err) {
+  } catch {
     throw new Error('Cannot convert to UR: bytes do not represent valid CBOR data')
   }
 }
