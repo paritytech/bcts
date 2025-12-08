@@ -133,7 +133,7 @@ export function mixFragments(fragments: Uint8Array[], indices: number[]): Uint8A
     throw new Error("No fragments to mix");
   }
 
-  let result = new Uint8Array(fragments[0].length);
+  let result: Uint8Array = new Uint8Array(fragments[0].length);
 
   for (const index of indices) {
     const fragment = fragments[index];

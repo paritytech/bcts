@@ -848,8 +848,9 @@ describe("chooseFragments", () => {
   });
 
   it("produces different results for different seqNums", () => {
-    const _indices1 = chooseFragments(6, 5, 0x12345678);
-    const _indices2 = chooseFragments(7, 5, 0x12345678);
+    // Test that different seqNums can be used without errors
+    chooseFragments(6, 5, 0x12345678);
+    chooseFragments(7, 5, 0x12345678);
     // They might be the same by chance, but usually different
     // This is a probabilistic test - just verify no error thrown
     expect(true).toBe(true);

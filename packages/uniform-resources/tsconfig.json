@@ -1,9 +1,13 @@
 {
   "extends": "@blockchain-commons/tsconfig/library.json",
   "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "skipLibCheck": true
   },
   "include": [
-    "src/**/*.ts",
-    "tests/**/*.ts"
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "tests"
   ]
 }
