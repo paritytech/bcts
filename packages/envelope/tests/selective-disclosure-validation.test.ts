@@ -72,9 +72,15 @@ describe("Selective Disclosure Workflow Validation", () => {
 
       it("should have all 3 paragraphs in document structure", () => {
         const assertions = masterDoc.assertions();
-        const para1Assertion = assertions.find((a) => a.predicate().asKnownValue() === "paragraph1");
-        const para2Assertion = assertions.find((a) => a.predicate().asKnownValue() === "paragraph2");
-        const para3Assertion = assertions.find((a) => a.predicate().asKnownValue() === "paragraph3");
+        const para1Assertion = assertions.find(
+          (a) => a.predicate().asKnownValue() === "paragraph1",
+        );
+        const para2Assertion = assertions.find(
+          (a) => a.predicate().asKnownValue() === "paragraph2",
+        );
+        const para3Assertion = assertions.find(
+          (a) => a.predicate().asKnownValue() === "paragraph3",
+        );
 
         expect(para1Assertion).toBeDefined();
         expect(para2Assertion).toBeDefined();

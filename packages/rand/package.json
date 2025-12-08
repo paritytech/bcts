@@ -6,13 +6,13 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
-  "browser": "dist/index.global.js",
+  "browser": "dist/index.iife.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
-      "browser": "./dist/index.global.js",
+      "browser": "./dist/index.iife.js",
       "default": "./dist/index.mjs"
     }
   },
@@ -41,7 +41,7 @@
     "cryptography"
   ],
   "engines": {
-    "node": ">=16.0.0"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
     "@blockchain-commons/eslint": "workspace:*",

@@ -37,7 +37,9 @@ const DEFAULT_SALT_RANGE = { min: 8, max: 16 };
 /// Generates random bytes using crypto
 function generateRandomBytes(length: number): Uint8Array {
   // Use Web Crypto API available in browsers and Node.js 19+
-  const cryptoObj = globalThis.crypto as { getRandomValues?: (array: Uint8Array) => Uint8Array } | undefined;
+  const cryptoObj = globalThis.crypto as
+    | { getRandomValues?: (array: Uint8Array) => Uint8Array }
+    | undefined;
 
   if (cryptoObj?.getRandomValues !== undefined) {
     const array = new Uint8Array(length);
@@ -47,7 +49,7 @@ function generateRandomBytes(length: number): Uint8Array {
 
   throw new Error(
     "Web Crypto API not available. " +
-    "Please use a modern browser or Node.js 19+ which includes global crypto support."
+      "Please use a modern browser or Node.js 19+ which includes global crypto support.",
   );
 }
 

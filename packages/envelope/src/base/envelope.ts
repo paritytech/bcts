@@ -14,12 +14,7 @@ import {
   asTaggedValue,
   tryExpectedTaggedValue,
 } from "@blockchain-commons/dcbor";
-import {
-  ENVELOPE,
-  LEAF,
-  ENCRYPTED,
-  COMPRESSED,
-} from "@blockchain-commons/tags";
+import { ENVELOPE, LEAF, ENCRYPTED, COMPRESSED } from "@blockchain-commons/tags";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
@@ -487,7 +482,7 @@ export class Envelope implements DigestProvider {
   /// @returns A CBOR representation
   private static valueToCbor(value: unknown): Cbor {
     // Import cbor function at runtime to avoid circular dependencies
-    
+
     return cbor(value);
   }
 
@@ -497,7 +492,7 @@ export class Envelope implements DigestProvider {
   /// @returns Byte representation
   private static cborToBytes(cbor: Cbor): Uint8Array {
     // Import cborData function at runtime to avoid circular dependencies
-    
+
     return cborData(cbor);
   }
 
@@ -535,9 +530,10 @@ export class Envelope implements DigestProvider {
         // Contains: [ciphertext, nonce, optional_digest]
         const message = c.message;
         const digest = message.aadDigest();
-        const arr = digest !== undefined
-          ? [message.ciphertext(), message.nonce(), digest.data()]
-          : [message.ciphertext(), message.nonce()];
+        const arr =
+          digest !== undefined
+            ? [message.ciphertext(), message.nonce(), digest.data()]
+            : [message.ciphertext(), message.nonce()];
         return toTaggedValue(TAG_ENCRYPTED, Envelope.valueToCbor(arr));
       }
       case "compressed": {
@@ -596,7 +592,7 @@ export class Envelope implements DigestProvider {
           const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
 
           // Import Compressed class at runtime to avoid circular dependency
-          
+
           const compressed = new Compressed(compressedData, digest);
           return Envelope.fromCase({ type: "compressed", value: compressed });
         }
@@ -618,7 +614,7 @@ export class Envelope implements DigestProvider {
           const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
 
           // Import EncryptedMessage class at runtime to avoid circular dependency
-          
+
           const message = new EncryptedMessage(ciphertext, nonce, digest);
           return Envelope.fromCase({ type: "encrypted", message });
         }
@@ -675,7 +671,6 @@ export class Envelope implements DigestProvider {
   /// @param cbor - The tagged CBOR value (should have TAG_ENVELOPE)
   /// @returns A new envelope
   static fromTaggedCbor(cbor: Cbor): Envelope {
-
     try {
       const untagged = tryExpectedTaggedValue(cbor, TAG_ENVELOPE);
       return Envelope.fromUntaggedCbor(untagged);

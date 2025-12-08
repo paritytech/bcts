@@ -348,7 +348,8 @@ Envelope.prototype.nodesMatching = function (
   const visitor = (envelope: Envelope): void => {
     // Check if this node matches the target digests
     const digestMatches =
-      targetDigests === undefined || Array.from(targetDigests).some((d) => d.equals(envelope.digest()));
+      targetDigests === undefined ||
+      Array.from(targetDigests).some((d) => d.equals(envelope.digest()));
 
     if (!digestMatches) {
       return;

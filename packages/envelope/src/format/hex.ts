@@ -49,7 +49,6 @@ Envelope.prototype.hex = function (this: Envelope): string {
 
 /// Implementation of cborBytes()
 Envelope.prototype.cborBytes = function (this: Envelope): Uint8Array {
-  
   const cbor = this.taggedCbor();
   return cborData(cbor);
 };

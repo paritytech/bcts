@@ -46,7 +46,12 @@ export {
   type CborTaggedCodable,
   createTaggedCbor,
 } from "./cbor-tagged";
-export { TagsStore, type TagsStoreTrait, type CborSummarizer, getGlobalTagsStore } from "./tags-store";
+export {
+  TagsStore,
+  type TagsStoreTrait,
+  type CborSummarizer,
+  getGlobalTagsStore,
+} from "./tags-store";
 export * from "./tags";
 export { registerTags, registerTagsIn, tagsForValues } from "./tags";
 

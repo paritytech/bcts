@@ -99,7 +99,7 @@ Envelope.prototype.summary = function (this: Envelope, maxLength = 40): string {
       try {
         const text = this.asText();
         if (text !== undefined) {
-          const truncated = text.length > maxLength ? `${text.substring(0, maxLength)  }...` : text;
+          const truncated = text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
           return JSON.stringify(truncated);
         }
       } catch {

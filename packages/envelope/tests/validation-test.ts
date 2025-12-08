@@ -66,7 +66,9 @@ async function runValidationTests() {
 
     subsection("Step 2: Create Envelope with Test Data");
     const testData = "Hello, Gordian Envelope! This is a test message.";
-    const envelope = Envelope.new(testData).addAssertion("author", "Alice").addAssertion("timestamp", Date.now());
+    const envelope = Envelope.new(testData)
+      .addAssertion("author", "Alice")
+      .addAssertion("timestamp", Date.now());
     success("Envelope created successfully");
     info(`Subject: ${envelope.subject().asText()}`);
     info(`Assertions count: ${envelope.assertions().length}`);
@@ -213,7 +215,10 @@ async function runValidationTests() {
     const complexEnvelope = Envelope.new("Main Document")
       .addAssertion("title", "Gordian Envelope Specification")
       .addAssertion("version", "1.0")
-      .addAssertion("metadata", Envelope.new("Metadata").addAssertion("author", "Blockchain Commons"))
+      .addAssertion(
+        "metadata",
+        Envelope.new("Metadata").addAssertion("author", "Blockchain Commons"),
+      )
       .addAssertion("tags", ["privacy", "encryption", "cbor"]);
     success("Complex nested envelope created");
     testsPassed++;
@@ -383,7 +388,9 @@ async function runValidationTests() {
       const largeData = "X".repeat(10000);
       const largeEnvelope = Envelope.new(largeData);
       const largePubKey = await PrivateKeyBase.generate();
-      const largeEncrypted = await largeEnvelope.encryptSubjectToRecipient(largePubKey.publicKeys());
+      const largeEncrypted = await largeEnvelope.encryptSubjectToRecipient(
+        largePubKey.publicKeys(),
+      );
       const largeDecrypted = await largeEncrypted.decryptSubjectToRecipient(largePubKey);
 
       if (largeDecrypted.subject().asText() === largeData) {
@@ -423,7 +430,10 @@ async function runValidationTests() {
   }
 
   if (testsFailed === 0) {
-    log("\n✓ ALL TESTS PASSED - Documentation is accurate and functional!", colors.bright + colors.green);
+    log(
+      "\n✓ ALL TESTS PASSED - Documentation is accurate and functional!",
+      colors.bright + colors.green,
+    );
   } else {
     log("\n✗ SOME TESTS FAILED - Documentation needs corrections", colors.bright + colors.red);
   }
@@ -436,13 +446,13 @@ async function runValidationTests() {
 // Run the validation tests
 runValidationTests()
   .then(({ testsFailed }) => {
-    if (typeof globalThis.process !== 'undefined') {
+    if (typeof globalThis.process !== "undefined") {
       globalThis.process.exit(testsFailed > 0 ? 1 : 0);
     }
   })
   .catch((error) => {
     console.error("Validation failed with error:", error);
-    if (typeof globalThis.process !== 'undefined') {
+    if (typeof globalThis.process !== "undefined") {
       globalThis.process.exit(1);
     }
   });

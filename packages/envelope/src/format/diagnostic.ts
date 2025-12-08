@@ -92,7 +92,8 @@ function cborToDiagnostic(cbor: CborValue, indent = 0): string {
         return String(typed.value);
       case 1: // Negative
         return String(-1 - Number(typed.value));
-      case 7: { // Simple
+      case 7: {
+        // Simple
         const simpleValue = typed.value;
         if (simpleValue !== null && typeof simpleValue === "object" && "type" in simpleValue) {
           const floatValue = simpleValue as { type: string; value: unknown };

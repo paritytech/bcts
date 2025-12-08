@@ -324,7 +324,10 @@ Envelope.prototype.addSignatureWithMetadata = function (
   if (metadata?.hasAssertions() === true) {
     // Add metadata assertions to the signature
     for (const [predicate, object] of metadata.assertions()) {
-      signatureEnvelope = signatureEnvelope.addAssertion(predicate, object as string | number | boolean);
+      signatureEnvelope = signatureEnvelope.addAssertion(
+        predicate,
+        object as string | number | boolean,
+      );
     }
 
     // Wrap the signature with metadata

@@ -256,7 +256,7 @@ Envelope.prototype.encryptSubject = async function (
     }
 
     // Get the subject's CBOR data
-    
+
     const subjectCbor = c.subject.taggedCbor();
     const encodedCbor = cborData(subjectCbor);
     const subjectDigest = c.subject.digest();
@@ -275,7 +275,7 @@ Envelope.prototype.encryptSubject = async function (
   }
 
   // For other cases, encrypt the entire envelope
-  
+
   const cbor = this.taggedCbor();
   const encodedCbor = cborData(cbor);
   const digest = this.digest();
@@ -310,7 +310,7 @@ Envelope.prototype.decryptSubject = async function (
   const decryptedData = await key.decrypt(message);
 
   // Parse back to envelope
-  
+
   const cbor = decodeCbor(decryptedData);
   const resultSubject = Envelope.fromTaggedCbor(cbor);
 

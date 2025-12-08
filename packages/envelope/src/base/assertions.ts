@@ -167,10 +167,7 @@ Envelope.prototype.addAssertionEnvelopes = function (
   this: Envelope,
   assertions: Envelope[],
 ): Envelope {
-  return assertions.reduce(
-    (result, assertion) => result.addAssertionEnvelope(assertion),
-    this,
-  );
+  return assertions.reduce((result, assertion) => result.addAssertionEnvelope(assertion), this);
 };
 
 /// Implementation of addOptionalAssertionEnvelope
@@ -231,10 +228,7 @@ Envelope.prototype.addNonemptyStringAssertion = function (
 
 /// Implementation of addAssertions
 Envelope.prototype.addAssertions = function (this: Envelope, envelopes: Envelope[]): Envelope {
-  return envelopes.reduce(
-    (result, envelope) => result.addAssertionEnvelope(envelope),
-    this,
-  );
+  return envelopes.reduce((result, envelope) => result.addAssertionEnvelope(envelope), this);
 };
 
 /// Implementation of addAssertionIf

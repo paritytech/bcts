@@ -19,7 +19,13 @@
  */
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument */
-import { type Tag, createTag, type TagsStore, getGlobalTagsStore, registerTagsIn as registerDcborTagsIn } from "@blockchain-commons/dcbor";
+import {
+  type Tag,
+  createTag,
+  type TagsStore,
+  getGlobalTagsStore,
+  registerTagsIn as registerDcborTagsIn,
+} from "@blockchain-commons/dcbor";
 
 // ============================================================================
 // Standard IANA Tags (re-used from dcbor but defined here for completeness)

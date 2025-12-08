@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch } from 'vue'
-import { decodeCbor, hexToBytes, hexOpt, diagnosticOpt, type Cbor } from '@blockchain-commons/dcbor'
+import { decodeCbor, hexToBytes, hexOpt, diagnosticOpt, MajorType, type Cbor } from '@blockchain-commons/dcbor'
 import { UR, decodeBytewords, encodeBytewords, BytewordsStyle } from '@blockchain-commons/uniform-resources'
 import { envelopeFromCbor } from '@blockchain-commons/envelope'
+import { ENVELOPE } from '@blockchain-commons/tags'
 
 useHead({
   title: 'dCBOR Playground | Blockchain Commons',
@@ -16,7 +17,7 @@ const inputFormatOptions = [
   { label: 'Auto-detect format', value: 'auto', icon: 'i-heroicons-sparkles' },
   { label: 'Single UR', value: 'ur', icon: 'i-heroicons-qr-code' },
   { label: 'Bytewords', value: 'bytewords', icon: 'i-heroicons-language' },
-  { label: 'Hex (dCBOR)', value: 'hex', icon: 'i-heroicons-code-bracket' },
+  { label: 'Hex', value: 'hex', icon: 'i-heroicons-code-bracket' },
 ]
 
 // State
@@ -74,6 +75,20 @@ function parseInput(input: string, format: InputFormat): Uint8Array {
       if (!input.toLowerCase().startsWith('ur:')) {
         throw new Error('UR string must start with "ur:"')
       }
+
+      // For envelope URs, decode bytewords directly to preserve the envelope tag (200)
+      // The UR class decodes CBOR which strips the tag, but envelopes need the tag intact
+      const lowercased = input.toLowerCase()
+      const afterScheme = lowercased.substring(3) // Remove 'ur:'
+      const [urType, ...dataParts] = afterScheme.split('/')
+      const data = dataParts.join('/')
+
+      if (urType === 'envelope') {
+        // Decode bytewords directly to preserve all CBOR tags
+        return decodeBytewords(data, BytewordsStyle.Minimal)
+      }
+
+      // For other UR types, use the standard UR decoding
       const ur = UR.fromURString(input)
       return ur.cbor().toData()
     }
@@ -120,9 +135,41 @@ function bytesToHex(bytes: Uint8Array): string {
     .join('')
 }
 
+// Helper function to check if bytes start with a specific CBOR tag
+function startsWithCborTag(bytes: Uint8Array, tagValue: number): boolean {
+  if (bytes.length < 2) return false
+
+  // CBOR tag encoding for values 24-255: 0xD8 followed by the tag value
+  if (tagValue >= 24 && tagValue < 256) {
+    return bytes[0] === 0xd8 && bytes[1] === tagValue
+  }
+
+  // CBOR tag encoding for values 0-23: 0xC0 | tagValue
+  if (tagValue < 24) {
+    return bytes[0] === (0xc0 | tagValue)
+  }
+
+  // CBOR tag encoding for values 256-65535: 0xD9 followed by two bytes
+  if (tagValue >= 256 && tagValue < 65536) {
+    if (bytes.length < 3) return false
+    return bytes[0] === 0xd9 && bytes[1] === ((tagValue >> 8) & 0xff) && bytes[2] === (tagValue & 0xff)
+  }
+
+  return false
+}
+
 // Convert bytes to UR string
 function bytesToUR(bytes: Uint8Array): string {
   try {
+    // Check if bytes start with envelope tag using the ENVELOPE tag from @blockchain-commons/tags
+    const isEnvelope = startsWithCborTag(bytes, ENVELOPE.value)
+
+    if (isEnvelope) {
+      // For envelopes, encode the raw bytes directly as bytewords to preserve the tag
+      return 'ur:envelope/' + encodeBytewords(bytes, BytewordsStyle.Minimal)
+    }
+
+    // For other types, decode CBOR and create a dcbor UR
     const cbor = decodeCbor(bytes)
     const ur = UR.new('dcbor', cbor)
     return ur.string()
@@ -154,13 +201,13 @@ function parseCbor() {
   try {
     const cborBytes = parseInput(input, inputFormat.value)
 
-    // Check if input is an envelope UR
-    const trimmedInput = input.trim().toLowerCase()
-    isEnvelopeInput.value = trimmedInput.startsWith('ur:envelope/')
-
     // Parse CBOR
     const cbor = decodeCbor(cborBytes)
     parsedCbor.value = cbor
+
+    // Check if the CBOR data has an envelope tag (200)
+    // This is more reliable than checking input format since hex can also contain envelopes
+    isEnvelopeInput.value = cbor.type === MajorType.Tagged && cbor.tag === ENVELOPE.value
 
     // Generate annotated hex
     annotatedHex.value = hexOpt(cbor, { annotate: true })
@@ -168,14 +215,17 @@ function parseCbor() {
     // Generate diagnostic notation
     diagnosticNotation.value = diagnosticOpt(cbor, { flat: false })
 
-    // Generate envelope format if this is an envelope
+    // Generate envelope format if this is an envelope (has tag 200)
     if (isEnvelopeInput.value) {
       try {
-        const envelope = envelopeFromCbor(cbor)
+        // Re-parse from bytes to ensure we have proper CBOR types (not display-optimized types)
+        const freshCbor = decodeCbor(cborBytes)
+        const envelope = envelopeFromCbor(freshCbor)
         envelopeFormat.value = envelope.treeFormat()
       } catch (err) {
         console.warn('Failed to parse as envelope:', err)
-        envelopeFormat.value = 'Error: Could not parse as Gordian Envelope'
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        envelopeFormat.value = `Error parsing envelope:\n${errorMsg}\n\nNote: The envelope tag (200) is present and the hex/diagnostic views show the data correctly.`
       }
     }
   } catch (err) {

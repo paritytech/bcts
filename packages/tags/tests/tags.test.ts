@@ -339,7 +339,7 @@ describe("Tags Registry", () => {
       // Get all exported tag constants
       const tagExports = Object.values(tags).filter(
         (value): value is { value: number; name: string } =>
-          typeof value === "object" && value !== null && "value" in value && "name" in value
+          typeof value === "object" && value !== null && "value" in value && "name" in value,
       );
 
       for (const tag of tagExports) {
@@ -356,7 +356,7 @@ describe("Tags Registry", () => {
       // Test that tags are valid CBOR tag values (non-negative integers)
       const tagExports = Object.values(tags).filter(
         (value): value is { value: number; name: string } =>
-          typeof value === "object" && value !== null && "value" in value && "name" in value
+          typeof value === "object" && value !== null && "value" in value && "name" in value,
       );
 
       for (const tag of tagExports) {
@@ -370,7 +370,7 @@ describe("Tags Registry", () => {
     it("should have lowercase hyphenated tag names", () => {
       const tagExports = Object.values(tags).filter(
         (value): value is { value: number; name: string } =>
-          typeof value === "object" && value !== null && "value" in value && "name" in value
+          typeof value === "object" && value !== null && "value" in value && "name" in value,
       );
 
       for (const tag of tagExports) {
