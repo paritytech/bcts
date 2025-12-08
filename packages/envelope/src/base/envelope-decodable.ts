@@ -48,11 +48,12 @@ export function extractNumber(envelope: Envelope): number {
     switch (cbor.type) {
       case 0: // MajorType.Unsigned
         return typeof cbor.value === "bigint" ? Number(cbor.value) : (cbor.value);
-      case 1: // MajorType.Negative
+      case 1: { // MajorType.Negative
         // Negative values are stored as magnitude, convert back
         const magnitude =
           typeof cbor.value === "bigint" ? Number(cbor.value) : (cbor.value);
         return -magnitude - 1;
+      }
       case 7: // MajorType.Simple
         if (
           typeof cbor.value === "object" &&
@@ -62,6 +63,9 @@ export function extractNumber(envelope: Envelope): number {
         ) {
           return cbor.value.value;
         }
+        break;
+      default:
+        // Other CBOR types don't represent numbers
         break;
     }
   }

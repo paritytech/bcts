@@ -107,7 +107,7 @@ describe("Signature Extension", () => {
 
       expect(original.hasSignatureFrom(alice.publicKey())).toBe(true);
 
-      const wrapped = original.wrap();
+      original.wrap();
       expect(original.hasSignatureFrom(alice.publicKey())).toBe(true);
     });
   });

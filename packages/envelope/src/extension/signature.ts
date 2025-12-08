@@ -13,7 +13,6 @@
 
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { Envelope } from "../base/envelope";
-import { Digest } from "../base/digest";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -110,7 +109,7 @@ export class SigningPrivateKey implements Signer {
    * Generates a new random private key.
    */
   static generate(): SigningPrivateKey {
-    const privateKey = secp256k1.utils.randomPrivateKey();
+    const privateKey: Uint8Array = secp256k1.utils.randomPrivateKey();
     return new SigningPrivateKey(privateKey);
   }
 
@@ -138,7 +137,8 @@ export class SigningPrivateKey implements Signer {
    */
   sign(data: Uint8Array): Signature {
     const signature = secp256k1.sign(data, this.#privateKey);
-    return new Signature(signature.toCompactRawBytes());
+    const signatureBytes: Uint8Array = signature.toCompactRawBytes();
+    return new Signature(signatureBytes);
   }
 
   /**
@@ -178,8 +178,9 @@ export class SigningPublicKey implements Verifier {
    */
   verify(data: Uint8Array, signature: Signature): boolean {
     try {
+      const sig = secp256k1.Signature.fromCompact(signature.data());
       return secp256k1.verify(
-        secp256k1.Signature.fromCompact(signature.data()),
+        sig,
         data,
         this.#publicKey,
       );

@@ -181,7 +181,7 @@ export interface DigestProvider {
 /// const digest = digestFromString("Hello, world!");
 /// ```
 export function digestFromString(text: string): Digest {
-  const encoder = new TextEncoder();
+  const encoder: TextEncoder = new TextEncoder();
   return Digest.fromImage(encoder.encode(text));
 }
 

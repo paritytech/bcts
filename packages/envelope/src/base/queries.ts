@@ -1,4 +1,4 @@
-import type { Cbor } from "@blockchain-commons/dcbor";
+// Cbor type available if needed later
 import { Envelope } from "./envelope";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
 import { EnvelopeError } from "./error";
@@ -164,7 +164,7 @@ Envelope.prototype.asAssertion = function (this: Envelope): Envelope | undefined
 /// Implementation of tryAssertion()
 Envelope.prototype.tryAssertion = function (this: Envelope): Envelope {
   const result = this.asAssertion();
-  if (!result) {
+  if (result === undefined) {
     throw EnvelopeError.notAssertion();
   }
   return result;
@@ -185,7 +185,7 @@ Envelope.prototype.asPredicate = function (this: Envelope): Envelope | undefined
 /// Implementation of tryPredicate()
 Envelope.prototype.tryPredicate = function (this: Envelope): Envelope {
   const result = this.asPredicate();
-  if (!result) {
+  if (result === undefined) {
     throw EnvelopeError.notAssertion();
   }
   return result;
@@ -206,7 +206,7 @@ Envelope.prototype.asObject = function (this: Envelope): Envelope | undefined {
 /// Implementation of tryObject()
 Envelope.prototype.tryObject = function (this: Envelope): Envelope {
   const result = this.asObject();
-  if (!result) {
+  if (result === undefined) {
     throw EnvelopeError.notAssertion();
   }
   return result;
@@ -259,7 +259,7 @@ Envelope.prototype.assertionsWithPredicate = function (
 
   return this.assertions().filter((assertion) => {
     const pred = assertion.subject().asPredicate();
-    return pred?.digest().equals(predicateDigest);
+    return pred !== undefined && pred.digest().equals(predicateDigest);
   });
 };
 
@@ -304,7 +304,7 @@ Envelope.prototype.objectForPredicate = function (
 ): Envelope {
   const assertion = this.assertionWithPredicate(predicate);
   const obj = assertion.asObject();
-  if (!obj) {
+  if (obj === undefined) {
     throw EnvelopeError.notAssertion();
   }
   return obj;
@@ -335,7 +335,7 @@ Envelope.prototype.objectsForPredicate = function (
 ): Envelope[] {
   return this.assertionsWithPredicate(predicate).map((assertion) => {
     const obj = assertion.asObject();
-    if (!obj) {
+    if (obj === undefined) {
       throw EnvelopeError.notAssertion();
     }
     return obj;
@@ -360,6 +360,13 @@ Envelope.prototype.elementsCount = function (this: Envelope): number {
       break;
     case "wrapped":
       count += c.envelope.elementsCount();
+      break;
+    case "leaf":
+    case "elided":
+    case "knownValue":
+    case "encrypted":
+    case "compressed":
+      // These cases don't contribute additional elements
       break;
   }
 

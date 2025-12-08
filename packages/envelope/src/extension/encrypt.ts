@@ -94,7 +94,7 @@ export class SymmetricKey {
     await sodium.ready;
 
     const digest = message.aadDigest();
-    if (!digest) {
+    if (digest === undefined) {
       throw EnvelopeError.general("Missing digest in encrypted message");
     }
 
@@ -110,7 +110,7 @@ export class SymmetricKey {
       );
 
       return plaintext;
-    } catch (error) {
+    } catch (_error) {
       throw EnvelopeError.general("Decryption failed: invalid key or corrupted data");
     }
   }
@@ -145,7 +145,7 @@ export class EncryptedMessage {
 
   /// Returns the digest of this encrypted message (the AAD digest)
   digest(): Digest {
-    if (!this.#aadDigest) {
+    if (this.#aadDigest === undefined) {
       throw new Error("Encrypted message missing AAD digest");
     }
     return this.#aadDigest;
@@ -302,7 +302,7 @@ Envelope.prototype.decryptSubject = async function (
   const message = subjectCase.message;
   const subjectDigest = message.aadDigest();
 
-  if (!subjectDigest) {
+  if (subjectDigest === undefined) {
     throw EnvelopeError.general("Missing digest in encrypted message");
   }
 

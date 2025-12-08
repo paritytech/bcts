@@ -1,4 +1,4 @@
-import type { Cbor } from "@blockchain-commons/dcbor";
+import type { Cbor, CborMap } from "@blockchain-commons/dcbor";
 import { isNumber, isNaN, asArray, asMap, asText } from "@blockchain-commons/dcbor";
 import { Envelope } from "./envelope";
 
@@ -73,7 +73,7 @@ declare module "./envelope" {
     /// Returns the leaf CBOR as a map if possible.
     ///
     /// @returns The map value or undefined
-    asMap(): import("@blockchain-commons/dcbor").CborMap | undefined;
+    asMap(): CborMap | undefined;
 
     /// Returns the leaf CBOR as text if possible.
     ///
@@ -131,7 +131,7 @@ Envelope.prototype.isBool = function (this: Envelope): boolean {
 /// Implementation of isNumber()
 Envelope.prototype.isNumber = function (this: Envelope): boolean {
   const leaf = this.asLeaf();
-  if (!leaf) {
+  if (leaf === undefined) {
     return false;
   }
 
@@ -146,7 +146,7 @@ Envelope.prototype.isSubjectNumber = function (this: Envelope): boolean {
 /// Implementation of isNaN()
 Envelope.prototype.isNaN = function (this: Envelope): boolean {
   const leaf = this.asLeaf();
-  if (!leaf) {
+  if (leaf === undefined) {
     return false;
   }
 
@@ -163,7 +163,7 @@ Envelope.prototype.isNull = function (this: Envelope): boolean {
   try {
     this.extractNull();
     return true;
-  } catch {
+  } catch (_error) {
     return false;
   }
 };
@@ -185,7 +185,7 @@ Envelope.prototype.asByteString = function (this: Envelope): Uint8Array | undefi
 /// Implementation of asArray()
 Envelope.prototype.asArray = function (this: Envelope): Cbor[] | undefined {
   const leaf = this.asLeaf();
-  if (!leaf) {
+  if (leaf === undefined) {
     return undefined;
   }
 
@@ -195,7 +195,7 @@ Envelope.prototype.asArray = function (this: Envelope): Cbor[] | undefined {
 /// Implementation of asMap()
 Envelope.prototype.asMap = function (this: Envelope) {
   const leaf = this.asLeaf();
-  if (!leaf) {
+  if (leaf === undefined) {
     return undefined;
   }
 
@@ -205,7 +205,7 @@ Envelope.prototype.asMap = function (this: Envelope) {
 /// Implementation of asText()
 Envelope.prototype.asText = function (this: Envelope): string | undefined {
   const leaf = this.asLeaf();
-  if (!leaf) {
+  if (leaf === undefined) {
     return undefined;
   }
 

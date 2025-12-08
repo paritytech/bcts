@@ -414,7 +414,7 @@ export class Envelope implements DigestProvider {
       case "encrypted": {
         // Get digest from encrypted message (AAD)
         const digest = c.message.aadDigest();
-        if (!digest) {
+        if (digest === undefined) {
           throw new Error("Encrypted envelope missing digest");
         }
         return digest;
@@ -422,7 +422,7 @@ export class Envelope implements DigestProvider {
       case "compressed": {
         // Get digest from compressed value
         const digest = c.value.digestOpt();
-        if (!digest) {
+        if (digest === undefined) {
           throw new Error("Compressed envelope missing digest");
         }
         return digest;
@@ -442,7 +442,13 @@ export class Envelope implements DigestProvider {
     switch (c.type) {
       case "node":
         return c.subject;
-      default:
+      case "leaf":
+      case "wrapped":
+      case "assertion":
+      case "elided":
+      case "knownValue":
+      case "encrypted":
+      case "compressed":
         return this;
     }
   }
@@ -520,7 +526,7 @@ export class Envelope implements DigestProvider {
         // Contains: [ciphertext, nonce, optional_digest]
         const message = c.message;
         const digest = message.aadDigest();
-        const arr = digest
+        const arr = digest !== undefined
           ? [message.ciphertext(), message.nonce(), digest.data()]
           : [message.ciphertext(), message.nonce()];
         return toTaggedValue(TAG_ENCRYPTED, Envelope.valueToCbor(arr));
@@ -530,7 +536,7 @@ export class Envelope implements DigestProvider {
         // and contains an array: [compressed_data, optional_digest]
         const digest = c.value.digestOpt();
         const data = c.value.compressedData();
-        const arr = digest ? [data, digest.data()] : [data];
+        const arr = digest !== undefined ? [data, digest.data()] : [data];
         return toTaggedValue(TAG_COMPRESSED, Envelope.valueToCbor(arr));
       }
     }
@@ -552,7 +558,7 @@ export class Envelope implements DigestProvider {
   static fromUntaggedCbor(cbor: Cbor): Envelope {
     // Check if it's a tagged value
     const tagged = asTaggedValue(cbor);
-    if (tagged) {
+    if (tagged !== undefined) {
       const [tag, item] = tagged;
       switch (tag.value) {
         case TAG_LEAF:
@@ -567,14 +573,18 @@ export class Envelope implements DigestProvider {
         case TAG_COMPRESSED: {
           // Compressed envelope: array with [compressed_data, optional_digest]
           const arr = asCborArray(item);
-          if (!arr || arr.length < 1 || arr.length > 2) {
+          if (arr === undefined || arr.length < 1 || arr.length > 2) {
             throw EnvelopeError.cbor("compressed envelope must have 1 or 2 elements");
           }
           const compressedData = asByteString(arr.get(0));
-          if (!compressedData) {
+          if (compressedData === undefined) {
             throw EnvelopeError.cbor("compressed data must be byte string");
           }
-          const digest = arr.length === 2 ? new Digest(asByteString(arr.get(1))!) : undefined;
+          const digestBytes = arr.length === 2 ? asByteString(arr.get(1)) : undefined;
+          if (arr.length === 2 && digestBytes === undefined) {
+            throw EnvelopeError.cbor("digest must be byte string");
+          }
+          const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
 
           // Import Compressed class at runtime to avoid circular dependency
           
@@ -584,15 +594,19 @@ export class Envelope implements DigestProvider {
         case TAG_ENCRYPTED: {
           // Encrypted envelope: array with [ciphertext, nonce, optional_digest]
           const arr = asCborArray(item);
-          if (!arr || arr.length < 2 || arr.length > 3) {
+          if (arr === undefined || arr.length < 2 || arr.length > 3) {
             throw EnvelopeError.cbor("encrypted envelope must have 2 or 3 elements");
           }
           const ciphertext = asByteString(arr.get(0));
           const nonce = asByteString(arr.get(1));
-          if (!ciphertext || !nonce) {
+          if (ciphertext === undefined || nonce === undefined) {
             throw EnvelopeError.cbor("ciphertext and nonce must be byte strings");
           }
-          const digest = arr.length === 3 ? new Digest(asByteString(arr.get(2))!) : undefined;
+          const digestBytes = arr.length === 3 ? asByteString(arr.get(2)) : undefined;
+          if (arr.length === 3 && digestBytes === undefined) {
+            throw EnvelopeError.cbor("digest must be byte string");
+          }
+          const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
 
           // Import EncryptedMessage class at runtime to avoid circular dependency
           
@@ -606,7 +620,7 @@ export class Envelope implements DigestProvider {
 
     // Check if it's a byte string (elided)
     const bytes = asByteString(cbor);
-    if (bytes) {
+    if (bytes !== undefined) {
       if (bytes.length !== 32) {
         throw EnvelopeError.cbor("elided digest must be 32 bytes");
       }
@@ -615,14 +629,22 @@ export class Envelope implements DigestProvider {
 
     // Check if it's an array (node)
     const array = asCborArray(cbor);
-    if (array) {
+    if (array !== undefined) {
       if (array.length < 2) {
         throw EnvelopeError.cbor("node must have at least two elements");
       }
-      const subject = Envelope.fromUntaggedCbor(array.get(0)!);
+      const subjectCbor = array.get(0);
+      if (subjectCbor === undefined) {
+        throw EnvelopeError.cbor("node subject is missing");
+      }
+      const subject = Envelope.fromUntaggedCbor(subjectCbor);
       const assertions: Envelope[] = [];
       for (let i = 1; i < array.length; i++) {
-        assertions.push(Envelope.fromUntaggedCbor(array.get(i)!));
+        const assertionCbor = array.get(i);
+        if (assertionCbor === undefined) {
+          throw EnvelopeError.cbor(`node assertion at index ${i} is missing`);
+        }
+        assertions.push(Envelope.fromUntaggedCbor(assertionCbor));
       }
       return Envelope.newWithAssertions(subject, assertions);
     }

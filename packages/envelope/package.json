@@ -1,6 +1,6 @@
 {
   "name": "@blockchain-commons/envelope",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "type": "module",
   "description": "Gordian Envelope for TypeScript",
   "main": "dist/index.cjs",
@@ -32,11 +32,13 @@
     "dev": "tsdown --watch",
     "test": "echo 'Skipping tests for envelope package (pending refactoring)'",
     "test:run": "jest",
-    "lint": "echo 'Skipping lint for envelope package (pending refactoring)'",
-    "lint:fix": "echo 'Skipping lint for envelope package (pending refactoring)'",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "docs": "typedoc",
+    "docs:watch": "typedoc --watch",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
     "envelope",

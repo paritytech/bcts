@@ -1,5 +1,17 @@
 import { Envelope } from "../base/envelope";
 
+// Type for CBOR values that can appear in diagnostic notation
+type CborValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Uint8Array
+  | CborValue[]
+  | Map<CborValue, CborValue>
+  | { tag: number; value: CborValue }
+  | { type: number; value: unknown };
+
 /// Diagnostic notation formatting for Gordian Envelopes.
 ///
 /// This module provides methods for converting envelopes to CBOR diagnostic
@@ -29,10 +41,11 @@ declare module "../base/envelope" {
 }
 
 /// Converts a CBOR value to diagnostic notation
-function cborToDiagnostic(cbor: any, indent = 0): string {
+function cborToDiagnostic(cbor: CborValue, indent = 0): string {
   // Handle tagged values (CBOR tags)
   if (typeof cbor === "object" && cbor !== null && "tag" in cbor && "value" in cbor) {
-    return `${cbor.tag}(${cborToDiagnostic(cbor.value, indent)})`;
+    const tagged = cbor as { tag: number; value: CborValue };
+    return `${tagged.tag}(${cborToDiagnostic(tagged.value, indent)})`;
   }
 
   // Handle arrays
@@ -73,22 +86,26 @@ function cborToDiagnostic(cbor: any, indent = 0): string {
 
   // Handle CBOR objects with type information
   if (typeof cbor === "object" && cbor !== null && "type" in cbor) {
-    switch (cbor.type) {
+    const typed = cbor as { type: number; value: unknown };
+    switch (typed.type) {
       case 0: // Unsigned
-        return String(cbor.value);
+        return String(typed.value);
       case 1: // Negative
-        return String(-1 - Number(cbor.value));
-      case 7: // Simple
-        if (cbor.value && typeof cbor.value === "object" && "type" in cbor.value) {
-          if (cbor.value.type === "Float") {
-            return String(cbor.value.value);
+        return String(-1 - Number(typed.value));
+      case 7: { // Simple
+        const simpleValue = typed.value;
+        if (simpleValue !== null && typeof simpleValue === "object" && "type" in simpleValue) {
+          const floatValue = simpleValue as { type: string; value: unknown };
+          if (floatValue.type === "Float") {
+            return String(floatValue.value);
           }
         }
-        if (cbor.value === 20) return "false";
-        if (cbor.value === 21) return "true";
-        if (cbor.value === 22) return "null";
-        if (cbor.value === 23) return "undefined";
-        return `simple(${cbor.value})`;
+        if (simpleValue === 20) return "false";
+        if (simpleValue === 21) return "true";
+        if (simpleValue === 22) return "null";
+        if (simpleValue === 23) return "undefined";
+        return `simple(${String(simpleValue)})`;
+      }
     }
   }
 

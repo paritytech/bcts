@@ -146,8 +146,12 @@ export class Assertion implements DigestProvider {
       throw EnvelopeError.invalidAssertion();
     }
 
-    const entries = Array.from(map.entries());
-    const [predicateCbor, objectCbor] = entries[0]!;
+    const entries = Array.from(map.entries()) as Array<[Cbor, Cbor]>;
+    const firstEntry = entries[0];
+    if (firstEntry === undefined) {
+      throw EnvelopeError.invalidAssertion();
+    }
+    const [predicateCbor, objectCbor] = firstEntry;
 
     const predicate = Envelope.fromUntaggedCbor(predicateCbor);
     const object = Envelope.fromUntaggedCbor(objectCbor);
