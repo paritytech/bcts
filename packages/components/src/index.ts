@@ -36,5 +36,14 @@ export { X25519PrivateKey, X25519PublicKey } from "./x25519/index.js";
 export { Ed25519PrivateKey, Ed25519PublicKey } from "./ed25519/index.js";
 
 // Symmetric encryption (from symmetric/ module)
-// Note: These will be exported once implemented
-// export { SymmetricKey, AuthenticationTag, EncryptedMessage } from "./symmetric/index.js";
+export { SymmetricKey, AuthenticationTag, EncryptedMessage } from "./symmetric/index.js";
+
+// Digital signatures (from signing/ module)
+export type { Signer, Verifier } from "./signing/index.js";
+export {
+  SignatureScheme,
+  Signature,
+  SigningPrivateKey,
+  SigningPublicKey,
+} from "./signing/index.js";
+export { createKeypair, createKeypairUsing, defaultSignatureScheme } from "./signing/signature-scheme.js";
