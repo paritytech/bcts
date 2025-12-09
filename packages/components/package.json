@@ -61,10 +61,11 @@
     "@blockchain-commons/crypto": "workspace:*",
     "@blockchain-commons/dcbor": "workspace:*",
     "@blockchain-commons/rand": "workspace:*",
+    "@blockchain-commons/sskr": "workspace:*",
     "@blockchain-commons/tags": "workspace:*",
     "@blockchain-commons/uniform-resources": "workspace:*",
-    "@blockchain-commons/sskr": "workspace:*",
     "@noble/post-quantum": "^0.2.1",
+    "@scure/sr25519": "^1.0.0",
     "pako": "^2.1.0"
   },
   "devDependencies": {
