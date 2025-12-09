@@ -82,7 +82,7 @@ describe("Expression (Gordian Envelope Expressions)", () => {
 
   describe("Parameter class - numeric ID", () => {
     it("should create parameter with numeric ID", () => {
-      const lhsParam = new Parameter(PARAMETER_IDS.LHS, 42);
+      const lhsParam = new Parameter(PARAMETER_IDS.LHS, Envelope.new(42));
 
       expect(lhsParam.id()).toBe(PARAMETER_IDS.LHS);
       expect(lhsParam.isNumeric()).toBe(true);
@@ -92,7 +92,7 @@ describe("Expression (Gordian Envelope Expressions)", () => {
 
   describe("Parameter class - string ID", () => {
     it("should create parameter with string ID", () => {
-      const customParam = new Parameter("myParam", "value");
+      const customParam = new Parameter("myParam", Envelope.new("value"));
 
       expect(customParam.id()).toBe("myParam");
       expect(customParam.isNumeric()).toBe(false);

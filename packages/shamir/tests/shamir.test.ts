@@ -1,7 +1,12 @@
 // Tests ported from bc-shamir-rust/src/lib.rs
 
 import type { RandomNumberGenerator } from "@bcts/rand";
-import { splitSecret, recoverSecret, ShamirError, type ShamirErrorType as _ShamirErrorType } from "../src/index.js";
+import {
+  splitSecret,
+  recoverSecret,
+  ShamirError,
+  type ShamirErrorType as _ShamirErrorType,
+} from "../src/index.js";
 
 /**
  * Fake random number generator for deterministic testing.

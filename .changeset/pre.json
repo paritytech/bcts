@@ -1,0 +1,22 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@bcts/playground": "0.1.0",
+    "@bcts/components": "1.0.0-alpha.5",
+    "@bcts/crypto": "1.0.0-alpha.5",
+    "@bcts/dcbor": "1.0.0-alpha.5",
+    "@bcts/envelope": "1.0.0-alpha.5",
+    "@bcts/known-values": "1.0.0-alpha.5",
+    "@bcts/provenance-mark": "1.0.0-alpha.5",
+    "@bcts/rand": "1.0.0-alpha.5",
+    "@bcts/shamir": "1.0.0-alpha.5",
+    "@bcts/sskr": "1.0.0-alpha.5",
+    "@bcts/tags": "1.0.0-alpha.5",
+    "@bcts/uniform-resources": "1.0.0-alpha.5",
+    "@bcts/xid": "1.0.0-alpha.5",
+    "@bcts/eslint": "0.1.0",
+    "@bcts/tsconfig": "0.1.0"
+  },
+  "changesets": []
+}

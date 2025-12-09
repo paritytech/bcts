@@ -55,7 +55,7 @@ const navigationItems: NavigationMenuItem[] = [
   },
   {
     type: 'separator'
-  },
+  } as unknown as NavigationMenuItem,
   {
     label: 'APIs',
     type: 'label'

@@ -164,8 +164,10 @@ describe("Recipient (Public-Key Encryption)", () => {
       ]);
 
       const decrypted = encrypted.decryptSubjectToRecipient(alice);
+      const decryptedText = decrypted.subject().asText();
 
-      expect(decrypted.subject().asText().length).toBe(largeData.length);
+      expect(decryptedText).toBeDefined();
+      expect(decryptedText?.length).toBe(largeData.length);
     });
   });
 });

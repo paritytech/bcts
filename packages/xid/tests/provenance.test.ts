@@ -102,11 +102,11 @@ describe("Provenance", () => {
       expect(provenance2.generator()).toBeUndefined();
       expect(provenanceOmittingGenerator.equals(provenance2)).toBe(true);
 
-      // Elided envelope should be equivalent to included envelope
+      // Elided envelope should be equivalent to included envelope (same digest)
       const envelopeIncluding = provenanceIncludingGenerator.intoEnvelopeOpt(
         XIDGeneratorOptions.Include,
       );
-      expect(envelopeEliding.isEquivalentTo(envelopeIncluding)).toBe(true);
+      expect(envelopeEliding.digest().equals(envelopeIncluding.digest())).toBe(true);
     });
   });
 
@@ -182,7 +182,7 @@ describe("Provenance", () => {
       const envelopeElide = provenance.intoEnvelopeOpt(XIDGeneratorOptions.Elide);
       const provenanceElide = Provenance.tryFromEnvelope(envelopeElide);
       expect(provenanceElide.generator()).toBeUndefined();
-      expect(envelopeElide.isEquivalentTo(envelopeInclude)).toBe(true);
+      expect(envelopeElide.digest().equals(envelopeInclude.digest())).toBe(true);
 
       // Mode 4: Encrypt
       const password = new TextEncoder().encode("secure_password");
