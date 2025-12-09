@@ -1,8 +1,8 @@
 {
   "name": "@blockchain-commons/rand",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "type": "module",
-  "description": "Blockchain Commons rand for TypeScript",
+  "description": "Blockchain Commons Random Number Utilities for TypeScript",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
@@ -33,12 +33,12 @@
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
-    "cbor",
-    "tags",
+    "random",
+    "rng",
     "blockchain-commons",
-    "envelope",
-    "gordian",
-    "cryptography"
+    "cryptography",
+    "testing",
+    "security"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -48,16 +48,12 @@
     "@blockchain-commons/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
     "@types/jest": "^30.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.47.0",
-    "@typescript-eslint/parser": "^8.47.0",
+    "@types/node": "^24.10.1",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.16.6",
+    "tsdown": "^0.17.1",
     "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@blockchain-commons/dcbor": "workspace:*"
   }
 }

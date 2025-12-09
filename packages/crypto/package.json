@@ -1,6 +1,6 @@
 {
-  "name": "@blockchain-commons/rand",
-  "version": "1.0.0-alpha.1",
+  "name": "@blockchain-commons/crypto",
+  "version": "1.0.0-alpha.2",
   "type": "module",
   "description": "Blockchain Commons rand for TypeScript",
   "main": "dist/index.cjs",
