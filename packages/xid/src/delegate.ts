@@ -7,18 +7,18 @@
  * Ported from bc-xid-rust/src/delegate.rs
  */
 
-import { Envelope, type EnvelopeEncodable } from "@blockchain-commons/envelope";
-import { Reference, XID } from "@blockchain-commons/components";
+import { type Envelope, type EnvelopeEncodable } from "@blockchain-commons/envelope";
+import { Reference, type XID } from "@blockchain-commons/components";
 import { Permissions, type HasPermissions } from "./permissions.js";
 import { Shared } from "./shared.js";
 
 // Forward declaration - XIDDocument will be imported dynamically to avoid circular dependency
 // The actual XIDDocument type will be set when the module is loaded
-type XIDDocumentType = {
+interface XIDDocumentType {
   xid(): XID;
   intoEnvelope(): Envelope;
   clone(): XIDDocumentType;
-};
+}
 
 // This will be set by xid-document.ts when it loads
 let XIDDocumentClass: {
@@ -39,8 +39,8 @@ export function registerXIDDocumentClass(cls: {
  * Represents a delegate in an XID document.
  */
 export class Delegate implements HasPermissions, EnvelopeEncodable {
-  private _controller: Shared<XIDDocumentType>;
-  private _permissions: Permissions;
+  private readonly _controller: Shared<XIDDocumentType>;
+  private readonly _permissions: Permissions;
 
   private constructor(controller: Shared<XIDDocumentType>, permissions: Permissions) {
     this._controller = controller;
@@ -89,7 +89,7 @@ export class Delegate implements HasPermissions, EnvelopeEncodable {
    */
   intoEnvelope(): Envelope {
     const doc = this._controller.read();
-    const envelope = doc.intoEnvelope().wrap();
+    const envelope = (doc.intoEnvelope() as { wrap(): Envelope }).wrap();
     return this._permissions.addToEnvelope(envelope);
   }
 
@@ -97,12 +97,12 @@ export class Delegate implements HasPermissions, EnvelopeEncodable {
    * Try to extract a Delegate from an envelope.
    */
   static tryFromEnvelope(envelope: Envelope): Delegate {
-    if (!XIDDocumentClass) {
+    if (XIDDocumentClass === null) {
       throw new Error("XIDDocument class not registered. Import xid-document.js first.");
     }
 
     const permissions = Permissions.tryFromEnvelope(envelope);
-    const inner = envelope.tryUnwrap();
+    const inner = (envelope as unknown as { tryUnwrap(): Envelope }).tryUnwrap();
     const controller = Shared.new(XIDDocumentClass.tryFromEnvelope(inner));
     return new Delegate(controller, permissions);
   }

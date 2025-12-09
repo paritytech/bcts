@@ -14,9 +14,9 @@ import {
   type EnvelopeEncodable,
 } from "@blockchain-commons/envelope";
 import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT } from "@blockchain-commons/known-values";
-import { Salt, Reference, URI } from "@blockchain-commons/components";
+import { Salt, Reference } from "@blockchain-commons/components";
 import { Permissions, type HasPermissions } from "./permissions.js";
-import { Privilege } from "./privilege.js";
+import { type Privilege } from "./privilege.js";
 import { type HasNickname } from "./name.js";
 import { XIDError } from "./error.js";
 
@@ -62,11 +62,11 @@ export type PrivateKeyData =
  * Represents a key in an XID document.
  */
 export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
-  private _publicKeyBase: PublicKeyBase;
-  private _privateKeys: { data: PrivateKeyData; salt: Salt } | undefined;
+  private readonly _publicKeyBase: PublicKeyBase;
+  private readonly _privateKeys: { data: PrivateKeyData; salt: Salt } | undefined;
   private _nickname: string;
-  private _endpoints: Set<string>;
-  private _permissions: Permissions;
+  private readonly _endpoints: Set<string>;
+  private readonly _permissions: Permissions;
 
   private constructor(
     publicKeyBase: PublicKeyBase,
@@ -121,7 +121,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
    * Get the private key base, if available and decrypted.
    */
   privateKeyBase(): PrivateKeyBase | undefined {
-    if (!this._privateKeys) return undefined;
+    if (this._privateKeys === undefined) return undefined;
     if (this._privateKeys.data.type === "decrypted") {
       return this._privateKeys.data.privateKeyBase;
     }
@@ -211,7 +211,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
     let envelope = Envelope.new(this._publicKeyBase.data());
 
     // Handle private keys
-    if (this._privateKeys) {
+    if (this._privateKeys !== undefined) {
       const { data, salt } = this._privateKeys;
 
       if (data.type === "encrypted") {
@@ -288,8 +288,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
    */
   static tryFromEnvelope(envelope: Envelope, password?: Uint8Array): Key {
     // Extract public key base from subject
-    const publicKeyData = envelope.asByteString();
-    if (!publicKeyData) {
+    const publicKeyData = envelope.asByteString() as Uint8Array | undefined;
+    if (publicKeyData === undefined) {
       throw XIDError.component(new Error("Could not extract public key from envelope"));
     }
     const publicKeyBase = new PublicKeyBase(publicKeyData);
@@ -297,23 +297,25 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
     // Extract optional private key
     let privateKeys: { data: PrivateKeyData; salt: Salt } | undefined;
 
-    const privateKeyAssertions = envelope.assertionsWithPredicate(PRIVATE_KEY);
+    const privateKeyAssertions = envelope.assertionsWithPredicate(PRIVATE_KEY) as Envelope[];
     if (privateKeyAssertions.length > 0) {
-      const privateKeyAssertion = privateKeyAssertions[0];
+      const privateKeyAssertion = privateKeyAssertions[0] as Envelope;
       const assertionCase = privateKeyAssertion.case();
 
       if (assertionCase.type === "assertion") {
-        const privateKeyObject = assertionCase.assertion.object();
+        const privateKeyObject = assertionCase.assertion.object() as Envelope;
 
         // Extract salt
-        const saltAssertions = privateKeyAssertion.assertionsWithPredicate(SALT);
+        const saltAssertions = privateKeyAssertion.assertionsWithPredicate(SALT) as Envelope[];
         let salt: Salt;
         if (saltAssertions.length > 0) {
-          const saltAssertion = saltAssertions[0];
+          const saltAssertion = saltAssertions[0] as Envelope;
           const saltCase = saltAssertion.case();
           if (saltCase.type === "assertion") {
-            const saltData = saltCase.assertion.object().asByteString();
-            if (saltData) {
+            const saltData = (saltCase.assertion.object() as Envelope).asByteString() as
+              | Uint8Array
+              | undefined;
+            if (saltData !== undefined) {
               salt = Salt.from(saltData);
             } else {
               salt = Salt.random(32);
@@ -328,11 +330,11 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
         // Check if encrypted
         const objCase = privateKeyObject.case();
         if (objCase.type === "encrypted") {
-          if (password) {
+          if (password !== undefined) {
             try {
-              const decrypted = privateKeyObject.decryptSubject(password);
-              const decryptedData = decrypted.asByteString();
-              if (decryptedData) {
+              const decrypted = privateKeyObject.decryptSubject(password) as Envelope;
+              const decryptedData = decrypted.asByteString() as Uint8Array | undefined;
+              if (decryptedData !== undefined) {
                 const privateKeyBase = PrivateKeyBase.fromBytes(decryptedData, publicKeyData);
                 privateKeys = {
                   data: { type: "decrypted", privateKeyBase },
@@ -355,8 +357,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
           }
         } else {
           // Plain text private key
-          const privateKeyData = privateKeyObject.asByteString();
-          if (privateKeyData) {
+          const privateKeyData = privateKeyObject.asByteString() as Uint8Array | undefined;
+          if (privateKeyData !== undefined) {
             const privateKeyBase = PrivateKeyBase.fromBytes(privateKeyData, publicKeyData);
             privateKeys = {
               data: { type: "decrypted", privateKeyBase },
@@ -370,18 +372,18 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
     // Extract nickname
     let nickname = "";
     try {
-      const nicknameObj = envelope.objectForPredicate(NICKNAME);
-      nickname = nicknameObj.asText() ?? "";
+      const nicknameObj = envelope.objectForPredicate(NICKNAME) as Envelope;
+      nickname = (nicknameObj.asText() as string | undefined) ?? "";
     } catch {
       // No nickname
     }
 
     // Extract endpoints
     const endpoints = new Set<string>();
-    const endpointObjects = envelope.objectsForPredicate(ENDPOINT);
+    const endpointObjects = envelope.objectsForPredicate(ENDPOINT) as Envelope[];
     for (const obj of endpointObjects) {
-      const text = obj.asText();
-      if (text) {
+      const text = obj.asText() as string | undefined;
+      if (text !== undefined) {
         endpoints.add(text);
       }
     }
@@ -412,7 +414,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
   clone(): Key {
     return new Key(
       this._publicKeyBase,
-      this._privateKeys
+      this._privateKeys !== undefined
         ? { data: this._privateKeys.data, salt: this._privateKeys.salt }
         : undefined,
       this._nickname,

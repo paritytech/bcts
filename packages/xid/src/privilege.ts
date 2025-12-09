@@ -8,7 +8,7 @@
  */
 
 import {
-  KnownValue,
+  type KnownValue,
   PRIVILEGE_ALL,
   PRIVILEGE_AUTH,
   PRIVILEGE_SIGN,

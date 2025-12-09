@@ -9,9 +9,9 @@
 
 import { Envelope, type EnvelopeEncodable } from "@blockchain-commons/envelope";
 import { KEY, DELEGATE, NAME, CAPABILITY, ALLOW } from "@blockchain-commons/known-values";
-import { Reference, URI } from "@blockchain-commons/components";
+import type { Reference } from "@blockchain-commons/components";
 import { Permissions, type HasPermissions } from "./permissions.js";
-import { Privilege, privilegeFromEnvelope } from "./privilege.js";
+import { privilegeFromEnvelope } from "./privilege.js";
 import { XIDError } from "./error.js";
 
 // Raw values for predicate matching
@@ -25,7 +25,7 @@ const ALLOW_RAW = ALLOW.value();
  * Represents a service endpoint in an XID document.
  */
 export class Service implements HasPermissions, EnvelopeEncodable {
-  private _uri: string;
+  private readonly _uri: string;
   private _keyReferences: Set<string>; // Store as hex strings for easier comparison
   private _delegateReferences: Set<string>;
   private _permissions: Permissions;
@@ -212,59 +212,65 @@ export class Service implements HasPermissions, EnvelopeEncodable {
    */
   static tryFromEnvelope(envelope: Envelope): Service {
     // Extract URI from subject
-    const uri = envelope.asText();
-    if (!uri) {
+    const uri = (envelope as unknown as { asText(): string | undefined }).asText();
+    if (uri === undefined) {
       throw XIDError.component(new Error("Could not extract URI from envelope"));
     }
 
     const service = new Service(uri);
 
     // Process assertions
-    for (const assertion of envelope.assertions()) {
+    const assertions = (envelope as unknown as { assertions(): Envelope[] }).assertions();
+    for (const assertion of assertions) {
       const assertionCase = assertion.case();
       if (assertionCase.type !== "assertion") {
         continue;
       }
 
-      const predicateEnv = assertionCase.assertion.predicate();
+      const predicateEnv = assertionCase.assertion.predicate() as Envelope;
       const predicateCase = predicateEnv.case();
       if (predicateCase.type !== "knownValue") {
         continue;
       }
 
       const predicate = predicateCase.value.value();
-      const object = assertionCase.assertion.object();
+      const object = assertionCase.assertion.object() as Envelope;
 
       // Check for nested assertions
-      if (object.assertions().length > 0) {
+      const objectAssertions = (object as unknown as { assertions(): Envelope[] }).assertions();
+      if (objectAssertions.length > 0) {
         throw XIDError.unexpectedNestedAssertions();
       }
 
       switch (predicate) {
         case KEY_RAW: {
-          const keyData = object.asByteString();
-          if (keyData) {
+          const keyData = (
+            object as unknown as { asByteString(): Uint8Array | undefined }
+          ).asByteString();
+          if (keyData !== undefined) {
             service.addKeyReferenceHex(bytesToHex(keyData));
           }
           break;
         }
         case DELEGATE_RAW: {
-          const delegateData = object.asByteString();
-          if (delegateData) {
+          const delegateData = (
+            object as unknown as { asByteString(): Uint8Array | undefined }
+          ).asByteString();
+          if (delegateData !== undefined) {
             service.addDelegateReferenceHex(bytesToHex(delegateData));
           }
           break;
         }
         case CAPABILITY_RAW: {
-          const capability = object.asText();
-          if (capability) {
+          const capability = (object as unknown as { asText(): string | undefined }).asText();
+          if (capability !== undefined) {
             service.addCapability(capability);
           }
           break;
         }
         case NAME_RAW: {
-          const name = object.asText();
-          if (name) {
+          const name = (object as unknown as { asText(): string | undefined }).asText();
+          if (name !== undefined) {
             service.setName(name);
           }
           break;
@@ -275,7 +281,7 @@ export class Service implements HasPermissions, EnvelopeEncodable {
           break;
         }
         default:
-          throw XIDError.unexpectedPredicate(predicate.toString());
+          throw XIDError.unexpectedPredicate(String(predicate));
       }
     }
 

@@ -15,7 +15,7 @@
  * so this is primarily a type-safe wrapper that makes the sharing explicit.
  */
 export class Shared<T> {
-  private value: T;
+  private readonly value: T;
 
   constructor(value: T) {
     this.value = value;

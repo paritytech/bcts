@@ -8,7 +8,7 @@
  */
 
 import { ALLOW, DENY } from "@blockchain-commons/known-values";
-import { Envelope } from "@blockchain-commons/envelope";
+import { type Envelope } from "@blockchain-commons/envelope";
 import { Privilege, privilegeFromEnvelope, privilegeToKnownValue } from "./privilege.js";
 
 /**
@@ -136,14 +136,18 @@ export class Permissions implements HasPermissions {
     const deny = new Set<Privilege>();
 
     // Extract allow assertions
-    const allowObjects = envelope.objectsForPredicate(ALLOW);
+    const allowObjects = (
+      envelope as unknown as { objectsForPredicate(p: unknown): Envelope[] }
+    ).objectsForPredicate(ALLOW);
     for (const obj of allowObjects) {
       const privilege = privilegeFromEnvelope(obj);
       allow.add(privilege);
     }
 
     // Extract deny assertions
-    const denyObjects = envelope.objectsForPredicate(DENY);
+    const denyObjects = (
+      envelope as unknown as { objectsForPredicate(p: unknown): Envelope[] }
+    ).objectsForPredicate(DENY);
     for (const obj of denyObjects) {
       const privilege = privilegeFromEnvelope(obj);
       deny.add(privilege);

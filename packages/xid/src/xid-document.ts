@@ -9,7 +9,7 @@
 import {
   Envelope,
   PrivateKeyBase,
-  PublicKeyBase,
+  type PublicKeyBase,
   type EnvelopeEncodable,
   type Signer,
 } from "@blockchain-commons/envelope";
@@ -22,11 +22,11 @@ import {
 } from "@blockchain-commons/known-values";
 import { Reference, XID } from "@blockchain-commons/components";
 import {
-  ProvenanceMark,
+  type ProvenanceMark,
   ProvenanceMarkGenerator,
   ProvenanceMarkResolution,
 } from "@blockchain-commons/provenance-mark";
-import { Cbor } from "@blockchain-commons/dcbor";
+import { type Cbor } from "@blockchain-commons/dcbor";
 
 import { Key, XIDPrivateKeyOptions, type XIDPrivateKeyOptionsValue } from "./key.js";
 import { Delegate, registerXIDDocumentClass } from "./delegate.js";
@@ -96,11 +96,11 @@ type ServiceMap = Map<string, Service>;
  * Represents an XID document.
  */
 export class XIDDocument implements EnvelopeEncodable {
-  private _xid: XID;
-  private _resolutionMethods: Set<string>;
-  private _keys: KeyMap;
-  private _delegates: DelegateMap;
-  private _services: ServiceMap;
+  private readonly _xid: XID;
+  private readonly _resolutionMethods: Set<string>;
+  private readonly _keys: KeyMap;
+  private readonly _delegates: DelegateMap;
+  private readonly _services: ServiceMap;
   private _provenance: Provenance | undefined;
 
   private constructor(
@@ -249,7 +249,7 @@ export class XIDDocument implements EnvelopeEncodable {
   takeKey(publicKeyBase: PublicKeyBase): Key | undefined {
     const hashKey = publicKeyBase.hex();
     const key = this._keys.get(hashKey);
-    if (key) {
+    if (key !== undefined) {
       this._keys.delete(hashKey);
     }
     return key;
@@ -300,7 +300,7 @@ export class XIDDocument implements EnvelopeEncodable {
    */
   removeInceptionKey(): Key | undefined {
     const inceptionKey = this.inceptionKey();
-    if (inceptionKey) {
+    if (inceptionKey !== undefined) {
       this._keys.delete(inceptionKey.hashKey());
     }
     return inceptionKey;
@@ -361,7 +361,7 @@ export class XIDDocument implements EnvelopeEncodable {
   takeDelegate(xid: XID): Delegate | undefined {
     const hashKey = xid.toHex();
     const delegate = this._delegates.get(hashKey);
-    if (delegate) {
+    if (delegate !== undefined) {
       this._delegates.delete(hashKey);
     }
     return delegate;
@@ -410,7 +410,7 @@ export class XIDDocument implements EnvelopeEncodable {
    */
   takeService(uri: string): Service | undefined {
     const service = this._services.get(uri);
-    if (service) {
+    if (service !== undefined) {
       this._services.delete(uri);
     }
     return service;
@@ -445,7 +445,7 @@ export class XIDDocument implements EnvelopeEncodable {
     for (const keyRef of service.keyReferences()) {
       const refBytes = hexToBytes(keyRef);
       const ref = Reference.hash(refBytes);
-      if (!this.findKeyByReference(ref)) {
+      if (this.findKeyByReference(ref) === undefined) {
         throw XIDError.unknownKeyReference(keyRef, service.uri());
       }
     }
@@ -453,7 +453,7 @@ export class XIDDocument implements EnvelopeEncodable {
     for (const delegateRef of service.delegateReferences()) {
       const refBytes = hexToBytes(delegateRef);
       const ref = Reference.hash(refBytes);
-      if (!this.findDelegateByReference(ref)) {
+      if (this.findDelegateByReference(ref) === undefined) {
         throw XIDError.unknownDelegateReference(delegateRef, service.uri());
       }
     }
@@ -507,7 +507,7 @@ export class XIDDocument implements EnvelopeEncodable {
    * Set the provenance.
    */
   setProvenance(provenance: ProvenanceMark | undefined): void {
-    this._provenance = provenance ? Provenance.new(provenance) : undefined;
+    this._provenance = provenance !== undefined ? Provenance.new(provenance) : undefined;
   }
 
   /**
@@ -521,13 +521,13 @@ export class XIDDocument implements EnvelopeEncodable {
    * Advance the provenance mark using the embedded generator.
    */
   nextProvenanceMarkWithEmbeddedGenerator(password?: Uint8Array, date?: Date, info?: Cbor): void {
-    if (!this._provenance) {
+    if (this._provenance === undefined) {
       throw XIDError.noProvenanceMark();
     }
 
     const currentMark = this._provenance.mark();
     const generator = this._provenance.generatorMut(password);
-    if (!generator) {
+    if (generator === undefined) {
       throw XIDError.noGenerator();
     }
 
@@ -556,7 +556,7 @@ export class XIDDocument implements EnvelopeEncodable {
     date?: Date,
     info?: Cbor,
   ): void {
-    if (!this._provenance) {
+    if (this._provenance === undefined) {
       throw XIDError.noProvenanceMark();
     }
 
@@ -615,7 +615,7 @@ export class XIDDocument implements EnvelopeEncodable {
     }
 
     // Add provenance
-    if (this._provenance) {
+    if (this._provenance !== undefined) {
       envelope = envelope.addAssertion(
         PROVENANCE,
         this._provenance.intoEnvelopeOpt(generatorOptions),
@@ -626,11 +626,11 @@ export class XIDDocument implements EnvelopeEncodable {
     switch (signingOptions.type) {
       case "inception": {
         const inceptionKey = this.inceptionKey();
-        if (!inceptionKey) {
+        if (inceptionKey === undefined) {
           throw XIDError.missingInceptionKey();
         }
         const privateKeyBase = inceptionKey.privateKeyBase();
-        if (!privateKeyBase) {
+        if (privateKeyBase === undefined) {
           throw XIDError.missingInceptionKey();
         }
         envelope = envelope.addSignature(privateKeyBase as unknown as Signer);
@@ -660,28 +660,32 @@ export class XIDDocument implements EnvelopeEncodable {
     password?: Uint8Array,
     verifySignature: XIDVerifySignature = XIDVerifySignature.None,
   ): XIDDocument {
+    const envelopeExt = envelope as unknown as {
+      subject(): Envelope & { isWrapped(): boolean; tryUnwrap(): Envelope };
+      tryUnwrap(): Envelope;
+      hasSignatureFrom(verifier: unknown): boolean;
+    };
     switch (verifySignature) {
       case XIDVerifySignature.None: {
-        const envelopeToParse = envelope.subject().isWrapped()
-          ? envelope.subject().tryUnwrap()
-          : envelope;
-        return XIDDocument.fromEnvelopeInner(envelopeToParse, password);
+        const subject = envelopeExt.subject();
+        const envelopeToParse = subject.isWrapped() ? subject.tryUnwrap() : envelope;
+        return XIDDocument.fromEnvelopeInner(envelopeToParse as Envelope, password);
       }
       case XIDVerifySignature.Inception: {
-        if (!envelope.subject().isWrapped()) {
+        if (!envelopeExt.subject().isWrapped()) {
           throw XIDError.envelopeNotSigned();
         }
 
-        const unwrapped = envelope.tryUnwrap();
-        const doc = XIDDocument.fromEnvelopeInner(unwrapped, password);
+        const unwrapped = envelopeExt.tryUnwrap();
+        const doc = XIDDocument.fromEnvelopeInner(unwrapped as Envelope, password);
 
         const inceptionKey = doc.inceptionKey();
-        if (!inceptionKey) {
+        if (inceptionKey === undefined) {
           throw XIDError.missingInceptionKey();
         }
 
         // Verify signature
-        if (!envelope.hasSignatureFrom(inceptionKey.publicKeyBase() as unknown as Verifier)) {
+        if (!envelopeExt.hasSignatureFrom(inceptionKey.publicKeyBase() as unknown as Verifier)) {
           throw XIDError.signatureVerificationFailed();
         }
 
@@ -696,34 +700,39 @@ export class XIDDocument implements EnvelopeEncodable {
   }
 
   private static fromEnvelopeInner(envelope: Envelope, password?: Uint8Array): XIDDocument {
+    const envelopeExt = envelope as unknown as {
+      asByteString(): Uint8Array | undefined;
+      assertions(): Envelope[];
+    };
+
     // Extract XID from subject
-    const xidData = envelope.asByteString();
-    if (!xidData) {
+    const xidData = envelopeExt.asByteString();
+    if (xidData === undefined) {
       throw XIDError.invalidXid();
     }
     const xid = XID.from(xidData);
     const doc = XIDDocument.fromXid(xid);
 
     // Process assertions
-    for (const assertion of envelope.assertions()) {
+    for (const assertion of envelopeExt.assertions()) {
       const assertionCase = assertion.case();
       if (assertionCase.type !== "assertion") {
         continue;
       }
 
-      const predicateEnv = assertionCase.assertion.predicate();
+      const predicateEnv = assertionCase.assertion.predicate() as Envelope;
       const predicateCase = predicateEnv.case();
       if (predicateCase.type !== "knownValue") {
         continue;
       }
 
       const predicate = predicateCase.value.value();
-      const object = assertionCase.assertion.object();
+      const object = assertionCase.assertion.object() as Envelope;
 
       switch (predicate) {
         case DEREFERENCE_VIA_RAW: {
-          const method = object.asText();
-          if (!method) {
+          const method = (object as unknown as { asText(): string | undefined }).asText();
+          if (method === undefined) {
             throw XIDError.invalidResolutionMethod();
           }
           doc.addResolutionMethod(method);
@@ -745,14 +754,14 @@ export class XIDDocument implements EnvelopeEncodable {
           break;
         }
         case PROVENANCE_RAW: {
-          if (doc._provenance) {
+          if (doc._provenance !== undefined) {
             throw XIDError.multipleProvenanceMarks();
           }
           doc._provenance = Provenance.tryFromEnvelope(object, password);
           break;
         }
         default:
-          throw XIDError.unexpectedPredicate(predicate.toString());
+          throw XIDError.unexpectedPredicate(String(predicate));
       }
     }
 
@@ -764,9 +773,10 @@ export class XIDDocument implements EnvelopeEncodable {
    * Create a signed envelope.
    */
   toSignedEnvelope(signingKey: Signer): Envelope {
-    return this.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+    const envelope = this.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
       type: "none",
-    }).addSignature(signingKey);
+    });
+    return (envelope as unknown as { addSignature(s: Signer): Envelope }).addSignature(signingKey);
   }
 
   /**
