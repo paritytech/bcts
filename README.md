@@ -10,11 +10,13 @@ A comprehensive TypeScript monorepo implementing [Blockchain Commons](https://ww
 
 | Package | Description | Version | Reference |
 |---------|-------------|---------|-----------|
-| [**dcbor**](packages/dcbor) | Deterministic CBOR encoding - a specification for serializing data in a canonical, reproducible format. Ensures identical byte sequences for cryptographic operations and blockchain applications. [📖 API Docs](https://leonardocustodio.github.io/bc-dcbor-ts/) | `1.0.0-alpha.2` | [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
-| [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. | `1.0.0-alpha.2` | [bc-tags-rust](https://github.com/BlockchainCommons/bc-tags-rust) |
-| [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. | `1.0.0-alpha.2` | [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) |
-| [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. | `1.0.0-alpha.2` | [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) |
-| [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. | `1.0.0-alpha.2` | [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
+| [**dcbor**](packages/dcbor) | Deterministic CBOR encoding - a specification for serializing data in a canonical, reproducible format. Ensures identical byte sequences for cryptographic operations and blockchain applications. [📖 API Docs](https://dcbor.custodio.me/docs/dcbor) | `1.0.0-alpha.2` | [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
+| [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. [📖 API Docs](https://dcbor.custodio.me/docs/envelope) | `1.0.0-alpha.2` | [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
+| [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 API Docs](https://dcbor.custodio.me/docs/uniform-resources) | `1.0.0-alpha.2` | [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) |
+| [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. [📖 API Docs](https://dcbor.custodio.me/docs/tags) | `1.0.0-alpha.2` | [bc-tags-rust](https://github.com/BlockchainCommons/bc-tags-rust) |
+| [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 API Docs](https://dcbor.custodio.me/docs/known-values) | `1.0.0-alpha.2` | [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) |
+| [**rand**](packages/rand) | Cryptographically secure random number generation utilities. Provides a consistent interface for random operations across all packages. [📖 API Docs](https://dcbor.custodio.me/docs/rand) | `1.0.0-alpha.2` | [bc-rand-rust](https://github.com/BlockchainCommons/bc-rand-rust) |
+| [**components**](packages/components) | Shared component utilities and helpers for the Blockchain Commons ecosystem. [📖 API Docs](https://dcbor.custodio.me/docs/components) | `1.0.0-alpha.2` | [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) |
 
 ## 🎮 Applications
 
@@ -33,7 +35,7 @@ An interactive web application for experimenting with dCBOR encoding, Uniform Re
 bun playground
 ```
 
-**Live Demo:** https://leonardocustodio.github.io/blockchain-commons
+**Live Demo:** https://dcbor.custodio.me
 
 ## 🛠️ Development
 
