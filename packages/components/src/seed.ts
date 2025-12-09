@@ -1,16 +1,11 @@
 /**
  * Cryptographic seed with optional metadata (minimum 16 bytes)
+ * Ported from bc-components-rust/src/seed.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
 import { CryptoError } from "./error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 const MIN_SEED_SIZE = 16;
 
@@ -21,7 +16,7 @@ export interface SeedMetadata {
 }
 
 export class Seed {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
   private metadata: SeedMetadata | undefined;
 
   private constructor(data: Uint8Array, metadata?: SeedMetadata) {
@@ -43,32 +38,32 @@ export class Seed {
    * Create a Seed from hex string
    */
   static fromHex(hex: string, metadata?: SeedMetadata): Seed {
-    const data = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      data[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new Seed(data, metadata);
+    return new Seed(hexToBytes(hex), metadata);
   }
 
   /**
    * Generate a random seed with specified size
    */
-  static random(size: number = 32, metadata?: SeedMetadata): Seed {
+  static random(size = 32, metadata?: SeedMetadata): Seed {
     if (size < MIN_SEED_SIZE) {
       throw CryptoError.invalidSize(MIN_SEED_SIZE, size);
     }
-    const data = new Uint8Array(size);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < size; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
+    const rng = new SecureRandomNumberGenerator();
+    return new Seed(rng.randomData(size), metadata);
+  }
+
+  /**
+   * Generate a random seed using provided RNG
+   */
+  static randomUsing(
+    rng: SecureRandomNumberGenerator,
+    size = 32,
+    metadata?: SeedMetadata,
+  ): Seed {
+    if (size < MIN_SEED_SIZE) {
+      throw CryptoError.invalidSize(MIN_SEED_SIZE, size);
     }
-    return new Seed(data, metadata);
+    return new Seed(rng.randomData(size), metadata);
   }
 
   /**
@@ -82,16 +77,14 @@ export class Seed {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**
@@ -102,12 +95,15 @@ export class Seed {
   }
 
   /**
-   * Get or set name
+   * Get name
    */
   name(): string | undefined {
     return this.metadata?.name;
   }
 
+  /**
+   * Set name
+   */
   setName(name: string): void {
     if (!this.metadata) {
       this.metadata = {};
@@ -116,12 +112,15 @@ export class Seed {
   }
 
   /**
-   * Get or set note
+   * Get note
    */
   note(): string | undefined {
     return this.metadata?.note;
   }
 
+  /**
+   * Set note
+   */
   setNote(note: string): void {
     if (!this.metadata) {
       this.metadata = {};
@@ -130,12 +129,15 @@ export class Seed {
   }
 
   /**
-   * Get or set creation date
+   * Get creation date
    */
   createdAt(): Date | undefined {
     return this.metadata?.createdAt;
   }
 
+  /**
+   * Set creation date
+   */
   setCreatedAt(date: Date): void {
     if (!this.metadata) {
       this.metadata = {};
@@ -165,10 +167,6 @@ export class Seed {
    * Get string representation
    */
   toString(): string {
-    const parts = [`Seed(${this.toHex().substring(0, 16)}..., ${this.size()} bytes)`];
-    if (this.metadata?.name) parts.push(`name: ${this.metadata.name}`);
-    if (this.metadata?.note) parts.push(`note: ${this.metadata.note}`);
-    if (this.metadata?.createdAt) parts.push(`created: ${this.metadata.createdAt.toISOString()}`);
-    return parts[0];
+    return `Seed(${this.toHex().substring(0, 16)}..., ${this.size()} bytes)`;
   }
 }

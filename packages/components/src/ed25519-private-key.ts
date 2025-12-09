@@ -1,29 +1,25 @@
 /**
  * Ed25519 private key for EdDSA signatures (32 bytes seed)
+ * Ported from bc-components-rust/src/ed25519_private_key.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
-import { ed25519ph } from "@noble/curves/ed25519.js";
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import {
+  ED25519_PRIVATE_KEY_SIZE,
+  ed25519PublicKeyFromPrivateKey,
+  ed25519Sign,
+} from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
 import { Ed25519PublicKey } from "./ed25519-public-key.js";
-
-const ED25519_SEED_SIZE = 32;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class Ed25519PrivateKey {
-  private seed: Uint8Array;
-  private _privateKey?: Uint8Array;
+  private readonly seed: Uint8Array;
   private _publicKey?: Ed25519PublicKey;
 
   private constructor(seed: Uint8Array) {
-    if (seed.length !== ED25519_SEED_SIZE) {
-      throw CryptoError.invalidSize(ED25519_SEED_SIZE, seed.length);
+    if (seed.length !== ED25519_PRIVATE_KEY_SIZE) {
+      throw CryptoError.invalidSize(ED25519_PRIVATE_KEY_SIZE, seed.length);
     }
     this.seed = new Uint8Array(seed);
   }
@@ -39,32 +35,22 @@ export class Ed25519PrivateKey {
    * Create an Ed25519PrivateKey from hex string (64 hex characters)
    */
   static fromHex(hex: string): Ed25519PrivateKey {
-    if (hex.length !== 64) {
-      throw CryptoError.invalidFormat(`Ed25519 seed hex must be 64 characters, got ${hex.length}`);
-    }
-    const seed = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      seed[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return new Ed25519PrivateKey(seed);
+    return new Ed25519PrivateKey(hexToBytes(hex));
   }
 
   /**
    * Generate a random Ed25519PrivateKey
    */
   static random(): Ed25519PrivateKey {
-    const seed = new Uint8Array(ED25519_SEED_SIZE);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(seed);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(seed);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < ED25519_SEED_SIZE; i++) {
-        seed[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new Ed25519PrivateKey(seed);
+    const rng = new SecureRandomNumberGenerator();
+    return new Ed25519PrivateKey(rng.randomData(ED25519_PRIVATE_KEY_SIZE));
+  }
+
+  /**
+   * Generate a random Ed25519PrivateKey using provided RNG
+   */
+  static randomUsing(rng: SecureRandomNumberGenerator): Ed25519PrivateKey {
+    return new Ed25519PrivateKey(rng.randomData(ED25519_PRIVATE_KEY_SIZE));
   }
 
   /**
@@ -78,31 +64,14 @@ export class Ed25519PrivateKey {
    * Get hex string representation of the seed
    */
   toHex(): string {
-    return Array.from(this.seed)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
+    return bytesToHex(this.seed);
   }
 
   /**
    * Get base64 representation of the seed
    */
   toBase64(): string {
-    return Buffer.from(this.seed).toString("base64");
-  }
-
-  /**
-   * Get the full private key (seed + public, 64 bytes)
-   */
-  getFullPrivateKey(): Uint8Array {
-    if (!this._privateKey) {
-      // Create the full private key by combining seed with public key
-      const publicKeyBytes = ed25519ph.getPublicKey(this.seed);
-      this._privateKey = new Uint8Array(64);
-      this._privateKey.set(this.seed, 0);
-      this._privateKey.set(publicKeyBytes, 32);
-    }
-    return new Uint8Array(this._privateKey);
+    return toBase64(this.seed);
   }
 
   /**
@@ -110,7 +79,7 @@ export class Ed25519PrivateKey {
    */
   publicKey(): Ed25519PublicKey {
     if (!this._publicKey) {
-      const publicKeyBytes = ed25519ph.getPublicKey(this.seed);
+      const publicKeyBytes = ed25519PublicKeyFromPrivateKey(this.seed);
       this._publicKey = Ed25519PublicKey.from(publicKeyBytes);
     }
     return this._publicKey;
@@ -121,7 +90,7 @@ export class Ed25519PrivateKey {
    */
   sign(message: Uint8Array): Uint8Array {
     try {
-      const signature = ed25519ph.sign(message, this.seed);
+      const signature = ed25519Sign(this.seed, message);
       return new Uint8Array(signature);
     } catch (e) {
       throw CryptoError.cryptoOperation(`Ed25519 signing failed: ${e}`);

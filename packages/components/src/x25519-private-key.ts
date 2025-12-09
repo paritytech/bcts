@@ -1,28 +1,25 @@
 /**
  * X25519 private key for ECDH key exchange (32 bytes seed)
+ * Ported from bc-components-rust/src/x25519_private_key.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
-import { x25519 } from "@noble/curves/ed25519.js";
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import {
+  X25519_PRIVATE_KEY_SIZE,
+  x25519PublicKeyFromPrivateKey,
+  x25519SharedKey,
+} from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
 import { X25519PublicKey } from "./x25519-public-key.js";
-
-const X25519_KEY_SIZE = 32;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class X25519PrivateKey {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
   private _publicKey?: X25519PublicKey;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== X25519_KEY_SIZE) {
-      throw CryptoError.invalidSize(X25519_KEY_SIZE, data.length);
+    if (data.length !== X25519_PRIVATE_KEY_SIZE) {
+      throw CryptoError.invalidSize(X25519_PRIVATE_KEY_SIZE, data.length);
     }
     this.data = new Uint8Array(data);
   }
@@ -38,34 +35,22 @@ export class X25519PrivateKey {
    * Create an X25519PrivateKey from hex string
    */
   static fromHex(hex: string): X25519PrivateKey {
-    if (hex.length !== 64) {
-      throw CryptoError.invalidFormat(
-        `X25519 private key hex must be 64 characters, got ${hex.length}`,
-      );
-    }
-    const data = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      data[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return new X25519PrivateKey(data);
+    return new X25519PrivateKey(hexToBytes(hex));
   }
 
   /**
    * Generate a random X25519PrivateKey
    */
   static random(): X25519PrivateKey {
-    const data = new Uint8Array(X25519_KEY_SIZE);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < X25519_KEY_SIZE; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new X25519PrivateKey(data);
+    const rng = new SecureRandomNumberGenerator();
+    return new X25519PrivateKey(rng.randomData(X25519_PRIVATE_KEY_SIZE));
+  }
+
+  /**
+   * Generate a random X25519PrivateKey using provided RNG
+   */
+  static randomUsing(rng: SecureRandomNumberGenerator): X25519PrivateKey {
+    return new X25519PrivateKey(rng.randomData(X25519_PRIVATE_KEY_SIZE));
   }
 
   /**
@@ -79,17 +64,14 @@ export class X25519PrivateKey {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**
@@ -97,10 +79,7 @@ export class X25519PrivateKey {
    */
   publicKey(): X25519PublicKey {
     if (!this._publicKey) {
-      // Use x25519 to get the public key from the private key
-      // The @noble/curves library provides this functionality
-      // @ts-ignore - x25519 function signature compatibility
-      const publicKeyBytes = x25519(this.data);
+      const publicKeyBytes = x25519PublicKeyFromPrivateKey(this.data);
       this._publicKey = X25519PublicKey.from(publicKeyBytes);
     }
     return this._publicKey;
@@ -111,8 +90,7 @@ export class X25519PrivateKey {
    */
   sharedSecret(publicKey: X25519PublicKey): Uint8Array {
     try {
-      // @ts-ignore - x25519 function signature compatibility
-      const shared = x25519(this.data, publicKey.toData());
+      const shared = x25519SharedKey(this.data, publicKey.toData());
       return new Uint8Array(shared);
     } catch (e) {
       throw CryptoError.cryptoOperation(`ECDH key agreement failed: ${e}`);

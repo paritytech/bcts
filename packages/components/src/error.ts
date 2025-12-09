@@ -1,13 +1,11 @@
 /**
- * Crypto error types and result type
+ * Error types re-exported from @blockchain-commons/crypto
+ * with additional factory methods for components
  */
 
-export class CryptoError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "CryptoError";
-  }
+import { CryptoError as BaseCryptoError } from "@blockchain-commons/crypto";
 
+export class CryptoError extends BaseCryptoError {
   static invalidSize(expected: number, actual: number): CryptoError {
     return new CryptoError(`Invalid size: expected ${expected}, got ${actual}`);
   }

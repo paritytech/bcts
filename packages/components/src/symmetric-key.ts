@@ -1,21 +1,15 @@
 /**
  * Symmetric key for ChaCha20-Poly1305 AEAD encryption (32 bytes)
+ * Ported from bc-components-rust/src/symmetric_key.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import { SYMMETRIC_KEY_SIZE } from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
-
-const SYMMETRIC_KEY_SIZE = 32;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class SymmetricKey {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
     if (data.length !== SYMMETRIC_KEY_SIZE) {
@@ -35,32 +29,22 @@ export class SymmetricKey {
    * Create a SymmetricKey from hex string
    */
   static fromHex(hex: string): SymmetricKey {
-    if (hex.length !== 64) {
-      throw CryptoError.invalidFormat(`SymmetricKey hex must be 64 characters, got ${hex.length}`);
-    }
-    const data = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      data[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return new SymmetricKey(data);
+    return new SymmetricKey(hexToBytes(hex));
   }
 
   /**
    * Generate a random symmetric key
    */
   static random(): SymmetricKey {
-    const data = new Uint8Array(SYMMETRIC_KEY_SIZE);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < SYMMETRIC_KEY_SIZE; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new SymmetricKey(data);
+    const rng = new SecureRandomNumberGenerator();
+    return new SymmetricKey(rng.randomData(SYMMETRIC_KEY_SIZE));
+  }
+
+  /**
+   * Generate a random symmetric key using provided RNG
+   */
+  static randomUsing(rng: SecureRandomNumberGenerator): SymmetricKey {
+    return new SymmetricKey(rng.randomData(SYMMETRIC_KEY_SIZE));
   }
 
   /**
@@ -74,17 +58,14 @@ export class SymmetricKey {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**

@@ -1,22 +1,18 @@
 /**
  * Ed25519 public key for EdDSA signature verification (32 bytes)
+ * Ported from bc-components-rust/src/ed25519_public_key.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
-import { ed25519ph } from "@noble/curves/ed25519.js";
+import {
+  ED25519_PUBLIC_KEY_SIZE,
+  ED25519_SIGNATURE_SIZE,
+  ed25519Verify,
+} from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
-
-const ED25519_PUBLIC_KEY_SIZE = 32;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class Ed25519PublicKey {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
     if (data.length !== ED25519_PUBLIC_KEY_SIZE) {
@@ -36,16 +32,7 @@ export class Ed25519PublicKey {
    * Create an Ed25519PublicKey from hex string
    */
   static fromHex(hex: string): Ed25519PublicKey {
-    if (hex.length !== 64) {
-      throw CryptoError.invalidFormat(
-        `Ed25519 public key hex must be 64 characters, got ${hex.length}`,
-      );
-    }
-    const data = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) {
-      data[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return new Ed25519PublicKey(data);
+    return new Ed25519PublicKey(hexToBytes(hex));
   }
 
   /**
@@ -59,17 +46,14 @@ export class Ed25519PublicKey {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**
@@ -77,10 +61,10 @@ export class Ed25519PublicKey {
    */
   verify(message: Uint8Array, signature: Uint8Array): boolean {
     try {
-      if (signature.length !== 64) {
-        throw CryptoError.invalidSize(64, signature.length);
+      if (signature.length !== ED25519_SIGNATURE_SIZE) {
+        throw CryptoError.invalidSize(ED25519_SIGNATURE_SIZE, signature.length);
       }
-      return ed25519ph.verify(signature, message, this.data);
+      return ed25519Verify(this.data, message, signature);
     } catch (e) {
       throw CryptoError.cryptoOperation(`Ed25519 verification failed: ${e}`);
     }

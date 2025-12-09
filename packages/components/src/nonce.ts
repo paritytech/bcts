@@ -1,25 +1,19 @@
 /**
- * Cryptographic nonce (12 bytes, suitable for AES-GCM and ChaCha20-Poly1305)
+ * Cryptographic nonce (12 bytes, suitable for ChaCha20-Poly1305)
+ * Ported from bc-components-rust/src/nonce.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import { SYMMETRIC_NONCE_SIZE } from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
-
-const NONCE_SIZE = 12;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class Nonce {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== NONCE_SIZE) {
-      throw CryptoError.invalidSize(NONCE_SIZE, data.length);
+    if (data.length !== SYMMETRIC_NONCE_SIZE) {
+      throw CryptoError.invalidSize(SYMMETRIC_NONCE_SIZE, data.length);
     }
     this.data = new Uint8Array(data);
   }
@@ -35,29 +29,22 @@ export class Nonce {
    * Create a Nonce from hex string
    */
   static fromHex(hex: string): Nonce {
-    const data = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      data[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new Nonce(data);
+    return new Nonce(hexToBytes(hex));
   }
 
   /**
-   * Generate a random nonce
+   * Generate a random nonce using SecureRandomNumberGenerator
    */
   static random(): Nonce {
-    const data = new Uint8Array(NONCE_SIZE);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < NONCE_SIZE; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new Nonce(data);
+    const rng = new SecureRandomNumberGenerator();
+    return new Nonce(rng.randomData(SYMMETRIC_NONCE_SIZE));
+  }
+
+  /**
+   * Generate a random nonce using provided RNG
+   */
+  static randomUsing(rng: SecureRandomNumberGenerator): Nonce {
+    return new Nonce(rng.randomData(SYMMETRIC_NONCE_SIZE));
   }
 
   /**
@@ -71,16 +58,14 @@ export class Nonce {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**

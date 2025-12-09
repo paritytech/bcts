@@ -1,11 +1,21 @@
 /**
- * @leonardocustodio/blockchain-commons/crypto - Cryptographic components library
+ * @blockchain-commons/components - Cryptographic components library
  * TypeScript implementation of Blockchain Commons' cryptographic components specification
+ * Ported from bc-components-rust
  */
 
 // Error handling
 export { CryptoError, isError } from "./error.js";
 export type { Result } from "./error.js";
+
+// Utility functions
+export {
+  bytesToHex,
+  hexToBytes,
+  toBase64,
+  fromBase64,
+  bytesEqual,
+} from "./utils.js";
 
 // Basic cryptographic primitives
 export { Digest } from "./digest.js";

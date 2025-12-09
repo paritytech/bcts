@@ -1,21 +1,16 @@
 /**
  * Cryptographic salt - variable-length randomization value (minimum 8 bytes)
+ * Ported from bc-components-rust/src/salt.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
 import { CryptoError } from "./error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 const MIN_SALT_SIZE = 8;
 
 export class Salt {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
     if (data.length < MIN_SALT_SIZE) {
@@ -35,39 +30,34 @@ export class Salt {
    * Create a Salt from hex string
    */
   static fromHex(hex: string): Salt {
-    const data = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      data[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new Salt(data);
+    return new Salt(hexToBytes(hex));
   }
 
   /**
    * Generate a random salt with specified size
    */
-  static random(size: number = 16): Salt {
+  static random(size = 16): Salt {
     if (size < MIN_SALT_SIZE) {
       throw CryptoError.invalidSize(MIN_SALT_SIZE, size);
     }
-    const data = new Uint8Array(size);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < size; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new Salt(data);
+    const rng = new SecureRandomNumberGenerator();
+    return new Salt(rng.randomData(size));
   }
 
   /**
-   * Generate a proportionally-sized salt (5-25% of target data size)
+   * Generate a random salt with specified size using provided RNG
+   */
+  static randomUsing(rng: SecureRandomNumberGenerator, size = 16): Salt {
+    if (size < MIN_SALT_SIZE) {
+      throw CryptoError.invalidSize(MIN_SALT_SIZE, size);
+    }
+    return new Salt(rng.randomData(size));
+  }
+
+  /**
+   * Generate a proportionally-sized salt (10% of target data size, clamped 8-32)
    */
   static proportional(dataSize: number): Salt {
-    // Calculate proportional size: 10% of data size, clamped between 8 and 32
     const size = Math.max(MIN_SALT_SIZE, Math.min(32, Math.ceil(dataSize * 0.1)));
     return Salt.random(size);
   }
@@ -83,16 +73,14 @@ export class Salt {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**

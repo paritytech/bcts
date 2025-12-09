@@ -1,25 +1,18 @@
 /**
  * Authentication tag for AEAD encryption (16 bytes)
+ * Ported from bc-components-rust/src/auth.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
+import { SYMMETRIC_AUTH_SIZE } from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
-
-const AUTH_TAG_SIZE = 16;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class AuthenticationTag {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== AUTH_TAG_SIZE) {
-      throw CryptoError.invalidSize(AUTH_TAG_SIZE, data.length);
+    if (data.length !== SYMMETRIC_AUTH_SIZE) {
+      throw CryptoError.invalidSize(SYMMETRIC_AUTH_SIZE, data.length);
     }
     this.data = new Uint8Array(data);
   }
@@ -35,16 +28,7 @@ export class AuthenticationTag {
    * Create an AuthenticationTag from hex string
    */
   static fromHex(hex: string): AuthenticationTag {
-    if (hex.length !== 32) {
-      throw CryptoError.invalidFormat(
-        `AuthenticationTag hex must be 32 characters, got ${hex.length}`,
-      );
-    }
-    const data = new Uint8Array(16);
-    for (let i = 0; i < 16; i++) {
-      data[i] = parseInt(hex.substr(i * 2, 2), 16);
-    }
-    return new AuthenticationTag(data);
+    return new AuthenticationTag(hexToBytes(hex));
   }
 
   /**
@@ -58,17 +42,14 @@ export class AuthenticationTag {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .toUpperCase();
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**

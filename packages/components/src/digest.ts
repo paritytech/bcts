@@ -1,26 +1,18 @@
 /**
  * SHA-256 cryptographic digest (32 bytes)
+ * Ported from bc-components-rust/src/digest.rs
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256, SHA256_SIZE } from "@blockchain-commons/crypto";
 import { CryptoError } from "./error.js";
-
-const DIGEST_SIZE = 32;
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
 export class Digest {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== DIGEST_SIZE) {
-      throw CryptoError.invalidSize(DIGEST_SIZE, data.length);
+    if (data.length !== SHA256_SIZE) {
+      throw CryptoError.invalidSize(SHA256_SIZE, data.length);
     }
     this.data = new Uint8Array(data);
   }
@@ -36,11 +28,7 @@ export class Digest {
    * Create a Digest from hex string
    */
   static fromHex(hex: string): Digest {
-    const data = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      data[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new Digest(data);
+    return new Digest(hexToBytes(hex));
   }
 
   /**
@@ -62,16 +50,14 @@ export class Digest {
    * Get hex string representation
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return bytesToHex(this.data);
   }
 
   /**
    * Get base64 representation
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this.data);
   }
 
   /**
