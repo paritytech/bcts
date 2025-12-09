@@ -717,7 +717,8 @@ export class XIDDocument implements EnvelopeEncodable {
 
     // Extract XID from subject
     // The envelope may be a node (with assertions) or a leaf
-    const subject = envelopeExt.subject ? envelopeExt.subject() : envelope;
+    const envCase = envelope.case();
+    const subject = envCase.type === "node" ? envelopeExt.subject() : envelope;
     const xidData = (subject as typeof envelopeExt).asByteString();
     if (xidData === undefined) {
       throw XIDError.invalidXid();

@@ -273,8 +273,9 @@ export class Provenance implements EnvelopeEncodable {
 
     // Extract mark from subject
     // The envelope may be a node (with assertions) or a leaf
-    type EnvWithSubject = EnvelopeExt & { subject(): Envelope };
-    const subject = (env as EnvWithSubject).subject ? (env as EnvWithSubject).subject() : envelope;
+    const envCase = env.case();
+    const subject =
+      envCase.type === "node" ? (env as unknown as { subject(): Envelope }).subject() : envelope;
     const markData = (subject as EnvelopeExt).asByteString();
     if (markData === undefined) {
       throw XIDError.provenanceMark(new Error("Could not extract mark from envelope"));

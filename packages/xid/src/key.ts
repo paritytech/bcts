@@ -303,7 +303,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
 
     // Extract public key base from subject
     // The envelope may be a node (with assertions) or a leaf
-    const subject = env.subject ? env.subject() : env;
+    const envCase = env.case();
+    const subject = envCase.type === "node" ? env.subject() : env;
     const publicKeyData = (subject as EnvelopeExt).asByteString();
     if (publicKeyData === undefined) {
       throw XIDError.component(new Error("Could not extract public key from envelope"));

@@ -230,8 +230,10 @@ export class Service implements HasPermissions, EnvelopeEncodable {
     const envExt = envelope as unknown as {
       subject(): Envelope;
       asText(): string | undefined;
+      case(): { type: string };
     };
-    const subject = envExt.subject ? envExt.subject() : envelope;
+    const envCase = envExt.case();
+    const subject = envCase.type === "node" ? envExt.subject() : envelope;
     const uri = (subject as typeof envExt).asText();
     if (uri === undefined) {
       throw XIDError.component(new Error("Could not extract URI from envelope"));
