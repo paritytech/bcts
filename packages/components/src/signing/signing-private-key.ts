@@ -2,7 +2,7 @@
  * A private key used for creating digital signatures.
  *
  * `SigningPrivateKey` is a type representing different types of signing
- * private keys. Currently, only Ed25519 is implemented.
+ * private keys. Supports Ed25519 and SR25519.
  *
  * This type implements the `Signer` interface, allowing it to create signatures.
  *
@@ -10,10 +10,9 @@
  *
  * `SigningPrivateKey` is serialized to CBOR with tag 40021.
  *
- * The CBOR encoding for Ed25519:
- * ```
- * #6.40021([2, h'<32-byte-private-key>'])
- * ```
+ * The CBOR encoding:
+ * - Ed25519: `#6.40021([2, h'<32-byte-private-key>'])`
+ * - SR25519:  `#6.40021([3, h'<32-byte-seed>'])`
  *
  * Ported from bc-components-rust/src/signing/signing_private_key.rs
  */
@@ -37,6 +36,7 @@ import {
 } from "@blockchain-commons/dcbor";
 import { SIGNING_PRIVATE_KEY as TAG_SIGNING_PRIVATE_KEY } from "@blockchain-commons/tags";
 import { Ed25519PrivateKey } from "../ed25519/ed25519-private-key.js";
+import { Sr25519PrivateKey, SR25519_PRIVATE_KEY_SIZE } from "../sr25519/sr25519-private-key.js";
 import { bytesToHex } from "../utils.js";
 import { SignatureScheme } from "./signature-scheme.js";
 import { Signature } from "./signature.js";
@@ -47,17 +47,24 @@ import type { Signer, Verifier } from "./signer.js";
  * A private key used for creating digital signatures.
  *
  * Currently supports:
- * - Ed25519 private keys (32 bytes)
+ * - Ed25519 private keys (32 bytes) - discriminator 2
+ * - SR25519 private keys (32-byte seed) - discriminator 3
  */
 export class SigningPrivateKey
   implements Signer, Verifier, CborTaggedEncodable, CborTaggedDecodable<SigningPrivateKey>
 {
   private readonly _type: SignatureScheme;
   private readonly _ed25519Key?: Ed25519PrivateKey;
+  private readonly _sr25519Key?: Sr25519PrivateKey;
 
-  private constructor(type: SignatureScheme, ed25519Key?: Ed25519PrivateKey) {
+  private constructor(
+    type: SignatureScheme,
+    ed25519Key?: Ed25519PrivateKey,
+    sr25519Key?: Sr25519PrivateKey,
+  ) {
     this._type = type;
     this._ed25519Key = ed25519Key;
+    this._sr25519Key = sr25519Key;
   }
 
   // ============================================================================
@@ -71,7 +78,17 @@ export class SigningPrivateKey
    * @returns A new Ed25519 signing private key
    */
   static newEd25519(key: Ed25519PrivateKey): SigningPrivateKey {
-    return new SigningPrivateKey(SignatureScheme.Ed25519, key);
+    return new SigningPrivateKey(SignatureScheme.Ed25519, key, undefined);
+  }
+
+  /**
+   * Creates a new SR25519 signing private key from an Sr25519PrivateKey.
+   *
+   * @param key - The SR25519 private key to use
+   * @returns A new SR25519 signing private key
+   */
+  static newSr25519(key: Sr25519PrivateKey): SigningPrivateKey {
+    return new SigningPrivateKey(SignatureScheme.Sr25519, undefined, key);
   }
 
   /**
@@ -81,6 +98,15 @@ export class SigningPrivateKey
    */
   static random(): SigningPrivateKey {
     return SigningPrivateKey.newEd25519(Ed25519PrivateKey.random());
+  }
+
+  /**
+   * Creates a new random SR25519 signing private key.
+   *
+   * @returns A new random SR25519 signing private key
+   */
+  static randomSr25519(): SigningPrivateKey {
+    return SigningPrivateKey.newSr25519(Sr25519PrivateKey.random());
   }
 
   // ============================================================================
@@ -126,6 +152,12 @@ export class SigningPrivateKey
         }
         return SigningPublicKey.fromEd25519(this._ed25519Key.publicKey());
       }
+      case SignatureScheme.Sr25519: {
+        if (!this._sr25519Key) {
+          throw new Error("Sr25519 private key is missing");
+        }
+        return SigningPublicKey.fromSr25519(this._sr25519Key.publicKey());
+      }
     }
   }
 
@@ -138,6 +170,9 @@ export class SigningPrivateKey
       case SignatureScheme.Ed25519:
         if (!this._ed25519Key || !other._ed25519Key) return false;
         return this._ed25519Key.equals(other._ed25519Key);
+      case SignatureScheme.Sr25519:
+        if (!this._sr25519Key || !other._sr25519Key) return false;
+        return this._sr25519Key.equals(other._sr25519Key);
     }
   }
 
@@ -166,6 +201,13 @@ export class SigningPrivateKey
         }
         const sigData = this._ed25519Key.sign(message);
         return Signature.ed25519FromData(sigData);
+      }
+      case SignatureScheme.Sr25519: {
+        if (!this._sr25519Key) {
+          throw new Error("Sr25519 private key is missing");
+        }
+        const sigData = this._sr25519Key.sign(message);
+        return Signature.sr25519FromData(sigData);
       }
     }
   }
@@ -200,6 +242,7 @@ export class SigningPrivateKey
    * Returns the untagged CBOR encoding.
    *
    * Format for Ed25519: [2, h'<32-byte-private-key>']
+   * Format for Sr25519: [3, h'<32-byte-seed>']
    */
   untaggedCbor(): Cbor {
     switch (this._type) {
@@ -208,6 +251,12 @@ export class SigningPrivateKey
           throw new Error("Ed25519 private key is missing");
         }
         return cbor([2, toByteString(this._ed25519Key.toData())]);
+      }
+      case SignatureScheme.Sr25519: {
+        if (!this._sr25519Key) {
+          throw new Error("Sr25519 private key is missing");
+        }
+        return cbor([3, toByteString(this._sr25519Key.toData())]);
       }
     }
   }
@@ -235,6 +284,7 @@ export class SigningPrivateKey
    *
    * Format:
    * - [2, h'<32-byte-key>'] for Ed25519
+   * - [3, h'<32-byte-seed>'] for Sr25519
    */
   fromUntaggedCbor(cborValue: Cbor): SigningPrivateKey {
     const elements = expectArray(cborValue);
@@ -249,6 +299,8 @@ export class SigningPrivateKey
     switch (Number(discriminator)) {
       case 2: // Ed25519
         return SigningPrivateKey.newEd25519(Ed25519PrivateKey.from(keyData));
+      case 3: // Sr25519
+        return SigningPrivateKey.newSr25519(Sr25519PrivateKey.from(keyData));
       default:
         throw new Error(`Unknown SigningPrivateKey discriminator: ${discriminator}`);
     }

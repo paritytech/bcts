@@ -35,6 +35,17 @@ export { X25519PrivateKey, X25519PublicKey } from "./x25519/index.js";
 // Digital signatures - Ed25519 (from ed25519/ module)
 export { Ed25519PrivateKey, Ed25519PublicKey } from "./ed25519/index.js";
 
+// SR25519 - Schnorr signatures over Ristretto25519 (from sr25519/ module)
+// Used by Polkadot/Substrate
+export {
+  Sr25519PrivateKey,
+  Sr25519PublicKey,
+  SR25519_PRIVATE_KEY_SIZE,
+  SR25519_PUBLIC_KEY_SIZE,
+  SR25519_SIGNATURE_SIZE,
+  SR25519_DEFAULT_CONTEXT,
+} from "./sr25519/index.js";
+
 // EC keys - secp256k1 (from ec-key/ module)
 export {
   ECPrivateKey,

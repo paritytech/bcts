@@ -2,13 +2,14 @@
  * Supported digital signature schemes.
  *
  * This enum represents the various signature schemes supported in this crate,
- * currently limited to Ed25519 signatures.
+ * including Ed25519 and SR25519 signatures.
  *
  * Ported from bc-components-rust/src/signing/signature_scheme.rs
  */
 
 import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
 import { Ed25519PrivateKey } from "../ed25519/ed25519-private-key.js";
+import { Sr25519PrivateKey } from "../sr25519/sr25519-private-key.js";
 import type { SigningPrivateKey } from "./signing-private-key.js";
 import type { SigningPublicKey } from "./signing-public-key.js";
 
@@ -16,13 +17,20 @@ import type { SigningPublicKey } from "./signing-public-key.js";
  * Supported digital signature schemes.
  *
  * This enum represents the various signature schemes supported in this package.
- * Currently, only Ed25519 is implemented.
+ * - Ed25519: RFC 8032 signatures (discriminator 2)
+ * - Sr25519: Schnorr over Ristretto25519, used by Polkadot/Substrate (discriminator 3)
  */
 export enum SignatureScheme {
   /**
    * Ed25519 signature scheme (RFC 8032)
    */
   Ed25519 = "Ed25519",
+
+  /**
+   * SR25519 signature scheme (Schnorr over Ristretto25519)
+   * Used by Polkadot/Substrate
+   */
+  Sr25519 = "Sr25519",
 }
 
 /**
@@ -51,6 +59,12 @@ export function createKeypair(
       const publicKey = privateKey.publicKey();
       return [privateKey, publicKey];
     }
+    case SignatureScheme.Sr25519: {
+      const sr25519Key = Sr25519PrivateKey.random();
+      const privateKey = SigningPrivateKey.newSr25519(sr25519Key);
+      const publicKey = privateKey.publicKey();
+      return [privateKey, publicKey];
+    }
   }
 }
 
@@ -72,6 +86,12 @@ export function createKeypairUsing(
     case SignatureScheme.Ed25519: {
       const ed25519Key = Ed25519PrivateKey.randomUsing(rng);
       const privateKey = SigningPrivateKey.newEd25519(ed25519Key);
+      const publicKey = privateKey.publicKey();
+      return [privateKey, publicKey];
+    }
+    case SignatureScheme.Sr25519: {
+      const sr25519Key = Sr25519PrivateKey.randomUsing(rng);
+      const privateKey = SigningPrivateKey.newSr25519(sr25519Key);
       const publicKey = privateKey.publicKey();
       return [privateKey, publicKey];
     }

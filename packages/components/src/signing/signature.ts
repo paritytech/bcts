@@ -17,6 +17,7 @@
  */
 
 import { ED25519_SIGNATURE_SIZE } from "@blockchain-commons/crypto";
+import { SR25519_SIGNATURE_SIZE } from "../sr25519/sr25519-private-key.js";
 import {
   type Cbor,
   type Tag,
@@ -43,6 +44,7 @@ import { SignatureScheme } from "./signature-scheme.js";
  *
  * Currently supports:
  * - Ed25519 signatures (64 bytes)
+ * - Sr25519 signatures (64 bytes)
  */
 export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signature> {
   private readonly _type: SignatureScheme;
@@ -80,6 +82,29 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     return Signature.ed25519FromData(hexToBytes(hex));
   }
 
+  /**
+   * Creates an Sr25519 signature from a 64-byte array.
+   *
+   * @param data - The 64-byte signature data
+   * @returns A new Sr25519 signature
+   */
+  static sr25519FromData(data: Uint8Array): Signature {
+    if (data.length !== SR25519_SIGNATURE_SIZE) {
+      throw CryptoError.invalidSize(SR25519_SIGNATURE_SIZE, data.length);
+    }
+    return new Signature(SignatureScheme.Sr25519, data);
+  }
+
+  /**
+   * Creates an Sr25519 signature from a hex string.
+   *
+   * @param hex - The hex-encoded signature data
+   * @returns A new Sr25519 signature
+   */
+  static sr25519FromHex(hex: string): Signature {
+    return Signature.sr25519FromData(hexToBytes(hex));
+  }
+
   // ============================================================================
   // Instance Methods
   // ============================================================================
@@ -115,6 +140,25 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    */
   isEd25519(): boolean {
     return this._type === SignatureScheme.Ed25519;
+  }
+
+  /**
+   * Returns the Sr25519 signature data if this is an Sr25519 signature.
+   *
+   * @returns The 64-byte signature data if this is an Sr25519 signature, null otherwise
+   */
+  toSr25519(): Uint8Array | null {
+    if (this._type === SignatureScheme.Sr25519) {
+      return this._data;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if this is an Sr25519 signature.
+   */
+  isSr25519(): boolean {
+    return this._type === SignatureScheme.Sr25519;
   }
 
   /**
@@ -158,11 +202,14 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    * Returns the untagged CBOR encoding.
    *
    * Format for Ed25519: [2, h'<64-byte-signature>']
+   * Format for Sr25519: [3, h'<64-byte-signature>']
    */
   untaggedCbor(): Cbor {
     switch (this._type) {
       case SignatureScheme.Ed25519:
         return cbor([2, toByteString(this._data)]);
+      case SignatureScheme.Sr25519:
+        return cbor([3, toByteString(this._data)]);
     }
   }
 
@@ -189,6 +236,7 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    *
    * Format:
    * - [2, h'<64-byte-signature>'] for Ed25519
+   * - [3, h'<64-byte-signature>'] for Sr25519
    */
   fromUntaggedCbor(cborValue: Cbor): Signature {
     const elements = expectArray(cborValue);
@@ -203,6 +251,8 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     switch (Number(discriminator)) {
       case 2: // Ed25519
         return Signature.ed25519FromData(signatureData);
+      case 3: // Sr25519
+        return Signature.sr25519FromData(signatureData);
       default:
         throw new Error(`Unknown signature discriminator: ${discriminator}`);
     }
