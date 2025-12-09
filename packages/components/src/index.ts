@@ -9,13 +9,7 @@ export { CryptoError, isError } from "./error.js";
 export type { Result } from "./error.js";
 
 // Utility functions
-export {
-  bytesToHex,
-  hexToBytes,
-  toBase64,
-  fromBase64,
-  bytesEqual,
-} from "./utils.js";
+export { bytesToHex, hexToBytes, toBase64, fromBase64, bytesEqual } from "./utils.js";
 
 // Basic cryptographic primitives
 export { Digest } from "./digest.js";

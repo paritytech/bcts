@@ -114,7 +114,7 @@ export function aeadChaCha20Poly1305DecryptWithAad(
   } catch (error) {
     // Preserve the original error for debugging while wrapping in our error type
     const aeadError = new AeadError(
-      `Decryption failed: ${error instanceof Error ? error.message : "authentication error"}`
+      `Decryption failed: ${error instanceof Error ? error.message : "authentication error"}`,
     );
     throw CryptoError.aead(aeadError);
   }

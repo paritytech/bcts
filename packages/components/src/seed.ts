@@ -55,11 +55,7 @@ export class Seed {
   /**
    * Generate a random seed using provided RNG
    */
-  static randomUsing(
-    rng: SecureRandomNumberGenerator,
-    size = 32,
-    metadata?: SeedMetadata,
-  ): Seed {
+  static randomUsing(rng: SecureRandomNumberGenerator, size = 32, metadata?: SeedMetadata): Seed {
     if (size < MIN_SEED_SIZE) {
       throw CryptoError.invalidSize(MIN_SEED_SIZE, size);
     }

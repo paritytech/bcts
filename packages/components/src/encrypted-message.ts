@@ -19,11 +19,7 @@ export class EncryptedMessage {
   private readonly ciphertext: Uint8Array;
   private readonly tag: AuthenticationTag;
 
-  private constructor(
-    nonce: Nonce,
-    ciphertext: Uint8Array,
-    tag: AuthenticationTag,
-  ) {
+  private constructor(nonce: Nonce, ciphertext: Uint8Array, tag: AuthenticationTag) {
     this.nonce = nonce;
     this.ciphertext = new Uint8Array(ciphertext);
     this.tag = tag;
@@ -32,11 +28,7 @@ export class EncryptedMessage {
   /**
    * Create an EncryptedMessage from components
    */
-  static from(
-    nonce: Nonce,
-    ciphertext: Uint8Array,
-    tag: AuthenticationTag,
-  ): EncryptedMessage {
+  static from(nonce: Nonce, ciphertext: Uint8Array, tag: AuthenticationTag): EncryptedMessage {
     return new EncryptedMessage(nonce, ciphertext, tag);
   }
 
@@ -55,33 +47,17 @@ export class EncryptedMessage {
         nonce = Nonce.random();
       }
 
-      // Encrypt using crypto package
-      const result = aeadChaCha20Poly1305EncryptWithAad(
+      // Encrypt using crypto package - returns [ciphertext, authTag] tuple
+      const [ciphertextData, authTagData] = aeadChaCha20Poly1305EncryptWithAad(
+        plaintext,
         key.toData(),
         nonce.toData(),
-        plaintext,
         associatedData ?? new Uint8Array(0),
       );
 
-      // Result contains ciphertext + auth tag appended
-      const ciphertextWithTag = result;
-      const actualCiphertext = ciphertextWithTag.slice(
-        0,
-        ciphertextWithTag.length - SYMMETRIC_AUTH_SIZE,
-      );
-      const tagBytes = ciphertextWithTag.slice(
-        ciphertextWithTag.length - SYMMETRIC_AUTH_SIZE,
-      );
-
-      return new EncryptedMessage(
-        nonce,
-        actualCiphertext,
-        AuthenticationTag.from(tagBytes),
-      );
+      return new EncryptedMessage(nonce, ciphertextData, AuthenticationTag.from(authTagData));
     } catch (e) {
-      throw CryptoError.cryptoOperation(
-        `ChaCha20-Poly1305 encryption failed: ${e}`,
-      );
+      throw CryptoError.cryptoOperation(`ChaCha20-Poly1305 encryption failed: ${e}`);
     }
   }
 
@@ -94,26 +70,18 @@ export class EncryptedMessage {
     associatedData?: Uint8Array,
   ): Uint8Array {
     try {
-      // Combine ciphertext and tag for decryption
-      const ciphertextWithTag = new Uint8Array(
-        encrypted.ciphertext.length + SYMMETRIC_AUTH_SIZE,
-      );
-      ciphertextWithTag.set(encrypted.ciphertext);
-      ciphertextWithTag.set(encrypted.tag.toData(), encrypted.ciphertext.length);
-
       // Decrypt using crypto package
       const plaintext = aeadChaCha20Poly1305DecryptWithAad(
+        encrypted.ciphertext,
         key.toData(),
         encrypted.nonce.toData(),
-        ciphertextWithTag,
         associatedData ?? new Uint8Array(0),
+        encrypted.tag.toData(),
       );
 
       return new Uint8Array(plaintext);
     } catch (e) {
-      throw CryptoError.cryptoOperation(
-        `ChaCha20-Poly1305 decryption failed: ${e}`,
-      );
+      throw CryptoError.cryptoOperation(`ChaCha20-Poly1305 decryption failed: ${e}`);
     }
   }
 
