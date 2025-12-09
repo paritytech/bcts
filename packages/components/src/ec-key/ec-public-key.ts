@@ -37,7 +37,6 @@ import {
   cbor,
   toByteString,
   expectMap,
-  expectBytes,
   createTaggedCbor,
   validateTag,
   extractTaggedContent,
@@ -230,17 +229,17 @@ export class ECPublicKey
     const map = expectMap(cborValue);
 
     // Check that key 2 is not present (would indicate private key)
-    const isPrivate = map.get(2);
+    const isPrivate = map.get<number, boolean>(2);
     if (isPrivate === true) {
       throw new Error("Expected ECPublicKey but found private key (key 2 is true)");
     }
 
     // Get key data from key 3
-    const keyDataCbor = map.get(3);
-    if (!keyDataCbor) {
+    // CborMap.extract() returns native types (Uint8Array for byte strings)
+    const keyData = map.extract<number, Uint8Array>(3);
+    if (!keyData || keyData.length === 0) {
       throw new Error("ECPublicKey CBOR must have key 3 (data)");
     }
-    const keyData = expectBytes(keyDataCbor as Cbor);
 
     return ECPublicKey.fromDataRef(keyData);
   }

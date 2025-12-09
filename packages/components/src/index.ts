@@ -35,6 +35,14 @@ export { X25519PrivateKey, X25519PublicKey } from "./x25519/index.js";
 // Digital signatures - Ed25519 (from ed25519/ module)
 export { Ed25519PrivateKey, Ed25519PublicKey } from "./ed25519/index.js";
 
+// EC keys - secp256k1 (from ec-key/ module)
+export {
+  ECPrivateKey,
+  ECPublicKey,
+  ECUncompressedPublicKey,
+  SchnorrPublicKey,
+} from "./ec-key/index.js";
+
 // Symmetric encryption (from symmetric/ module)
 export { SymmetricKey, AuthenticationTag, EncryptedMessage } from "./symmetric/index.js";
 
