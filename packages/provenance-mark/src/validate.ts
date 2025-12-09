@@ -1,6 +1,6 @@
 // Ported from provenance-mark-rust/src/validate.rs
 
-import { ProvenanceMark } from "./mark.js";
+import type { ProvenanceMark } from "./mark.js";
 
 /**
  * Format for validation report output.
@@ -326,17 +326,18 @@ function parseValidationError(
   prev: ProvenanceMark,
   next: ProvenanceMark,
 ): ValidationIssue {
-  const message = (e as Error).message || "";
+  const message = e instanceof Error ? e.message : "";
 
-  if (message.includes("non-genesis mark at sequence 0")) {
+  if (message !== "" && message.includes("non-genesis mark at sequence 0")) {
     return { type: "NonGenesisAtZero" };
   }
-  if (message.includes("genesis mark must have key equal to chain_id")) {
+  if (message !== "" && message.includes("genesis mark must have key equal to chain_id")) {
     return { type: "InvalidGenesisKey" };
   }
-  if (message.includes("sequence gap")) {
-    const match = message.match(/expected (\d+), got (\d+)/);
-    if (match) {
+  if (message !== "" && message.includes("sequence gap")) {
+    const seqGapRegex = /expected (\d+), got (\d+)/;
+    const match = seqGapRegex.exec(message);
+    if (match !== null) {
       return {
         type: "SequenceGap",
         expected: parseInt(match[1], 10),
@@ -344,16 +345,17 @@ function parseValidationError(
       };
     }
   }
-  if (message.includes("date ordering")) {
+  if (message !== "" && message.includes("date ordering")) {
     return {
       type: "DateOrdering",
       previous: prev.date().toISOString(),
       next: next.date().toISOString(),
     };
   }
-  if (message.includes("hash mismatch")) {
-    const match = message.match(/expected: (\w+), actual: (\w+)/);
-    if (match) {
+  if (message !== "" && message.includes("hash mismatch")) {
+    const hashRegex = /expected: (\w+), actual: (\w+)/;
+    const match = hashRegex.exec(message);
+    if (match !== null) {
       return { type: "HashMismatch", expected: match[1], actual: match[2] };
     }
     return { type: "HashMismatch", expected: "", actual: "" };
@@ -392,7 +394,7 @@ export function validate(marks: ProvenanceMark[]): ValidationReport {
   for (const mark of deduplicatedMarks) {
     const chainIdKey = hexEncode(mark.chainId());
     const bin = chainBins.get(chainIdKey);
-    if (bin) {
+    if (bin !== undefined) {
       bin.push(mark);
     } else {
       chainBins.set(chainIdKey, [mark]);

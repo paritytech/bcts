@@ -1,5 +1,6 @@
 // Ported from provenance-mark-rust/src/mark.rs
 
+import { toBase64, fromBase64, bytesToHex } from "@blockchain-commons/components";
 import {
   type Cbor,
   cbor,
@@ -19,7 +20,7 @@ import {
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 import {
-  ProvenanceMarkResolution,
+  type ProvenanceMarkResolution,
   linkLength,
   keyRange,
   chainIdRange,
@@ -169,7 +170,7 @@ export class ProvenanceMark {
     // Re-deserialize to get normalized date
     const normalizedDate = deserializeDate(res, dateBytes);
 
-    const infoBytes = info ? cborData(info) : new Uint8Array(0);
+    const infoBytes = info !== undefined ? cborData(info) : new Uint8Array(0);
 
     const hash = ProvenanceMark.makeHash(
       res,
@@ -438,7 +439,7 @@ export class ProvenanceMark {
    */
   static fromUrl(url: URL): ProvenanceMark {
     const param = url.searchParams.get("provenance");
-    if (!param) {
+    if (param === null || param === "") {
       throw new ProvenanceMarkError(ProvenanceMarkErrorType.MissingUrlParameter, undefined, {
         parameter: "provenance",
       });
@@ -489,10 +490,15 @@ export class ProvenanceMark {
     const cborObj = cborValue as { tag?: number; value?: Cbor };
     if (cborObj.tag !== PROVENANCE_MARK.value) {
       throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
-        message: `Expected tag ${PROVENANCE_MARK.value}, got ${cborObj.tag}`,
+        message: `Expected tag ${PROVENANCE_MARK.value}, got ${String(cborObj.tag)}`,
       });
     }
-    return ProvenanceMark.fromUntaggedCbor(cborObj.value!);
+    if (cborObj.value === undefined) {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: "Tagged CBOR value is missing",
+      });
+    }
+    return ProvenanceMark.fromUntaggedCbor(cborObj.value);
   }
 
   /**
@@ -522,9 +528,9 @@ export class ProvenanceMark {
    */
   toDebugString(): string {
     const components = [
-      `key: ${hexEncode(this._key)}`,
-      `hash: ${hexEncode(this._hash)}`,
-      `chainID: ${hexEncode(this._chainId)}`,
+      `key: ${bytesToHex(this._key)}`,
+      `hash: ${bytesToHex(this._hash)}`,
+      `chainID: ${bytesToHex(this._chainId)}`,
       `seq: ${this._seq}`,
       `date: ${this._date.toISOString()}`,
     ];
@@ -550,14 +556,14 @@ export class ProvenanceMark {
   toJSON(): Record<string, unknown> {
     const result: Record<string, unknown> = {
       res: this._res,
-      key: base64Encode(this._key),
-      hash: base64Encode(this._hash),
-      chainID: base64Encode(this._chainId),
+      key: toBase64(this._key),
+      hash: toBase64(this._hash),
+      chainID: toBase64(this._chainId),
       seq: this._seq,
       date: this._date.toISOString(),
     };
     if (this._infoBytes.length > 0) {
-      result.info_bytes = base64Encode(this._infoBytes);
+      result.info_bytes = toBase64(this._infoBytes);
     }
     return result;
   }
@@ -567,9 +573,9 @@ export class ProvenanceMark {
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMark {
     const res = json.res as ProvenanceMarkResolution;
-    const key = base64Decode(json.key as string);
-    const hash = base64Decode(json.hash as string);
-    const chainId = base64Decode(json.chainID as string);
+    const key = fromBase64(json.key as string);
+    const hash = fromBase64(json.hash as string);
+    const chainId = fromBase64(json.chainID as string);
     const seq = json.seq as number;
     const dateStr = json.date as string;
     const date = new Date(dateStr);
@@ -578,8 +584,8 @@ export class ProvenanceMark {
     const dateBytes = serializeDate(res, date);
 
     let infoBytes = new Uint8Array(0);
-    if (json.info_bytes) {
-      infoBytes = base64Decode(json.info_bytes as string);
+    if (typeof json.info_bytes === "string") {
+      infoBytes = fromBase64(json.info_bytes);
     }
 
     return new ProvenanceMark(res, key, hash, chainId, seqBytes, dateBytes, infoBytes, seq, date);
@@ -595,40 +601,4 @@ function arraysEqual(a: Uint8Array, b: Uint8Array): boolean {
     if (a[i] !== b[i]) return false;
   }
   return true;
-}
-
-/**
- * Helper function to encode bytes as hex.
- */
-function hexEncode(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/**
- * Helper function to encode bytes as base64.
- */
-function base64Encode(bytes: Uint8Array): string {
-  // Use btoa for browser compatibility, or Buffer for Node.js
-  if (typeof btoa === "function") {
-    return btoa(String.fromCharCode(...bytes));
-  }
-  return Buffer.from(bytes).toString("base64");
-}
-
-/**
- * Helper function to decode base64 to bytes.
- */
-function base64Decode(str: string): Uint8Array {
-  // Use atob for browser compatibility, or Buffer for Node.js
-  if (typeof atob === "function") {
-    const binary = atob(str);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-  }
-  return new Uint8Array(Buffer.from(str, "base64"));
 }

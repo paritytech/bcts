@@ -33,7 +33,11 @@ export class ProvenanceMarkInfo {
    * Create a new ProvenanceMarkInfo from a mark.
    */
   static new(mark: ProvenanceMark, comment: string = ""): ProvenanceMarkInfo {
-    const ur = UR.fromCborData(PROVENANCE_MARK.name!, mark.toCborData());
+    const tagName = PROVENANCE_MARK.name;
+    if (tagName === undefined) {
+      throw new Error("PROVENANCE_MARK tag has no name");
+    }
+    const ur = UR.fromCborData(tagName, mark.toCborData());
     const bytewords = mark.bytewordsIdentifier(true);
     const bytemoji = mark.bytemojiIdentifier(true);
     return new ProvenanceMarkInfo(mark, ur, bytewords, bytemoji, comment);
@@ -113,7 +117,7 @@ export class ProvenanceMarkInfo {
     const mark = ProvenanceMark.fromCborData(ur.toCborData());
     const bytewords = json.bytewords as string;
     const bytemoji = json.bytemoji as string;
-    const comment = (json.comment as string) || "";
+    const comment = typeof json.comment === "string" ? json.comment : "";
     return new ProvenanceMarkInfo(mark, ur, bytewords, bytemoji, comment);
   }
 }
