@@ -1,4 +1,4 @@
-import type { Cbor } from "@blockchain-commons/dcbor";
+import type { Cbor } from "@bcts/dcbor";
 import {
   type CborTagged,
   type CborTaggedEncodable,
@@ -6,8 +6,8 @@ import {
   tagsForValues,
   cborData,
   decodeCbor,
-} from "@blockchain-commons/dcbor";
-import { ENVELOPE } from "@blockchain-commons/tags";
+} from "@bcts/dcbor";
+import { ENVELOPE } from "@bcts/components";
 import { Envelope } from "./envelope";
 
 const TAG_ENVELOPE = ENVELOPE.value;

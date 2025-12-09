@@ -17,7 +17,7 @@ import { KnownValue, type KnownValueInput } from "./known-value";
  *
  * @example
  * ```typescript
- * import { KnownValuesStore, IS_A, NOTE, SIGNED } from '@blockchain-commons/known-values';
+ * import { KnownValuesStore, IS_A, NOTE, SIGNED } from '@bcts/known-values';
  *
  * // Create a store with predefined Known Values
  * const store = new KnownValuesStore([IS_A, NOTE, SIGNED]);
@@ -52,7 +52,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A, NOTE, SIGNED } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A, NOTE, SIGNED } from '@bcts/known-values';
    *
    * // Create a store with predefined Known Values
    * const store = new KnownValuesStore([IS_A, NOTE, SIGNED]);
@@ -82,7 +82,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, KnownValue } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, KnownValue } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore();
    * store.insert(new KnownValue(100, 'customValue'));
@@ -101,7 +101,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    * console.log(store.assignedName(IS_A)); // "isA"
@@ -124,7 +124,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    * console.log(store.name(IS_A)); // "isA"
@@ -147,7 +147,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    *
@@ -169,7 +169,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    * const isA = store.knownValueForValue(1);
@@ -197,7 +197,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    *
@@ -241,7 +241,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    *
@@ -275,7 +275,7 @@ export class KnownValuesStore {
    *
    * @example
    * ```typescript
-   * import { KnownValuesStore, IS_A } from '@blockchain-commons/known-values';
+   * import { KnownValuesStore, IS_A } from '@bcts/known-values';
    *
    * const store = new KnownValuesStore([IS_A]);
    *

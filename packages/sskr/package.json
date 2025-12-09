@@ -1,8 +1,19 @@
 {
-  "name": "@blockchain-commons/sskr",
-  "version": "1.0.0-alpha.4",
+  "name": "@bcts/sskr",
+  "version": "1.0.0-alpha.5",
   "type": "module",
   "description": "Blockchain Commons Sharded Secret Key Reconstruction (SSKR) for TypeScript",
+  "license": "BSD-2-Clause-Patent",
+  "author": "Leonardo Custodio <leonardo@custodio.me>",
+  "homepage": "https://github.com/leonardocustodio/blockchain-commons",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonardocustodio/blockchain-commons",
+    "directory": "packages/sskr"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/blockchain-commons/issues"
+  },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
@@ -24,8 +35,8 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint 'src/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
@@ -47,21 +58,19 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@blockchain-commons/rand": "workspace:*",
-    "@blockchain-commons/shamir": "workspace:*"
+    "@bcts/rand": "workspace:*",
+    "@bcts/shamir": "workspace:*"
   },
   "devDependencies": {
-    "@blockchain-commons/eslint": "workspace:*",
-    "@blockchain-commons/tsconfig": "workspace:*",
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.2",
     "eslint": "^9.39.1",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "tsdown": "^0.17.2",
     "typedoc": "^0.28.15",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

@@ -38,12 +38,12 @@ import {
   // KDF
   scrypt,
   scryptOpt,
-  argon2idHash,
+  argon2idHash as _argon2idHash,
   argon2idHashOpt,
   // Memzero
   memzero,
 } from "../src/index.js";
-import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import { SecureRandomNumberGenerator } from "@bcts/rand";
 
 // Helper to convert hex string to Uint8Array
 function hexToBytes(hex: string): Uint8Array {

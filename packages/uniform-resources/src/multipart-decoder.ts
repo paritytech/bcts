@@ -1,4 +1,4 @@
-import { decodeCbor } from "@blockchain-commons/dcbor";
+import { decodeCbor } from "@bcts/dcbor";
 import { InvalidSchemeError, InvalidTypeError, UnexpectedTypeError, URError } from "./error.js";
 import { UR } from "./ur.js";
 import { URType } from "./ur-type.js";

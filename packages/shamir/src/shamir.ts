@@ -1,7 +1,7 @@
 // Ported from bc-shamir-rust/src/shamir.rs
 
-import { hmacSha256, memzero, memzeroVecVecU8 } from "@blockchain-commons/crypto";
-import type { RandomNumberGenerator } from "@blockchain-commons/rand";
+import { hmacSha256, memzero, memzeroVecVecU8 } from "@bcts/crypto";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 import { ShamirError, ShamirErrorType } from "./error.js";
 import { MAX_SECRET_LEN, MAX_SHARE_COUNT, MIN_SECRET_LEN } from "./index.js";
@@ -46,8 +46,8 @@ function validateParameters(threshold: number, shareCount: number, secretLength:
  *
  * @example
  * ```typescript
- * import { splitSecret } from "@blockchain-commons/shamir";
- * import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+ * import { splitSecret } from "@bcts/shamir";
+ * import { SecureRandomNumberGenerator } from "@bcts/rand";
  *
  * const threshold = 2;
  * const shareCount = 3;
@@ -133,7 +133,7 @@ export function splitSecret(
  *
  * @example
  * ```typescript
- * import { recoverSecret } from "@blockchain-commons/shamir";
+ * import { recoverSecret } from "@bcts/shamir";
  *
  * const indexes = [0, 2];
  * const shares = [

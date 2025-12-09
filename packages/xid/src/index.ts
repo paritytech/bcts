@@ -1,5 +1,5 @@
 /**
- * @blockchain-commons/xid - XID Document Library
+ * @bcts/xid - XID Document Library
  *
  * TypeScript implementation of Blockchain Commons' XID specification
  * for eXtensible IDentifiers and XID Documents.

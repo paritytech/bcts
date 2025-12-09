@@ -1,5 +1,5 @@
 import { Envelope } from "../base/envelope";
-import { cborData } from "@blockchain-commons/dcbor";
+import { cborData } from "@bcts/dcbor";
 
 /// Hex formatting for Gordian Envelopes.
 ///

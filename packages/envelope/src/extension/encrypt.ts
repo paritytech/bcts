@@ -1,18 +1,14 @@
 import { Envelope } from "../base/envelope";
 import { EnvelopeError } from "../base/error";
 import { type Digest } from "../base/digest";
-import { cborData, decodeCbor } from "@blockchain-commons/dcbor";
+import { cborData, decodeCbor } from "@bcts/dcbor";
 import {
   aeadChaCha20Poly1305EncryptWithAad,
   aeadChaCha20Poly1305DecryptWithAad,
   SYMMETRIC_KEY_SIZE,
   SYMMETRIC_NONCE_SIZE,
-} from "@blockchain-commons/crypto";
-import {
-  SecureRandomNumberGenerator,
-  rngRandomData,
-  type RandomNumberGenerator,
-} from "@blockchain-commons/rand";
+} from "@bcts/crypto";
+import { SecureRandomNumberGenerator, rngRandomData, type RandomNumberGenerator } from "@bcts/rand";
 
 /// Extension for encrypting and decrypting envelopes using symmetric encryption.
 ///

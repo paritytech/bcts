@@ -2,8 +2,8 @@ import { Digest, type DigestProvider } from "./digest";
 import { Assertion } from "./assertion";
 import { EnvelopeError } from "./error";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
-import { KnownValue } from "@blockchain-commons/known-values";
-import type { Cbor } from "@blockchain-commons/dcbor";
+import { KnownValue } from "@bcts/known-values";
+import type { Cbor } from "@bcts/dcbor";
 import {
   cbor,
   cborData,
@@ -15,8 +15,8 @@ import {
   asCborMap,
   asTaggedValue,
   tryExpectedTaggedValue,
-} from "@blockchain-commons/dcbor";
-import { ENVELOPE, LEAF, ENCRYPTED, COMPRESSED } from "@blockchain-commons/tags";
+} from "@bcts/dcbor";
+import { ENVELOPE, LEAF, ENCRYPTED, COMPRESSED } from "@bcts/components";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust

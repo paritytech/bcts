@@ -1,7 +1,7 @@
 // Ported from bc-crypto-rust/src/public_key_encryption.rs
 
 import { x25519 } from "@noble/curves/ed25519";
-import type { RandomNumberGenerator } from "@blockchain-commons/rand";
+import type { RandomNumberGenerator } from "@bcts/rand";
 import { hkdfHmacSha256 } from "./hash.js";
 
 // Constants

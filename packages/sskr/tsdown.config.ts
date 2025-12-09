@@ -9,4 +9,10 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "BCSSKR",
+  outputOptions: {
+    globals: {
+      "@bcts/rand": "BCRand",
+      "@bcts/shamir": "BCShamir",
+    },
+  },
 });

@@ -12,8 +12,8 @@ import {
   X25519_PRIVATE_KEY_SIZE,
   SYMMETRIC_NONCE_SIZE,
   SYMMETRIC_AUTH_SIZE,
-} from "@blockchain-commons/crypto";
-import { SecureRandomNumberGenerator, rngRandomData } from "@blockchain-commons/rand";
+} from "@bcts/crypto";
+import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
 
 /// Extension for public-key encryption to specific recipients.
 ///
@@ -36,7 +36,7 @@ import { SecureRandomNumberGenerator, rngRandomData } from "@blockchain-commons/
 /// decrypt the message later. Recipients must try each sealed message
 /// until one decrypts successfully.
 ///
-/// Uses @blockchain-commons/crypto functions for X25519 and ChaCha20-Poly1305.
+/// Uses @bcts/crypto functions for X25519 and ChaCha20-Poly1305.
 ///
 /// @example
 /// ```typescript

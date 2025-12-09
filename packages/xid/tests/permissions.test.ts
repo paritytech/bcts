@@ -3,7 +3,7 @@
  * Ported from bc-xid-rust/tests/permissions.rs
  */
 
-import { Envelope } from "@blockchain-commons/envelope";
+import { Envelope } from "@bcts/envelope";
 import { Permissions, Privilege } from "../src";
 
 describe("Permissions", () => {

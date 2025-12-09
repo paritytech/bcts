@@ -3,9 +3,8 @@
  * Ported from bc-xid-rust/tests/test_xid_document.rs
  */
 
-import { PrivateKeyBase } from "@blockchain-commons/envelope";
-import { ProvenanceMarkResolution } from "@blockchain-commons/provenance-mark";
-import { XID } from "@blockchain-commons/components";
+import { PrivateKeyBase } from "@bcts/envelope";
+import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import {
   XIDDocument,
   Key,
@@ -333,8 +332,8 @@ describe("XIDDocument", () => {
       const envelopeInclude = xidDocument.toEnvelope(XIDPrivateKeyOptions.Include);
       const envelopeElide = xidDocument.toEnvelope(XIDPrivateKeyOptions.Elide);
 
-      // Elided should be equivalent to included
-      expect(envelopeElide.isEquivalentTo(envelopeInclude)).toBe(true);
+      // Elided should be equivalent to included (same digest)
+      expect(envelopeElide.digest().equals(envelopeInclude.digest())).toBe(true);
 
       // But restored document should not have private key
       const xidDocument2 = XIDDocument.fromEnvelope(envelopeElide);

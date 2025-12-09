@@ -1,5 +1,5 @@
 /**
- * @blockchain-commons/components - Cryptographic components library
+ * @bcts/components - Cryptographic components library
  * TypeScript implementation of Blockchain Commons' cryptographic components specification
  * Ported from bc-components-rust
  */
@@ -10,6 +10,10 @@ export type { Result } from "./error.js";
 
 // Utility functions
 export { bytesToHex, hexToBytes, toBase64, fromBase64, bytesEqual } from "./utils.js";
+
+// DigestProvider interface
+export type { DigestProvider } from "./digest-provider.js";
+export { digestFromBytes } from "./digest-provider.js";
 
 // Basic cryptographic primitives
 export { Digest } from "./digest.js";
@@ -22,21 +26,169 @@ export type { SeedMetadata } from "./seed.js";
 export { Reference } from "./reference.js";
 export type { ReferenceEncodingFormat } from "./reference.js";
 
-// Identifier types
-export { ARID } from "./arid.js";
-export { UUID } from "./uuid.js";
-export { XID } from "./xid.js";
-export { URI } from "./uri.js";
+// Identifier types (from id/ module)
+export { ARID, UUID, XID, URI } from "./id/index.js";
 
-// Key agreement (X25519)
-export { X25519PrivateKey } from "./x25519-private-key.js";
-export { X25519PublicKey } from "./x25519-public-key.js";
+// Key agreement - X25519 (from x25519/ module)
+export { X25519PrivateKey, X25519PublicKey } from "./x25519/index.js";
 
-// Digital signatures (Ed25519)
-export { Ed25519PrivateKey } from "./ed25519-private-key.js";
-export { Ed25519PublicKey } from "./ed25519-public-key.js";
+// Digital signatures - Ed25519 (from ed25519/ module)
+export { Ed25519PrivateKey, Ed25519PublicKey } from "./ed25519/index.js";
 
-// Symmetric encryption
-export { SymmetricKey } from "./symmetric-key.js";
-export { AuthenticationTag } from "./authentication-tag.js";
-export { EncryptedMessage } from "./encrypted-message.js";
+// SR25519 - Schnorr signatures over Ristretto25519 (from sr25519/ module)
+// Used by Polkadot/Substrate
+export {
+  Sr25519PrivateKey,
+  Sr25519PublicKey,
+  SR25519_PRIVATE_KEY_SIZE,
+  SR25519_PUBLIC_KEY_SIZE,
+  SR25519_SIGNATURE_SIZE,
+  SR25519_DEFAULT_CONTEXT,
+} from "./sr25519/index.js";
+
+// EC keys - secp256k1 (from ec-key/ module)
+export {
+  ECPrivateKey,
+  ECPublicKey,
+  ECUncompressedPublicKey,
+  SchnorrPublicKey,
+} from "./ec-key/index.js";
+
+// Symmetric encryption (from symmetric/ module)
+export { SymmetricKey, AuthenticationTag, EncryptedMessage } from "./symmetric/index.js";
+
+// Digital signatures (from signing/ module)
+export type { Signer, Verifier } from "./signing/index.js";
+export {
+  SignatureScheme,
+  Signature,
+  SigningPrivateKey,
+  SigningPublicKey,
+} from "./signing/index.js";
+export {
+  createKeypair,
+  createKeypairUsing,
+  defaultSignatureScheme,
+} from "./signing/signature-scheme.js";
+
+// Key encapsulation (from encapsulation/ module)
+export {
+  EncapsulationScheme,
+  EncapsulationPrivateKey,
+  EncapsulationPublicKey,
+  EncapsulationCiphertext,
+  SealedMessage,
+  defaultEncapsulationScheme,
+  createEncapsulationKeypair,
+  createEncapsulationKeypairUsing,
+} from "./encapsulation/index.js";
+
+// Encrypted key / Key derivation (from encrypted-key/ module)
+export {
+  HashType,
+  hashTypeToString,
+  hashTypeToCbor,
+  hashTypeFromCbor,
+  KeyDerivationMethod,
+  defaultKeyDerivationMethod,
+  keyDerivationMethodIndex,
+  keyDerivationMethodFromIndex,
+  keyDerivationMethodToString,
+  keyDerivationMethodFromCbor,
+  HKDFParams,
+  SALT_LEN,
+  PBKDF2Params,
+  DEFAULT_PBKDF2_ITERATIONS,
+  ScryptParams,
+  DEFAULT_SCRYPT_LOG_N,
+  DEFAULT_SCRYPT_R,
+  DEFAULT_SCRYPT_P,
+  Argon2idParams,
+  hkdfParams,
+  pbkdf2Params,
+  scryptParams,
+  argon2idParams,
+  defaultKeyDerivationParams,
+  keyDerivationParamsMethod,
+  isPasswordBased,
+  lockWithParams,
+  keyDerivationParamsToCbor,
+  keyDerivationParamsToCborData,
+  keyDerivationParamsToString,
+  keyDerivationParamsFromCbor,
+  EncryptedKey,
+} from "./encrypted-key/index.js";
+export type { KeyDerivation, KeyDerivationParams } from "./encrypted-key/index.js";
+
+// Key management containers
+export { PrivateKeyBase } from "./private-key-base.js";
+export { PrivateKeys } from "./private-keys.js";
+export { PublicKeys } from "./public-keys.js";
+
+// SSKR integration with CBOR/UR serialization
+export {
+  SSKRShareCbor,
+  generateSSKRSharesCbor,
+  combineSSKRSharesCbor,
+  // Re-exports from @bcts/sskr for convenience
+  sskrGenerate,
+  sskrGenerateUsing,
+  sskrCombine,
+  SSKRSecret,
+  SSKRGroupSpec,
+  SSKRSpec,
+} from "./sskr.js";
+
+// Post-quantum cryptography - ML-DSA (from mldsa/ module)
+export {
+  MLDSALevel,
+  MLDSA_KEY_SIZES,
+  mldsaPrivateKeySize,
+  mldsaPublicKeySize,
+  mldsaSignatureSize,
+  mldsaLevelToString,
+  mldsaLevelFromValue,
+  mldsaGenerateKeypair,
+  mldsaGenerateKeypairUsing,
+  mldsaSign,
+  mldsaVerify,
+  MLDSAPrivateKey,
+  MLDSAPublicKey,
+  MLDSASignature,
+} from "./mldsa/index.js";
+export type { MLDSAKeypairData } from "./mldsa/index.js";
+
+// Post-quantum cryptography - ML-KEM (from mlkem/ module)
+export {
+  MLKEMLevel,
+  MLKEM_KEY_SIZES,
+  mlkemPrivateKeySize,
+  mlkemPublicKeySize,
+  mlkemCiphertextSize,
+  mlkemSharedSecretSize,
+  mlkemLevelToString,
+  mlkemLevelFromValue,
+  mlkemGenerateKeypair,
+  mlkemGenerateKeypairUsing,
+  mlkemEncapsulate,
+  mlkemDecapsulate,
+  MLKEMPrivateKey,
+  MLKEMPublicKey,
+  MLKEMCiphertext,
+} from "./mlkem/index.js";
+export type {
+  MLKEMKeypairData,
+  MLKEMEncapsulationResult,
+  MLKEMEncapsulationPair,
+} from "./mlkem/index.js";
+
+// Re-export commonly used tags for higher-level packages
+// This allows packages like envelope to depend on components instead of tags directly
+export {
+  KNOWN_VALUE,
+  // Envelope-related tags
+  ENVELOPE,
+  LEAF,
+  ENCRYPTED,
+  COMPRESSED,
+} from "@bcts/tags";

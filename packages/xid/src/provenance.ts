@@ -7,18 +7,14 @@
  * Ported from bc-xid-rust/src/provenance.rs
  */
 
-import {
-  Envelope,
-  type EnvelopeEncodable,
-  type EnvelopeEncodableValue,
-} from "@blockchain-commons/envelope";
-import { PROVENANCE_GENERATOR, SALT, type KnownValue } from "@blockchain-commons/known-values";
-import { Salt } from "@blockchain-commons/components";
+import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
+import { PROVENANCE_GENERATOR, SALT, type KnownValue } from "@bcts/known-values";
+import { Salt } from "@bcts/components";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
-import { ProvenanceMark, ProvenanceMarkGenerator } from "@blockchain-commons/provenance-mark";
-import { cborData, decodeCbor } from "@blockchain-commons/dcbor";
+import { ProvenanceMark, ProvenanceMarkGenerator } from "@bcts/provenance-mark";
+import { cborData, decodeCbor } from "@bcts/dcbor";
 import { XIDError } from "./error";
 
 /**

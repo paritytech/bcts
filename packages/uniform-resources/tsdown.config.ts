@@ -9,10 +9,10 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "BCUR",
-  noExternal: ["@blockchain-commons/dcbor"],
+  noExternal: ["@bcts/dcbor"],
   outputOptions: {
     globals: {
-      "@blockchain-commons/dcbor": "BCDcbor",
+      "@bcts/dcbor": "BCDcbor",
     },
   },
 });

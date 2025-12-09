@@ -1,8 +1,19 @@
 {
-  "name": "@blockchain-commons/components",
-  "version": "1.0.0-alpha.4",
+  "name": "@bcts/components",
+  "version": "1.0.0-alpha.5",
   "type": "module",
   "description": "A TypeScript implementation of Blockchain Commons cryptographic components. Supports key generation, signing, verification, encryption, and post-quantum cryptography.",
+  "license": "BSD-2-Clause-Patent",
+  "author": "Leonardo Custodio <leonardo@custodio.me>",
+  "homepage": "https://github.com/leonardocustodio/blockchain-commons",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonardocustodio/blockchain-commons",
+    "directory": "packages/components"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/blockchain-commons/issues"
+  },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
@@ -24,10 +35,10 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "echo 'No tests yet for crypto package'",
-    "test:watch": "jest --watch",
-    "lint": "echo 'Skipping lint for crypto package (pending refactoring)'",
-    "lint:fix": "echo 'Skipping lint for crypto package (pending refactoring)'",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "docs": "typedoc"
@@ -47,25 +58,26 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@blockchain-commons/crypto": "workspace:*",
-    "@blockchain-commons/dcbor": "workspace:*",
-    "@blockchain-commons/rand": "workspace:*",
-    "@blockchain-commons/uniform-resources": "workspace:*",
+    "@bcts/crypto": "workspace:*",
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/rand": "workspace:*",
+    "@bcts/sskr": "workspace:*",
+    "@bcts/tags": "workspace:*",
+    "@bcts/uniform-resources": "workspace:*",
+    "@noble/post-quantum": "^0.2.1",
+    "@scure/sr25519": "^1.0.0",
     "pako": "^2.1.0"
   },
   "devDependencies": {
-    "@blockchain-commons/eslint": "workspace:*",
-    "@blockchain-commons/tsconfig": "workspace:*",
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
-    "@jest/globals": "^30.2.0",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.2",
     "@types/pako": "^2.0.4",
     "eslint": "^9.39.1",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.6",
     "tsdown": "^0.17.2",
     "typedoc": "^0.28.15",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

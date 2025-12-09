@@ -1,6 +1,6 @@
 // Ported from provenance-mark-rust/src/resolution.rs
 
-import { type Cbor, cbor, expectUnsigned } from "@blockchain-commons/dcbor";
+import { type Cbor, cbor, expectUnsigned } from "@bcts/dcbor";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 import {

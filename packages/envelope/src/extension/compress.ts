@@ -2,7 +2,7 @@ import { Envelope } from "../base/envelope";
 import { EnvelopeError } from "../base/error";
 import { type Digest } from "../base/digest";
 import * as pako from "pako";
-import { cborData, decodeCbor } from "@blockchain-commons/dcbor";
+import { cborData, decodeCbor } from "@bcts/dcbor";
 
 /// Extension for compressing and decompressing envelopes.
 ///

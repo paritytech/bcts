@@ -1,6 +1,6 @@
 // Ported from bc-shamir-rust/src/interpolate.rs
 
-import { memzero, memzeroVecVecU8 } from "@blockchain-commons/crypto";
+import { memzero, memzeroVecVecU8 } from "@bcts/crypto";
 import { MAX_SECRET_LEN } from "./index.js";
 import { bitslice, bitsliceSetall, gf256Add, gf256Inv, gf256Mul, unbitslice } from "./hazmat.js";
 

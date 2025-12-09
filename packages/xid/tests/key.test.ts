@@ -3,7 +3,7 @@
  * Ported from bc-xid-rust/tests/key.rs
  */
 
-import { Envelope, PrivateKeyBase } from "@blockchain-commons/envelope";
+import { PrivateKeyBase } from "@bcts/envelope";
 import { Key, Privilege, XIDPrivateKeyOptions } from "../src";
 
 describe("Key", () => {

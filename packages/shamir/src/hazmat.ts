@@ -1,7 +1,7 @@
 // Ported from bc-shamir-rust/src/hazmat.rs
 // GF(2^8) bitsliced polynomial operations for Shamir secret sharing
 
-import { memzero } from "@blockchain-commons/crypto";
+import { memzero } from "@bcts/crypto";
 
 /**
  * Convert an array of bytes into a bitsliced representation.

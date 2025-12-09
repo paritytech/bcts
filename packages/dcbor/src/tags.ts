@@ -129,7 +129,7 @@ export const TAG_SET = 258;
 
 // ============================================================================
 // NOTE: Blockchain Commons envelope and extension tags (TAG_ENVELOPE, TAG_LEAF,
-// TAG_KNOWN_VALUE, TAG_COMPRESSED, etc.) are defined in the @blockchain-commons/tags
+// TAG_KNOWN_VALUE, TAG_COMPRESSED, etc.) are defined in the @bcts/tags
 // package, NOT in dcbor. This matches the Rust architecture where bc-dcbor-rust
 // only defines TAG_DATE, and bc-tags-rust defines all envelope-related tags.
 // ============================================================================

@@ -1,8 +1,8 @@
 // Ported from provenance-mark-rust/src/mark_info.rs
 
-import { UR } from "@blockchain-commons/uniform-resources";
-import { decodeCbor, cborData } from "@blockchain-commons/dcbor";
-import { PROVENANCE_MARK } from "@blockchain-commons/tags";
+import { UR } from "@bcts/uniform-resources";
+import { decodeCbor, cborData } from "@bcts/dcbor";
+import { PROVENANCE_MARK } from "@bcts/tags";
 
 import { ProvenanceMark } from "./mark.js";
 

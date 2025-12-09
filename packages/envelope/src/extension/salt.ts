@@ -5,7 +5,7 @@ import {
   rngRandomData,
   rngNextInClosedRangeI32,
   type RandomNumberGenerator,
-} from "@blockchain-commons/rand";
+} from "@bcts/rand";
 
 /// Extension for adding salt to envelopes to prevent correlation.
 ///

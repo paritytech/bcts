@@ -3,7 +3,7 @@
  * Ported from bc-xid-rust/tests/delegate.rs
  */
 
-import { PrivateKeyBase } from "@blockchain-commons/envelope";
+import { PrivateKeyBase } from "@bcts/envelope";
 import { Delegate, XIDDocument, Privilege } from "../src";
 
 describe("Delegate", () => {

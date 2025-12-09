@@ -7,8 +7,8 @@
  * Ported from bc-xid-rust/src/permissions.rs
  */
 
-import { ALLOW, DENY } from "@blockchain-commons/known-values";
-import { Envelope } from "@blockchain-commons/envelope";
+import { ALLOW, DENY } from "@bcts/known-values";
+import { Envelope } from "@bcts/envelope";
 import { Privilege, privilegeFromEnvelope, privilegeToKnownValue } from "./privilege";
 
 /**

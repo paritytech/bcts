@@ -1,16 +1,16 @@
 {
-  "extends": "@blockchain-commons/tsconfig/library.json",
+  "extends": "@bcts/tsconfig/library.json",
   "compilerOptions": {
-    /* crypto specifics */
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM"],
+    "types": ["vitest/globals"]
   },
   "include": [
     "src/**/*.ts",
+    "tests/**/*.ts",
     "types/**/*.d.ts"
   ],
-  "ts-node": {
-    "compilerOptions": {
-      "module": "commonjs"
-    }
-  }
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

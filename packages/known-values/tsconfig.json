@@ -1,15 +1,17 @@
 {
-  "extends": "@blockchain-commons/tsconfig/library.json",
+  "extends": "@bcts/tsconfig/library.json",
   "compilerOptions": {
-    /* dcbor specifics */
-    "lib": ["ES2022", "DOM"],  /* Include DOM for browser compatibility */
-    "skipLibCheck": true
+    "lib": ["ES2022", "DOM"],
+    "skipLibCheck": true,
+    "types": ["vitest/globals"]
   },
   "include": [
     "src/**/*.ts",
+    "tests/**/*.ts",
     "types/**/*.d.ts"
   ],
   "exclude": [
-    "tests"
+    "node_modules",
+    "dist"
   ]
 }

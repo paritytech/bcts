@@ -12,7 +12,7 @@ import {
   MIN_SECRET_LEN as SHAMIR_MIN_SECRET_LEN,
   MAX_SECRET_LEN as SHAMIR_MAX_SECRET_LEN,
   MAX_SHARE_COUNT as SHAMIR_MAX_SHARE_COUNT,
-} from "@blockchain-commons/shamir";
+} from "@bcts/shamir";
 
 /**
  * The minimum length of a secret.

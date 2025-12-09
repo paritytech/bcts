@@ -1,6 +1,6 @@
 // Ported from provenance-mark-rust/src/rng_state.rs
 
-import { type Cbor, cbor, expectBytes } from "@blockchain-commons/dcbor";
+import { type Cbor, cbor, expectBytes } from "@bcts/dcbor";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 

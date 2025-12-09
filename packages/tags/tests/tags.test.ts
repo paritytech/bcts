@@ -1,5 +1,5 @@
 import * as tags from "../src/index";
-import { getGlobalTagsStore } from "@blockchain-commons/dcbor";
+import { getGlobalTagsStore } from "@bcts/dcbor";
 
 describe("Tags Registry", () => {
   describe("Core Envelope Tags", () => {

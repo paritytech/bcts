@@ -1,8 +1,10 @@
-# @blockchain-commons/crypto
+# Blockchain Commons Crypto Interfaces for TypeScript
 
-Cryptographic utilities for TypeScript, ported from [bc-crypto-rust](https://github.com/BlockchainCommons/bc-crypto-rust).
+> Disclaimer: This package is under active development and APIs may change.
 
-> **⚠️ Work in Progress**: This package is under active development and APIs may change.
+## Introduction
+
+`@bcts/crypto` exposes a uniform API for the cryptographic primitives used in higher-level [Blockchain Commons](https://blockchaincommons.com) projects such as Gordian Envelope.
 
 ## Features
 
@@ -47,7 +49,7 @@ The `memzero()` function provides **best-effort** memory clearing in JavaScript/
 **Example:**
 
 ```typescript
-import { memzero } from '@blockchain-commons/crypto';
+import { memzero } from '@bcts/crypto';
 
 const sensitiveKey = new Uint8Array(32);
 // ... use the key ...
@@ -57,3 +59,7 @@ memzero(sensitiveKey);
 ```
 
 For more details, see the [implementation comments](./src/memzero.ts).
+
+## Rust Reference Implementation
+
+This TypeScript implementation is based on [bc-crypto-rust](https://github.com/BlockchainCommons/bc-crypto-rust) **v0.14.0** ([commit](https://github.com/BlockchainCommons/bc-crypto-rust/tree/4f2b791320730578b04943c833c4a9e6c232fc4d)).

@@ -9,4 +9,10 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "BCShamir",
+  outputOptions: {
+    globals: {
+      "@bcts/crypto": "BCCrypto",
+      "@bcts/rand": "BCRand",
+    },
+  },
 });

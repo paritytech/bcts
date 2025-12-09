@@ -23,8 +23,8 @@ import {
   PRIVILEGE_ELECT,
   PRIVILEGE_BURN,
   PRIVILEGE_REVOKE,
-} from "@blockchain-commons/known-values";
-import { Envelope } from "@blockchain-commons/envelope";
+} from "@bcts/known-values";
+import { Envelope } from "@bcts/envelope";
 import { XIDError } from "./error";
 
 /**

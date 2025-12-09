@@ -1,5 +1,5 @@
-import type { Cbor, CborMap } from "@blockchain-commons/dcbor";
-import { isNumber, isNaN, asArray, asMap, asText } from "@blockchain-commons/dcbor";
+import type { Cbor, CborMap } from "@bcts/dcbor";
+import { isNumber, isNaN, asArray, asMap, asText } from "@bcts/dcbor";
 import { Envelope } from "./envelope";
 
 /// Provides methods for working with envelope leaf nodes,

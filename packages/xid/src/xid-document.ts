@@ -13,7 +13,7 @@ import {
   type EnvelopeEncodable,
   type Signer,
   type EnvelopeEncodableValue,
-} from "@blockchain-commons/envelope";
+} from "@bcts/envelope";
 import {
   KEY,
   DELEGATE,
@@ -21,17 +21,17 @@ import {
   PROVENANCE,
   DEREFERENCE_VIA,
   type KnownValue,
-} from "@blockchain-commons/known-values";
+} from "@bcts/known-values";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
-import { Reference, XID } from "@blockchain-commons/components";
+import { Reference, XID } from "@bcts/components";
 import {
   type ProvenanceMark,
   ProvenanceMarkGenerator,
   ProvenanceMarkResolution,
-} from "@blockchain-commons/provenance-mark";
-import { type Cbor } from "@blockchain-commons/dcbor";
+} from "@bcts/provenance-mark";
+import { type Cbor } from "@bcts/dcbor";
 
 import { Key, XIDPrivateKeyOptions, type XIDPrivateKeyOptionsValue } from "./key";
 import { Delegate, registerXIDDocumentClass } from "./delegate";

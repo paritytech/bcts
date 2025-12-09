@@ -1,8 +1,8 @@
 // Ported from bc-sskr-rust/src/encoding.rs
 
-import type { RandomNumberGenerator } from "@blockchain-commons/rand";
-import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
-import { splitSecret, recoverSecret, ShamirError } from "@blockchain-commons/shamir";
+import type { RandomNumberGenerator } from "@bcts/rand";
+import { SecureRandomNumberGenerator } from "@bcts/rand";
+import { splitSecret, recoverSecret, ShamirError } from "@bcts/shamir";
 
 import { SSKRError, SSKRErrorType } from "./error.js";
 import { Secret } from "./secret.js";

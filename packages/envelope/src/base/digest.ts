@@ -1,13 +1,4 @@
-import { sha256 } from "@blockchain-commons/crypto";
-
-declare global {
-  const TextEncoder: new () => {
-    encode(input: string): Uint8Array;
-  };
-  const TextDecoder: new () => {
-    decode(input: Uint8Array): string;
-  };
-}
+import { sha256 } from "@bcts/crypto";
 
 /// A cryptographic digest used to uniquely identify digital objects.
 ///

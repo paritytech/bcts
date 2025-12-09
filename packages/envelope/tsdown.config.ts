@@ -11,9 +11,12 @@ export default defineConfig({
   globalName: "BCEnvelope",
   outputOptions: {
     globals: {
-      "@blockchain-commons/dcbor": "BCDcbor",
-      "@blockchain-commons/known-values": "BCKnownValues",
-      "@blockchain-commons/tags": "BCTags",
+      "@bcts/components": "BCComponents",
+      "@bcts/crypto": "BCCrypto",
+      "@bcts/dcbor": "BCDcbor",
+      "@bcts/known-values": "BCKnownValues",
+      "@bcts/rand": "BCRand",
+      "@bcts/uniform-resources": "BCUR",
     },
   },
 });

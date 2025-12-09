@@ -1,6 +1,6 @@
 {
-  "name": "@blockchain-commons/playground",
-  "version": "0.0.0",
+  "name": "@bcts/playground",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,10 +13,10 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
-    "@blockchain-commons/dcbor": "workspace:*",
-    "@blockchain-commons/envelope": "workspace:*",
-    "@blockchain-commons/tags": "workspace:*",
-    "@blockchain-commons/uniform-resources": "workspace:*",
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/envelope": "workspace:*",
+    "@bcts/tags": "workspace:*",
+    "@bcts/uniform-resources": "workspace:*",
     "@nuxt/ui": "^4.2.1",
     "@tailwindcss/vite": "^4.1.17",
     "tailwindcss": "^4.1.17"

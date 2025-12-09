@@ -304,7 +304,7 @@ class LazyKnownValues {
  *
  * @example
  * ```typescript
- * import { KNOWN_VALUES } from '@blockchain-commons/known-values';
+ * import { KNOWN_VALUES } from '@bcts/known-values';
  *
  * // Access the global store
  * const knownValues = KNOWN_VALUES.get();

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect } from "vitest";
 import type { UREncodable, URDecodable, URCodable } from "../src";
 import {
   UR,
@@ -28,7 +28,7 @@ import {
   encodeBytewordsIdentifier,
   encodeBytemojisIdentifier,
 } from "../src";
-import { cbor } from "@blockchain-commons/dcbor";
+import { cbor } from "@bcts/dcbor";
 
 describe("URType", () => {
   it("creates a valid UR type with lowercase letters", () => {

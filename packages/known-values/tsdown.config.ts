@@ -11,8 +11,8 @@ export default defineConfig({
   globalName: "BCKnownValues",
   outputOptions: {
     globals: {
-      "@blockchain-commons/dcbor": "BCDcbor",
-      "@blockchain-commons/tags": "BCTags",
+      "@bcts/components": "BCComponents",
+      "@bcts/dcbor": "BCDcbor",
     },
   },
 });

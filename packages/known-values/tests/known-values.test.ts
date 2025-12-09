@@ -9,7 +9,7 @@ import {
   TAG_KNOWN_VALUE,
   KNOWN_VALUE_TAG,
 } from "../src/index";
-import { cbor, MajorType, bytesToHex, hexToBytes } from "@blockchain-commons/dcbor";
+import { cbor, MajorType, bytesToHex, hexToBytes, isTagged } from "@bcts/dcbor";
 
 describe("KnownValue", () => {
   test("should create a KnownValue with just a value", () => {
@@ -192,9 +192,13 @@ describe("KnownValue CBOR Encoding", () => {
     const tagged = kv.taggedCbor();
 
     expect(tagged.type).toBe(MajorType.Tagged);
-    expect(tagged.tag).toBe(40000);
-    expect(tagged.value.type).toBe(MajorType.Unsigned);
-    expect(tagged.value.value).toBe(1n);
+    if (isTagged(tagged)) {
+      expect(tagged.tag).toBe(40000);
+      expect(tagged.value.type).toBe(MajorType.Unsigned);
+      if (tagged.value.type === MajorType.Unsigned) {
+        expect(tagged.value.value).toBe(1n);
+      }
+    }
   });
 
   test("should encode IS_A to correct CBOR hex", () => {

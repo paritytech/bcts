@@ -25,7 +25,7 @@
  *
  * @example
  * ```typescript
- * import { KnownValue } from '@blockchain-commons/known-values';
+ * import { KnownValue } from '@bcts/known-values';
  *
  * // Create a Known Value with a numeric value
  * const knownValue = new KnownValue(42);
@@ -45,7 +45,7 @@
  * const decodedFromBytes = KnownValue.fromCborData(bytes);
  *
  * // Use a pre-defined Known Value from the registry
- * import { IS_A } from '@blockchain-commons/known-values';
+ * import { IS_A } from '@bcts/known-values';
  * console.log(IS_A.value()); // 1
  * console.log(IS_A.name()); // "isA"
  * ```
@@ -67,8 +67,8 @@ import {
   cborData,
   decodeCbor,
   MajorType,
-} from "@blockchain-commons/dcbor";
-import { KNOWN_VALUE } from "@blockchain-commons/tags";
+} from "@bcts/dcbor";
+import { KNOWN_VALUE } from "@bcts/components";
 
 /**
  * The numeric value for the CBOR tag used for Known Values.
@@ -128,7 +128,7 @@ export class KnownValue implements CborTaggedEncodable, CborTaggedDecodable<Know
    *
    * @example
    * ```typescript
-   * import { IS_A, NOTE } from '@blockchain-commons/known-values';
+   * import { IS_A, NOTE } from '@bcts/known-values';
    * console.log(IS_A.value()); // 1
    * console.log(NOTE.value()); // 4
    * ```

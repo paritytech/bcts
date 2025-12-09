@@ -1,7 +1,7 @@
 // Tests ported from bc-sskr-rust/src/lib.rs
 
-import type { RandomNumberGenerator } from "@blockchain-commons/rand";
-import { rngNextInClosedRange } from "@blockchain-commons/rand";
+import type { RandomNumberGenerator } from "@bcts/rand";
+import { rngNextInClosedRange as _rngNextInClosedRange } from "@bcts/rand";
 import {
   Secret,
   GroupSpec,
@@ -10,10 +10,10 @@ import {
   sskrGenerateUsing,
   sskrCombine,
   METADATA_SIZE_BYTES,
-  MIN_SECRET_LEN,
-  MAX_SECRET_LEN,
-  MAX_GROUPS_COUNT,
-  MAX_SHARE_COUNT,
+  MIN_SECRET_LEN as _MIN_SECRET_LEN,
+  MAX_SECRET_LEN as _MAX_SECRET_LEN,
+  MAX_GROUPS_COUNT as _MAX_GROUPS_COUNT,
+  MAX_SHARE_COUNT as _MAX_SHARE_COUNT,
   SSKRError,
 } from "../src/index.js";
 
@@ -57,11 +57,12 @@ function hexToBytes(hex: string): Uint8Array {
   return bytes;
 }
 
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+// Utility kept for debugging - uncomment when needed
+// function bytesToHex(bytes: Uint8Array): string {
+//   return Array.from(bytes)
+//     .map((b) => b.toString(16).padStart(2, "0"))
+//     .join("");
+// }
 
 describe("SSKR", () => {
   describe("split 3/5 single group", () => {

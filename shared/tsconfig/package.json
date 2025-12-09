@@ -1,6 +1,6 @@
 {
-  "name": "@blockchain-commons/tsconfig",
-  "version": "0.0.0",
+  "name": "@bcts/tsconfig",
+  "version": "0.1.0",
   "private": true,
   "publishConfig": {
     "access": "public"

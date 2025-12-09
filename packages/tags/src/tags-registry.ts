@@ -24,7 +24,7 @@ import {
   type TagsStore,
   getGlobalTagsStore,
   registerTagsIn as registerDcborTagsIn,
-} from "@blockchain-commons/dcbor";
+} from "@bcts/dcbor";
 
 // ============================================================================
 // Standard IANA Tags (re-used from dcbor but defined here for completeness)

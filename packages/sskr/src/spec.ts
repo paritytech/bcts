@@ -1,6 +1,6 @@
 // Ported from bc-sskr-rust/src/spec.rs
 
-import { MAX_SHARE_COUNT } from "@blockchain-commons/shamir";
+import { MAX_SHARE_COUNT } from "@bcts/shamir";
 import { SSKRError, SSKRErrorType } from "./error.js";
 
 /**

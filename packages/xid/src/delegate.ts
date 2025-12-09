@@ -7,8 +7,8 @@
  * Ported from bc-xid-rust/src/delegate.rs
  */
 
-import { type Envelope, type EnvelopeEncodable } from "@blockchain-commons/envelope";
-import { Reference, type XID } from "@blockchain-commons/components";
+import { type Envelope, type EnvelopeEncodable } from "@bcts/envelope";
+import { Reference, type XID } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { Shared } from "./shared";
 

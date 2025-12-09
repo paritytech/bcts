@@ -2,7 +2,7 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src/index.ts"],
   "out": "docs",
-  "name": "Blockchain Commons Tags TypeScript Library",
+  "name": "Blockchain Commons XID TypeScript Library",
   "includeVersion": true,
   "readme": "README.md",
   "exclude": [

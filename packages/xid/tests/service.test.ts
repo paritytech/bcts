@@ -3,8 +3,8 @@
  * Ported from bc-xid-rust/tests/service.rs
  */
 
-import { PrivateKeyBase } from "@blockchain-commons/envelope";
-import { Reference } from "@blockchain-commons/components";
+import { PrivateKeyBase } from "@bcts/envelope";
+import { Reference } from "@bcts/components";
 import { Service, XIDDocument, Privilege } from "../src";
 
 describe("Service", () => {

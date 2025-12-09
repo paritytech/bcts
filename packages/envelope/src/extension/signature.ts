@@ -20,8 +20,8 @@ import {
   ECDSA_PRIVATE_KEY_SIZE,
   ECDSA_PUBLIC_KEY_SIZE,
   ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE,
-} from "@blockchain-commons/crypto";
-import { SecureRandomNumberGenerator, rngRandomData } from "@blockchain-commons/rand";
+} from "@bcts/crypto";
+import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
 
 /**
  * Known value for the 'signed' predicate.
@@ -102,7 +102,7 @@ export interface Verifier {
 
 /**
  * ECDSA signing key using secp256k1 curve.
- * Uses @blockchain-commons/crypto functions.
+ * Uses @bcts/crypto functions.
  */
 export class SigningPrivateKey implements Signer {
   readonly #privateKey: Uint8Array;
@@ -160,7 +160,7 @@ export class SigningPrivateKey implements Signer {
 
 /**
  * ECDSA public key for signature verification using secp256k1 curve.
- * Uses @blockchain-commons/crypto functions.
+ * Uses @bcts/crypto functions.
  */
 export class SigningPublicKey implements Verifier {
   readonly #publicKey: Uint8Array;

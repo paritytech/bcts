@@ -1,3 +1,3 @@
-import createConfig from '@blockchain-commons/eslint';
+import createConfig from '@bcts/eslint';
 
-export default createConfig('./tsconfig.lint.json');
+export default createConfig('./tsconfig.json');

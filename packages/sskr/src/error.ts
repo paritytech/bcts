@@ -1,6 +1,6 @@
 // Ported from bc-sskr-rust/src/error.rs
 
-import type { ShamirError } from "@blockchain-commons/shamir";
+import type { ShamirError } from "@bcts/shamir";
 
 /**
  * Error types for SSKR operations.

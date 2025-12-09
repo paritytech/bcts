@@ -36,6 +36,8 @@ export default function createConfig(tsconfigPath = './tsconfig.json') {
         globals: {
           TextEncoder: 'readonly',
           TextDecoder: 'readonly',
+          btoa: 'readonly',
+          atob: 'readonly',
         },
       },
       plugins: {

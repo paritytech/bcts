@@ -1,7 +1,7 @@
 // Ported from bc-crypto-rust/src/ed25519_signing.rs
 
 import { ed25519 } from "@noble/curves/ed25519";
-import type { RandomNumberGenerator } from "@blockchain-commons/rand";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 // Constants
 export const ED25519_PUBLIC_KEY_SIZE = 32;

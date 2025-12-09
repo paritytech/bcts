@@ -1,12 +1,15 @@
 {
-  "extends": "@blockchain-commons/tsconfig/library.json",
-  "compilerOptions": {},
+  "extends": "@bcts/tsconfig/library.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["vitest/globals"]
+  },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "tests/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "tests"
+    "dist"
   ]
 }

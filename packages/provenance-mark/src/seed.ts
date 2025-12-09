@@ -1,7 +1,7 @@
 // Ported from provenance-mark-rust/src/seed.rs
 
-import { type Cbor, cbor, expectBytes } from "@blockchain-commons/dcbor";
-import { randomData } from "@blockchain-commons/rand";
+import { type Cbor, cbor, expectBytes } from "@bcts/dcbor";
+import { randomData } from "@bcts/rand";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 import { extendKey } from "./crypto-utils.js";
