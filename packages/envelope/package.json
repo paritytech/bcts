@@ -31,7 +31,6 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "docs": "typedoc",
-    "docs:watch": "typedoc --watch",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "keywords": [

@@ -30,7 +30,6 @@
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "docs": "typedoc",
-    "docs:watch": "typedoc --watch"
   },
   "keywords": [
     "known-values",

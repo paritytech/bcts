@@ -30,8 +30,7 @@
     "lint:fix": "echo 'Skipping lint for crypto package (pending refactoring)'",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "docs": "typedoc",
-    "docs:watch": "typedoc --watch"
+    "docs": "typedoc"
   },
   "keywords": [
     "blockchain",
