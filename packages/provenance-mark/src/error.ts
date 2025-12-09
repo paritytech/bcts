@@ -57,7 +57,7 @@ export enum ProvenanceMarkErrorType {
  */
 export class ProvenanceMarkError extends Error {
   readonly type: ProvenanceMarkErrorType;
-  readonly details?: Record<string, unknown>;
+  readonly details?: Record<string, unknown> | undefined;
 
   constructor(type: ProvenanceMarkErrorType, message?: string, details?: Record<string, unknown>) {
     const fullMessage =

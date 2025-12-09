@@ -28,7 +28,7 @@ export enum SSKRErrorType {
  */
 export class SSKRError extends Error {
   readonly type: SSKRErrorType;
-  readonly shamirError?: ShamirError;
+  readonly shamirError?: ShamirError | undefined;
 
   constructor(type: SSKRErrorType, message?: string, shamirError?: ShamirError) {
     super(message ?? SSKRError.defaultMessage(type, shamirError));

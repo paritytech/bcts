@@ -172,11 +172,11 @@ export class ProvenanceMarkGenerator {
    * Create from JSON object.
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMarkGenerator {
-    const res = json.res as ProvenanceMarkResolution;
-    const seed = ProvenanceSeed.fromBytes(fromBase64(json.seed as string));
-    const chainId = fromBase64(json.chainID as string);
-    const nextSeq = json.nextSeq as number;
-    const rngState = RngState.fromBytes(fromBase64(json.rngState as string));
+    const res = json["res"] as ProvenanceMarkResolution;
+    const seed = ProvenanceSeed.fromBytes(fromBase64(json["seed"] as string));
+    const chainId = fromBase64(json["chainID"] as string);
+    const nextSeq = json["nextSeq"] as number;
+    const rngState = RngState.fromBytes(fromBase64(json["rngState"] as string));
     return ProvenanceMarkGenerator.new(res, seed, chainId, nextSeq, rngState);
   }
 }

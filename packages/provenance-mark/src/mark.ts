@@ -563,7 +563,7 @@ export class ProvenanceMark {
       date: this._date.toISOString(),
     };
     if (this._infoBytes.length > 0) {
-      result.info_bytes = toBase64(this._infoBytes);
+      result["info_bytes"] = toBase64(this._infoBytes);
     }
     return result;
   }
@@ -572,20 +572,20 @@ export class ProvenanceMark {
    * Create from JSON object.
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMark {
-    const res = json.res as ProvenanceMarkResolution;
-    const key = fromBase64(json.key as string);
-    const hash = fromBase64(json.hash as string);
-    const chainId = fromBase64(json.chainID as string);
-    const seq = json.seq as number;
-    const dateStr = json.date as string;
+    const res = json["res"] as ProvenanceMarkResolution;
+    const key = fromBase64(json["key"] as string);
+    const hash = fromBase64(json["hash"] as string);
+    const chainId = fromBase64(json["chainID"] as string);
+    const seq = json["seq"] as number;
+    const dateStr = json["date"] as string;
     const date = new Date(dateStr);
 
     const seqBytes = serializeSeq(res, seq);
     const dateBytes = serializeDate(res, date);
 
-    let infoBytes = new Uint8Array(0);
-    if (typeof json.info_bytes === "string") {
-      infoBytes = fromBase64(json.info_bytes);
+    let infoBytes: Uint8Array = new Uint8Array(0);
+    if (typeof json["info_bytes"] === "string") {
+      infoBytes = fromBase64(json["info_bytes"]);
     }
 
     return new ProvenanceMark(res, key, hash, chainId, seqBytes, dateBytes, infoBytes, seq, date);

@@ -105,7 +105,7 @@ export class ProvenanceMarkInfo {
       mark: this._mark.toJSON(),
     };
     if (this._comment.length > 0) {
-      result.comment = this._comment;
+      result["comment"] = this._comment;
     }
     return result;
   }
@@ -114,13 +114,13 @@ export class ProvenanceMarkInfo {
    * Create from JSON object.
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMarkInfo {
-    const urString = json.ur as string;
+    const urString = json["ur"] as string;
     const ur = UR.fromURString(urString);
     const cborBytes = cborData(ur.cbor());
     const mark = ProvenanceMark.fromCborData(cborBytes);
-    const bytewords = json.bytewords as string;
-    const bytemoji = json.bytemoji as string;
-    const comment = typeof json.comment === "string" ? json.comment : "";
+    const bytewords = json["bytewords"] as string;
+    const bytemoji = json["bytemoji"] as string;
+    const comment = typeof json["comment"] === "string" ? json["comment"] : "";
     return new ProvenanceMarkInfo(mark, ur, bytewords, bytemoji, comment);
   }
 }
