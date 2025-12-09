@@ -1,5 +1,18 @@
 import { sha256 } from "@noble/hashes/sha256";
 
+declare global {
+  const TextEncoder: {
+    new (): {
+      encode(input: string): Uint8Array;
+    };
+  };
+  const TextDecoder: {
+    new (): {
+      decode(input: Uint8Array): string;
+    };
+  };
+}
+
 /// A cryptographic digest used to uniquely identify digital objects.
 ///
 /// Digests in Gordian Envelope are always SHA-256 hashes (32 bytes).
@@ -181,9 +194,7 @@ export interface DigestProvider {
 /// const digest = digestFromString("Hello, world!");
 /// ```
 export function digestFromString(text: string): Digest {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-  const encoder: TextEncoder = new TextEncoder();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  const encoder = new TextEncoder();
   return Digest.fromImage(encoder.encode(text));
 }
 

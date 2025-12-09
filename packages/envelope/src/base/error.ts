@@ -79,9 +79,12 @@ export class EnvelopeError extends Error {
     this.cause = cause;
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (typeof Error.captureStackTrace === "function") {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      Error.captureStackTrace(this, EnvelopeError);
+    if ("captureStackTrace" in Error) {
+      (
+        Error as {
+          captureStackTrace(target: object, constructor: typeof EnvelopeError): void;
+        }
+      ).captureStackTrace(this, EnvelopeError);
     }
   }
 

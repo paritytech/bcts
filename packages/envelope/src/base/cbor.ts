@@ -1,8 +1,8 @@
 import type { Cbor } from "@blockchain-commons/dcbor";
 import {
-  type CBORTagged,
-  type CBORTaggedEncodable,
-  type CBORTaggedDecodable,
+  type CborTagged,
+  type CborTaggedEncodable,
+  type CborTaggedDecodable,
   tagsForValues,
   cborData,
   decodeCbor,
@@ -31,19 +31,19 @@ const TAG_ENVELOPE = ENVELOPE.value;
 /// This module provides implementations of the CBOR encoding/decoding traits
 /// for the Envelope type, matching the Rust bc-envelope implementation.
 
-/// Implements CBORTagged interface for Envelope.
+/// Implements CborTagged interface for Envelope.
 ///
 /// Returns the tags that should be used for CBOR encoding.
-export class EnvelopeCBORTagged implements CBORTagged {
+export class EnvelopeCBORTagged implements CborTagged {
   static cborTags(): number[] {
-    return tagsForValues([TAG_ENVELOPE]);
+    return tagsForValues([TAG_ENVELOPE]).map((tag) => tag.value);
   }
 }
 
-/// Implements CBORTaggedEncodable for Envelope.
+/// Implements CborTaggedEncodable for Envelope.
 ///
 /// Provides the untagged CBOR representation of an envelope.
-export class EnvelopeCBORTaggedEncodable implements CBORTaggedEncodable {
+export class EnvelopeCBORTaggedEncodable implements CborTaggedEncodable {
   constructor(private readonly envelope: Envelope) {}
 
   untaggedCbor(): Cbor {
@@ -55,10 +55,10 @@ export class EnvelopeCBORTaggedEncodable implements CBORTaggedEncodable {
   }
 }
 
-/// Implements CBORTaggedDecodable for Envelope.
+/// Implements CborTaggedDecodable for Envelope.
 ///
 /// Provides the ability to decode an envelope from untagged CBOR.
-export class EnvelopeCBORTaggedDecodable implements CBORTaggedDecodable {
+export class EnvelopeCBORTaggedDecodable implements CborTaggedDecodable {
   static fromUntaggedCbor(cbor: Cbor): Envelope {
     return Envelope.fromUntaggedCbor(cbor);
   }
