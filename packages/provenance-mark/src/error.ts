@@ -60,9 +60,10 @@ export class ProvenanceMarkError extends Error {
   readonly details?: Record<string, unknown>;
 
   constructor(type: ProvenanceMarkErrorType, message?: string, details?: Record<string, unknown>) {
-    const fullMessage = message
-      ? `${type}: ${message}`
-      : ProvenanceMarkError.defaultMessage(type, details);
+    const fullMessage =
+      message !== undefined && message !== ""
+        ? `${type}: ${message}`
+        : ProvenanceMarkError.defaultMessage(type, details);
     super(fullMessage);
     this.name = "ProvenanceMarkError";
     this.type = type;
@@ -73,53 +74,54 @@ export class ProvenanceMarkError extends Error {
     type: ProvenanceMarkErrorType,
     details?: Record<string, unknown>,
   ): string {
+    const d = (key: string): string => String(details?.[key] ?? "?");
     switch (type) {
       case ProvenanceMarkErrorType.InvalidSeedLength:
-        return `invalid seed length: expected 32 bytes, got ${details?.actual ?? "?"} bytes`;
+        return `invalid seed length: expected 32 bytes, got ${d("actual")} bytes`;
       case ProvenanceMarkErrorType.DuplicateKey:
-        return `duplicate key: ${details?.key ?? "?"}`;
+        return `duplicate key: ${d("key")}`;
       case ProvenanceMarkErrorType.MissingKey:
-        return `missing key: ${details?.key ?? "?"}`;
+        return `missing key: ${d("key")}`;
       case ProvenanceMarkErrorType.InvalidKey:
-        return `invalid key: ${details?.key ?? "?"}`;
+        return `invalid key: ${d("key")}`;
       case ProvenanceMarkErrorType.ExtraKeys:
-        return `wrong number of keys: expected ${details?.expected ?? "?"}, got ${details?.actual ?? "?"}`;
+        return `wrong number of keys: expected ${d("expected")}, got ${d("actual")}`;
       case ProvenanceMarkErrorType.InvalidKeyLength:
-        return `invalid key length: expected ${details?.expected ?? "?"}, got ${details?.actual ?? "?"}`;
+        return `invalid key length: expected ${d("expected")}, got ${d("actual")}`;
       case ProvenanceMarkErrorType.InvalidNextKeyLength:
-        return `invalid next key length: expected ${details?.expected ?? "?"}, got ${details?.actual ?? "?"}`;
+        return `invalid next key length: expected ${d("expected")}, got ${d("actual")}`;
       case ProvenanceMarkErrorType.InvalidChainIdLength:
-        return `invalid chain ID length: expected ${details?.expected ?? "?"}, got ${details?.actual ?? "?"}`;
+        return `invalid chain ID length: expected ${d("expected")}, got ${d("actual")}`;
       case ProvenanceMarkErrorType.InvalidMessageLength:
-        return `invalid message length: expected at least ${details?.expected ?? "?"}, got ${details?.actual ?? "?"}`;
+        return `invalid message length: expected at least ${d("expected")}, got ${d("actual")}`;
       case ProvenanceMarkErrorType.InvalidInfoCbor:
         return "invalid CBOR data in info field";
       case ProvenanceMarkErrorType.DateOutOfRange:
-        return `date out of range: ${details?.details ?? "?"}`;
+        return `date out of range: ${d("details")}`;
       case ProvenanceMarkErrorType.InvalidDate:
-        return `invalid date: ${details?.details ?? "?"}`;
+        return `invalid date: ${d("details")}`;
       case ProvenanceMarkErrorType.MissingUrlParameter:
-        return `missing required URL parameter: ${details?.parameter ?? "?"}`;
+        return `missing required URL parameter: ${d("parameter")}`;
       case ProvenanceMarkErrorType.YearOutOfRange:
-        return `year out of range for 2-byte serialization: must be between 2023-2150, got ${details?.year ?? "?"}`;
+        return `year out of range for 2-byte serialization: must be between 2023-2150, got ${d("year")}`;
       case ProvenanceMarkErrorType.InvalidMonthOrDay:
-        return `invalid month (${details?.month ?? "?"}) or day (${details?.day ?? "?"}) for year ${details?.year ?? "?"}`;
+        return `invalid month (${d("month")}) or day (${d("day")}) for year ${d("year")}`;
       case ProvenanceMarkErrorType.ResolutionError:
-        return `resolution serialization error: ${details?.details ?? "?"}`;
+        return `resolution serialization error: ${d("details")}`;
       case ProvenanceMarkErrorType.BytewordsError:
-        return `bytewords error: ${details?.message ?? "?"}`;
+        return `bytewords error: ${d("message")}`;
       case ProvenanceMarkErrorType.CborError:
-        return `CBOR error: ${details?.message ?? "?"}`;
+        return `CBOR error: ${d("message")}`;
       case ProvenanceMarkErrorType.UrlError:
-        return `URL parsing error: ${details?.message ?? "?"}`;
+        return `URL parsing error: ${d("message")}`;
       case ProvenanceMarkErrorType.Base64Error:
-        return `base64 decoding error: ${details?.message ?? "?"}`;
+        return `base64 decoding error: ${d("message")}`;
       case ProvenanceMarkErrorType.JsonError:
-        return `JSON error: ${details?.message ?? "?"}`;
+        return `JSON error: ${d("message")}`;
       case ProvenanceMarkErrorType.IntegerConversionError:
-        return `integer conversion error: ${details?.message ?? "?"}`;
+        return `integer conversion error: ${d("message")}`;
       case ProvenanceMarkErrorType.ValidationError:
-        return `validation error: ${details?.message ?? "?"}`;
+        return `validation error: ${d("message")}`;
       default:
         return type;
     }

@@ -1,16 +1,9 @@
 // Ported from provenance-mark-rust/src/resolution.rs
 
-import {
-  type Cbor,
-  cbor,
-  expectUnsigned,
-  toTaggedValue,
-  type Tag,
-} from "@blockchain-commons/dcbor";
+import { type Cbor, cbor, expectUnsigned } from "@blockchain-commons/dcbor";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 import {
-  type SerializableDate,
   serialize2Bytes,
   deserialize2Bytes,
   serialize4Bytes,

@@ -60,6 +60,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@blockchain-commons/components": "workspace:*",
     "@blockchain-commons/crypto": "workspace:*",
     "@blockchain-commons/dcbor": "workspace:*",
     "@blockchain-commons/rand": "workspace:*",

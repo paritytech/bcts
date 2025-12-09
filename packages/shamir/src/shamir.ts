@@ -164,9 +164,9 @@ export function recoverSecret(indexes: number[], shares: Uint8Array[]): Uint8Arr
   } else {
     const indexesU8 = new Uint8Array(indexes);
 
-    let digest = interpolate(threshold, indexesU8, shareLength, shares, DIGEST_INDEX);
+    const digest = interpolate(threshold, indexesU8, shareLength, shares, DIGEST_INDEX);
     const secret = interpolate(threshold, indexesU8, shareLength, shares, SECRET_INDEX);
-    let verify = createDigest(digest.subarray(4), secret);
+    const verify = createDigest(digest.subarray(4), secret);
 
     let valid = true;
     for (let i = 0; i < 4; i++) {

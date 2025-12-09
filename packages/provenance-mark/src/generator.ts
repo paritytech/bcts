@@ -1,11 +1,12 @@
 // Ported from provenance-mark-rust/src/generator.rs
 
+import { toBase64, fromBase64, bytesToHex } from "@blockchain-commons/components";
 import { type Cbor } from "@blockchain-commons/dcbor";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
-import { ProvenanceMarkResolution, linkLength } from "./resolution.js";
+import { type ProvenanceMarkResolution, linkLength } from "./resolution.js";
 import { ProvenanceSeed } from "./seed.js";
-import { RngState, RNG_STATE_LENGTH } from "./rng-state.js";
+import { RngState } from "./rng-state.js";
 import { sha256 } from "./crypto-utils.js";
 import { Xoshiro256StarStar } from "./xoshiro256starstar.js";
 import { ProvenanceMark } from "./mark.js";
@@ -151,7 +152,7 @@ export class ProvenanceMarkGenerator {
    * String representation.
    */
   toString(): string {
-    return `ProvenanceMarkGenerator(chainID: ${hexEncode(this._chainId)}, res: ${this._res}, seed: ${this._seed.hex()}, nextSeq: ${this._nextSeq})`;
+    return `ProvenanceMarkGenerator(chainID: ${bytesToHex(this._chainId)}, res: ${this._res}, seed: ${this._seed.hex()}, nextSeq: ${this._nextSeq})`;
   }
 
   /**
@@ -160,10 +161,10 @@ export class ProvenanceMarkGenerator {
   toJSON(): Record<string, unknown> {
     return {
       res: this._res,
-      seed: base64Encode(this._seed.toBytes()),
-      chainID: base64Encode(this._chainId),
+      seed: toBase64(this._seed.toBytes()),
+      chainID: toBase64(this._chainId),
       nextSeq: this._nextSeq,
-      rngState: base64Encode(this._rngState.toBytes()),
+      rngState: toBase64(this._rngState.toBytes()),
     };
   }
 
@@ -172,44 +173,10 @@ export class ProvenanceMarkGenerator {
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMarkGenerator {
     const res = json.res as ProvenanceMarkResolution;
-    const seed = ProvenanceSeed.fromBytes(base64Decode(json.seed as string));
-    const chainId = base64Decode(json.chainID as string);
+    const seed = ProvenanceSeed.fromBytes(fromBase64(json.seed as string));
+    const chainId = fromBase64(json.chainID as string);
     const nextSeq = json.nextSeq as number;
-    const rngState = RngState.fromBytes(base64Decode(json.rngState as string));
+    const rngState = RngState.fromBytes(fromBase64(json.rngState as string));
     return ProvenanceMarkGenerator.new(res, seed, chainId, nextSeq, rngState);
   }
-}
-
-/**
- * Helper function to encode bytes as hex.
- */
-function hexEncode(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/**
- * Helper function to encode bytes as base64.
- */
-function base64Encode(bytes: Uint8Array): string {
-  if (typeof btoa === "function") {
-    return btoa(String.fromCharCode(...bytes));
-  }
-  return Buffer.from(bytes).toString("base64");
-}
-
-/**
- * Helper function to decode base64 to bytes.
- */
-function base64Decode(str: string): Uint8Array {
-  if (typeof atob === "function") {
-    const binary = atob(str);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return bytes;
-  }
-  return new Uint8Array(Buffer.from(str, "base64"));
 }
