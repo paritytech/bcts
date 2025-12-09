@@ -719,7 +719,9 @@ export class XIDDocument implements EnvelopeEncodable {
     // The envelope may be a node (with assertions) or a leaf
     const envCase = envelope.case();
     const subject = envCase.type === "node" ? envelopeExt.subject() : envelope;
-    const xidData = (subject as unknown as { asByteString(): Uint8Array | undefined }).asByteString();
+    const xidData = (
+      subject as unknown as { asByteString(): Uint8Array | undefined }
+    ).asByteString();
     if (xidData === undefined) {
       throw XIDError.invalidXid();
     }

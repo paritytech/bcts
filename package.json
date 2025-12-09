@@ -10,7 +10,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
     "docs": "turbo run docs",
-    "playground": "turbo run dev --filter=@blockchain-commons/playground"
+    "playground": "turbo run dev --filter=@blockchain-commons/playground",
+    "clean": "turbo run clean"
   },
   "devDependencies": {
     "prettier": "^3.7.4",
