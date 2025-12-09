@@ -11,6 +11,10 @@ export type { Result } from "./error.js";
 // Utility functions
 export { bytesToHex, hexToBytes, toBase64, fromBase64, bytesEqual } from "./utils.js";
 
+// DigestProvider interface
+export type { DigestProvider } from "./digest-provider.js";
+export { digestFromBytes } from "./digest-provider.js";
+
 // Basic cryptographic primitives
 export { Digest } from "./digest.js";
 export { Nonce } from "./nonce.js";

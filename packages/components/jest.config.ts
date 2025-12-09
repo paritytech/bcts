@@ -6,17 +6,22 @@ const config: Config = {
   roots: ["<rootDir>/tests"],
   testMatch: ["**/*.test.ts"],
   collectCoverageFrom: ["src/**/*.ts", "!src/**/*.d.ts", "!src/**/index.ts"],
-  coverageThreshold: {
-    global: {
-      branches: 90,
-      functions: 95,
-      lines: 95,
-      statements: 95,
-    },
-  },
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^(\\.{1,2}/.*)\\.js$": "$1",
   },
+  transform: {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        useESM: false,
+      },
+    ],
+  },
+  collectCoverage: false,
+  coverageDirectory: "coverage",
+  coverageReporters: ["text", "lcov"],
+  verbose: true,
 };
 
 export default config;

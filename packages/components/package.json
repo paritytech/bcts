@@ -24,10 +24,10 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "echo 'No tests yet for crypto package'",
+    "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "echo 'Skipping lint for crypto package (pending refactoring)'",
-    "lint:fix": "echo 'Skipping lint for crypto package (pending refactoring)'",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "docs": "typedoc"
@@ -50,7 +50,9 @@
     "@blockchain-commons/crypto": "workspace:*",
     "@blockchain-commons/dcbor": "workspace:*",
     "@blockchain-commons/rand": "workspace:*",
+    "@blockchain-commons/tags": "workspace:*",
     "@blockchain-commons/uniform-resources": "workspace:*",
+    "@blockchain-commons/sskr": "workspace:*",
     "pako": "^2.1.0"
   },
   "devDependencies": {

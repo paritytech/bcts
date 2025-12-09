@@ -45,6 +45,8 @@ export {
   type CborTaggedDecodable,
   type CborTaggedCodable,
   createTaggedCbor,
+  validateTag,
+  extractTaggedContent,
 } from "./cbor-tagged";
 export {
   TagsStore,

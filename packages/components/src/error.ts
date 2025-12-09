@@ -1,6 +1,8 @@
 /**
  * Error types re-exported from @blockchain-commons/crypto
  * with additional factory methods for components
+ *
+ * Ported from bc-components-rust/src/error.rs
  */
 
 import { CryptoError as BaseCryptoError } from "@blockchain-commons/crypto";
@@ -20,6 +22,14 @@ export class CryptoError extends BaseCryptoError {
 
   static invalidInput(message: string): CryptoError {
     return new CryptoError(`Invalid input: ${message}`);
+  }
+
+  static dataTooShort(name: string, minSize: number, actual: number): CryptoError {
+    return new CryptoError(`${name} too short: minimum ${minSize}, got ${actual}`);
+  }
+
+  static invalidData(message: string): CryptoError {
+    return new CryptoError(`Invalid data: ${message}`);
   }
 }
 

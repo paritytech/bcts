@@ -1,113 +1,330 @@
 /**
- * Apparently Random Identifier (ARID) - 32-byte random identifier
+ * An "Apparently Random Identifier" (ARID)
+ *
+ * Ported from bc-components-rust/src/id/arid.rs
+ *
+ * An ARID is a cryptographically strong, universally unique identifier with
+ * the following properties:
+ * - Non-correlatability: The sequence of bits cannot be correlated with its
+ *   referent or any other ARID
+ * - Neutral semantics: Contains no inherent type information
+ * - Open generation: Any method of generation is allowed as long as it
+ *   produces statistically random bits
+ * - Minimum strength: Must be 256 bits (32 bytes) in length
+ * - Cryptographic suitability: Can be used as inputs to cryptographic
+ *   constructs
+ *
+ * Unlike digests/hashes which identify a fixed, immutable state of data, ARIDs
+ * can serve as stable identifiers for mutable data structures.
+ *
+ * ARIDs should not be confused with or cast to/from other identifier types
+ * (like UUIDs), used as nonces, keys, or cryptographic seeds.
+ *
+ * As defined in [BCR-2022-002](https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2022-002-arid.md).
+ *
+ * # CBOR Serialization
+ *
+ * `ARID` implements the CBOR tagged encoding interfaces, which means it can be
+ * serialized to and deserialized from CBOR with a specific tag (TAG_ARID = 40012).
+ *
+ * # UR Serialization
+ *
+ * When serialized as a Uniform Resource (UR), an `ARID` is represented as a
+ * binary blob with the type "arid".
+ *
+ * @example
+ * ```typescript
+ * import { ARID } from '@blockchain-commons/components';
+ *
+ * // Create a new random ARID
+ * const arid = ARID.new();
+ *
+ * // Create an ARID from a hex string
+ * const arid2 = ARID.fromHex("...");
+ *
+ * // Get the ARID as hex
+ * console.log(arid.hex());
+ * ```
  */
 
-declare global {
-  interface Global {
-    crypto?: Crypto;
-  }
-  var global: Global;
-  var Buffer: any;
-}
-
-interface Buffer {
-  toString(encoding: string): string;
-}
-
-interface BufferConstructor {
-  from(data: Uint8Array | string, encoding?: string): Buffer;
-}
-
-declare var Buffer: BufferConstructor;
-
+import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
+import {
+  type Cbor,
+  type Tag,
+  type CborTaggedEncodable,
+  type CborTaggedDecodable,
+  toByteString,
+  expectBytes,
+  createTaggedCbor,
+  validateTag,
+  extractTaggedContent,
+  decodeCbor,
+  tagsForValues,
+} from "@blockchain-commons/dcbor";
+import { ARID as TAG_ARID } from "@blockchain-commons/tags";
+import { UR, type UREncodable } from "@blockchain-commons/uniform-resources";
 import { CryptoError } from "./error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
 
-const ARID_SIZE = 32;
+export class ARID implements CborTaggedEncodable, CborTaggedDecodable<ARID>, UREncodable {
+  static readonly ARID_SIZE = 32;
 
-export class ARID {
-  private data: Uint8Array;
+  private readonly _data: Uint8Array;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== ARID_SIZE) {
-      throw CryptoError.invalidSize(ARID_SIZE, data.length);
+    if (data.length !== ARID.ARID_SIZE) {
+      throw CryptoError.invalidSize(ARID.ARID_SIZE, data.length);
     }
-    this.data = new Uint8Array(data);
+    this._data = new Uint8Array(data);
+  }
+
+  // ============================================================================
+  // Static Factory Methods
+  // ============================================================================
+
+  /**
+   * Create a new random ARID.
+   */
+  static new(): ARID {
+    const rng = new SecureRandomNumberGenerator();
+    return new ARID(rng.randomData(ARID.ARID_SIZE));
   }
 
   /**
-   * Create an ARID from raw bytes
+   * Create a new random ARID (alias for new()).
    */
-  static from(data: Uint8Array): ARID {
+  static random(): ARID {
+    return ARID.new();
+  }
+
+  /**
+   * Restore an ARID from a fixed-size array of bytes.
+   */
+  static fromData(data: Uint8Array): ARID {
     return new ARID(new Uint8Array(data));
   }
 
   /**
-   * Create an ARID from hex string
+   * Create a new ARID from a reference to an array of bytes.
+   */
+  static fromDataRef(data: Uint8Array): ARID {
+    if (data.length !== ARID.ARID_SIZE) {
+      throw CryptoError.invalidSize(ARID.ARID_SIZE, data.length);
+    }
+    return ARID.fromData(data);
+  }
+
+  /**
+   * Create an ARID from raw bytes (legacy alias).
+   */
+  static from(data: Uint8Array): ARID {
+    return ARID.fromData(data);
+  }
+
+  /**
+   * Create a new ARID from the given hexadecimal string.
+   *
+   * @throws Error if the string is not exactly 64 hexadecimal digits.
    */
   static fromHex(hex: string): ARID {
-    const data = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      data[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-    }
-    return new ARID(data);
+    return new ARID(hexToBytes(hex));
   }
 
+  // ============================================================================
+  // Instance Methods
+  // ============================================================================
+
   /**
-   * Generate a random ARID
+   * Get the data of the ARID as an array of bytes.
    */
-  static random(): ARID {
-    const data = new Uint8Array(ARID_SIZE);
-    if (typeof globalThis !== "undefined" && globalThis.crypto?.getRandomValues) {
-      globalThis.crypto.getRandomValues(data);
-    } else if (typeof global !== "undefined" && typeof global.crypto !== "undefined") {
-      global.crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < ARID_SIZE; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
-    return new ARID(data);
+  data(): Uint8Array {
+    return this._data;
   }
 
   /**
-   * Get the raw ARID bytes
+   * Get the data of the ARID as a byte slice.
+   */
+  asBytes(): Uint8Array {
+    return this._data;
+  }
+
+  /**
+   * Get the raw ARID bytes as a copy.
    */
   toData(): Uint8Array {
-    return new Uint8Array(this.data);
+    return new Uint8Array(this._data);
   }
 
   /**
-   * Get hex string representation (lowercase, matching Rust implementation)
+   * The data as a hexadecimal string.
+   */
+  hex(): string {
+    return bytesToHex(this._data);
+  }
+
+  /**
+   * Get hex string representation (alias for hex()).
    */
   toHex(): string {
-    return Array.from(this.data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return this.hex();
   }
 
   /**
-   * Get base64 representation
+   * Get base64 representation.
    */
   toBase64(): string {
-    return Buffer.from(this.data).toString("base64");
+    return toBase64(this._data);
   }
 
   /**
-   * Compare with another ARID
+   * The first four bytes of the ARID as a hexadecimal string.
+   */
+  shortDescription(): string {
+    return bytesToHex(this._data.slice(0, 4));
+  }
+
+  /**
+   * Compare with another ARID.
    */
   equals(other: ARID): boolean {
-    if (this.data.length !== other.data.length) return false;
-    for (let i = 0; i < this.data.length; i++) {
-      if (this.data[i] !== other.data[i]) return false;
+    if (this._data.length !== other._data.length) return false;
+    for (let i = 0; i < this._data.length; i++) {
+      if (this._data[i] !== other._data[i]) return false;
     }
     return true;
   }
 
   /**
-   * Get string representation
+   * Compare ARIDs lexicographically.
+   */
+  compare(other: ARID): number {
+    for (let i = 0; i < this._data.length; i++) {
+      const a = this._data[i]!;
+      const b = other._data[i]!;
+      if (a < b) return -1;
+      if (a > b) return 1;
+    }
+    return 0;
+  }
+
+  /**
+   * Get string representation.
    */
   toString(): string {
-    return `ARID(${this.toHex()})`;
+    return `ARID(${this.hex()})`;
+  }
+
+  // ============================================================================
+  // CBOR Serialization (CborTaggedEncodable)
+  // ============================================================================
+
+  /**
+   * Returns the CBOR tags associated with ARID.
+   */
+  cborTags(): Tag[] {
+    return tagsForValues([TAG_ARID.value]);
+  }
+
+  /**
+   * Returns the untagged CBOR encoding (as a byte string).
+   */
+  untaggedCbor(): Cbor {
+    return toByteString(this._data);
+  }
+
+  /**
+   * Returns the tagged CBOR encoding.
+   */
+  taggedCbor(): Cbor {
+    return createTaggedCbor(this);
+  }
+
+  /**
+   * Returns the tagged value in CBOR binary representation.
+   */
+  taggedCborData(): Uint8Array {
+    return this.taggedCbor().toData();
+  }
+
+  // ============================================================================
+  // CBOR Deserialization (CborTaggedDecodable)
+  // ============================================================================
+
+  /**
+   * Creates an ARID by decoding it from untagged CBOR.
+   */
+  fromUntaggedCbor(cbor: Cbor): ARID {
+    const data = expectBytes(cbor);
+    return ARID.fromDataRef(data);
+  }
+
+  /**
+   * Creates an ARID by decoding it from tagged CBOR.
+   */
+  fromTaggedCbor(cbor: Cbor): ARID {
+    validateTag(cbor, this.cborTags());
+    const content = extractTaggedContent(cbor);
+    return this.fromUntaggedCbor(content);
+  }
+
+  /**
+   * Static method to decode from tagged CBOR.
+   */
+  static fromTaggedCbor(cbor: Cbor): ARID {
+    const instance = new ARID(new Uint8Array(ARID.ARID_SIZE));
+    return instance.fromTaggedCbor(cbor);
+  }
+
+  /**
+   * Static method to decode from tagged CBOR binary data.
+   */
+  static fromTaggedCborData(data: Uint8Array): ARID {
+    const cbor = decodeCbor(data);
+    return ARID.fromTaggedCbor(cbor);
+  }
+
+  /**
+   * Static method to decode from untagged CBOR binary data.
+   */
+  static fromUntaggedCborData(data: Uint8Array): ARID {
+    const cbor = decodeCbor(data);
+    const bytes = expectBytes(cbor);
+    return ARID.fromDataRef(bytes);
+  }
+
+  // ============================================================================
+  // UR Serialization (UREncodable)
+  // ============================================================================
+
+  /**
+   * Returns the UR representation of the ARID.
+   * Note: URs use untagged CBOR since the type is conveyed by the UR type itself.
+   */
+  ur(): UR {
+    return UR.new("arid", this.untaggedCbor());
+  }
+
+  /**
+   * Returns the UR string representation.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Creates an ARID from a UR.
+   */
+  static fromUR(ur: UR): ARID {
+    ur.checkType("arid");
+    const instance = new ARID(new Uint8Array(ARID.ARID_SIZE));
+    return instance.fromUntaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Creates an ARID from a UR string.
+   */
+  static fromURString(urString: string): ARID {
+    const ur = UR.fromURString(urString);
+    return ARID.fromUR(ur);
   }
 }
