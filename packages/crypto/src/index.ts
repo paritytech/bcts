@@ -9,11 +9,7 @@ export { CryptoError, AeadError, type CryptoResult } from "./error.js";
 export { memzero, memzeroVecVecU8 } from "./memzero.js";
 
 // Hash constants
-export {
-  CRC32_SIZE,
-  SHA256_SIZE,
-  SHA512_SIZE,
-} from "./hash.js";
+export { CRC32_SIZE, SHA256_SIZE, SHA512_SIZE } from "./hash.js";
 
 // Hash functions
 export {
@@ -84,15 +80,10 @@ export {
 } from "./ecdsa-keys.js";
 
 // ECDSA signing functions
-export {
-  ecdsaSign,
-  ecdsaVerify,
-} from "./ecdsa-signing.js";
+export { ecdsaSign, ecdsaVerify } from "./ecdsa-signing.js";
 
 // Schnorr signing constants
-export {
-  SCHNORR_SIGNATURE_SIZE,
-} from "./schnorr-signing.js";
+export { SCHNORR_SIGNATURE_SIZE } from "./schnorr-signing.js";
 
 // Schnorr signing functions
 export {
@@ -118,13 +109,7 @@ export {
 } from "./ed25519-signing.js";
 
 // Scrypt
-export {
-  scrypt,
-  scryptOpt,
-} from "./scrypt.js";
+export { scrypt, scryptOpt } from "./scrypt.js";
 
 // Argon2id
-export {
-  argon2idHash,
-  argon2idHashOpt,
-} from "./argon.js";
+export { argon2idHash, argon2idHashOpt } from "./argon.js";

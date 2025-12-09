@@ -52,10 +52,7 @@ export function x25519PublicKeyFromPrivateKey(privateKey: Uint8Array): Uint8Arra
  * @param x25519Public - The other party's public key
  * @returns 32-byte shared secret
  */
-export function x25519SharedKey(
-  x25519Private: Uint8Array,
-  x25519Public: Uint8Array,
-): Uint8Array {
+export function x25519SharedKey(x25519Private: Uint8Array, x25519Public: Uint8Array): Uint8Array {
   if (x25519Private.length !== X25519_PRIVATE_KEY_SIZE) {
     throw new Error(`Private key must be ${X25519_PRIVATE_KEY_SIZE} bytes`);
   }

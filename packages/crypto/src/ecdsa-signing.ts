@@ -2,7 +2,11 @@
 
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { doubleSha256 } from "./hash.js";
-import { ECDSA_PRIVATE_KEY_SIZE, ECDSA_PUBLIC_KEY_SIZE, ECDSA_SIGNATURE_SIZE } from "./ecdsa-keys.js";
+import {
+  ECDSA_PRIVATE_KEY_SIZE,
+  ECDSA_PUBLIC_KEY_SIZE,
+  ECDSA_SIGNATURE_SIZE,
+} from "./ecdsa-keys.js";
 
 /**
  * Sign a message using ECDSA with secp256k1.
