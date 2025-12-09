@@ -9,9 +9,9 @@ import {
   ed25519PublicKeyFromPrivateKey,
   ed25519Sign,
 } from "@blockchain-commons/crypto";
-import { CryptoError } from "./error.js";
+import { CryptoError } from "../error.js";
 import { Ed25519PublicKey } from "./ed25519-public-key.js";
-import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
+import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
 export class Ed25519PrivateKey {
   private readonly seed: Uint8Array;

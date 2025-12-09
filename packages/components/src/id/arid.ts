@@ -63,8 +63,8 @@ import {
 } from "@blockchain-commons/dcbor";
 import { ARID as TAG_ARID } from "@blockchain-commons/tags";
 import { UR, type UREncodable } from "@blockchain-commons/uniform-resources";
-import { CryptoError } from "./error.js";
-import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
+import { CryptoError } from "../error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
 export class ARID implements CborTaggedEncodable, CborTaggedDecodable<ARID>, UREncodable {
   static readonly ARID_SIZE = 32;

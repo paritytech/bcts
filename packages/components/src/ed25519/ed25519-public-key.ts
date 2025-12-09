@@ -8,8 +8,8 @@ import {
   ED25519_SIGNATURE_SIZE,
   ed25519Verify,
 } from "@blockchain-commons/crypto";
-import { CryptoError } from "./error.js";
-import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
+import { CryptoError } from "../error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
 export class Ed25519PublicKey {
   private readonly data: Uint8Array;

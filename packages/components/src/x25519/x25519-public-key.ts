@@ -4,8 +4,8 @@
  */
 
 import { X25519_PUBLIC_KEY_SIZE } from "@blockchain-commons/crypto";
-import { CryptoError } from "./error.js";
-import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
+import { CryptoError } from "../error.js";
+import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
 export class X25519PublicKey {
   private readonly data: Uint8Array;

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from "@jest/globals";
-import { ARID } from "../src/arid.js";
+import { ARID } from "../src/id/arid.js";
 
 describe("ARID", () => {
   // Test hex string (32 bytes = 64 hex chars)

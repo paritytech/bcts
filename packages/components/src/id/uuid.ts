@@ -10,7 +10,7 @@ declare global {
   var Buffer: any;
 }
 
-import { CryptoError } from "./error.js";
+import { CryptoError } from "../error.js";
 
 const UUID_SIZE = 16;
 

@@ -9,9 +9,9 @@ import {
   x25519PublicKeyFromPrivateKey,
   x25519SharedKey,
 } from "@blockchain-commons/crypto";
-import { CryptoError } from "./error.js";
+import { CryptoError } from "../error.js";
 import { X25519PublicKey } from "./x25519-public-key.js";
-import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
+import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
 export class X25519PrivateKey {
   private readonly data: Uint8Array;

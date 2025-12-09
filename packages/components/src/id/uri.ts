@@ -10,7 +10,7 @@ declare global {
   var Buffer: any;
 }
 
-import { CryptoError } from "./error.js";
+import { CryptoError } from "../error.js";
 
 export class URI {
   private uri: string;
