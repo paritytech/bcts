@@ -11,8 +11,8 @@
     "lint": {
       "dependsOn": ["^build"]
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+    "typecheck": {
+      "dependsOn": ["^typecheck"]
     },
     "docs": {
       "dependsOn": ["^build"],
