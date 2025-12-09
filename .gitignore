@@ -83,4 +83,4 @@ packages/scaffold
 rust
 run_examples.sh
 research/
-**/docs/**
+packages/**/docs/**
