@@ -1,0 +1,66 @@
+{
+  "name": "@blockchain-commons/shamir",
+  "version": "1.0.0-alpha.3",
+  "type": "module",
+  "description": "Blockchain Commons Shamir Secret Sharing for TypeScript",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "browser": "dist/index.iife.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "browser": "./dist/index.iife.js",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint 'src/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "shamir",
+    "secret-sharing",
+    "sss",
+    "blockchain-commons",
+    "cryptography",
+    "threshold",
+    "security"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@blockchain-commons/crypto": "workspace:*",
+    "@blockchain-commons/rand": "workspace:*"
+  },
+  "devDependencies": {
+    "@blockchain-commons/eslint": "workspace:*",
+    "@blockchain-commons/tsconfig": "workspace:*",
+    "@eslint/js": "^9.39.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.10.2",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "tsdown": "^0.17.2",
+    "typedoc": "^0.28.15",
+    "typescript": "^5.9.3"
+  }
+}

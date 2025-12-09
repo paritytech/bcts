@@ -26,6 +26,8 @@
     "packages/envelope",
     "packages/known-values",
     "packages/rand",
+    "packages/shamir",
+    "packages/sskr",
     "packages/tags",
     "packages/uniform-resources",
     "shared/*"
