@@ -1,4 +1,3 @@
-import { describe, it, expect } from "jest";
 import * as tags from "../src/index";
 import { getGlobalTagsStore } from "@blockchain-commons/dcbor";
 
