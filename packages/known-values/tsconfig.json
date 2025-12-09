@@ -2,7 +2,8 @@
   "extends": "@blockchain-commons/tsconfig/library.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["vitest/globals"]
   },
   "include": [
     "src/**/*.ts",
