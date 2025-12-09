@@ -10,7 +10,7 @@
 import { SecureRandomNumberGenerator } from "@blockchain-commons/rand";
 import { Ed25519PrivateKey } from "../ed25519/ed25519-private-key.js";
 import { Sr25519PrivateKey } from "../sr25519/sr25519-private-key.js";
-import type { SigningPrivateKey } from "./signing-private-key.js";
+import { SigningPrivateKey } from "./signing-private-key.js";
 import type { SigningPublicKey } from "./signing-public-key.js";
 
 /**
@@ -47,9 +47,6 @@ export function defaultSignatureScheme(): SignatureScheme {
  * @returns A tuple containing a signing private key and its corresponding public key
  */
 export function createKeypair(scheme: SignatureScheme): [SigningPrivateKey, SigningPublicKey] {
-  // Import dynamically to avoid circular dependency
-  const { SigningPrivateKey } = require("./signing-private-key.js");
-
   switch (scheme) {
     case SignatureScheme.Ed25519: {
       const ed25519Key = Ed25519PrivateKey.random();
@@ -77,9 +74,6 @@ export function createKeypairUsing(
   scheme: SignatureScheme,
   rng: SecureRandomNumberGenerator,
 ): [SigningPrivateKey, SigningPublicKey] {
-  // Import dynamically to avoid circular dependency
-  const { SigningPrivateKey } = require("./signing-private-key.js");
-
   switch (scheme) {
     case SignatureScheme.Ed25519: {
       const ed25519Key = Ed25519PrivateKey.randomUsing(rng);

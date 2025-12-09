@@ -41,7 +41,7 @@ import { Ed25519PrivateKey } from "./ed25519/ed25519-private-key.js";
 import { SigningPrivateKey } from "./signing/signing-private-key.js";
 import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-key.js";
 import { bytesToHex } from "./utils.js";
-import type { PrivateKeys } from "./private-keys.js";
+import { PrivateKeys } from "./private-keys.js";
 import type { PublicKeys } from "./public-keys.js";
 
 /** Size of PrivateKeyBase key material in bytes */
@@ -156,8 +156,6 @@ export class PrivateKeyBase
    * @returns PrivateKeys containing the derived signing and encapsulation keys
    */
   ed25519PrivateKeys(): PrivateKeys {
-    // Import at runtime to avoid circular dependency
-    const { PrivateKeys } = require("./private-keys.js") as typeof import("./private-keys.js");
     return PrivateKeys.withKeys(this.ed25519SigningPrivateKey(), this.encapsulationPrivateKey());
   }
 

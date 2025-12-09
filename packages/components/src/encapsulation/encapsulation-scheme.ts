@@ -70,12 +70,9 @@ export function createEncapsulationKeypairUsing(
   rng: RandomNumberGenerator,
   scheme: EncapsulationScheme = EncapsulationScheme.X25519,
 ): [EncapsulationPrivateKey, EncapsulationPublicKey] {
-  // Import here to avoid circular dependency at module load time
-  const { EncapsulationPrivateKey: EncPrivKey } = require("./encapsulation-private-key.js");
-
   switch (scheme) {
     case EncapsulationScheme.X25519:
-      return EncPrivKey.keypairUsing(rng);
+      return EncapsulationPrivateKey.keypairUsing(rng);
     default:
       throw new Error(`Deterministic keypair generation not supported for scheme: ${scheme}`);
   }

@@ -41,9 +41,7 @@ import {
 } from "@blockchain-commons/tags";
 
 import { bytesToHex, hexToBytes } from "./utils.js";
-
-// Re-export from sskr package
-export {
+import {
   sskrGenerate,
   sskrGenerateUsing,
   sskrCombine,
@@ -51,6 +49,16 @@ export {
   GroupSpec as SSKRGroupSpec,
   Spec as SSKRSpec,
 } from "@blockchain-commons/sskr";
+
+// Re-export from sskr package
+export {
+  sskrGenerate,
+  sskrGenerateUsing,
+  sskrCombine,
+  SSKRSecret,
+  SSKRGroupSpec,
+  SSKRSpec,
+};
 
 /** Metadata size in bytes (identifier + thresholds + indices) */
 const METADATA_SIZE_BYTES = 5;
@@ -348,11 +356,9 @@ export class SSKRShareCbor
  * @returns Groups of SSKRShareCbor instances
  */
 export function generateSSKRSharesCbor(
-  spec: import("@blockchain-commons/sskr").Spec,
-  secret: import("@blockchain-commons/sskr").Secret,
+  spec: SSKRSpec,
+  secret: SSKRSecret,
 ): SSKRShareCbor[][] {
-  const { sskrGenerate } =
-    require("@blockchain-commons/sskr") as typeof import("@blockchain-commons/sskr");
   const rawGroups = sskrGenerate(spec, secret);
   return rawGroups.map((group) => group.map((shareData) => SSKRShareCbor.fromData(shareData)));
 }
@@ -365,9 +371,7 @@ export function generateSSKRSharesCbor(
  */
 export function combineSSKRSharesCbor(
   shares: SSKRShareCbor[],
-): import("@blockchain-commons/sskr").Secret {
-  const { sskrCombine } =
-    require("@blockchain-commons/sskr") as typeof import("@blockchain-commons/sskr");
+): SSKRSecret {
   const rawShares = shares.map((share) => share.data());
   return sskrCombine(rawShares);
 }
