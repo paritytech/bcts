@@ -90,7 +90,11 @@ export class Sr25519PrivateKey {
    * Create an Sr25519 private key from a hex string.
    */
   static fromHex(hex: string): Sr25519PrivateKey {
-    const data = new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+    const matches = hex.match(/.{1,2}/g);
+    if (matches === null) {
+      throw new Error("Invalid hex string");
+    }
+    const data = new Uint8Array(matches.map((byte) => parseInt(byte, 16)));
     return Sr25519PrivateKey.fromSeed(data);
   }
 
@@ -158,7 +162,7 @@ export class Sr25519PrivateKey {
    * Derives the corresponding public key.
    */
   publicKey(): Sr25519PublicKey {
-    if (!this._cachedPublicKey) {
+    if (this._cachedPublicKey === undefined) {
       const secretKey = sr25519.secretFromSeed(this._seed);
       const pubKeyBytes = sr25519.getPublicKey(secretKey);
       this._cachedPublicKey = Sr25519PublicKey.from(pubKeyBytes);

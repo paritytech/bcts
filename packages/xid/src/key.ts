@@ -7,19 +7,8 @@
  * Ported from bc-xid-rust/src/key.rs
  */
 
-import {
-  Envelope,
-  PrivateKeyBase,
-  PublicKeyBase,
-  type EnvelopeEncodable,
-} from "@bcts/envelope";
-import {
-  ENDPOINT,
-  NICKNAME,
-  PRIVATE_KEY,
-  SALT,
-  type KnownValue,
-} from "@bcts/known-values";
+import { Envelope, PrivateKeyBase, PublicKeyBase, type EnvelopeEncodable } from "@bcts/envelope";
+import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT, type KnownValue } from "@bcts/known-values";
 import type { EnvelopeEncodableValue } from "@bcts/envelope";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue

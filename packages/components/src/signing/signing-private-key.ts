@@ -125,7 +125,7 @@ export class SigningPrivateKey
    * @returns The Ed25519 private key if this is an Ed25519 key, null otherwise
    */
   toEd25519(): Ed25519PrivateKey | null {
-    if (this._type === SignatureScheme.Ed25519 && this._ed25519Key) {
+    if (this._type === SignatureScheme.Ed25519 && this._ed25519Key !== undefined) {
       return this._ed25519Key;
     }
     return null;
@@ -146,13 +146,13 @@ export class SigningPrivateKey
   publicKey(): SigningPublicKey {
     switch (this._type) {
       case SignatureScheme.Ed25519: {
-        if (!this._ed25519Key) {
+        if (this._ed25519Key === undefined) {
           throw new Error("Ed25519 private key is missing");
         }
         return SigningPublicKey.fromEd25519(this._ed25519Key.publicKey());
       }
       case SignatureScheme.Sr25519: {
-        if (!this._sr25519Key) {
+        if (this._sr25519Key === undefined) {
           throw new Error("Sr25519 private key is missing");
         }
         return SigningPublicKey.fromSr25519(this._sr25519Key.publicKey());
@@ -167,10 +167,10 @@ export class SigningPrivateKey
     if (this._type !== other._type) return false;
     switch (this._type) {
       case SignatureScheme.Ed25519:
-        if (!this._ed25519Key || !other._ed25519Key) return false;
+        if (this._ed25519Key === undefined || other._ed25519Key === undefined) return false;
         return this._ed25519Key.equals(other._ed25519Key);
       case SignatureScheme.Sr25519:
-        if (!this._sr25519Key || !other._sr25519Key) return false;
+        if (this._sr25519Key === undefined || other._sr25519Key === undefined) return false;
         return this._sr25519Key.equals(other._sr25519Key);
     }
   }
@@ -195,14 +195,14 @@ export class SigningPrivateKey
   sign(message: Uint8Array): Signature {
     switch (this._type) {
       case SignatureScheme.Ed25519: {
-        if (!this._ed25519Key) {
+        if (this._ed25519Key === undefined) {
           throw new Error("Ed25519 private key is missing");
         }
         const sigData = this._ed25519Key.sign(message);
         return Signature.ed25519FromData(sigData);
       }
       case SignatureScheme.Sr25519: {
-        if (!this._sr25519Key) {
+        if (this._sr25519Key === undefined) {
           throw new Error("Sr25519 private key is missing");
         }
         const sigData = this._sr25519Key.sign(message);
@@ -246,13 +246,13 @@ export class SigningPrivateKey
   untaggedCbor(): Cbor {
     switch (this._type) {
       case SignatureScheme.Ed25519: {
-        if (!this._ed25519Key) {
+        if (this._ed25519Key === undefined) {
           throw new Error("Ed25519 private key is missing");
         }
         return cbor([2, toByteString(this._ed25519Key.toData())]);
       }
       case SignatureScheme.Sr25519: {
-        if (!this._sr25519Key) {
+        if (this._sr25519Key === undefined) {
           throw new Error("Sr25519 private key is missing");
         }
         return cbor([3, toByteString(this._sr25519Key.toData())]);

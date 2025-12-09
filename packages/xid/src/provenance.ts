@@ -7,11 +7,7 @@
  * Ported from bc-xid-rust/src/provenance.rs
  */
 
-import {
-  Envelope,
-  type EnvelopeEncodable,
-  type EnvelopeEncodableValue,
-} from "@bcts/envelope";
+import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { PROVENANCE_GENERATOR, SALT, type KnownValue } from "@bcts/known-values";
 import { Salt } from "@bcts/components";
 

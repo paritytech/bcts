@@ -3,11 +3,7 @@
  * Ported from bc-components-rust/src/ed25519_public_key.rs
  */
 
-import {
-  ED25519_PUBLIC_KEY_SIZE,
-  ED25519_SIGNATURE_SIZE,
-  ed25519Verify,
-} from "@bcts/crypto";
+import { ED25519_PUBLIC_KEY_SIZE, ED25519_SIGNATURE_SIZE, ed25519Verify } from "@bcts/crypto";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 

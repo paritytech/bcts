@@ -24,11 +24,7 @@
  * Ported from bc-components-rust/src/ec_key/ec_public_key.rs
  */
 
-import {
-  ECDSA_PUBLIC_KEY_SIZE,
-  ecdsaVerify,
-  ecdsaDecompressPublicKey,
-} from "@bcts/crypto";
+import { ECDSA_PUBLIC_KEY_SIZE, ecdsaVerify, ecdsaDecompressPublicKey } from "@bcts/crypto";
 import {
   type Cbor,
   type Tag,

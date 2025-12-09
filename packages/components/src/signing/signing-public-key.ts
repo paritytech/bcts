@@ -107,7 +107,7 @@ export class SigningPublicKey
    * @returns The Ed25519 public key if this is an Ed25519 key, null otherwise
    */
   toEd25519(): Ed25519PublicKey | null {
-    if (this._type === SignatureScheme.Ed25519 && this._ed25519Key) {
+    if (this._type === SignatureScheme.Ed25519 && this._ed25519Key !== undefined) {
       return this._ed25519Key;
     }
     return null;
@@ -126,7 +126,7 @@ export class SigningPublicKey
    * @returns The Sr25519 public key if this is an Sr25519 key, null otherwise
    */
   toSr25519(): Sr25519PublicKey | null {
-    if (this._type === SignatureScheme.Sr25519 && this._sr25519Key) {
+    if (this._type === SignatureScheme.Sr25519 && this._sr25519Key !== undefined) {
       return this._sr25519Key;
     }
     return null;
@@ -146,10 +146,10 @@ export class SigningPublicKey
     if (this._type !== other._type) return false;
     switch (this._type) {
       case SignatureScheme.Ed25519:
-        if (!this._ed25519Key || !other._ed25519Key) return false;
+        if (this._ed25519Key === undefined || other._ed25519Key === undefined) return false;
         return this._ed25519Key.equals(other._ed25519Key);
       case SignatureScheme.Sr25519:
-        if (!this._sr25519Key || !other._sr25519Key) return false;
+        if (this._sr25519Key === undefined || other._sr25519Key === undefined) return false;
         return this._sr25519Key.equals(other._sr25519Key);
     }
   }
@@ -185,11 +185,11 @@ export class SigningPublicKey
 
     switch (this._type) {
       case SignatureScheme.Ed25519: {
-        if (!this._ed25519Key) {
+        if (this._ed25519Key === undefined) {
           return false;
         }
         const sigData = signature.toEd25519();
-        if (!sigData) {
+        if (sigData === null) {
           return false;
         }
         try {
@@ -199,11 +199,11 @@ export class SigningPublicKey
         }
       }
       case SignatureScheme.Sr25519: {
-        if (!this._sr25519Key) {
+        if (this._sr25519Key === undefined) {
           return false;
         }
         const sigData = signature.toSr25519();
-        if (!sigData) {
+        if (sigData === null) {
           return false;
         }
         try {
@@ -235,13 +235,13 @@ export class SigningPublicKey
   untaggedCbor(): Cbor {
     switch (this._type) {
       case SignatureScheme.Ed25519: {
-        if (!this._ed25519Key) {
+        if (this._ed25519Key === undefined) {
           throw new Error("Ed25519 public key is missing");
         }
         return cbor([2, toByteString(this._ed25519Key.toData())]);
       }
       case SignatureScheme.Sr25519: {
-        if (!this._sr25519Key) {
+        if (this._sr25519Key === undefined) {
           throw new Error("Sr25519 public key is missing");
         }
         return cbor([3, toByteString(this._sr25519Key.toData())]);

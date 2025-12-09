@@ -125,16 +125,18 @@ export class Reference {
 
       case "bytewords":
         return Array.from(shortData)
-          .map((b) => BYTEWORDS[b] || `word${b}`)
+          .map((b) => BYTEWORDS[b] ?? `word${b}`)
           .join(" ");
 
       case "bytemojis":
         return Array.from(shortData)
-          .map((b) => BYTEMOJIS[b] || "❓")
+          .map((b) => BYTEMOJIS[b] ?? "❓")
           .join(" ");
 
-      default:
-        throw CryptoError.invalidFormat(`Unknown reference format: ${format}`);
+      default: {
+        const _exhaustive: never = format;
+        throw CryptoError.invalidFormat(`Unknown reference format: ${String(_exhaustive)}`);
+      }
     }
   }
 

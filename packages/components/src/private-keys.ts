@@ -141,7 +141,7 @@ export class PrivateKeys
    * Get string representation.
    */
   toString(): string {
-    return `PrivateKeys(${this._signingPrivateKey}, ${this._encapsulationPrivateKey})`;
+    return `PrivateKeys(${String(this._signingPrivateKey)}, ${String(this._encapsulationPrivateKey)})`;
   }
 
   // ============================================================================
@@ -241,7 +241,11 @@ export class PrivateKeys
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_PRIVATE_KEYS.name!, this.untaggedCbor());
+    const name = TAG_PRIVATE_KEYS.name;
+    if (name === undefined) {
+      throw new Error("PRIVATE_KEYS tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

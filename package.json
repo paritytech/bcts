@@ -11,7 +11,8 @@
     "typecheck": "turbo run typecheck",
     "docs": "turbo run docs",
     "playground": "turbo run dev --filter=@bcts/playground",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "publish-packages": "turbo run build lint test && changeset version && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

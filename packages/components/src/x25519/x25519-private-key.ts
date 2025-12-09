@@ -194,7 +194,7 @@ export class X25519PrivateKey
    * Get the X25519PublicKey corresponding to this X25519PrivateKey.
    */
   publicKey(): X25519PublicKey {
-    if (!this._publicKey) {
+    if (this._publicKey === undefined) {
       const publicKeyBytes = x25519PublicKeyFromPrivateKey(this._data);
       this._publicKey = X25519PublicKey.fromData(publicKeyBytes);
     }
@@ -222,8 +222,8 @@ export class X25519PrivateKey
     try {
       const shared = x25519SharedKey(this._data, publicKey.data());
       return new Uint8Array(shared);
-    } catch (e) {
-      throw CryptoError.cryptoOperation(`ECDH key agreement failed: ${e}`);
+    } catch (e: unknown) {
+      throw CryptoError.cryptoOperation(`ECDH key agreement failed: ${String(e)}`);
     }
   }
 
@@ -332,7 +332,11 @@ export class X25519PrivateKey
    * Note: URs use untagged CBOR since the type is conveyed by the UR type itself.
    */
   ur(): UR {
-    return UR.new(TAG_X25519_PRIVATE_KEY.name!, this.untaggedCbor());
+    const name = TAG_X25519_PRIVATE_KEY.name;
+    if (name === undefined) {
+      throw new Error("X25519_PRIVATE_KEY tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**
@@ -346,7 +350,11 @@ export class X25519PrivateKey
    * Creates an X25519PrivateKey from a UR.
    */
   static fromUR(ur: UR): X25519PrivateKey {
-    ur.checkType(TAG_X25519_PRIVATE_KEY.name!);
+    const name = TAG_X25519_PRIVATE_KEY.name;
+    if (name === undefined) {
+      throw new Error("X25519_PRIVATE_KEY tag name is undefined");
+    }
+    ur.checkType(name);
     const dummy = new X25519PrivateKey(new Uint8Array(X25519_PRIVATE_KEY_SIZE));
     return dummy.fromUntaggedCbor(ur.cbor());
   }

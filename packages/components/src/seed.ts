@@ -157,9 +157,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    * Set name
    */
   setName(name: string): void {
-    if (!this.metadata) {
-      this.metadata = {};
-    }
+    this.metadata ??= {};
     this.metadata.name = name;
   }
 
@@ -174,9 +172,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    * Set note
    */
   setNote(note: string): void {
-    if (!this.metadata) {
-      this.metadata = {};
-    }
+    this.metadata ??= {};
     this.metadata.note = note;
   }
 
@@ -191,9 +187,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    * Set creation date
    */
   setCreatedAt(date: Date): void {
-    if (!this.metadata) {
-      this.metadata = {};
-    }
+    this.metadata ??= {};
     this.metadata.createdAt = date;
   }
 
@@ -201,7 +195,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    * Get metadata
    */
   getMetadata(): SeedMetadata | undefined {
-    return this.metadata ? { ...this.metadata } : undefined;
+    return this.metadata !== undefined ? { ...this.metadata } : undefined;
   }
 
   /**
@@ -245,14 +239,14 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
   untaggedCbor(): Cbor {
     const map = CborMap.new();
     map.insert(1, toByteString(this.data));
-    if (this.metadata?.createdAt) {
+    if (this.metadata?.createdAt !== undefined) {
       const cborDate = CborDate.fromDatetime(this.metadata.createdAt);
       map.insert(2, cborDate.taggedCbor());
     }
-    if (this.metadata?.name && this.metadata.name.length > 0) {
+    if (this.metadata?.name !== undefined && this.metadata.name.length > 0) {
       map.insert(3, this.metadata.name);
     }
-    if (this.metadata?.note && this.metadata.note.length > 0) {
+    if (this.metadata?.note !== undefined && this.metadata.note.length > 0) {
       map.insert(4, this.metadata.note);
     }
     return cbor(map);
@@ -306,7 +300,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
     const note = map.get<number, string>(4);
 
     const metadata: SeedMetadata | undefined =
-      name || note || createdAt
+      name !== undefined || note !== undefined || createdAt !== undefined
         ? { name: name ?? undefined, note: note ?? undefined, createdAt }
         : undefined;
 

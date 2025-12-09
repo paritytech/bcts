@@ -7,19 +7,8 @@
  * Ported from bc-xid-rust/src/service.rs
  */
 
-import {
-  Envelope,
-  type EnvelopeEncodable,
-  type EnvelopeEncodableValue,
-} from "@bcts/envelope";
-import {
-  KEY,
-  DELEGATE,
-  NAME,
-  CAPABILITY,
-  ALLOW,
-  type KnownValue,
-} from "@bcts/known-values";
+import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
+import { KEY, DELEGATE, NAME, CAPABILITY, ALLOW, type KnownValue } from "@bcts/known-values";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;

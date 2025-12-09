@@ -8,11 +8,7 @@ import {
   SYMMETRIC_KEY_SIZE,
   SYMMETRIC_NONCE_SIZE,
 } from "@bcts/crypto";
-import {
-  SecureRandomNumberGenerator,
-  rngRandomData,
-  type RandomNumberGenerator,
-} from "@bcts/rand";
+import { SecureRandomNumberGenerator, rngRandomData, type RandomNumberGenerator } from "@bcts/rand";
 
 /// Extension for encrypting and decrypting envelopes using symmetric encryption.
 ///

@@ -161,7 +161,7 @@ export class EncryptedMessage
    */
   aadDigest(): Digest | null {
     const aadCbor = this.aadCbor();
-    if (!aadCbor) {
+    if (aadCbor === null) {
       return null;
     }
     try {

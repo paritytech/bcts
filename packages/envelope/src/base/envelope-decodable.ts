@@ -1,11 +1,5 @@
 import type { Cbor } from "@bcts/dcbor";
-import {
-  tryIntoText,
-  tryIntoBool,
-  tryIntoByteString,
-  isNull,
-  decodeCbor,
-} from "@bcts/dcbor";
+import { tryIntoText, tryIntoBool, tryIntoByteString, isNull, decodeCbor } from "@bcts/dcbor";
 import { Envelope } from "./envelope";
 import { EnvelopeError } from "./error";
 

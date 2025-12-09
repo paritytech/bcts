@@ -337,7 +337,11 @@ export class MLDSAPrivateKey
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_MLDSA_PRIVATE_KEY.name!, this.untaggedCbor());
+    const name = TAG_MLDSA_PRIVATE_KEY.name;
+    if (name === undefined) {
+      throw new Error("MLDSA_PRIVATE_KEY tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

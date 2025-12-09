@@ -124,7 +124,7 @@ export class PublicKeys
    * Get string representation.
    */
   toString(): string {
-    return `PublicKeys(${this._signingPublicKey}, ${this._encapsulationPublicKey})`;
+    return `PublicKeys(${String(this._signingPublicKey)}, ${String(this._encapsulationPublicKey)})`;
   }
 
   // ============================================================================
@@ -196,12 +196,16 @@ export class PublicKeys
   static fromTaggedCbor(cborValue: Cbor): PublicKeys {
     // We need a dummy instance to call instance methods
     // Create minimal valid keys for this purpose
-    const signingKey = SigningPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x82, 0x02, 0x58, 0x20, ...new Array(32).fill(0)]),
-    );
-    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x58, 0x20, ...new Array(32).fill(0)]),
-    );
+    const signingKeyPrefix = new Uint8Array([0x82, 0x02, 0x58, 0x20]);
+    const signingKeyData = new Uint8Array(36);
+    signingKeyData.set(signingKeyPrefix, 0);
+    const signingKey = SigningPublicKey.fromUntaggedCborData(signingKeyData);
+
+    const encapsulationKeyPrefix = new Uint8Array([0x58, 0x20]);
+    const encapsulationKeyData = new Uint8Array(34);
+    encapsulationKeyData.set(encapsulationKeyPrefix, 0);
+    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(encapsulationKeyData);
+
     const dummy = new PublicKeys(signingKey, encapsulationKey);
     return dummy.fromTaggedCbor(cborValue);
   }
@@ -220,12 +224,16 @@ export class PublicKeys
   static fromUntaggedCborData(data: Uint8Array): PublicKeys {
     const cborValue = decodeCbor(data);
     // We need a dummy instance to call instance methods
-    const signingKey = SigningPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x82, 0x02, 0x58, 0x20, ...new Array(32).fill(0)]),
-    );
-    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x58, 0x20, ...new Array(32).fill(0)]),
-    );
+    const signingKeyPrefix = new Uint8Array([0x82, 0x02, 0x58, 0x20]);
+    const signingKeyData = new Uint8Array(36);
+    signingKeyData.set(signingKeyPrefix, 0);
+    const signingKey = SigningPublicKey.fromUntaggedCborData(signingKeyData);
+
+    const encapsulationKeyPrefix = new Uint8Array([0x58, 0x20]);
+    const encapsulationKeyData = new Uint8Array(34);
+    encapsulationKeyData.set(encapsulationKeyPrefix, 0);
+    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(encapsulationKeyData);
+
     const dummy = new PublicKeys(signingKey, encapsulationKey);
     return dummy.fromUntaggedCbor(cborValue);
   }
@@ -238,7 +246,11 @@ export class PublicKeys
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_PUBLIC_KEYS.name!, this.untaggedCbor());
+    const name = TAG_PUBLIC_KEYS.name;
+    if (name === undefined) {
+      throw new Error("PUBLIC_KEYS tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**
@@ -256,12 +268,16 @@ export class PublicKeys
       throw new Error(`Expected UR type ${TAG_PUBLIC_KEYS.name}, got ${ur.urTypeStr()}`);
     }
     // We need a dummy instance to call instance methods
-    const signingKey = SigningPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x82, 0x02, 0x58, 0x20, ...new Array(32).fill(0)]),
-    );
-    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(
-      new Uint8Array([0x58, 0x20, ...new Array(32).fill(0)]),
-    );
+    const signingKeyPrefix = new Uint8Array([0x82, 0x02, 0x58, 0x20]);
+    const signingKeyData = new Uint8Array(36);
+    signingKeyData.set(signingKeyPrefix, 0);
+    const signingKey = SigningPublicKey.fromUntaggedCborData(signingKeyData);
+
+    const encapsulationKeyPrefix = new Uint8Array([0x58, 0x20]);
+    const encapsulationKeyData = new Uint8Array(34);
+    encapsulationKeyData.set(encapsulationKeyPrefix, 0);
+    const encapsulationKey = EncapsulationPublicKey.fromUntaggedCborData(encapsulationKeyData);
+
     const dummy = new PublicKeys(signingKey, encapsulationKey);
     return dummy.fromUntaggedCbor(ur.cbor());
   }

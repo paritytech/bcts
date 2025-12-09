@@ -1,14 +1,7 @@
 // Ported from provenance-mark-rust/src/mark.rs
 
 import { toBase64, fromBase64, bytesToHex } from "@bcts/components";
-import {
-  type Cbor,
-  cbor,
-  cborData,
-  expectArray,
-  expectBytes,
-  decodeCbor,
-} from "@bcts/dcbor";
+import { type Cbor, cbor, cborData, expectArray, expectBytes, decodeCbor } from "@bcts/dcbor";
 import { PROVENANCE_MARK } from "@bcts/tags";
 import {
   BytewordsStyle,

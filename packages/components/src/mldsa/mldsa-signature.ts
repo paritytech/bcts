@@ -231,7 +231,11 @@ export class MLDSASignature
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_MLDSA_SIGNATURE.name!, this.untaggedCbor());
+    const name = TAG_MLDSA_SIGNATURE.name;
+    if (name === undefined) {
+      throw new Error("MLDSA_SIGNATURE tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

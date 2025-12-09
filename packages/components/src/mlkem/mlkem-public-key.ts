@@ -260,7 +260,11 @@ export class MLKEMPublicKey
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_MLKEM_PUBLIC_KEY.name!, this.untaggedCbor());
+    const name = TAG_MLKEM_PUBLIC_KEY.name;
+    if (name === undefined) {
+      throw new Error("MLKEM_PUBLIC_KEY tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

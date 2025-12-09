@@ -231,7 +231,11 @@ export class MLKEMCiphertext
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_MLKEM_CIPHERTEXT.name!, this.untaggedCbor());
+    const name = TAG_MLKEM_CIPHERTEXT.name;
+    if (name === undefined) {
+      throw new Error("MLKEM_CIPHERTEXT tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

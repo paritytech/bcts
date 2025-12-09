@@ -235,7 +235,11 @@ export class X25519PublicKey
    * Note: URs use untagged CBOR since the type is conveyed by the UR type itself.
    */
   ur(): UR {
-    return UR.new(TAG_X25519_PUBLIC_KEY.name!, this.untaggedCbor());
+    const name = TAG_X25519_PUBLIC_KEY.name;
+    if (name === undefined) {
+      throw new Error("X25519_PUBLIC_KEY tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**
@@ -249,7 +253,11 @@ export class X25519PublicKey
    * Creates an X25519PublicKey from a UR.
    */
   static fromUR(ur: UR): X25519PublicKey {
-    ur.checkType(TAG_X25519_PUBLIC_KEY.name!);
+    const name = TAG_X25519_PUBLIC_KEY.name;
+    if (name === undefined) {
+      throw new Error("X25519_PUBLIC_KEY tag name is undefined");
+    }
+    ur.checkType(name);
     const dummy = new X25519PublicKey(new Uint8Array(X25519_PUBLIC_KEY_SIZE));
     return dummy.fromUntaggedCbor(ur.cbor());
   }

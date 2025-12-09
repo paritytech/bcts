@@ -35,10 +35,7 @@ import {
   tagValue,
 } from "@bcts/dcbor";
 import { UR, type UREncodable } from "@bcts/uniform-resources";
-import {
-  SSKR_SHARE as TAG_SSKR_SHARE,
-  SSKR_SHARE_V1 as TAG_SSKR_SHARE_V1,
-} from "@bcts/tags";
+import { SSKR_SHARE as TAG_SSKR_SHARE, SSKR_SHARE_V1 as TAG_SSKR_SHARE_V1 } from "@bcts/tags";
 
 import { bytesToHex, hexToBytes } from "./utils.js";
 import {
@@ -304,7 +301,11 @@ export class SSKRShareCbor
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_SSKR_SHARE.name!, this.untaggedCbor());
+    const name = TAG_SSKR_SHARE.name;
+    if (name === undefined) {
+      throw new Error("SSKR_SHARE tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

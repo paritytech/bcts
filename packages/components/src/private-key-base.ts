@@ -288,7 +288,11 @@ export class PrivateKeyBase
    * Returns the UR representation.
    */
   ur(): UR {
-    return UR.new(TAG_PRIVATE_KEY_BASE.name!, this.untaggedCbor());
+    const name = TAG_PRIVATE_KEY_BASE.name;
+    if (name === undefined) {
+      throw new Error("PRIVATE_KEY_BASE tag name is undefined");
+    }
+    return UR.new(name, this.untaggedCbor());
   }
 
   /**

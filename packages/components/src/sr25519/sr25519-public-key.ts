@@ -45,7 +45,11 @@ export class Sr25519PublicKey {
    * Create an Sr25519 public key from a hex string.
    */
   static fromHex(hex: string): Sr25519PublicKey {
-    const data = new Uint8Array(hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
+    const matches = hex.match(/.{1,2}/g);
+    if (matches === null) {
+      throw new Error("Invalid hex string");
+    }
+    const data = new Uint8Array(matches.map((byte) => parseInt(byte, 16)));
     return Sr25519PublicKey.from(data);
   }
 

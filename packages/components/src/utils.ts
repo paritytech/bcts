@@ -7,6 +7,9 @@
  * @packageDocumentation
  */
 
+// Declare Node.js types for environments where they might not be available
+declare const require: ((module: string) => unknown) | undefined;
+
 /**
  * Convert a Uint8Array to a lowercase hexadecimal string.
  *
@@ -82,9 +85,14 @@ export function toBase64(data: Uint8Array): string {
     return globalBtoa(binary);
   }
   // Node.js environment (fallback for Node < 18)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Buffer: NodeBuffer } = require("buffer") as { Buffer: typeof Buffer };
-  return NodeBuffer.from(data).toString("base64");
+  const requireFn = require;
+  if (typeof requireFn === "function") {
+    const { Buffer: NodeBuffer } = requireFn("buffer") as {
+      Buffer: { from: (data: Uint8Array) => { toString: (encoding: string) => string } };
+    };
+    return NodeBuffer.from(data).toString("base64");
+  }
+  throw new Error("btoa not available and require is not defined");
 }
 
 /**
@@ -114,9 +122,14 @@ export function fromBase64(base64: string): Uint8Array {
     return bytes;
   }
   // Node.js environment (fallback for Node < 18)
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { Buffer: NodeBuffer } = require("buffer") as { Buffer: typeof Buffer };
-  return new Uint8Array(NodeBuffer.from(base64, "base64"));
+  const requireFn = require;
+  if (typeof requireFn === "function") {
+    const { Buffer: NodeBuffer } = requireFn("buffer") as {
+      Buffer: { from: (data: string, encoding: string) => Uint8Array };
+    };
+    return new Uint8Array(NodeBuffer.from(base64, "base64"));
+  }
+  throw new Error("atob not available and require is not defined");
 }
 
 /**

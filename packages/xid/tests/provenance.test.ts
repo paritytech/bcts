@@ -4,10 +4,7 @@
  */
 
 import { PrivateKeyBase } from "@bcts/envelope";
-import {
-  ProvenanceMarkGenerator,
-  ProvenanceMarkResolution,
-} from "@bcts/provenance-mark";
+import { ProvenanceMarkGenerator, ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { cbor } from "@bcts/dcbor";
 import { Provenance, XIDGeneratorOptions, XIDDocument } from "../src";
 

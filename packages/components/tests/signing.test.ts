@@ -90,8 +90,8 @@ describe("SigningPrivateKey", () => {
       const privateKey = SigningPrivateKey.newEd25519(ed25519Key);
 
       const retrieved = privateKey.toEd25519();
-      expect(retrieved).toBeTruthy();
-      expect(retrieved!.equals(ed25519Key)).toBe(true);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.equals(ed25519Key)).toBe(true);
     });
   });
 
@@ -245,8 +245,8 @@ describe("SigningPublicKey", () => {
       const publicKey = SigningPublicKey.fromEd25519(ed25519PublicKey);
 
       const retrieved = publicKey.toEd25519();
-      expect(retrieved).toBeTruthy();
-      expect(retrieved!.equals(ed25519PublicKey)).toBe(true);
+      expect(retrieved).not.toBeNull();
+      expect(retrieved?.equals(ed25519PublicKey)).toBe(true);
     });
   });
 
@@ -369,8 +369,8 @@ describe("Signature", () => {
       const signature = privateKey.sign(TEST_MESSAGE);
 
       const sigData = signature.toEd25519();
-      expect(sigData).toBeTruthy();
-      expect(sigData!.length).toBe(64);
+      expect(sigData).not.toBeNull();
+      expect(sigData?.length).toBe(64);
     });
   });
 

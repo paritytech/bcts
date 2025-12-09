@@ -74,6 +74,8 @@ export function createEncapsulationKeypairUsing(
     case EncapsulationScheme.X25519:
       return EncapsulationPrivateKey.keypairUsing(rng);
     default:
-      throw new Error(`Deterministic keypair generation not supported for scheme: ${String(scheme)}`);
+      throw new Error(
+        `Deterministic keypair generation not supported for scheme: ${String(scheme)}`,
+      );
   }
 }
