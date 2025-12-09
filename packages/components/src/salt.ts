@@ -92,7 +92,6 @@ export class Salt {
    * Get base64 representation
    */
   toBase64(): string {
-    
     return Buffer.from(this.data).toString("base64");
   }
 
