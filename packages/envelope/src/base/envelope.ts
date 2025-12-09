@@ -91,8 +91,8 @@ export type EnvelopeCase =
     };
 
 // Import types from extension modules (will be available at runtime)
-import type { Compressed } from "../extension/compress";
-import type { EncryptedMessage } from "../extension/encrypt";
+import { Compressed } from "../extension/compress";
+import { EncryptedMessage } from "../extension/encrypt";
 
 /// A flexible container for structured data with built-in integrity
 /// verification.
@@ -352,7 +352,7 @@ export class Envelope implements DigestProvider {
     // }
     return new Envelope({
       type: "compressed",
-      compressed,
+      value: compressed,
     });
   }
 
@@ -483,7 +483,7 @@ export class Envelope implements DigestProvider {
   private static valueToCbor(value: unknown): Cbor {
     // Import cbor function at runtime to avoid circular dependencies
 
-    return cbor(value);
+    return cbor(value as Parameters<typeof cbor>[0]);
   }
 
   /// Converts CBOR to bytes.
@@ -581,11 +581,14 @@ export class Envelope implements DigestProvider {
           if (arr === undefined || arr.length < 1 || arr.length > 2) {
             throw EnvelopeError.cbor("compressed envelope must have 1 or 2 elements");
           }
-          const compressedData = asByteString(arr.get(0));
+          // We've already checked arr.length >= 1 above
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const compressedData = asByteString(arr.get(0)!);
           if (compressedData === undefined) {
             throw EnvelopeError.cbor("compressed data must be byte string");
           }
-          const digestBytes = arr.length === 2 ? asByteString(arr.get(1)) : undefined;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const digestBytes = arr.length === 2 ? asByteString(arr.get(1)!) : undefined;
           if (arr.length === 2 && digestBytes === undefined) {
             throw EnvelopeError.cbor("digest must be byte string");
           }
@@ -602,12 +605,16 @@ export class Envelope implements DigestProvider {
           if (arr === undefined || arr.length < 2 || arr.length > 3) {
             throw EnvelopeError.cbor("encrypted envelope must have 2 or 3 elements");
           }
-          const ciphertext = asByteString(arr.get(0));
-          const nonce = asByteString(arr.get(1));
+          // We've already checked arr.length >= 2 above
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const ciphertext = asByteString(arr.get(0)!);
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const nonce = asByteString(arr.get(1)!);
           if (ciphertext === undefined || nonce === undefined) {
             throw EnvelopeError.cbor("ciphertext and nonce must be byte strings");
           }
-          const digestBytes = arr.length === 3 ? asByteString(arr.get(2)) : undefined;
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          const digestBytes = arr.length === 3 ? asByteString(arr.get(2)!) : undefined;
           if (arr.length === 3 && digestBytes === undefined) {
             throw EnvelopeError.cbor("digest must be byte string");
           }

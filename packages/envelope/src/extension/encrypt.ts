@@ -125,7 +125,9 @@ export class EncryptedMessage {
   constructor(ciphertext: Uint8Array, nonce: Uint8Array, aadDigest?: Digest) {
     this.#ciphertext = ciphertext;
     this.#nonce = nonce;
-    this.#aadDigest = aadDigest;
+    if (aadDigest !== undefined) {
+      this.#aadDigest = aadDigest;
+    }
   }
 
   /// Returns the ciphertext

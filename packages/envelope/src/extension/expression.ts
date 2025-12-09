@@ -1,4 +1,5 @@
-import { Envelope, type EnvelopeEncodableValue } from "../base/envelope";
+import { Envelope } from "../base/envelope";
+import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /// Extension for envelope expressions.
@@ -168,17 +169,14 @@ export class Parameter {
 
   /// Creates a parameter from known IDs
   static blank(value: EnvelopeEncodableValue): Parameter {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new Parameter(PARAMETER_IDS.BLANK, Envelope.new(value));
   }
 
   static lhs(value: EnvelopeEncodableValue): Parameter {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new Parameter(PARAMETER_IDS.LHS, Envelope.new(value));
   }
 
   static rhs(value: EnvelopeEncodableValue): Parameter {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new Parameter(PARAMETER_IDS.RHS, Envelope.new(value));
   }
 
@@ -212,7 +210,6 @@ export class Expression {
   /// Adds a parameter to the expression
   withParameter(param: ParameterID, value: EnvelopeEncodableValue): Expression {
     const key = typeof param === "number" ? param.toString() : param;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.#parameters.set(key, new Parameter(param, Envelope.new(value)));
     this.#envelope = null; // Invalidate cached envelope
     return this;
@@ -240,7 +237,7 @@ export class Expression {
 
   /// Converts the expression to an envelope
   envelope(): Envelope {
-    if (this.#envelope !== undefined) {
+    if (this.#envelope !== null) {
       return this.#envelope;
     }
 
@@ -271,6 +268,9 @@ export class Expression {
     // Extract function from subject
     const subject = envelope.subject();
     const subjectText = subject.asText();
+    if (subjectText === undefined) {
+      throw EnvelopeError.general("Not a valid function envelope");
+    }
 
     // Parse function identifier
     let funcId: FunctionID;
@@ -296,7 +296,7 @@ export class Expression {
 
         if (pred !== undefined && obj !== undefined) {
           const predText = pred.asText();
-          if (predText.startsWith("❰") && predText.endsWith("❱")) {
+          if (predText !== undefined && predText.startsWith("❰") && predText.endsWith("❱")) {
             const inner = predText.slice(1, -1);
             let paramId: ParameterID;
             if (inner.startsWith('"') && inner.endsWith('"')) {

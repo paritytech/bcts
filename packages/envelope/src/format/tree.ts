@@ -120,12 +120,8 @@ Envelope.prototype.summary = function (this: Envelope, maxLength = 40): string {
         // Fall through
       }
 
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-        this.extractNull();
+      if (this.isNull()) {
         return "null";
-      } catch {
-        // Fall through
       }
 
       // Fallback: show byte string

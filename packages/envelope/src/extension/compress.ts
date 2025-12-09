@@ -42,7 +42,9 @@ export class Compressed {
 
   constructor(compressedData: Uint8Array, digest?: Digest) {
     this.#compressedData = compressedData;
-    this.#digest = digest;
+    if (digest !== undefined) {
+      this.#digest = digest;
+    }
   }
 
   /// Creates a Compressed instance from decompressed data

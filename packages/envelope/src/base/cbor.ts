@@ -35,8 +35,12 @@ const TAG_ENVELOPE = ENVELOPE.value;
 ///
 /// Returns the tags that should be used for CBOR encoding.
 export class EnvelopeCBORTagged implements CborTagged {
+  cborTags(): ReturnType<typeof tagsForValues> {
+    return tagsForValues([TAG_ENVELOPE]);
+  }
+  
   static cborTags(): number[] {
-    return tagsForValues([TAG_ENVELOPE]).map((tag) => tag.value);
+    return tagsForValues([TAG_ENVELOPE]).map((tag) => Number(tag.value));
   }
 }
 
@@ -45,6 +49,10 @@ export class EnvelopeCBORTagged implements CborTagged {
 /// Provides the untagged CBOR representation of an envelope.
 export class EnvelopeCBORTaggedEncodable implements CborTaggedEncodable {
   constructor(private readonly envelope: Envelope) {}
+  
+  cborTags(): ReturnType<typeof tagsForValues> {
+    return tagsForValues([TAG_ENVELOPE]);
+  }
 
   untaggedCbor(): Cbor {
     return this.envelope.untaggedCbor();
@@ -58,13 +66,25 @@ export class EnvelopeCBORTaggedEncodable implements CborTaggedEncodable {
 /// Implements CborTaggedDecodable for Envelope.
 ///
 /// Provides the ability to decode an envelope from untagged CBOR.
-export class EnvelopeCBORTaggedDecodable implements CborTaggedDecodable {
+export class EnvelopeCBORTaggedDecodable<T = Envelope> implements CborTaggedDecodable<T> {
+  cborTags(): ReturnType<typeof tagsForValues> {
+    return tagsForValues([TAG_ENVELOPE]);
+  }
+
   static fromUntaggedCbor(cbor: Cbor): Envelope {
     return Envelope.fromUntaggedCbor(cbor);
   }
 
   static fromTaggedCbor(cbor: Cbor): Envelope {
     return Envelope.fromTaggedCbor(cbor);
+  }
+
+  fromUntaggedCbor(cbor: Cbor): T {
+    return Envelope.fromUntaggedCbor(cbor) as T;
+  }
+
+  fromTaggedCbor(cbor: Cbor): T {
+    return Envelope.fromTaggedCbor(cbor) as T;
   }
 }
 

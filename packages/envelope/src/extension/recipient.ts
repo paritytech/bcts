@@ -403,6 +403,7 @@ Envelope.prototype.decryptSubjectToRecipient = async function (
       const obj = assertion.subject().asObject();
       if (obj === undefined) continue;
       const sealedData = obj.asByteString();
+      if (sealedData === undefined) continue;
       const sealedMessage = new SealedMessage(sealedData);
 
       // Try to unseal with our private key
@@ -457,6 +458,9 @@ Envelope.prototype.recipients = function (this: Envelope): SealedMessage[] {
       throw EnvelopeError.general("Invalid recipient assertion");
     }
     const sealedData = obj.asByteString();
+    if (sealedData === undefined) {
+      throw EnvelopeError.general("Invalid recipient data");
+    }
     return new SealedMessage(sealedData);
   });
 };

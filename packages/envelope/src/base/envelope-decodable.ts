@@ -158,6 +158,11 @@ declare module "./envelope" {
     /// @returns The byte array value
     /// @throws {EnvelopeError} If the envelope cannot be converted
     extractBytes(): Uint8Array;
+
+    /// Extracts null from this envelope.
+    ///
+    /// @throws {EnvelopeError} If the envelope does not contain null
+    extractNull(): null;
   }
 }
 
@@ -223,4 +228,8 @@ Envelope.prototype.extractBoolean = function (this: Envelope): boolean {
 
 Envelope.prototype.extractBytes = function (this: Envelope): Uint8Array {
   return extractBytes(this);
+};
+
+Envelope.prototype.extractNull = function (this: Envelope): null {
+  return extractNull(this);
 };

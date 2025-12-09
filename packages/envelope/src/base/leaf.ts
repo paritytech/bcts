@@ -68,7 +68,7 @@ declare module "./envelope" {
     /// Returns the leaf CBOR as an array if possible.
     ///
     /// @returns The array value or undefined
-    asArray(): Cbor[] | undefined;
+    asArray(): readonly Cbor[] | undefined;
 
     /// Returns the leaf CBOR as a map if possible.
     ///
@@ -91,12 +91,12 @@ declare module "./envelope" {
 // but cannot be declared in TypeScript module augmentation due to reserved keywords.
 
 /// Implementation of static false()
-Envelope.false = function (): Envelope {
+(Envelope as unknown as { false: () => Envelope }).false = function (): Envelope {
   return Envelope.newLeaf(false);
 };
 
 /// Implementation of static true()
-Envelope.true = function (): Envelope {
+(Envelope as unknown as { true: () => Envelope }).true = function (): Envelope {
   return Envelope.newLeaf(true);
 };
 
@@ -150,7 +150,11 @@ Envelope.prototype.isNaN = function (this: Envelope): boolean {
     return false;
   }
 
-  return isNaN(leaf);
+  // Check for NaN in CBOR simple types
+  if ("type" in leaf && leaf.type === 7) {
+    return isNaN(leaf as unknown as Parameters<typeof isNaN>[0]);
+  }
+  return false;
 };
 
 /// Implementation of isSubjectNaN()
@@ -160,13 +164,12 @@ Envelope.prototype.isSubjectNaN = function (this: Envelope): boolean {
 
 /// Implementation of isNull()
 Envelope.prototype.isNull = function (this: Envelope): boolean {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    this.extractNull();
-    return true;
-  } catch (_error) {
-    return false;
-  }
+      try {
+        this.extractNull();
+        return true;
+      } catch (_error) {
+        return false;
+      }
 };
 
 /// Implementation of tryByteString()
@@ -184,7 +187,7 @@ Envelope.prototype.asByteString = function (this: Envelope): Uint8Array | undefi
 };
 
 /// Implementation of asArray()
-Envelope.prototype.asArray = function (this: Envelope): Cbor[] | undefined {
+Envelope.prototype.asArray = function (this: Envelope): readonly Cbor[] | undefined {
   const leaf = this.asLeaf();
   if (leaf === undefined) {
     return undefined;

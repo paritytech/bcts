@@ -112,7 +112,7 @@ export class Assertion implements DigestProvider {
   toCbor(): Cbor {
     const map = new CborMap();
     map.set(this.#predicate.untaggedCbor(), this.#object.untaggedCbor());
-    return map;
+    return map as unknown as Cbor;
   }
 
   /// Attempts to create an assertion from a CBOR value.

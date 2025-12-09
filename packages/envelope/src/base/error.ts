@@ -70,13 +70,15 @@ export enum ErrorCode {
 
 export class EnvelopeError extends Error {
   readonly code: ErrorCode;
-  readonly cause?: Error;
+  declare readonly cause?: Error;
 
   constructor(code: ErrorCode, message: string, cause?: Error) {
     super(message);
     this.name = "EnvelopeError";
     this.code = code;
-    this.cause = cause;
+    if (cause !== undefined) {
+      this.cause = cause;
+    }
 
     // Maintains proper stack trace for where our error was thrown (only available on V8)
     if ("captureStackTrace" in Error) {
@@ -417,4 +419,3 @@ export type Result<T> = T;
 
 /// Export for backward compatibility
 export type { EnvelopeError as Error };
-export { EnvelopeError };
