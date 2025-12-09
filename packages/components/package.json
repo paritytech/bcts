@@ -64,6 +64,7 @@
     "@blockchain-commons/tags": "workspace:*",
     "@blockchain-commons/uniform-resources": "workspace:*",
     "@blockchain-commons/sskr": "workspace:*",
+    "@noble/post-quantum": "^0.2.1",
     "pako": "^2.1.0"
   },
   "devDependencies": {

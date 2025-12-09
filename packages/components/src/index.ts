@@ -123,3 +123,42 @@ export {
   SSKRGroupSpec,
   SSKRSpec,
 } from "./sskr.js";
+
+// Post-quantum cryptography - ML-DSA (from mldsa/ module)
+export {
+  MLDSALevel,
+  MLDSA_KEY_SIZES,
+  mldsaPrivateKeySize,
+  mldsaPublicKeySize,
+  mldsaSignatureSize,
+  mldsaLevelToString,
+  mldsaLevelFromValue,
+  mldsaGenerateKeypair,
+  mldsaGenerateKeypairUsing,
+  mldsaSign,
+  mldsaVerify,
+  MLDSAPrivateKey,
+  MLDSAPublicKey,
+  MLDSASignature,
+} from "./mldsa/index.js";
+export type { MLDSAKeypairData } from "./mldsa/index.js";
+
+// Post-quantum cryptography - ML-KEM (from mlkem/ module)
+export {
+  MLKEMLevel,
+  MLKEM_KEY_SIZES,
+  mlkemPrivateKeySize,
+  mlkemPublicKeySize,
+  mlkemCiphertextSize,
+  mlkemSharedSecretSize,
+  mlkemLevelToString,
+  mlkemLevelFromValue,
+  mlkemGenerateKeypair,
+  mlkemGenerateKeypairUsing,
+  mlkemEncapsulate,
+  mlkemDecapsulate,
+  MLKEMPrivateKey,
+  MLKEMPublicKey,
+  MLKEMCiphertext,
+} from "./mlkem/index.js";
+export type { MLKEMKeypairData, MLKEMEncapsulationResult, MLKEMEncapsulationPair } from "./mlkem/index.js";
