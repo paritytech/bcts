@@ -1,6 +1,6 @@
 {
   "name": "@bcts/uniform-resources",
-  "version": "1.0.0-alpha.5",
+  "version": "1.0.0-alpha.6",
   "type": "module",
   "description": "Blockchain Commons Uniform Resources (UR) for TypeScript",
   "license": "BSD-2-Clause-Patent",
@@ -23,7 +23,6 @@
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
-      "browser": "./dist/index.iife.js",
       "default": "./dist/index.mjs"
     }
   },

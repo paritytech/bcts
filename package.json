@@ -6,11 +6,13 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
     "docs": "turbo run docs",
     "playground": "turbo run dev --filter=@bcts/playground",
     "clean": "turbo run clean",
-    "publish": "turbo run build lint test typecheck docs && changeset version && changeset publish"
+    "release": "turbo run build lint test && changeset publish",
+    "version": "changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
