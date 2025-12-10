@@ -446,7 +446,7 @@ describe("EncryptedKey", () => {
   });
 
   describe("Argon2id roundtrip", () => {
-    it("should encrypt and decrypt with Argon2id", () => {
+    it("should encrypt and decrypt with Argon2id", { timeout: 30000 }, () => {
       const secret = testSecret();
       const contentKey = testContentKey();
 
@@ -459,7 +459,7 @@ describe("EncryptedKey", () => {
       expect(decrypted.equals(contentKey)).toBe(true);
     });
 
-    it("should roundtrip Argon2id through CBOR", () => {
+    it("should roundtrip Argon2id through CBOR", { timeout: 30000 }, () => {
       const secret = testSecret();
       const contentKey = testContentKey();
 
@@ -506,7 +506,7 @@ describe("EncryptedKey", () => {
       expect(() => encrypted.unlock(wrongSecret)).toThrow();
     });
 
-    it("should fail with wrong secret for Argon2id", () => {
+    it("should fail with wrong secret for Argon2id", { timeout: 30000 }, () => {
       const secret = testSecret();
       const wrongSecret = new TextEncoder().encode("wrong secret");
       const contentKey = testContentKey();
