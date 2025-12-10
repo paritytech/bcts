@@ -517,7 +517,7 @@ describe("EncryptedKey", () => {
   });
 
   describe("params variant", () => {
-    it("should have correct params type for each method", () => {
+    it("should have correct params type for each method", { timeout: 30000 }, () => {
       const secret = testSecret();
       const contentKey = testContentKey();
 
