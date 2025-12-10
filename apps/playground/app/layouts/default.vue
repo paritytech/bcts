@@ -63,73 +63,73 @@ const navigationItems: NavigationMenuItem[] = [
   {
     label: 'components',
     icon: 'i-heroicons-puzzle-piece',
-    to: 'https://dcbor.custodio.me/docs/components',
+    to: 'https://bcts.dev/docs/components',
     target: '_blank'
   },
   {
     label: 'crypto',
     icon: 'i-heroicons-lock-closed',
-    to: 'https://dcbor.custodio.me/docs/crypto',
+    to: 'https://bcts.dev/docs/crypto',
     target: '_blank'
   },
   {
     label: 'dcbor',
     icon: 'i-heroicons-code-bracket',
-    to: 'https://dcbor.custodio.me/docs/dcbor',
+    to: 'https://bcts.dev/docs/dcbor',
     target: '_blank'
   },
   {
     label: 'envelope',
     icon: 'i-heroicons-envelope',
-    to: 'https://dcbor.custodio.me/docs/envelope',
+    to: 'https://bcts.dev/docs/envelope',
     target: '_blank'
   },
   {
     label: 'known-values',
     icon: 'i-heroicons-bookmark',
-    to: 'https://dcbor.custodio.me/docs/known-values',
+    to: 'https://bcts.dev/docs/known-values',
     target: '_blank'
   },
   {
     label: 'provenance-mark',
     icon: 'i-heroicons-shield-check',
-    to: 'https://dcbor.custodio.me/docs/provenance-mark',
+    to: 'https://bcts.dev/docs/provenance-mark',
     target: '_blank'
   },
   {
     label: 'rand',
     icon: 'i-heroicons-arrow-path',
-    to: 'https://dcbor.custodio.me/docs/rand',
+    to: 'https://bcts.dev/docs/rand',
     target: '_blank'
   },
   {
     label: 'shamir',
     icon: 'i-heroicons-key',
-    to: 'https://dcbor.custodio.me/docs/shamir',
+    to: 'https://bcts.dev/docs/shamir',
     target: '_blank'
   },
   {
     label: 'sskr',
     icon: 'i-heroicons-squares-2x2',
-    to: 'https://dcbor.custodio.me/docs/sskr',
+    to: 'https://bcts.dev/docs/sskr',
     target: '_blank'
   },
   {
     label: 'tags',
     icon: 'i-heroicons-tag',
-    to: 'https://dcbor.custodio.me/docs/tags',
+    to: 'https://bcts.dev/docs/tags',
     target: '_blank'
   },
   {
     label: 'uniform-resources',
     icon: 'i-heroicons-qr-code',
-    to: 'https://dcbor.custodio.me/docs/uniform-resources',
+    to: 'https://bcts.dev/docs/uniform-resources',
     target: '_blank'
   },
   {
     label: 'xid',
     icon: 'i-heroicons-identification',
-    to: 'https://dcbor.custodio.me/docs/xid',
+    to: 'https://bcts.dev/docs/xid',
     target: '_blank'
   }
 ]

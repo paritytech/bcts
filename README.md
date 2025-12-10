@@ -17,20 +17,20 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 
 ### Core Libraries
 
-| Package | Description | Version | Reference |
-|---------|-------------|---------|-----------|
-| [**components**](packages/components) | Shared component utilities and helpers for the Blockchain Commons ecosystem. [📖 API Docs](https://dcbor.custodio.me/docs/components) | `1.0.0-alpha.5` | [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) |
-| [**crypto**](packages/crypto) | Cryptographic primitives including symmetric encryption (ChaCha20-Poly1305), hashing (SHA-256, BLAKE3), and key derivation (HKDF, PBKDF2). [📖 API Docs](https://dcbor.custodio.me/docs/crypto) | `1.0.0-alpha.5` | [bc-crypto-rust](https://github.com/BlockchainCommons/bc-crypto-rust) |
-| [**dcbor**](packages/dcbor) | Deterministic CBOR encoding - a specification for serializing data in a canonical, reproducible format. Ensures identical byte sequences for cryptographic operations and blockchain applications. [📖 API Docs](https://dcbor.custodio.me/docs/dcbor) | `1.0.0-alpha.5` | [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
-| [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. [📖 API Docs](https://dcbor.custodio.me/docs/envelope) | `1.0.0-alpha.5` | [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
-| [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 API Docs](https://dcbor.custodio.me/docs/known-values) | `1.0.0-alpha.5` | [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) |
-| [**provenance-mark**](packages/provenance-mark) | Provenance Marks - cryptographically-secured system for establishing authenticity and provenance of digital works. Generates verifiable mark chains with configurable resolution levels. [📖 API Docs](https://dcbor.custodio.me/docs/provenance-mark) | `1.0.0-alpha.5` | [provenance-mark-rust](https://github.com/BlockchainCommons/provenance-mark-rust) |
-| [**rand**](packages/rand) | Cryptographically secure random number generation utilities. Provides a consistent interface for random operations across all packages. [📖 API Docs](https://dcbor.custodio.me/docs/rand) | `1.0.0-alpha.5` | [bc-rand-rust](https://github.com/BlockchainCommons/bc-rand-rust) |
-| [**shamir**](packages/shamir) | Shamir's Secret Sharing - split secrets into shares where any threshold can reconstruct the original. Implements GF(256) arithmetic for secure secret splitting. [📖 API Docs](https://dcbor.custodio.me/docs/shamir) | `1.0.0-alpha.5` | [bc-shamir-rust](https://github.com/BlockchainCommons/bc-shamir-rust) |
-| [**sskr**](packages/sskr) | Sharded Secret Key Reconstruction (SSKR) - hierarchical secret sharing with groups and thresholds. Encodes shares in Bytewords for human-friendly backup. [📖 API Docs](https://dcbor.custodio.me/docs/sskr) | `1.0.0-alpha.5` | [bc-sskr-rust](https://github.com/BlockchainCommons/bc-sskr-rust) |
-| [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. [📖 API Docs](https://dcbor.custodio.me/docs/tags) | `1.0.0-alpha.5` | [bc-tags-rust](https://github.com/BlockchainCommons/bc-tags-rust) |
-| [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 API Docs](https://dcbor.custodio.me/docs/uniform-resources) | `1.0.0-alpha.5` | [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) |
-| [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 API Docs](https://dcbor.custodio.me/docs/xid) | `1.0.0-alpha.5` | [bc-xid-rust](https://github.com/BlockchainCommons/bc-xid-rust) |
+| Package | Description | Reference |
+|---------|-------------|-----------|
+| [**components**](packages/components) | Shared component utilities and helpers for the Blockchain Commons ecosystem. [📖 API Docs](https://bcts.dev/docs/components) | [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) |
+| [**crypto**](packages/crypto) | Cryptographic primitives including symmetric encryption (ChaCha20-Poly1305), hashing (SHA-256, BLAKE3), and key derivation (HKDF, PBKDF2). [📖 API Docs](https://bcts.dev/docs/crypto) | [bc-crypto-rust](https://github.com/BlockchainCommons/bc-crypto-rust) |
+| [**dcbor**](packages/dcbor) | Deterministic CBOR encoding - a specification for serializing data in a canonical, reproducible format. Ensures identical byte sequences for cryptographic operations and blockchain applications. [📖 API Docs](https://bcts.dev/docs/dcbor) | [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
+| [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. [📖 API Docs](https://bcts.dev/docs/envelope) | [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
+| [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 API Docs](https://bcts.dev/docs/known-values) | [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) |
+| [**provenance-mark**](packages/provenance-mark) | Provenance Marks - cryptographically-secured system for establishing authenticity and provenance of digital works. Generates verifiable mark chains with configurable resolution levels. [📖 API Docs](https://bcts.dev/docs/provenance-mark) | [provenance-mark-rust](https://github.com/BlockchainCommons/provenance-mark-rust) |
+| [**rand**](packages/rand) | Cryptographically secure random number generation utilities. Provides a consistent interface for random operations across all packages. [📖 API Docs](https://bcts.dev/docs/rand) | [bc-rand-rust](https://github.com/BlockchainCommons/bc-rand-rust) |
+| [**shamir**](packages/shamir) | Shamir's Secret Sharing - split secrets into shares where any threshold can reconstruct the original. Implements GF(256) arithmetic for secure secret splitting. [📖 API Docs](https://bcts.dev/docs/shamir) | [bc-shamir-rust](https://github.com/BlockchainCommons/bc-shamir-rust) |
+| [**sskr**](packages/sskr) | Sharded Secret Key Reconstruction (SSKR) - hierarchical secret sharing with groups and thresholds. Encodes shares in Bytewords for human-friendly backup. [📖 API Docs](https://bcts.dev/docs/sskr) | [bc-sskr-rust](https://github.com/BlockchainCommons/bc-sskr-rust) |
+| [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. [📖 API Docs](https://bcts.dev/docs/tags) | [bc-tags-rust](https://github.com/BlockchainCommons/bc-tags-rust) |
+| [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 API Docs](https://bcts.dev/docs/uniform-resources) | [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) |
+| [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 API Docs](https://bcts.dev/docs/xid) | [bc-xid-rust](https://github.com/BlockchainCommons/bc-xid-rust) |
 
 ## 🎮 Applications
 
@@ -49,7 +49,7 @@ An interactive web application for experimenting with dCBOR encoding, Uniform Re
 bun playground
 ```
 
-**Live Demo:** https://dcbor.custodio.me
+**Live Demo:** https://bcts.dev
 
 ## 🛠️ Development
 
