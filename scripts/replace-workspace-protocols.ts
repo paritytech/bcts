@@ -4,8 +4,8 @@
  * This is necessary because bun doesn't automatically replace workspace protocols during publish.
  */
 
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 interface PackageJson {
   name: string;
@@ -15,8 +15,8 @@ interface PackageJson {
   peerDependencies?: Record<string, string>;
 }
 
-const ROOT_DIR = join(import.meta.dirname, "..");
-const WORKSPACE_DIRS = ["packages", "shared"];
+const ROOT_DIR = join(import.meta.dirname, '..');
+const WORKSPACE_DIRS = ['packages', 'shared'];
 
 async function getPackageVersions(): Promise<Map<string, string>> {
   const versions = new Map<string, string>();
@@ -26,9 +26,9 @@ async function getPackageVersions(): Promise<Map<string, string>> {
     try {
       const packages = await readdir(dirPath);
       for (const pkg of packages) {
-        const packageJsonPath = join(dirPath, pkg, "package.json");
+        const packageJsonPath = join(dirPath, pkg, 'package.json');
         try {
-          const content = await readFile(packageJsonPath, "utf-8");
+          const content = await readFile(packageJsonPath, 'utf-8');
           const packageJson: PackageJson = JSON.parse(content);
           versions.set(packageJson.name, packageJson.version);
         } catch {
@@ -45,22 +45,18 @@ async function getPackageVersions(): Promise<Map<string, string>> {
 
 function replaceWorkspaceProtocols(
   deps: Record<string, string> | undefined,
-  versions: Map<string, string>,
+  versions: Map<string, string>
 ): Record<string, string> | undefined {
   if (!deps) return deps;
 
   const result: Record<string, string> = {};
   for (const [name, version] of Object.entries(deps)) {
-    if (version.startsWith("workspace:")) {
+    if (version.startsWith('workspace:')) {
       const actualVersion = versions.get(name);
       if (actualVersion) {
         // workspace:* -> ^version, workspace:^ -> ^version, workspace:~ -> ~version
-        const prefix =
-          version === "workspace:*" || version === "workspace:^"
-            ? "^"
-            : version === "workspace:~"
-              ? "~"
-              : "^";
+        const prefix = version === 'workspace:*' || version === 'workspace:^' ? '^' :
+                       version === 'workspace:~' ? '~' : '^';
         result[name] = `${prefix}${actualVersion}`;
         console.log(`  ${name}: ${version} -> ${prefix}${actualVersion}`);
       } else {
@@ -75,22 +71,22 @@ function replaceWorkspaceProtocols(
 }
 
 async function main() {
-  console.log("Collecting package versions...\n");
+  console.log('Collecting package versions...\n');
   const versions = getPackageVersions();
 
-  console.log("Found packages:");
+  console.log('Found packages:');
   for (const [name, version] of await versions) {
     console.log(`  ${name}@${version}`);
   }
-  console.log("");
+  console.log('');
 
   const packages = await readdir(PACKAGES_DIR);
   const versionMap = await versions;
 
   for (const pkg of packages) {
-    const packageJsonPath = join(PACKAGES_DIR, pkg, "package.json");
+    const packageJsonPath = join(PACKAGES_DIR, pkg, 'package.json');
     try {
-      const content = await readFile(packageJsonPath, "utf-8");
+      const content = await readFile(packageJsonPath, 'utf-8');
       const packageJson: PackageJson = JSON.parse(content);
 
       console.log(`Processing ${packageJson.name}...`);
@@ -116,7 +112,7 @@ async function main() {
       }
 
       if (modified) {
-        await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n");
+        await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
         console.log(`  Updated ${packageJsonPath}\n`);
       } else {
         console.log(`  No workspace protocols found\n`);
@@ -126,7 +122,7 @@ async function main() {
     }
   }
 
-  console.log("Done!");
+  console.log('Done!');
 }
 
 main().catch(console.error);
