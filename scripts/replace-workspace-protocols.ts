@@ -76,22 +76,23 @@ function replaceWorkspaceProtocols(
 
 async function main() {
   console.log("Collecting package versions...\n");
-  const versions = getPackageVersions();
+  const versionMap = await getPackageVersions();
 
   console.log("Found packages:");
-  for (const [name, version] of await versions) {
+  for (const [name, version] of versionMap) {
     console.log(`  ${name}@${version}`);
   }
   console.log("");
 
-  const packages = await readdir(PACKAGES_DIR);
-  const versionMap = await versions;
-
-  for (const pkg of packages) {
-    const packageJsonPath = join(PACKAGES_DIR, pkg, "package.json");
+  for (const dir of WORKSPACE_DIRS) {
+    const dirPath = join(ROOT_DIR, dir);
     try {
-      const content = await readFile(packageJsonPath, "utf-8");
-      const packageJson: PackageJson = JSON.parse(content);
+      const packages = await readdir(dirPath);
+      for (const pkg of packages) {
+        const packageJsonPath = join(dirPath, pkg, "package.json");
+        try {
+          const content = await readFile(packageJsonPath, "utf-8");
+          const packageJson: PackageJson = JSON.parse(content);
 
           console.log(`Processing ${packageJson.name}...`);
 
@@ -115,11 +116,15 @@ async function main() {
             modified = true;
           }
 
-      if (modified) {
-        await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n");
-        console.log(`  Updated ${packageJsonPath}\n`);
-      } else {
-        console.log(`  No workspace protocols found\n`);
+          if (modified) {
+            await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + "\n");
+            console.log(`  Updated ${packageJsonPath}\n`);
+          } else {
+            console.log(`  No workspace protocols found\n`);
+          }
+        } catch {
+          // Skip packages without package.json
+        }
       }
     } catch {
       // Skip if directory doesn't exist
