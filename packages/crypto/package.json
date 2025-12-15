@@ -61,20 +61,20 @@
   },
   "dependencies": {
     "@bcts/rand": "workspace:*",
-    "@noble/ciphers": "^1.3.0",
-    "@noble/curves": "^1.9.0",
-    "@noble/hashes": "^1.8.0"
+    "@noble/ciphers": "^2.1.1",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.0.2",
     "eslint": "^9.39.1",
     "ts-node": "^10.9.2",
     "typedoc": "^0.28.15",
-    "tsdown": "^0.17.1",
+    "tsdown": "^0.18.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.15"
   }
 }

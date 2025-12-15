@@ -18,7 +18,7 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.1",
-    "@types/node": "^22.15.21",
+    "@types/node": "^25.0.2",
     "eslint": "^9.39.1",
     "tsx": "^4.19.4",
     "typescript": "^5.9.3"
