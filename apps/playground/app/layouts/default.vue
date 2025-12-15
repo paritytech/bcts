@@ -185,12 +185,12 @@ const bottomNavigationItems: NavigationMenuItem[] = [
       v-model:open="open"
       collapsible
       resizable
-      class="bg-elevated/25"
-      :ui="{ footer: 'lg:border-t lg:border-default' }"
+      class="bg-gray-50 dark:bg-gray-900"
+      :ui="{ footer: 'lg:border-t lg:border-gray-200 dark:lg:border-gray-800/50' }"
     >
       <template #header="{ collapsed }">
         <div :class="['flex items-center', collapsed ? 'justify-center w-full' : 'gap-2']">
-          <img src="/bc-logo-black.png" alt="BCTS UI" class="w-6 h-6 dark:invert">
+          <BctsLogo class="w-6 h-6 text-[#FF2670]" />
           <h2 v-if="!collapsed" class="font-semibold text-gray-900 dark:text-white">BCTS UI</h2>
         </div>
       </template>
