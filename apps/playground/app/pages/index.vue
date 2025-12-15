@@ -4,6 +4,7 @@ import { decodeCbor, cborData, cbor, hexToBytes, hexOpt, diagnosticOpt, MajorTyp
 import { UR, decodeBytewords, encodeBytewords, BytewordsStyle } from '@bcts/uniform-resources'
 import { envelopeFromCbor } from '@bcts/envelope'
 import { ENVELOPE } from '@bcts/tags'
+import QRCode from 'qrcode'
 
 useHead({
   title: 'Gordian Playground | BCTS',
@@ -13,6 +14,7 @@ useHead({
 // Types
 type InputFormat = 'auto' | 'ur' | 'bytewords' | 'hex'
 type ViewMode = 'input' | 'hex' | 'diagnostic' | 'ur' | 'bytewords' | 'envelope'
+type DisplayMode = 'editor' | 'qr'
 
 interface TabState {
   id: string
@@ -27,6 +29,8 @@ interface TabState {
   bytewordsOutput: string
   isEnvelopeInput: boolean
   viewMode: ViewMode
+  displayMode: DisplayMode
+  qrCodeDataUrl: string
 }
 
 interface PaneState {
@@ -44,6 +48,7 @@ interface SerializableTabState {
   name: string
   hexInput: string
   viewMode: ViewMode
+  displayMode: DisplayMode
 }
 
 interface SerializablePaneState {
@@ -107,7 +112,8 @@ function saveState() {
         id: tab.id,
         name: tab.name,
         hexInput: tab.hexInput,
-        viewMode: tab.viewMode
+        viewMode: tab.viewMode,
+        displayMode: tab.displayMode
       })),
       activeTabId: pane.activeTabId
     })),
@@ -146,7 +152,9 @@ function loadState(): boolean {
         urOutput: '',
         bytewordsOutput: '',
         isEnvelopeInput: false,
-        viewMode: tab.viewMode || 'input'
+        viewMode: tab.viewMode || 'input',
+        displayMode: tab.displayMode || 'editor',
+        qrCodeDataUrl: ''
       })),
       activeTabId: pane.activeTabId
     }))
@@ -175,6 +183,8 @@ function createTab(name?: string, initialInput?: string): TabState {
     bytewordsOutput: '',
     isEnvelopeInput: false,
     viewMode: 'input',
+    displayMode: 'editor',
+    qrCodeDataUrl: ''
   }
 }
 
@@ -259,6 +269,14 @@ function getActiveTab(paneId: string): TabState | undefined {
   const pane = panes.value.find(p => p.id === paneId)
   if (!pane) return undefined
   return pane.tabs.find(t => t.id === pane.activeTabId) as TabState | undefined
+}
+
+// Set display mode for the active tab in a pane
+function setDisplayMode(paneId: string, mode: DisplayMode) {
+  const tab = getActiveTab(paneId)
+  if (tab) {
+    tab.displayMode = mode
+  }
 }
 
 // Get active pane
@@ -394,12 +412,36 @@ function bytesToBytewords(bytes: Uint8Array): string {
   return encodeBytewords(bytes, BytewordsStyle.Standard)
 }
 
+// Generate QR code from UR output
+async function generateQRCode(tab: TabState) {
+  if (!tab.urOutput || tab.urOutput.startsWith('//')) {
+    tab.qrCodeDataUrl = ''
+    return
+  }
+
+  try {
+    const dataUrl = await QRCode.toDataURL(tab.urOutput.toUpperCase(), {
+      errorCorrectionLevel: 'L',
+      margin: 2,
+      width: 400,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
+    })
+    tab.qrCodeDataUrl = dataUrl
+  } catch (err) {
+    console.error('Failed to generate QR code:', err)
+    tab.qrCodeDataUrl = ''
+  }
+}
+
 // Parse CBOR for a specific tab in a pane
 function parseTabCbor(paneId: string, tabId: string) {
   const pane = panes.value.find(p => p.id === paneId)
   if (!pane) return
 
-  const tab = pane.tabs.find(t => t.id === tabId)
+  const tab = pane.tabs.find(t => t.id === tabId) as TabState | undefined
   if (!tab) return
 
   tab.error = null
@@ -410,6 +452,7 @@ function parseTabCbor(paneId: string, tabId: string) {
   tab.urOutput = ''
   tab.bytewordsOutput = ''
   tab.isEnvelopeInput = false
+  tab.qrCodeDataUrl = ''
 
   const input = tab.hexInput.trim()
   if (!input) {
@@ -431,6 +474,8 @@ function parseTabCbor(paneId: string, tabId: string) {
     // Generate UR output
     try {
       tab.urOutput = bytesToUR(cborBytes)
+      // Generate QR code from UR
+      generateQRCode(tab)
     } catch {
       tab.urOutput = '// Could not convert to UR format'
     }
@@ -611,7 +656,7 @@ watch(activePaneId, () => {
           :key="pane.id"
           :class="[
             'flex flex-col overflow-hidden h-full',
-            paneIndex > 0 ? 'border-l-2 border-gray-300 dark:border-gray-700' : '',
+            paneIndex > 0 ? 'border-l border-gray-300 dark:border-gray-800' : '',
             panes.length > 1 ? 'flex-1 min-w-0' : 'w-full'
           ]"
           @click="activePaneId = pane.id"
@@ -619,8 +664,8 @@ watch(activePaneId, () => {
           <!-- Tab Bar -->
           <div
             :class="[
-              'flex items-center border-b border-gray-200 dark:border-gray-800',
-              activePaneId === pane.id ? 'bg-gray-50 dark:bg-gray-900' : 'bg-gray-100 dark:bg-gray-800'
+              'flex items-center border-b border-gray-200 dark:border-gray-800/50',
+              activePaneId === pane.id ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-gray-100 dark:bg-gray-900/30'
             ]"
           >
             <div class="flex-1 flex items-center overflow-x-auto">
@@ -628,10 +673,10 @@ watch(activePaneId, () => {
                 v-for="tab in pane.tabs"
                 :key="tab.id"
                 :class="[
-                  'group flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-gray-200 dark:border-gray-800 min-w-[100px] max-w-[160px]',
+                  'group flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-gray-200 dark:border-gray-800/30 min-w-[100px] max-w-[160px]',
                   pane.activeTabId === tab.id
-                    ? 'bg-white dark:bg-gray-950 text-gray-900 dark:text-white'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
+                    : 'bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800/50 hover:text-gray-700 dark:hover:text-gray-300'
                 ]"
                 @click.stop="pane.activeTabId = tab.id; activePaneId = pane.id"
               >
@@ -663,14 +708,30 @@ watch(activePaneId, () => {
                 />
               </div>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center gap-0.5">
               <UButton
                 icon="i-heroicons-plus"
                 size="xs"
                 color="neutral"
                 variant="ghost"
-                class="mx-1"
                 @click.stop="addTab(pane.id)"
+              />
+              <div class="h-4 w-px bg-gray-300 dark:bg-gray-700/50 mx-1" />
+              <UButton
+                icon="i-heroicons-bars-3-bottom-left"
+                size="xs"
+                color="neutral"
+                :variant="getActiveTab(pane.id)?.displayMode === 'editor' ? 'soft' : 'ghost'"
+                :class="getActiveTab(pane.id)?.displayMode === 'editor' ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'"
+                @click.stop="setDisplayMode(pane.id, 'editor')"
+              />
+              <UButton
+                icon="i-heroicons-qr-code"
+                size="xs"
+                color="neutral"
+                :variant="getActiveTab(pane.id)?.displayMode === 'qr' ? 'soft' : 'ghost'"
+                :class="getActiveTab(pane.id)?.displayMode === 'qr' ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'"
+                @click.stop="setDisplayMode(pane.id, 'qr')"
               />
               <UButton
                 v-if="panes.length > 1"
@@ -678,7 +739,7 @@ watch(activePaneId, () => {
                 size="xs"
                 color="neutral"
                 variant="ghost"
-                class="mr-1"
+                class="ml-1"
                 @click.stop="closePane(pane.id)"
               />
             </div>
@@ -705,41 +766,59 @@ watch(activePaneId, () => {
 
               <!-- Main Content: Single Container -->
               <div class="flex-1 flex flex-col overflow-hidden">
-                <!-- Input View -->
-                <div v-if="tab.viewMode === 'input'" class="flex-1 min-h-0 min-w-0 overflow-hidden bg-white dark:bg-gray-950">
-                  <textarea
-                    v-model="tab.hexInput"
-                    placeholder="Enter data (hex, UR, or bytewords)"
-                    class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-950 p-3 focus:outline-none overflow-auto"
-                    style="word-break: break-all;"
-                  />
+                <!-- QR Code View -->
+                <div v-if="tab.displayMode === 'qr'" class="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 overflow-auto p-4">
+                  <div v-if="tab.qrCodeDataUrl" class="flex flex-col items-center gap-4">
+                    <img :src="tab.qrCodeDataUrl" alt="QR Code" class="max-w-full h-auto rounded-lg shadow-lg">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[300px]">{{ tab.urOutput.substring(0, 50) }}...</p>
+                  </div>
+                  <div v-else class="text-center">
+                    <div class="bg-gray-100 dark:bg-gray-800/50 rounded-full p-3 mb-2 inline-block">
+                      <UIcon name="i-heroicons-qr-code" class="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <h3 class="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1">No QR Code</h3>
+                    <p class="text-xs text-gray-600 dark:text-gray-500">Enter valid data to generate a QR code</p>
+                  </div>
                 </div>
 
-                <!-- Output Views -->
-                <div v-else class="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-                  <div v-if="tab.parsedCbor" class="flex-1 min-h-0 min-w-0 overflow-auto p-3">
-                    <pre v-if="tab.viewMode === 'hex'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.annotatedHex }}</pre>
-                    <pre v-else-if="tab.viewMode === 'diagnostic'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.diagnosticNotation }}</pre>
-                    <pre v-else-if="tab.viewMode === 'ur'" class="font-mono text-xs whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200 max-w-full">{{ tab.urOutput }}</pre>
-                    <pre v-else-if="tab.viewMode === 'bytewords'" class="font-mono text-xs whitespace-pre-wrap text-gray-800 dark:text-gray-200 max-w-full">{{ tab.bytewordsOutput }}</pre>
-                    <pre v-else-if="tab.viewMode === 'envelope'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.envelopeFormat }}</pre>
+                <!-- Editor View -->
+                <template v-else>
+                  <!-- Input View -->
+                  <div v-if="tab.viewMode === 'input'" class="flex-1 min-h-0 min-w-0 overflow-hidden bg-white dark:bg-gray-900">
+                    <textarea
+                      v-model="tab.hexInput"
+                      placeholder="Enter data (hex, UR, or bytewords)"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 focus:outline-none overflow-auto placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      style="word-break: break-all;"
+                    />
                   </div>
 
-                  <!-- Empty State -->
-                  <div v-else class="flex-1 flex items-center justify-center p-4">
-                    <div class="text-center">
-                      <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-3 mb-2 inline-block">
-                        <UIcon name="i-heroicons-document-text" class="w-6 h-6 text-gray-400 dark:text-gray-600" />
+                  <!-- Output Views -->
+                  <div v-else class="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+                    <div v-if="tab.parsedCbor" class="flex-1 min-h-0 min-w-0 overflow-auto p-3">
+                      <pre v-if="tab.viewMode === 'hex'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.annotatedHex }}</pre>
+                      <pre v-else-if="tab.viewMode === 'diagnostic'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.diagnosticNotation }}</pre>
+                      <pre v-else-if="tab.viewMode === 'ur'" class="font-mono text-xs whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200 max-w-full">{{ tab.urOutput }}</pre>
+                      <pre v-else-if="tab.viewMode === 'bytewords'" class="font-mono text-xs whitespace-pre-wrap text-gray-800 dark:text-gray-200 max-w-full">{{ tab.bytewordsOutput }}</pre>
+                      <pre v-else-if="tab.viewMode === 'envelope'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.envelopeFormat }}</pre>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div v-else class="flex-1 flex items-center justify-center p-4">
+                      <div class="text-center">
+                        <div class="bg-gray-100 dark:bg-gray-800/50 rounded-full p-3 mb-2 inline-block">
+                          <UIcon name="i-heroicons-document-text" class="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                        </div>
+                        <h3 class="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1">No data</h3>
+                        <p class="text-xs text-gray-600 dark:text-gray-500">Enter data in the Input view</p>
                       </div>
-                      <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">No data</h3>
-                      <p class="text-xs text-gray-600 dark:text-gray-400">Enter data in the Input view</p>
                     </div>
                   </div>
-                </div>
+                </template>
               </div>
 
               <!-- Status Bar -->
-              <div class="flex items-center justify-between px-2 py-0.5 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+              <div class="flex items-center justify-between px-2 py-0.5 border-t border-gray-200 dark:border-gray-800/50 bg-gray-100 dark:bg-gray-900/50 text-xs text-gray-500 dark:text-gray-500">
                 <div class="flex items-center gap-3">
                   <span>{{ getByteCount(tab) }} bytes</span>
                   <span v-if="tab.parsedCbor">CBOR</span>
