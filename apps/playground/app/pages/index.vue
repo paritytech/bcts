@@ -209,9 +209,9 @@ function closePane(paneId: string) {
   panes.value.splice(index, 1)
 
   // If we closed the active pane, select another one
-  if (activePaneId.value === paneId) {
+  if (activePaneId.value === paneId && panes.value.length > 0) {
     const newIndex = Math.min(index, panes.value.length - 1)
-    activePaneId.value = panes.value[newIndex].id
+    activePaneId.value = panes.value[newIndex]!.id
   }
 }
 
@@ -248,9 +248,9 @@ function closeTab(paneId: string, tabId: string) {
   pane.tabs.splice(index, 1)
 
   // If we closed the active tab, select another one
-  if (pane.activeTabId === tabId) {
+  if (pane.activeTabId === tabId && pane.tabs.length > 0) {
     const newIndex = Math.min(index, pane.tabs.length - 1)
-    pane.activeTabId = pane.tabs[newIndex].id
+    pane.activeTabId = pane.tabs[newIndex]!.id
   }
 }
 
@@ -258,7 +258,7 @@ function closeTab(paneId: string, tabId: string) {
 function getActiveTab(paneId: string): TabState | undefined {
   const pane = panes.value.find(p => p.id === paneId)
   if (!pane) return undefined
-  return pane.tabs.find(t => t.id === pane.activeTabId)
+  return pane.tabs.find(t => t.id === pane.activeTabId) as TabState | undefined
 }
 
 // Get active pane
