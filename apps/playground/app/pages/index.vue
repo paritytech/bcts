@@ -1,48 +1,277 @@
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch, onMounted, inject, type Ref } from 'vue'
+import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
 import { decodeCbor, cborData, cbor, hexToBytes, hexOpt, diagnosticOpt, MajorType, type Cbor } from '@bcts/dcbor'
 import { UR, decodeBytewords, encodeBytewords, BytewordsStyle } from '@bcts/uniform-resources'
 import { envelopeFromCbor } from '@bcts/envelope'
 import { ENVELOPE } from '@bcts/tags'
 
 useHead({
-  title: 'Gordian Playground | Blockchain Commons',
+  title: 'Gordian Playground | BCTS',
   meta: [{ name: 'description', content: 'Parse and visualize dCBOR data with annotated hex and diagnostic notation' }],
 })
 
-// Input format options
+// Types
 type InputFormat = 'auto' | 'ur' | 'bytewords' | 'hex'
-type OutputView = 'hex' | 'diagnostic' | 'envelope'
+type ViewMode = 'input' | 'hex' | 'diagnostic' | 'ur' | 'bytewords' | 'envelope'
 
-const inputFormatOptions = [
-  { label: 'Auto-detect format', value: 'auto', icon: 'i-heroicons-sparkles' },
-  { label: 'Single UR', value: 'ur', icon: 'i-heroicons-qr-code' },
-  { label: 'Bytewords', value: 'bytewords', icon: 'i-heroicons-language' },
-  { label: 'Hex', value: 'hex', icon: 'i-heroicons-code-bracket' },
-]
+interface TabState {
+  id: string
+  name: string
+  hexInput: string
+  error: string | null
+  parsedCbor: Cbor | null
+  annotatedHex: string
+  diagnosticNotation: string
+  envelopeFormat: string
+  urOutput: string
+  bytewordsOutput: string
+  isEnvelopeInput: boolean
+  viewMode: ViewMode
+}
 
-// State
-const inputFormat = ref<InputFormat>('auto')
-const hexInput = ref('a2626964187b646e616d65684a6f686e20446f65')
-const error = ref<string | null>(null)
-const parsedCbor = shallowRef<Cbor | null>(null)
-const annotatedHex = ref<string>('')
-const diagnosticNotation = ref<string>('')
-const envelopeFormat = ref<string>('')
-const isEnvelopeInput = ref<boolean>(false)
-const outputView = ref<OutputView>('hex')
-const isInputCollapsed = ref(false)
+interface PaneState {
+  id: string
+  tabs: TabState[]
+  activeTabId: string
+}
+
+// Storage key
+const STORAGE_KEY = 'bcts-playground-state'
+
+// Serializable state for localStorage (without computed/parsed fields)
+interface SerializableTabState {
+  id: string
+  name: string
+  hexInput: string
+  viewMode: ViewMode
+}
+
+interface SerializablePaneState {
+  id: string
+  tabs: SerializableTabState[]
+  activeTabId: string
+}
+
+interface SerializableState {
+  panes: SerializablePaneState[]
+  activePaneId: string
+  paneCounter: number
+  tabCounter: number
+}
+
+// Pane and Tab management
+let paneCounter = 1
+let tabCounter = 1
+const panes = ref<PaneState[]>([])
+const activePaneId = ref<string>('')
+const editingTabId = ref<string | null>(null)
+const editingTabName = ref<string>('')
+
+// Start editing a tab name
+function startEditingTab(tabId: string, currentName: string) {
+  editingTabId.value = tabId
+  editingTabName.value = currentName
+  nextTick(() => {
+    const input = document.querySelector(`input[data-tab-input="${tabId}"]`) as HTMLInputElement
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  })
+}
+
+// Finish editing a tab name
+function finishEditingTab(paneId: string, tabId: string) {
+  // Guard against double execution (e.g., Enter followed by blur)
+  if (editingTabId.value !== tabId) return
+
+  const newName = editingTabName.value.trim() || 'Untitled'
+  editingTabId.value = null
+  editingTabName.value = ''
+
+  const pane = panes.value.find(p => p.id === paneId)
+  if (pane) {
+    const tab = pane.tabs.find(t => t.id === tabId)
+    if (tab) {
+      tab.name = newName
+    }
+  }
+}
+
+// Save state to localStorage
+function saveState() {
+  const state: SerializableState = {
+    panes: panes.value.map(pane => ({
+      id: pane.id,
+      tabs: pane.tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        hexInput: tab.hexInput,
+        viewMode: tab.viewMode
+      })),
+      activeTabId: pane.activeTabId
+    })),
+    activePaneId: activePaneId.value,
+    paneCounter,
+    tabCounter
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+// Load state from localStorage
+function loadState(): boolean {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved) return false
+
+    const state: SerializableState = JSON.parse(saved)
+    if (!state.panes || state.panes.length === 0) return false
+
+    // Restore counters
+    paneCounter = state.paneCounter || 1
+    tabCounter = state.tabCounter || 1
+
+    // Restore panes and tabs
+    panes.value = state.panes.map(pane => ({
+      id: pane.id,
+      tabs: pane.tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        hexInput: tab.hexInput,
+        error: null,
+        parsedCbor: null,
+        annotatedHex: '',
+        diagnosticNotation: '',
+        envelopeFormat: '',
+        urOutput: '',
+        bytewordsOutput: '',
+        isEnvelopeInput: false,
+        viewMode: tab.viewMode || 'input'
+      })),
+      activeTabId: pane.activeTabId
+    }))
+    activePaneId.value = state.activePaneId
+
+    return true
+  } catch (e) {
+    console.error('Failed to load state from localStorage:', e)
+    return false
+  }
+}
+
+// Create a new tab
+function createTab(name?: string, initialInput?: string): TabState {
+  const id = `tab-${tabCounter++}`
+  return {
+    id,
+    name: name || `Tab ${tabCounter - 1}`,
+    hexInput: initialInput || 'a2626964187b646e616d65684a6f686e20446f65',
+    error: null,
+    parsedCbor: null,
+    annotatedHex: '',
+    diagnosticNotation: '',
+    envelopeFormat: '',
+    urOutput: '',
+    bytewordsOutput: '',
+    isEnvelopeInput: false,
+    viewMode: 'input',
+  }
+}
+
+// Create a new pane
+function createPane(): PaneState {
+  const id = `pane-${paneCounter++}`
+  const initialTab = createTab('Untitled')
+  return {
+    id,
+    tabs: [initialTab],
+    activeTabId: initialTab.id,
+  }
+}
+
+// Add a new pane (split view)
+function addPane() {
+  const newPane = createPane()
+  panes.value.push(newPane)
+  activePaneId.value = newPane.id
+  // Parse the initial tab content
+  nextTick(() => parseTabCbor(newPane.id, newPane.activeTabId))
+}
+
+// Close a pane
+function closePane(paneId: string) {
+  const index = panes.value.findIndex(p => p.id === paneId)
+  if (index === -1) return
+
+  // Don't close if it's the last pane
+  if (panes.value.length === 1) return
+
+  panes.value.splice(index, 1)
+
+  // If we closed the active pane, select another one
+  if (activePaneId.value === paneId) {
+    const newIndex = Math.min(index, panes.value.length - 1)
+    activePaneId.value = panes.value[newIndex].id
+  }
+}
+
+// Add a new tab to a pane
+function addTab(paneId: string) {
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return
+
+  const newTab = createTab()
+  pane.tabs.push(newTab)
+  pane.activeTabId = newTab.id
+  activePaneId.value = paneId
+
+  // Parse the new tab's content
+  nextTick(() => parseTabCbor(paneId, newTab.id))
+}
+
+// Close a tab
+function closeTab(paneId: string, tabId: string) {
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return
+
+  const index = pane.tabs.findIndex(t => t.id === tabId)
+  if (index === -1) return
+
+  // If it's the last tab in the pane, close the pane instead (if not the last pane)
+  if (pane.tabs.length === 1) {
+    if (panes.value.length > 1) {
+      closePane(paneId)
+    }
+    return
+  }
+
+  pane.tabs.splice(index, 1)
+
+  // If we closed the active tab, select another one
+  if (pane.activeTabId === tabId) {
+    const newIndex = Math.min(index, pane.tabs.length - 1)
+    pane.activeTabId = pane.tabs[newIndex].id
+  }
+}
+
+// Get active tab for a pane
+function getActiveTab(paneId: string): TabState | undefined {
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return undefined
+  return pane.tabs.find(t => t.id === pane.activeTabId)
+}
+
+// Get active pane
+const activePane = computed(() => panes.value.find(p => p.id === activePaneId.value))
 
 // Detect input format automatically
 function detectFormat(input: string): InputFormat {
   const trimmed = input.trim().toLowerCase()
 
-  // Check for UR format
   if (trimmed.startsWith('ur:')) {
     return 'ur'
   }
 
-  // Check for hex (only hex characters, optionally with 0x prefix)
   let cleanHex = input.replace(/\s/g, '')
   if (cleanHex.toLowerCase().startsWith('0x')) {
     cleanHex = cleanHex.slice(2)
@@ -51,12 +280,11 @@ function detectFormat(input: string): InputFormat {
     return 'hex'
   }
 
-  // Check for bytewords (only lowercase letters, spaces, and hyphens)
   if (/^[a-z\s-]+$/i.test(trimmed)) {
     return 'bytewords'
   }
 
-  return 'hex' // Default to hex
+  return 'hex'
 }
 
 // Parse input based on format
@@ -173,40 +401,63 @@ function bytesToBytewords(bytes: Uint8Array): string {
   return encodeBytewords(bytes, BytewordsStyle.Standard)
 }
 
-// Parse CBOR from input
-function parseCbor() {
-  error.value = null
-  parsedCbor.value = null
-  annotatedHex.value = ''
-  diagnosticNotation.value = ''
-  envelopeFormat.value = ''
-  isEnvelopeInput.value = false
+// Parse CBOR for a specific tab in a pane
+function parseTabCbor(paneId: string, tabId: string) {
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return
 
-  const input = hexInput.value.trim()
+  const tab = pane.tabs.find(t => t.id === tabId)
+  if (!tab) return
+
+  tab.error = null
+  tab.parsedCbor = null
+  tab.annotatedHex = ''
+  tab.diagnosticNotation = ''
+  tab.envelopeFormat = ''
+  tab.urOutput = ''
+  tab.bytewordsOutput = ''
+  tab.isEnvelopeInput = false
+
+  const input = tab.hexInput.trim()
   if (!input) {
-    error.value = 'Please enter data to parse'
+    tab.error = 'Please enter data to parse'
     return
   }
 
   try {
-    const cborBytes = parseInput(input, inputFormat.value)
+    // Always use auto-detect
+    const cborBytes = parseInput(input, 'auto')
     const cbor = decodeCbor(cborBytes)
-    parsedCbor.value = cbor
+    tab.parsedCbor = cbor
 
-    isEnvelopeInput.value = cbor.type === MajorType.Tagged && cbor.tag === ENVELOPE.value
+    tab.isEnvelopeInput = cbor.type === MajorType.Tagged && cbor.tag === ENVELOPE.value
 
-    annotatedHex.value = hexOpt(cbor, { annotate: true })
-    diagnosticNotation.value = diagnosticOpt(cbor, { flat: false })
+    tab.annotatedHex = hexOpt(cbor, { annotate: true })
+    tab.diagnosticNotation = diagnosticOpt(cbor, { flat: false })
 
-    if (isEnvelopeInput.value) {
+    // Generate UR output
+    try {
+      tab.urOutput = bytesToUR(cborBytes)
+    } catch {
+      tab.urOutput = '// Could not convert to UR format'
+    }
+
+    // Generate Bytewords output
+    try {
+      tab.bytewordsOutput = bytesToBytewords(cborBytes)
+    } catch {
+      tab.bytewordsOutput = '// Could not convert to Bytewords format'
+    }
+
+    if (tab.isEnvelopeInput) {
       try {
         const freshCbor = decodeCbor(cborBytes)
         const envelope = envelopeFromCbor(freshCbor)
-        envelopeFormat.value = envelope.treeFormat()
+        tab.envelopeFormat = envelope.treeFormat()
       } catch (err) {
         console.error('Failed to parse envelope structure:', err)
         const errorMsg = err instanceof Error ? err.message : String(err)
-        envelopeFormat.value = [
+        tab.envelopeFormat = [
           '❌ Envelope Parsing Error',
           '',
           errorMsg,
@@ -219,18 +470,18 @@ function parseCbor() {
       }
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    tab.error = err instanceof Error ? err.message : String(err)
   }
 }
 
-// Compute byte count from raw input
-const byteCount = computed(() => {
-  const input = hexInput.value.trim()
+// Compute byte count for a tab
+function getByteCount(tab: TabState): number {
+  const input = tab.hexInput.trim()
   if (!input) return 0
 
-  const effectiveFormat = inputFormat.value === 'auto' ? detectFormat(input) : inputFormat.value
+  const detectedFormat = detectFormat(input)
 
-  if (effectiveFormat === 'hex') {
+  if (detectedFormat === 'hex') {
     let cleanHex = input.replace(/\s/g, '')
     if (cleanHex.toLowerCase().startsWith('0x')) {
       cleanHex = cleanHex.slice(2)
@@ -239,218 +490,287 @@ const byteCount = computed(() => {
   }
 
   try {
-    const bytes = parseInput(input, inputFormat.value)
+    const bytes = parseInput(input, 'auto')
     return bytes.length
   } catch {
     return Math.ceil(input.length / 2)
   }
-})
+}
 
-// Auto-convert input when format changes
-watch(inputFormat, (newFormat, oldFormat) => {
-  if (!oldFormat) return
-  if (newFormat === 'auto') return
-  if (newFormat === oldFormat) return
+// Watch for input changes on all tabs (debounced)
+const parseTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-  const input = hexInput.value.trim()
-  if (!input) return
-
-  try {
-    const sourceFormat = oldFormat === 'auto' ? detectFormat(input) : oldFormat
-    if (sourceFormat === newFormat) return
-
-    const bytes = parseInput(input, sourceFormat)
-
-    let converted: string
-    switch (newFormat) {
-      case 'hex':
-        converted = bytesToHex(bytes)
-        break
-      case 'ur':
-        converted = bytesToUR(bytes)
-        break
-      case 'bytewords':
-        converted = bytesToBytewords(bytes)
-        break
-      default:
-        return
-    }
-
-    hexInput.value = converted
-  } catch (err) {
-    console.error('Format conversion failed:', err)
+function scheduleTabParse(paneId: string, tabId: string) {
+  const key = `${paneId}-${tabId}`
+  if (parseTimeouts.has(key)) {
+    clearTimeout(parseTimeouts.get(key))
   }
-})
+  parseTimeouts.set(key, setTimeout(() => {
+    parseTabCbor(paneId, tabId)
+    parseTimeouts.delete(key)
+  }, 300))
+}
 
-// Auto-parse when input or format changes (debounced)
-let parseTimeout: ReturnType<typeof setTimeout> | null = null
-watch([hexInput, inputFormat], () => {
-  if (parseTimeout) clearTimeout(parseTimeout)
-  parseTimeout = setTimeout(() => {
-    try {
-      parseCbor()
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : String(err)
+// Watch all panes for changes
+watch(panes, () => {
+  for (const pane of panes.value) {
+    const activeTab = pane.tabs.find(t => t.id === pane.activeTabId)
+    if (activeTab) {
+      scheduleTabParse(pane.id, activeTab.id)
     }
-  }, 300)
-})
+  }
+}, { deep: true })
 
 // Handle example selection from sidebar (injected from layout)
-const selectedExample = inject<Ref<{ format: 'hex' | 'ur', value: string } | null>>('selectedExample')
+const selectedExample = inject<Ref<{ name: string, format: 'hex' | 'ur', value: string } | null>>('selectedExample')
 
 // Watch for example selection from sidebar
 watch(selectedExample!, (example) => {
-  if (example) {
-    inputFormat.value = example.format
-    hexInput.value = example.value
+  if (example && activePane.value) {
+    // Create a new tab with the example content
+    const newTab = createTab(example.name, example.value)
+    activePane.value.tabs.push(newTab)
+    activePane.value.activeTabId = newTab.id
+
+    // Parse the new tab's content
+    nextTick(() => parseTabCbor(activePane.value!.id, newTab.id))
+
+    // Reset the selected example to allow re-selecting the same example
+    selectedExample!.value = null
   }
 })
 
-// Handle input collapse toggle
-function toggleInputCollapse() {
-  isInputCollapsed.value = !isInputCollapsed.value
-}
-
-// Parse on mount
+// Initialize with one pane
 onMounted(() => {
-  try {
-    parseCbor()
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+  // Try to load saved state from localStorage
+  const loaded = loadState()
+
+  if (loaded) {
+    // Parse all tabs from the loaded state
+    nextTick(() => {
+      for (const pane of panes.value) {
+        for (const tab of pane.tabs) {
+          parseTabCbor(pane.id, tab.id)
+        }
+      }
+    })
+  } else {
+    // No saved state, create initial pane
+    const initialPane = createPane()
+    panes.value.push(initialPane)
+    activePaneId.value = initialPane.id
+    nextTick(() => parseTabCbor(initialPane.id, initialPane.activeTabId))
   }
+})
+
+// Watch for changes and save to localStorage
+watch(
+  panes,
+  () => {
+    saveState()
+  },
+  { deep: true }
+)
+
+watch(activePaneId, () => {
+  saveState()
 })
 </script>
 
 <template>
   <UDashboardPanel id="playground">
-      <template #header>
-        <UDashboardNavbar title="Gordian Playground">
-          <template #leading>
-            <UDashboardSidebarCollapse />
-          </template>
-          <template #right>
-            <UColorModeButton />
+    <template #header>
+      <UDashboardNavbar title="Gordian Playground">
+        <template #leading>
+          <UDashboardSidebarCollapse />
+        </template>
+        <template #right>
+          <UTooltip text="Split View">
             <UButton
-              to="https://github.com/leonardocustodio/bcts"
-              target="_blank"
-              icon="i-simple-icons-github"
+              icon="i-heroicons-view-columns"
               color="neutral"
               variant="ghost"
-              aria-label="GitHub Repository"
+              size="sm"
+              aria-label="Add Split View"
+              @click="addPane"
             />
-          </template>
-        </UDashboardNavbar>
+          </UTooltip>
+          <UColorModeButton size="sm" />
+          <UButton
+            to="https://github.com/leonardocustodio/bcts"
+            target="_blank"
+            icon="i-simple-icons-github"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="GitHub Repository"
+          />
+        </template>
+      </UDashboardNavbar>
+    </template>
 
-        <UDashboardToolbar>
-          <template #left>
-            <div
-              :title="isInputCollapsed ? 'Expand input panel' : 'Collapse input panel'"
-              class="flex items-center justify-between gap-3 cursor-pointer hover:opacity-80 transition-opacity px-4 h-full w-full bg-blue-50 dark:bg-blue-950/30"
-              @click="toggleInputCollapse"
-            >
-              <div class="flex items-center gap-3">
-                <div class="flex items-center gap-2">
-                  <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <h2 class="font-semibold text-sm text-blue-900 dark:text-blue-300">Input</h2>
-                </div>
-                <span class="text-xs text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded">{{ byteCount }} bytes</span>
-              </div>
-              <UIcon v-if="isInputCollapsed" name="i-heroicons-chevron-down" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <UIcon v-else name="i-heroicons-chevron-up" class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </div>
-          </template>
-
-          <template #right>
-            <div class="flex items-center justify-between gap-3 px-4 h-full w-full bg-green-50 dark:bg-green-950/30">
-              <div class="flex items-center gap-2">
-                <UIcon name="i-heroicons-arrow-up-tray" class="w-4 h-4 text-green-600 dark:text-green-400" />
-                <h2 class="font-semibold text-sm text-green-900 dark:text-green-300">Output</h2>
-              </div>
-              <UTabs
-                v-model="outputView"
-                :items="[
-                  { label: 'Annotated Hex', value: 'hex' },
-                  { label: 'Diagnostic', value: 'diagnostic' },
-                  ...(isEnvelopeInput ? [{ label: 'Envelope', value: 'envelope' }] : [])
+    <template #body>
+      <!-- Split View Container -->
+      <div class="w-full h-full flex overflow-hidden">
+        <!-- Each Pane -->
+        <div
+          v-for="(pane, paneIndex) in panes"
+          :key="pane.id"
+          :class="[
+            'flex flex-col overflow-hidden h-full',
+            paneIndex > 0 ? 'border-l-2 border-gray-300 dark:border-gray-700' : '',
+            panes.length > 1 ? 'flex-1 min-w-0' : 'w-full'
+          ]"
+          @click="activePaneId = pane.id"
+        >
+          <!-- Tab Bar -->
+          <div
+            :class="[
+              'flex items-center border-b border-gray-200 dark:border-gray-800',
+              activePaneId === pane.id ? 'bg-gray-50 dark:bg-gray-900' : 'bg-gray-100 dark:bg-gray-800'
+            ]"
+          >
+            <div class="flex-1 flex items-center overflow-x-auto">
+              <div
+                v-for="tab in pane.tabs"
+                :key="tab.id"
+                :class="[
+                  'group flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-gray-200 dark:border-gray-800 min-w-[100px] max-w-[160px]',
+                  pane.activeTabId === tab.id
+                    ? 'bg-white dark:bg-gray-950 text-gray-900 dark:text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                 ]"
-                size="xs"
-                class="w-auto"
-                :ui="{ root: 'gap-0', list: 'p-0.5' }"
-              />
-            </div>
-          </template>
-        </UDashboardToolbar>
-      </template>
-
-      <template #body>
-        <div :class="['w-full h-full grid overflow-hidden', isInputCollapsed ? 'grid-cols-1' : 'grid-cols-2']">
-          <!-- Error Display (Top Bar) - spans both columns -->
-          <div v-if="error" class="col-span-2 px-4 py-2 lg:hidden">
-            <UAlert
-              color="error"
-              variant="solid"
-              icon="i-heroicons-exclamation-triangle"
-              :title="error"
-            />
-          </div>
-
-          <!-- Left Panel: Input -->
-          <div v-if="!isInputCollapsed" class="flex flex-col overflow-hidden bg-white dark:bg-gray-950 h-full border-r border-gray-200 dark:border-gray-800">
-            <div class="px-4 pt-4 flex-shrink-0">
-              <USelectMenu
-                v-model="inputFormat"
-                :items="inputFormatOptions"
-                value-key="value"
-                :search-input="false"
-                :content="{ side: 'bottom', align: 'start', sideOffset: 4 }"
-                class="w-full"
-              />
-            </div>
-
-            <!-- Error (between selector and textarea) -->
-            <div v-if="error" class="hidden lg:block px-4 pt-3">
-              <UAlert
-                color="error"
-                variant="solid"
-                icon="i-heroicons-exclamation-triangle"
-                :title="error"
-              />
-            </div>
-
-            <div class="flex-1 px-4 pt-3 pb-4 min-h-0 min-w-0 overflow-hidden">
-              <textarea
-                v-model="hexInput"
-                :placeholder="inputFormat === 'ur' ? 'Enter UR string (e.g., ur:link3/...)' :
-                              inputFormat === 'bytewords' ? 'Enter bytewords (e.g., able acid also...)' :
-                              inputFormat === 'hex' ? 'Enter hex data (e.g., a2626964...)' :
-                              'Enter data in any format (hex, UR, or bytewords)'"
-                class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent overflow-auto"
-                style="word-break: break-all;"
-              />
-            </div>
-          </div>
-
-          <!-- Right Panel: Output -->
-          <div class="flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900 h-full">
-            <!-- Content -->
-            <div v-if="parsedCbor" class="flex-1 min-h-0 min-w-0 overflow-auto p-4">
-              <pre v-if="outputView === 'hex'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ annotatedHex }}</pre>
-              <pre v-else-if="outputView === 'diagnostic'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ diagnosticNotation }}</pre>
-              <pre v-else-if="outputView === 'envelope'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ envelopeFormat }}</pre>
-            </div>
-
-            <!-- Empty State -->
-            <div v-else class="flex-1 flex items-center justify-center p-8">
-              <div class="text-center">
-                <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-4 mb-4 inline-block">
-                  <UIcon name="i-heroicons-document-text" class="w-8 h-8 text-gray-400 dark:text-gray-600" />
-                </div>
-                <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">No CBOR data parsed</h3>
-                <p class="text-xs text-gray-600 dark:text-gray-400">Enter data in the input panel or select an example from the sidebar</p>
+                @click.stop="pane.activeTabId = tab.id; activePaneId = pane.id"
+              >
+                <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5 flex-shrink-0" />
+                <input
+                  v-if="editingTabId === tab.id"
+                  :data-tab-input="tab.id"
+                  type="text"
+                  v-model="editingTabName"
+                  class="truncate flex-1 bg-transparent border-none outline-none text-xs p-0 m-0 w-full"
+                  @blur="finishEditingTab(pane.id, tab.id)"
+                  @keydown.enter="finishEditingTab(pane.id, tab.id)"
+                  @keydown.escape="editingTabId = null"
+                  @click.stop
+                />
+                <span
+                  v-else
+                  class="truncate flex-1"
+                  @dblclick.stop="startEditingTab(tab.id, tab.name)"
+                >{{ tab.name }}</span>
+                <UButton
+                  icon="i-heroicons-x-mark"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  class="opacity-0 group-hover:opacity-100 -mr-1"
+                  :ui="{ base: 'p-0' }"
+                  @click.stop="closeTab(pane.id, tab.id)"
+                />
               </div>
             </div>
+            <div class="flex items-center">
+              <UButton
+                icon="i-heroicons-plus"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                class="mx-1"
+                @click.stop="addTab(pane.id)"
+              />
+              <UButton
+                v-if="panes.length > 1"
+                icon="i-heroicons-x-mark"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                class="mr-1"
+                @click.stop="closePane(pane.id)"
+              />
+            </div>
           </div>
+
+          <!-- Active Tab Content -->
+          <template v-if="getActiveTab(pane.id)">
+            <div
+              v-for="tab in pane.tabs"
+              v-show="tab.id === pane.activeTabId"
+              :key="tab.id"
+              class="flex-1 flex flex-col overflow-hidden"
+            >
+              <!-- Error Display -->
+              <div v-if="tab.error && tab.viewMode !== 'input'" class="px-3 py-1.5">
+                <UAlert
+                  color="error"
+                  variant="solid"
+                  icon="i-heroicons-exclamation-triangle"
+                  :title="tab.error"
+                  :ui="{ title: 'text-xs' }"
+                />
+              </div>
+
+              <!-- Main Content: Single Container -->
+              <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- Input View -->
+                <div v-if="tab.viewMode === 'input'" class="flex-1 min-h-0 min-w-0 overflow-hidden bg-white dark:bg-gray-950">
+                  <textarea
+                    v-model="tab.hexInput"
+                    placeholder="Enter data (hex, UR, or bytewords)"
+                    class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-950 p-3 focus:outline-none overflow-auto"
+                    style="word-break: break-all;"
+                  />
+                </div>
+
+                <!-- Output Views -->
+                <div v-else class="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
+                  <div v-if="tab.parsedCbor" class="flex-1 min-h-0 min-w-0 overflow-auto p-3">
+                    <pre v-if="tab.viewMode === 'hex'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.annotatedHex }}</pre>
+                    <pre v-else-if="tab.viewMode === 'diagnostic'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.diagnosticNotation }}</pre>
+                    <pre v-else-if="tab.viewMode === 'ur'" class="font-mono text-xs whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200 max-w-full">{{ tab.urOutput }}</pre>
+                    <pre v-else-if="tab.viewMode === 'bytewords'" class="font-mono text-xs whitespace-pre-wrap text-gray-800 dark:text-gray-200 max-w-full">{{ tab.bytewordsOutput }}</pre>
+                    <pre v-else-if="tab.viewMode === 'envelope'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.envelopeFormat }}</pre>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-else class="flex-1 flex items-center justify-center p-4">
+                    <div class="text-center">
+                      <div class="bg-gray-100 dark:bg-gray-800 rounded-full p-3 mb-2 inline-block">
+                        <UIcon name="i-heroicons-document-text" class="w-6 h-6 text-gray-400 dark:text-gray-600" />
+                      </div>
+                      <h3 class="text-xs font-semibold text-gray-900 dark:text-white mb-1">No data</h3>
+                      <p class="text-xs text-gray-600 dark:text-gray-400">Enter data in the Input view</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Bar -->
+              <div class="flex items-center justify-between px-2 py-0.5 border-t border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+                <div class="flex items-center gap-3">
+                  <span>{{ getByteCount(tab) }} bytes</span>
+                  <span v-if="tab.parsedCbor">CBOR</span>
+                  <span v-if="tab.isEnvelopeInput" class="text-blue-600 dark:text-blue-400">Envelope</span>
+                </div>
+                <UTabs
+                  v-model="tab.viewMode"
+                  :items="[
+                    { label: 'Input', value: 'input' },
+                    { label: 'Hex', value: 'hex' },
+                    { label: 'UR', value: 'ur' },
+                    { label: 'Bytewords', value: 'bytewords' },
+                    ...(tab.isEnvelopeInput ? [{ label: 'Envelope', value: 'envelope' }] : []),
+                    { label: 'Diagnostic', value: 'diagnostic' }
+                  ]"
+                  size="xs"
+                  class="w-auto"
+                  :ui="{ root: 'gap-0', list: 'p-0' }"
+                />
+              </div>
+            </div>
+          </template>
         </div>
-      </template>
-    </UDashboardPanel>
+      </div>
+    </template>
+  </UDashboardPanel>
 </template>
