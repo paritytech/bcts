@@ -9,7 +9,7 @@
 
 import type { Cbor } from "@bcts/dcbor";
 import type { Path } from "../format";
-import { setMatchFn, setPathsFn, setPathsWithCapturesFn } from "./match-registry";
+import { setMatchFn, setPathsFn, setPathsWithCapturesFn, setPathsWithCapturesDirectFn } from "./match-registry";
 
 // Re-export sub-modules
 export * from "./value";
@@ -28,6 +28,7 @@ import {
   type StructurePattern,
   structurePatternPaths,
   structurePatternDisplay,
+  structurePatternPathsWithCaptures,
 } from "./structure";
 import {
   type MetaPattern,
@@ -125,6 +126,97 @@ export const paths = patternPaths;
  * @returns true if the pattern matches
  */
 export const matches = patternMatches;
+
+/**
+ * Computes paths with captures directly without using the VM.
+ * This is used internally by the VM to avoid infinite recursion.
+ *
+ * Note: This function delegates capture collection to the pattern's
+ * own matching mechanism. The VM has its own capture tracking, so
+ * this just returns paths with any captures found during matching.
+ *
+ * @param pattern - The pattern to match
+ * @param haystack - The CBOR value to search
+ * @returns Match result with paths and captures
+ */
+export const pathsWithCapturesDirect = (
+  pattern: Pattern,
+  haystack: Cbor,
+): MatchResult => {
+  // For structure patterns, use the specialized function that properly handles captures
+  if (pattern.kind === "Structure") {
+    const [paths, captures] = structurePatternPathsWithCaptures(pattern.pattern, haystack);
+    return { paths, captures };
+  }
+
+  // For value patterns, no captures possible
+  if (pattern.kind === "Value") {
+    const paths = patternPaths(pattern, haystack);
+    return { paths, captures: new Map() };
+  }
+
+  // For meta patterns, collect captures recursively
+  const paths = patternPaths(pattern, haystack);
+  const captures = new Map<string, Path[]>();
+
+  const collectCaptures = (p: Pattern, h: Cbor): void => {
+    if (p.kind === "Meta") {
+      switch (p.pattern.type) {
+        case "Capture": {
+          const capturePattern = p.pattern.pattern;
+          const capturedPaths = patternPaths(capturePattern.pattern, h);
+          if (capturedPaths.length > 0) {
+            const existing = captures.get(capturePattern.name) ?? [];
+            captures.set(capturePattern.name, [...existing, ...capturedPaths]);
+          }
+          collectCaptures(capturePattern.pattern, h);
+          break;
+        }
+        case "And":
+          for (const inner of p.pattern.pattern.patterns) {
+            collectCaptures(inner, h);
+          }
+          break;
+        case "Or":
+          for (const inner of p.pattern.pattern.patterns) {
+            if (patternMatches(inner, h)) {
+              collectCaptures(inner, h);
+              break;
+            }
+          }
+          break;
+        case "Not":
+          break;
+        case "Repeat":
+          collectCaptures(p.pattern.pattern.pattern, h);
+          break;
+        case "Sequence":
+          for (const inner of p.pattern.pattern.patterns) {
+            collectCaptures(inner, h);
+          }
+          break;
+        case "Search":
+          collectCaptures(p.pattern.pattern.pattern, h);
+          break;
+        case "Any":
+          break;
+      }
+    } else if (p.kind === "Structure") {
+      // Delegate to structure-specific function
+      const [_, structureCaptures] = structurePatternPathsWithCaptures(p.pattern, h);
+      for (const [name, capturePaths] of structureCaptures) {
+        const existing = captures.get(name) ?? [];
+        captures.set(name, [...existing, ...capturePaths]);
+      }
+    }
+  };
+
+  if (paths.length > 0) {
+    collectCaptures(pattern, haystack);
+  }
+
+  return { paths, captures };
+};
 
 /**
  * Matches a pattern against a CBOR value and returns paths with captures.
@@ -354,3 +446,4 @@ export const sequence = (...patterns: Pattern[]): Pattern => ({
 setMatchFn(patternMatches);
 setPathsFn(patternPaths);
 setPathsWithCapturesFn(pathsWithCaptures);
+setPathsWithCapturesDirectFn(pathsWithCapturesDirect);

@@ -16,6 +16,7 @@ import {
   type ArrayPattern,
   arrayPatternPaths,
   arrayPatternDisplay,
+  arrayPatternPathsWithCaptures,
 } from "./array-pattern";
 import {
   type MapPattern,
@@ -61,6 +62,26 @@ export const structurePatternMatches = (
   haystack: Cbor,
 ): boolean => {
   return structurePatternPaths(pattern, haystack).length > 0;
+};
+
+/**
+ * Returns paths with captures for a StructurePattern.
+ * Used internally by the VM to avoid infinite recursion.
+ */
+export const structurePatternPathsWithCaptures = (
+  pattern: StructurePattern,
+  haystack: Cbor,
+): [Path[], Map<string, Path[]>] => {
+  switch (pattern.type) {
+    case "Array": {
+      return arrayPatternPathsWithCaptures(pattern.pattern, haystack);
+    }
+    case "Map":
+    case "Tagged":
+      // Map and Tagged patterns don't have nested captures in the same way
+      // Just return paths with empty captures
+      return [structurePatternPaths(pattern, haystack), new Map()];
+  }
 };
 
 /**

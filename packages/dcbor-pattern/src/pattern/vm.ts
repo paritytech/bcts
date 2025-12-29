@@ -23,7 +23,7 @@ import type { Quantifier } from "../quantifier";
 import { Reluctance } from "../reluctance";
 import {
   getPatternPaths,
-  getPatternPathsWithCaptures,
+  getPatternPathsWithCapturesDirect,
 } from "./match-registry";
 
 /**
@@ -314,7 +314,7 @@ const runThread = (
             throw new Error("MatchStructure used with non-structure pattern");
           }
 
-          const result = getPatternPathsWithCaptures(pattern, th.cbor);
+          const result = getPatternPathsWithCapturesDirect(pattern, th.cbor);
           if (result.paths.length === 0) {
             break threadLoop;
           }
@@ -419,7 +419,7 @@ const runThread = (
         }
 
         case "Search": {
-          const result = getPatternPathsWithCaptures(
+          const result = getPatternPathsWithCapturesDirect(
             prog.literals[instr.patternIndex],
             th.cbor,
           );

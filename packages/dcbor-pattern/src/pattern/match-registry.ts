@@ -34,10 +34,18 @@ export let matchFn: ((pattern: Pattern, haystack: Cbor) => boolean) | undefined;
 export let pathsFn: ((pattern: Pattern, haystack: Cbor) => Path[]) | undefined;
 
 /**
- * Registry for the pattern paths with captures function.
+ * Registry for the pattern paths with captures function (VM-based).
  * This gets set by pattern/index.ts after all modules are loaded.
  */
 export let pathsWithCapturesFn:
+  | ((pattern: Pattern, haystack: Cbor) => MatchResultInternal)
+  | undefined;
+
+/**
+ * Registry for the direct pattern paths with captures function (non-VM).
+ * This is used by the VM to avoid infinite recursion.
+ */
+export let pathsWithCapturesDirectFn:
   | ((pattern: Pattern, haystack: Cbor) => MatchResultInternal)
   | undefined;
 
@@ -68,6 +76,16 @@ export const setPathsWithCapturesFn = (
 };
 
 /**
+ * Sets the direct pattern paths with captures function (non-VM).
+ * Called by pattern/index.ts during module initialization.
+ */
+export const setPathsWithCapturesDirectFn = (
+  fn: (pattern: Pattern, haystack: Cbor) => MatchResultInternal,
+): void => {
+  pathsWithCapturesDirectFn = fn;
+};
+
+/**
  * Matches a pattern against a CBOR value using the registered function.
  * @throws Error if the match function hasn't been registered yet.
  */
@@ -90,7 +108,7 @@ export const getPatternPaths = (pattern: Pattern, haystack: Cbor): Path[] => {
 };
 
 /**
- * Gets paths with captures for a pattern against a CBOR value.
+ * Gets paths with captures for a pattern against a CBOR value (VM-based).
  * @throws Error if the function hasn't been registered yet.
  */
 export const getPatternPathsWithCaptures = (
@@ -101,4 +119,19 @@ export const getPatternPathsWithCaptures = (
     throw new Error("Pattern paths with captures function not initialized");
   }
   return pathsWithCapturesFn(pattern, haystack);
+};
+
+/**
+ * Gets paths with captures directly without the VM (non-recursive).
+ * This is used by the VM to avoid infinite recursion.
+ * @throws Error if the function hasn't been registered yet.
+ */
+export const getPatternPathsWithCapturesDirect = (
+  pattern: Pattern,
+  haystack: Cbor,
+): MatchResultInternal => {
+  if (!pathsWithCapturesDirectFn) {
+    throw new Error("Direct pattern paths with captures function not initialized");
+  }
+  return pathsWithCapturesDirectFn(pattern, haystack);
 };

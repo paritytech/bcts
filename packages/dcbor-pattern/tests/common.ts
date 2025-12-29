@@ -8,7 +8,7 @@
  */
 
 import { expect } from "vitest";
-import { cbor as createCbor, type Cbor } from "@bcts/dcbor";
+import { cbor as createCbor, type Cbor, type CborInput } from "@bcts/dcbor";
 import {
   parse as parsePattern,
   type Pattern,
@@ -25,7 +25,7 @@ import {
  * Helper function to parse CBOR diagnostic notation into CBOR objects.
  * Mirrors the Rust `fn cbor(s: &str) -> CBOR` helper.
  */
-export const cbor = (value: unknown): Cbor => {
+export const cbor = (value: CborInput): Cbor => {
   return createCbor(value);
 };
 
@@ -36,7 +36,9 @@ export const cbor = (value: unknown): Cbor => {
 export const parse = (s: string): Pattern => {
   const result = parsePattern(s);
   if (!result.ok) {
-    throw new Error(`Failed to parse pattern "${s}": ${result.error.message}`);
+    // Error type is a discriminated union, get message from appropriate variant
+    const errorMsg = "message" in result.error ? result.error.message : String(result.error.type);
+    throw new Error(`Failed to parse pattern "${s}": ${errorMsg}`);
   }
   return result.value;
 };
@@ -66,7 +68,8 @@ export const getPathsWithCaptures = (
   pattern: Pattern,
   data: Cbor,
 ): [Path[], Map<string, Path[]>] => {
-  return patternPathsWithCaptures(pattern, data);
+  const result = patternPathsWithCaptures(pattern, data);
+  return [result.paths, result.captures];
 };
 
 /**
