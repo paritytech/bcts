@@ -8,10 +8,10 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCTags",
+  globalName: "bctsTags",
   outputOptions: {
     globals: {
-      "@bcts/dcbor": "BCDcbor",
+      "@bcts/dcbor": "bctsDcbor",
     },
   },
 });

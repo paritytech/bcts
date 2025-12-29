@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/symmetric_encryption.rs
 
-import { chacha20poly1305 } from "@noble/ciphers/chacha";
+import { chacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { CryptoError, AeadError } from "./error.js";
 
 // Constants

@@ -8,11 +8,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCKnownValues",
+  globalName: "bctsKnownValues",
   outputOptions: {
     globals: {
-      "@bcts/components": "BCComponents",
-      "@bcts/dcbor": "BCDcbor",
+      "@bcts/components": "bctsComponents",
+      "@bcts/dcbor": "bctsDcbor",
     },
   },
 });

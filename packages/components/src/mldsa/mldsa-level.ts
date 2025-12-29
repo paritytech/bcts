@@ -12,7 +12,7 @@
  * Ported from bc-components-rust/src/mldsa/mldsa_level.rs
  */
 
-import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa";
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa.js";
 import type { RandomNumberGenerator } from "@bcts/rand";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
 
@@ -169,11 +169,11 @@ export function mldsaSign(
 ): Uint8Array {
   switch (level) {
     case MLDSALevel.MLDSA44:
-      return ml_dsa44.sign(secretKey, message);
+      return ml_dsa44.sign(message, secretKey);
     case MLDSALevel.MLDSA65:
-      return ml_dsa65.sign(secretKey, message);
+      return ml_dsa65.sign(message, secretKey);
     case MLDSALevel.MLDSA87:
-      return ml_dsa87.sign(secretKey, message);
+      return ml_dsa87.sign(message, secretKey);
   }
 }
 
@@ -195,11 +195,11 @@ export function mldsaVerify(
   try {
     switch (level) {
       case MLDSALevel.MLDSA44:
-        return ml_dsa44.verify(publicKey, message, signature);
+        return ml_dsa44.verify(signature, message, publicKey);
       case MLDSALevel.MLDSA65:
-        return ml_dsa65.verify(publicKey, message, signature);
+        return ml_dsa65.verify(signature, message, publicKey);
       case MLDSALevel.MLDSA87:
-        return ml_dsa87.verify(publicKey, message, signature);
+        return ml_dsa87.verify(signature, message, publicKey);
     }
   } catch {
     return false;

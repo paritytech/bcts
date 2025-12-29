@@ -1,20 +1,100 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject, type Ref } from 'vue'
-import { decodeCbor, cborData, cbor, hexToBytes, hexOpt, diagnosticOpt, MajorType, type Cbor } from '@bcts/dcbor'
+import { ref, computed, watch, onMounted, onUnmounted, inject, nextTick, type Ref } from 'vue'
+import { decodeCbor, cborData, cbor, hexToBytes, hexOpt, diagnosticOpt, MajorType, type CborMap, type Cbor } from '@bcts/dcbor'
 import { UR, decodeBytewords, encodeBytewords, BytewordsStyle } from '@bcts/uniform-resources'
 import { envelopeFromCbor } from '@bcts/envelope'
 import { ENVELOPE } from '@bcts/tags'
-import QRCode from 'qrcode'
+import encodeQR from '@paulmillr/qr'
+import decodeQR from '@paulmillr/qr/decode.js'
+import { svgToPng } from '@paulmillr/qr/dom.js'
+
+// Helper to extract raw string value from CBOR text
+function extractTextValue(value: unknown): string {
+  const str = typeof value === 'string' ? value : String(value)
+  // If the string looks like a JSON-encoded string, parse it
+  if (str.startsWith('"') && str.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(str)
+      if (typeof parsed === 'string') {
+        return parsed
+      }
+    } catch {
+      // Fall back to stripping quotes manually
+      return str.slice(1, -1)
+    }
+  }
+  return str
+}
+
+// Convert CBOR to JSON-serializable format
+function cborToJson(cborVal: Cbor): unknown {
+  switch (cborVal.type) {
+    case MajorType.Unsigned:
+    case MajorType.Negative:
+      // Convert bigint to string if too large for JSON
+      if (typeof cborVal.value === 'bigint') {
+        return cborVal.value <= Number.MAX_SAFE_INTEGER && cborVal.value >= Number.MIN_SAFE_INTEGER
+          ? Number(cborVal.value)
+          : cborVal.value.toString()
+      }
+      return cborVal.value
+
+    case MajorType.ByteString:
+      // Convert bytes to hex string
+      return Array.from(cborVal.value as Uint8Array)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+
+    case MajorType.Text:
+      // Use asText() to get the raw string value
+      return cborVal.asText() ?? extractTextValue(cborVal.value)
+
+    case MajorType.Array:
+      return (cborVal.value as Cbor[]).map(item => cborToJson(item))
+
+    case MajorType.Map: {
+      const result: Record<string, unknown> = {}
+      const mapValue = cborVal.value as CborMap
+      for (const [key, value] of mapValue.entries()) {
+        // Convert key to string for JSON object
+        let keyStr: string
+        if (key.type === MajorType.Text) {
+          keyStr = key.asText() ?? extractTextValue(key.value)
+        } else if (key.type === MajorType.Unsigned || key.type === MajorType.Negative) {
+          keyStr = String(key.value)
+        } else {
+          keyStr = JSON.stringify(cborToJson(key))
+        }
+        result[keyStr] = cborToJson(value)
+      }
+      return result
+    }
+
+    case MajorType.Tagged:
+      // For tagged values, include tag info
+      return {
+        tag: Number(cborVal.tag),
+        value: cborToJson(cborVal.value as Cbor)
+      }
+
+    case MajorType.Simple:
+      // Handle simple values (true, false, null, undefined, floats)
+      return cborVal.value
+
+    default:
+      return String((cborVal as Cbor).value)
+  }
+}
 
 useHead({
-  title: 'Gordian Playground | BCTS',
+  title: 'Data Playground | BCTS',
   meta: [{ name: 'description', content: 'Parse and visualize dCBOR data with annotated hex and diagnostic notation' }],
 })
 
 // Types
 type InputFormat = 'auto' | 'ur' | 'bytewords' | 'hex'
-type ViewMode = 'input' | 'hex' | 'diagnostic' | 'ur' | 'bytewords' | 'envelope'
-type DisplayMode = 'editor' | 'qr'
+type ViewMode = 'auto' | 'json' | 'dcbor' | 'ur' | 'bytewords' | 'diagnostic' | 'envelope' | 'hex'
+type DisplayMode = 'editor' | 'split' | 'qr'
 
 interface TabState {
   id: string
@@ -24,6 +104,7 @@ interface TabState {
   parsedCbor: Cbor | null
   annotatedHex: string
   diagnosticNotation: string
+  jsonOutput: string
   envelopeFormat: string
   urOutput: string
   bytewordsOutput: string
@@ -31,12 +112,13 @@ interface TabState {
   viewMode: ViewMode
   displayMode: DisplayMode
   qrCodeDataUrl: string
+  isCameraTab: boolean
 }
 
 interface PaneState {
   id: string
   tabs: TabState[]
-  activeTabId: string
+  activeTabId: string | null
 }
 
 // Storage key
@@ -54,7 +136,7 @@ interface SerializableTabState {
 interface SerializablePaneState {
   id: string
   tabs: SerializableTabState[]
-  activeTabId: string
+  activeTabId: string | null
 }
 
 interface SerializableState {
@@ -148,13 +230,15 @@ function loadState(): boolean {
         parsedCbor: null,
         annotatedHex: '',
         diagnosticNotation: '',
+        jsonOutput: '',
         envelopeFormat: '',
         urOutput: '',
         bytewordsOutput: '',
         isEnvelopeInput: false,
-        viewMode: tab.viewMode || 'input',
+        viewMode: tab.viewMode || 'auto',
         displayMode: tab.displayMode || 'editor',
-        qrCodeDataUrl: ''
+        qrCodeDataUrl: '',
+        isCameraTab: false
       })),
       activeTabId: pane.activeTabId
     }))
@@ -168,23 +252,25 @@ function loadState(): boolean {
 }
 
 // Create a new tab
-function createTab(name?: string, initialInput?: string): TabState {
+function createTab(name?: string, initialInput?: string, isCameraTab = false): TabState {
   const id = `tab-${tabCounter++}`
   return {
     id,
     name: name || `Tab ${tabCounter - 1}`,
-    hexInput: initialInput || 'a2626964187b646e616d65684a6f686e20446f65',
+    hexInput: initialInput ?? '',
     error: null,
     parsedCbor: null,
     annotatedHex: '',
     diagnosticNotation: '',
+    jsonOutput: '',
     envelopeFormat: '',
     urOutput: '',
     bytewordsOutput: '',
     isEnvelopeInput: false,
-    viewMode: 'input',
+    viewMode: 'auto',
     displayMode: 'editor',
-    qrCodeDataUrl: ''
+    qrCodeDataUrl: '',
+    isCameraTab
   }
 }
 
@@ -205,7 +291,11 @@ function addPane() {
   panes.value.push(newPane)
   activePaneId.value = newPane.id
   // Parse the initial tab content
-  nextTick(() => parseTabCbor(newPane.id, newPane.activeTabId))
+  nextTick(() => {
+    if (newPane.activeTabId) {
+      parseTabCbor(newPane.id, newPane.activeTabId)
+    }
+  })
 }
 
 // Close a pane
@@ -239,6 +329,281 @@ function addTab(paneId: string) {
   nextTick(() => parseTabCbor(paneId, newTab.id))
 }
 
+// Add a camera tab for QR code scanning
+function addCameraTab(paneId: string) {
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return
+
+  const newTab = createTab('QR Scanner', '', true)
+  pane.tabs.push(newTab)
+  pane.activeTabId = newTab.id
+  activePaneId.value = paneId
+
+  // Start camera for this tab
+  nextTick(() => startCamera(newTab.id))
+}
+
+// Camera state management
+const cameraStreams = new Map<string, MediaStream>()
+const scanningIntervals = new Map<string, ReturnType<typeof setInterval>>()
+
+// Start camera for a tab
+async function startCamera(tabId: string) {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    })
+    cameraStreams.set(tabId, stream)
+
+    nextTick(() => {
+      const videoEl = document.querySelector(`video[data-tab-id="${tabId}"]`) as HTMLVideoElement
+      if (videoEl) {
+        videoEl.srcObject = stream
+        videoEl.play()
+        startQRScanning(tabId)
+      }
+    })
+  } catch (err) {
+    console.error('Failed to start camera:', err)
+  }
+}
+
+// Stop camera for a tab
+function stopCamera(tabId: string) {
+  const stream = cameraStreams.get(tabId)
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop())
+    cameraStreams.delete(tabId)
+  }
+
+  const interval = scanningIntervals.get(tabId)
+  if (interval) {
+    clearInterval(interval)
+    scanningIntervals.delete(tabId)
+  }
+}
+
+// Start QR code scanning for a camera tab
+function startQRScanning(tabId: string) {
+  const videoEl = document.querySelector(`video[data-tab-id="${tabId}"]`) as HTMLVideoElement
+  const canvasEl = document.querySelector(`canvas[data-tab-id="${tabId}"]`) as HTMLCanvasElement
+  if (!videoEl || !canvasEl) return
+
+  const ctx = canvasEl.getContext('2d')
+  if (!ctx) return
+
+  const interval = setInterval(() => {
+    if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+      canvasEl.width = videoEl.videoWidth
+      canvasEl.height = videoEl.videoHeight
+      ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height)
+
+      const imageData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height)
+
+      try {
+        // Pass RGBA image data directly to decodeQR
+        const result = decodeQR({
+          width: imageData.width,
+          height: imageData.height,
+          data: imageData.data
+        })
+
+        if (result) {
+          // QR code detected - populate the tab with the data
+          const pane = panes.value.find(p => p.tabs.some(t => t.id === tabId))
+          if (pane) {
+            const tab = pane.tabs.find(t => t.id === tabId)
+            if (tab) {
+              tab.hexInput = result
+              tab.isCameraTab = false
+              stopCamera(tabId)
+              // Parse the scanned data
+              nextTick(() => parseTabCbor(pane.id, tabId))
+            }
+          }
+        }
+      } catch {
+        // Ignore scanning errors, continue scanning
+      }
+    }
+  }, 100)
+
+  scanningIntervals.set(tabId, interval)
+}
+
+// Cleanup cameras on unmount
+onUnmounted(() => {
+  cameraStreams.forEach((stream) => {
+    stream.getTracks().forEach(track => track.stop())
+  })
+  cameraStreams.clear()
+  scanningIntervals.forEach(interval => clearInterval(interval))
+  scanningIntervals.clear()
+})
+
+// Trigger file input for QR upload
+function triggerQRUpload(paneId: string) {
+  const input = document.querySelector(`input[data-upload-pane="${paneId}"]`) as HTMLInputElement
+  if (input) {
+    input.click()
+  }
+}
+
+// Handle QR code upload from image file
+function handleQRUpload(paneId: string, event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  const pane = panes.value.find(p => p.id === paneId)
+  if (!pane) return
+
+  // Create a new tab for the upload
+  const newTab = createTab('QR Upload', '')
+  pane.tabs.push(newTab)
+  pane.activeTabId = newTab.id
+  activePaneId.value = paneId
+
+  // Check if file is SVG
+  if (file.type === 'image/svg+xml') {
+    // Handle SVG files
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const svgText = e.target?.result as string
+
+        // Parse SVG to get dimensions
+        const parser = new DOMParser()
+        const svgDoc = parser.parseFromString(svgText, 'image/svg+xml')
+        const svgElement = svgDoc.documentElement
+
+        // Get SVG dimensions or use default size
+        const width = parseInt(svgElement.getAttribute('width') || '512')
+        const height = parseInt(svgElement.getAttribute('height') || '512')
+
+        // Convert SVG to PNG data URL using svgToPng (returns a Promise)
+        const pngDataUrl = await svgToPng(svgText, width, height)
+
+        // Load the PNG data URL into an image
+        const img = new Image()
+        img.onload = () => {
+          // Create canvas to extract ImageData
+          const canvas = document.createElement('canvas')
+          canvas.width = width
+          canvas.height = height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return
+
+          ctx.drawImage(img, 0, 0)
+          const imageData = ctx.getImageData(0, 0, width, height)
+
+          try {
+            // Decode QR code from ImageData
+            const result = decodeQR({
+              width: imageData.width,
+              height: imageData.height,
+              data: imageData.data
+            })
+
+            if (result) {
+              const tab = pane.tabs.find(t => t.id === newTab.id)
+              if (tab) {
+                tab.hexInput = result
+                tab.name = 'Scanned QR'
+                nextTick(() => parseTabCbor(pane.id, newTab.id))
+              }
+            } else {
+              const tab = pane.tabs.find(t => t.id === newTab.id)
+              if (tab) {
+                tab.error = 'No QR code found in the uploaded SVG'
+                tab.viewMode = 'hex'
+              }
+            }
+          } catch {
+            const tab = pane.tabs.find(t => t.id === newTab.id)
+            if (tab) {
+              tab.error = 'Failed to decode QR code from SVG'
+              tab.viewMode = 'hex'
+            }
+          }
+        }
+
+        img.onerror = () => {
+          const tab = pane.tabs.find(t => t.id === newTab.id)
+          if (tab) {
+            tab.error = 'Failed to load SVG image'
+            tab.viewMode = 'hex'
+          }
+        }
+
+        img.src = pngDataUrl
+      } catch {
+        const tab = pane.tabs.find(t => t.id === newTab.id)
+        if (tab) {
+          tab.error = 'Failed to process SVG file'
+          tab.viewMode = 'hex'
+        }
+      }
+    }
+    reader.readAsText(file)
+  } else {
+    // Handle regular image files (PNG, JPG, etc.)
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Create canvas to draw image
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+
+        ctx.drawImage(img, 0, 0)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+        try {
+          // Decode QR code from image
+          const result = decodeQR({
+            width: imageData.width,
+            height: imageData.height,
+            data: imageData.data
+          })
+
+          if (result) {
+            // Populate tab with decoded data
+            const tab = pane.tabs.find(t => t.id === newTab.id)
+            if (tab) {
+              tab.hexInput = result
+              tab.name = 'Scanned QR'
+              nextTick(() => parseTabCbor(pane.id, newTab.id))
+            }
+          } else {
+            // No QR code found
+            const tab = pane.tabs.find(t => t.id === newTab.id)
+            if (tab) {
+              tab.error = 'No QR code found in the uploaded image'
+              tab.viewMode = 'hex' // Show error message
+            }
+          }
+        } catch {
+          // Error decoding
+          const tab = pane.tabs.find(t => t.id === newTab.id)
+          if (tab) {
+            tab.error = 'Failed to decode QR code from image'
+            tab.viewMode = 'hex' // Show error message
+          }
+        }
+      }
+      img.src = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Reset input so the same file can be uploaded again
+  input.value = ''
+}
+
 // Close a tab
 function closeTab(paneId: string, tabId: string) {
   const pane = panes.value.find(p => p.id === paneId)
@@ -247,10 +612,20 @@ function closeTab(paneId: string, tabId: string) {
   const index = pane.tabs.findIndex(t => t.id === tabId)
   if (index === -1) return
 
+  // Stop camera if it's a camera tab
+  const tab = pane.tabs[index]
+  if (tab && tab.isCameraTab) {
+    stopCamera(tabId)
+  }
+
   // If it's the last tab in the pane, close the pane instead (if not the last pane)
   if (pane.tabs.length === 1) {
     if (panes.value.length > 1) {
       closePane(paneId)
+    } else {
+      // Allow closing the last tab in the last pane
+      pane.tabs.splice(index, 1)
+      pane.activeTabId = null
     }
     return
   }
@@ -413,22 +788,35 @@ function bytesToBytewords(bytes: Uint8Array): string {
 }
 
 // Generate QR code from UR output
-async function generateQRCode(tab: TabState) {
+function generateQRCode(tab: TabState) {
   if (!tab.urOutput || tab.urOutput.startsWith('//')) {
     tab.qrCodeDataUrl = ''
     return
   }
 
   try {
-    const dataUrl = await QRCode.toDataURL(tab.urOutput.toUpperCase(), {
-      errorCorrectionLevel: 'L',
-      margin: 2,
-      width: 400,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
+    // Generate QR code using @paulmillr/qr
+    const qrData = encodeQR(tab.urOutput.toUpperCase(), 'raw', {
+      ecc: 'low',
+      border: 2
     })
+
+    // Convert QR matrix to SVG
+    const size = qrData.length
+    const scale = 4
+    const svgSize = size * scale
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgSize} ${svgSize}" width="400" height="400">
+      <rect width="${svgSize}" height="${svgSize}" fill="#ffffff"/>
+      ${qrData.map((row, y) =>
+        row.map((cell, x) =>
+          cell ? `<rect x="${x * scale}" y="${y * scale}" width="${scale}" height="${scale}" fill="#000000"/>` : ''
+        ).join('')
+      ).join('')}
+    </svg>`
+
+    // Convert SVG to data URL
+    const dataUrl = `data:image/svg+xml;base64,${btoa(svg)}`
     tab.qrCodeDataUrl = dataUrl
   } catch (err) {
     console.error('Failed to generate QR code:', err)
@@ -444,23 +832,24 @@ function parseTabCbor(paneId: string, tabId: string) {
   const tab = pane.tabs.find(t => t.id === tabId) as TabState | undefined
   if (!tab) return
 
-  tab.error = null
-  tab.parsedCbor = null
-  tab.annotatedHex = ''
-  tab.diagnosticNotation = ''
-  tab.envelopeFormat = ''
-  tab.urOutput = ''
-  tab.bytewordsOutput = ''
-  tab.isEnvelopeInput = false
-  tab.qrCodeDataUrl = ''
-
   const input = tab.hexInput.trim()
   if (!input) {
     tab.error = 'Please enter data to parse'
+    tab.parsedCbor = null
+    tab.annotatedHex = ''
+    tab.diagnosticNotation = ''
+    tab.jsonOutput = ''
+    tab.envelopeFormat = ''
+    tab.urOutput = ''
+    tab.bytewordsOutput = ''
+    tab.isEnvelopeInput = false
+    tab.qrCodeDataUrl = ''
     return
   }
 
   try {
+    // Clear error on successful parse attempt
+    tab.error = null
     // Always use auto-detect
     const cborBytes = parseInput(input, 'auto')
     const cbor = decodeCbor(cborBytes)
@@ -470,6 +859,14 @@ function parseTabCbor(paneId: string, tabId: string) {
 
     tab.annotatedHex = hexOpt(cbor, { annotate: true })
     tab.diagnosticNotation = diagnosticOpt(cbor, { flat: false })
+
+    // Generate JSON output
+    try {
+      const jsonData = cborToJson(cbor)
+      tab.jsonOutput = JSON.stringify(jsonData, null, 2)
+    } catch {
+      tab.jsonOutput = '// Could not convert to JSON format'
+    }
 
     // Generate UR output
     try {
@@ -513,7 +910,7 @@ function parseTabCbor(paneId: string, tabId: string) {
 }
 
 // Compute byte count for a tab
-function getByteCount(tab: TabState): number {
+function getByteCount(tab: { hexInput: string }): number {
   const input = tab.hexInput.trim()
   if (!input) return 0
 
@@ -562,9 +959,10 @@ watch(panes, () => {
 // Handle example selection from sidebar (injected from layout)
 const selectedExample = inject<Ref<{ name: string, format: 'hex' | 'ur', value: string } | null>>('selectedExample')
 
-// Watch for example selection from sidebar
-watch(selectedExample!, (example) => {
-  if (example && activePane.value) {
+// Process a selected example
+function processSelectedExample() {
+  if (selectedExample?.value && activePane.value) {
+    const example = selectedExample.value
     // Create a new tab with the example content
     const newTab = createTab(example.name, example.value)
     activePane.value.tabs.push(newTab)
@@ -574,8 +972,13 @@ watch(selectedExample!, (example) => {
     nextTick(() => parseTabCbor(activePane.value!.id, newTab.id))
 
     // Reset the selected example to allow re-selecting the same example
-    selectedExample!.value = null
+    selectedExample.value = null
   }
+}
+
+// Watch for example selection from sidebar
+watch(selectedExample!, () => {
+  processSelectedExample()
 })
 
 // Initialize with one pane
@@ -591,13 +994,21 @@ onMounted(() => {
           parseTabCbor(pane.id, tab.id)
         }
       }
+      // Check for pending example after state is loaded
+      processSelectedExample()
     })
   } else {
     // No saved state, create initial pane
     const initialPane = createPane()
     panes.value.push(initialPane)
     activePaneId.value = initialPane.id
-    nextTick(() => parseTabCbor(initialPane.id, initialPane.activeTabId))
+    nextTick(() => {
+      if (initialPane.activeTabId) {
+        parseTabCbor(initialPane.id, initialPane.activeTabId)
+      }
+      // Check for pending example after pane is created
+      processSelectedExample()
+    })
   }
 })
 
@@ -618,7 +1029,7 @@ watch(activePaneId, () => {
 <template>
   <UDashboardPanel id="playground">
     <template #header>
-      <UDashboardNavbar title="Gordian Playground">
+      <UDashboardNavbar title="Data Playground">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -668,18 +1079,19 @@ watch(activePaneId, () => {
               activePaneId === pane.id ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-gray-100 dark:bg-gray-900/30'
             ]"
           >
-            <div class="flex-1 flex items-center overflow-x-auto">
-              <div
-                v-for="tab in pane.tabs"
-                :key="tab.id"
-                :class="[
-                  'group flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-gray-200 dark:border-gray-800/30 min-w-[100px] max-w-[160px]',
-                  pane.activeTabId === tab.id
-                    ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
-                    : 'bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800/50 hover:text-gray-700 dark:hover:text-gray-300'
-                ]"
-                @click.stop="pane.activeTabId = tab.id; activePaneId = pane.id"
-              >
+            <div class="flex-1 min-w-0 overflow-x-auto tab-scrollbar">
+              <div class="flex items-center flex-nowrap w-max">
+                <div
+                  v-for="tab in pane.tabs"
+                  :key="tab.id"
+                  :class="[
+                    'group flex items-center gap-1.5 px-3 py-1.5 text-xs cursor-pointer border-r border-gray-200 dark:border-gray-800/30 min-w-[100px] max-w-[160px]',
+                    pane.activeTabId === tab.id
+                      ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100'
+                      : 'bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800/50 hover:text-gray-700 dark:hover:text-gray-300'
+                  ]"
+                  @click.stop="pane.activeTabId = tab.id; activePaneId = pane.id"
+                >
                 <UIcon name="i-heroicons-document-text" class="w-3.5 h-3.5 flex-shrink-0" />
                 <input
                   v-if="editingTabId === tab.id"
@@ -707,6 +1119,7 @@ watch(activePaneId, () => {
                   @click.stop="closeTab(pane.id, tab.id)"
                 />
               </div>
+              </div>
             </div>
             <div class="flex items-center gap-0.5">
               <UButton
@@ -716,6 +1129,27 @@ watch(activePaneId, () => {
                 variant="ghost"
                 @click.stop="addTab(pane.id)"
               />
+              <UButton
+                icon="i-heroicons-camera"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click.stop="addCameraTab(pane.id)"
+              />
+              <UButton
+                icon="i-heroicons-arrow-up-tray"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                @click.stop="triggerQRUpload(pane.id)"
+              />
+              <input
+                :data-upload-pane="pane.id"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="handleQRUpload(pane.id, $event)"
+              >
               <div class="h-4 w-px bg-gray-300 dark:bg-gray-700/50 mx-1" />
               <UButton
                 icon="i-heroicons-bars-3-bottom-left"
@@ -724,6 +1158,14 @@ watch(activePaneId, () => {
                 :variant="getActiveTab(pane.id)?.displayMode === 'editor' ? 'soft' : 'ghost'"
                 :class="getActiveTab(pane.id)?.displayMode === 'editor' ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'"
                 @click.stop="setDisplayMode(pane.id, 'editor')"
+              />
+              <UButton
+                icon="i-heroicons-rectangle-group"
+                size="xs"
+                color="neutral"
+                :variant="getActiveTab(pane.id)?.displayMode === 'split' ? 'soft' : 'ghost'"
+                :class="getActiveTab(pane.id)?.displayMode === 'split' ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'"
+                @click.stop="setDisplayMode(pane.id, 'split')"
               />
               <UButton
                 icon="i-heroicons-qr-code"
@@ -754,7 +1196,7 @@ watch(activePaneId, () => {
               class="flex-1 flex flex-col overflow-hidden"
             >
               <!-- Error Display -->
-              <div v-if="tab.error && tab.viewMode !== 'input'" class="px-3 py-1.5">
+              <div v-if="tab.error && tab.viewMode !== 'auto'" class="px-3 py-1.5">
                 <UAlert
                   color="error"
                   variant="solid"
@@ -766,8 +1208,29 @@ watch(activePaneId, () => {
 
               <!-- Main Content: Single Container -->
               <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- Camera Scanner View -->
+                <div v-if="tab.isCameraTab" class="flex-1 flex flex-col items-center justify-center bg-gray-900 overflow-hidden relative">
+                  <div class="relative w-full h-full flex items-center justify-center">
+                    <video
+                      :data-tab-id="tab.id"
+                      autoplay
+                      playsinline
+                      class="w-full h-full object-cover"
+                    />
+                    <canvas
+                      :data-tab-id="tab.id"
+                      class="hidden"
+                    />
+                  </div>
+                  <div class="absolute bottom-4 left-0 right-0 text-center">
+                    <p class="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full inline-block">
+                      Point camera at QR code
+                    </p>
+                  </div>
+                </div>
+
                 <!-- QR Code View -->
-                <div v-if="tab.displayMode === 'qr'" class="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 overflow-auto p-4">
+                <div v-else-if="tab.displayMode === 'qr'" class="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 overflow-auto p-4">
                   <div v-if="tab.qrCodeDataUrl" class="flex flex-col items-center gap-4">
                     <img :src="tab.qrCodeDataUrl" alt="QR Code" class="max-w-full h-auto rounded-lg shadow-lg">
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[300px]">{{ tab.urOutput.substring(0, 50) }}...</p>
@@ -781,66 +1244,204 @@ watch(activePaneId, () => {
                   </div>
                 </div>
 
-                <!-- Editor View -->
-                <template v-else>
-                  <!-- Input View -->
-                  <div v-if="tab.viewMode === 'input'" class="flex-1 min-h-0 min-w-0 overflow-hidden bg-white dark:bg-gray-900">
+                <!-- Split View - Editor + QR Code -->
+                <div v-else-if="tab.displayMode === 'split'" class="flex-1 flex overflow-hidden">
+                  <!-- Editor Side -->
+                  <div class="flex-1 min-h-0 min-w-0 overflow-hidden border-r border-gray-200 dark:border-gray-800">
+                    <!-- Auto View - Edit raw input -->
                     <textarea
+                      v-if="tab.viewMode === 'auto'"
                       v-model="tab.hexInput"
                       placeholder="Enter data (hex, UR, or bytewords)"
                       class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 focus:outline-none overflow-auto placeholder:text-gray-400 dark:placeholder:text-gray-600"
                       style="word-break: break-all;"
                     />
+
+                    <!-- JSON View - Edit JSON -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'json'"
+                      :value="tab.jsonOutput"
+                      placeholder="JSON output"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- dCBOR View - Edit annotated hex -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'dcbor'"
+                      :value="tab.annotatedHex"
+                      placeholder="dCBOR annotated hex"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- UR View - Edit UR string -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'ur'"
+                      v-model="tab.urOutput"
+                      placeholder="UR string"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                      style="word-break: break-all;"
+                      @input="tab.hexInput = tab.urOutput"
+                    />
+
+                    <!-- Bytewords View - Edit bytewords -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'bytewords'"
+                      v-model="tab.bytewordsOutput"
+                      placeholder="Bytewords"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                      @input="tab.hexInput = tab.bytewordsOutput"
+                    />
+
+                    <!-- Envelope View - Edit envelope format -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'envelope'"
+                      :value="tab.envelopeFormat || '// Input is not an Envelope (tag 200)'"
+                      placeholder="Envelope format"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- Diagnostic View - Edit diagnostic notation -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'diagnostic'"
+                      :value="tab.diagnosticNotation"
+                      placeholder="Diagnostic notation"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
                   </div>
 
-                  <!-- Output Views -->
-                  <div v-else class="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
-                    <div v-if="tab.parsedCbor" class="flex-1 min-h-0 min-w-0 overflow-auto p-3">
-                      <pre v-if="tab.viewMode === 'hex'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.annotatedHex }}</pre>
-                      <pre v-else-if="tab.viewMode === 'diagnostic'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.diagnosticNotation }}</pre>
-                      <pre v-else-if="tab.viewMode === 'ur'" class="font-mono text-xs whitespace-pre-wrap break-all text-gray-800 dark:text-gray-200 max-w-full">{{ tab.urOutput }}</pre>
-                      <pre v-else-if="tab.viewMode === 'bytewords'" class="font-mono text-xs whitespace-pre-wrap text-gray-800 dark:text-gray-200 max-w-full">{{ tab.bytewordsOutput }}</pre>
-                      <pre v-else-if="tab.viewMode === 'envelope'" class="font-mono text-xs whitespace-pre text-gray-800 dark:text-gray-200 max-w-full">{{ tab.envelopeFormat }}</pre>
+                  <!-- QR Code Side -->
+                  <div class="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 overflow-auto p-4">
+                    <div v-if="tab.qrCodeDataUrl" class="flex flex-col items-center gap-4">
+                      <img :src="tab.qrCodeDataUrl" alt="QR Code" class="max-w-full h-auto rounded-lg shadow-lg">
+                      <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate max-w-[300px]">{{ tab.urOutput.substring(0, 50) }}...</p>
                     </div>
-
-                    <!-- Empty State -->
-                    <div v-else class="flex-1 flex items-center justify-center p-4">
-                      <div class="text-center">
-                        <div class="bg-gray-100 dark:bg-gray-800/50 rounded-full p-3 mb-2 inline-block">
-                          <UIcon name="i-heroicons-document-text" class="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                        </div>
-                        <h3 class="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1">No data</h3>
-                        <p class="text-xs text-gray-600 dark:text-gray-500">Enter data in the Input view</p>
+                    <div v-else class="text-center">
+                      <div class="bg-gray-100 dark:bg-gray-800/50 rounded-full p-3 mb-2 inline-block">
+                        <UIcon name="i-heroicons-qr-code" class="w-6 h-6 text-gray-400 dark:text-gray-500" />
                       </div>
+                      <h3 class="text-xs font-semibold text-gray-900 dark:text-gray-200 mb-1">No QR Code</h3>
+                      <p class="text-xs text-gray-600 dark:text-gray-500">Enter valid data to generate a QR code</p>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Editor View -->
+                <template v-else>
+                  <div class="flex-1 min-h-0 min-w-0 overflow-hidden">
+                    <!-- Auto View - Edit raw input -->
+                    <textarea
+                      v-if="tab.viewMode === 'auto'"
+                      v-model="tab.hexInput"
+                      placeholder="Enter data (hex, UR, or bytewords)"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-3 focus:outline-none overflow-auto placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      style="word-break: break-all;"
+                    />
+
+                    <!-- JSON View - Edit JSON -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'json'"
+                      :value="tab.jsonOutput"
+                      placeholder="JSON output"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- dCBOR View - Edit annotated hex -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'dcbor'"
+                      :value="tab.annotatedHex"
+                      placeholder="dCBOR annotated hex"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- UR View - Edit UR string -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'ur'"
+                      v-model="tab.urOutput"
+                      placeholder="UR string"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                      style="word-break: break-all;"
+                      @input="tab.hexInput = tab.urOutput"
+                    />
+
+                    <!-- Bytewords View - Edit bytewords -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'bytewords'"
+                      v-model="tab.bytewordsOutput"
+                      placeholder="Bytewords"
+                      class="w-full h-full resize-none font-mono text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                      @input="tab.hexInput = tab.bytewordsOutput"
+                    />
+
+                    <!-- Envelope View - Edit envelope format -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'envelope'"
+                      :value="tab.envelopeFormat || '// Input is not an Envelope (tag 200)'"
+                      placeholder="Envelope format"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
+
+                    <!-- Diagnostic View - Edit diagnostic notation -->
+                    <textarea
+                      v-else-if="tab.viewMode === 'diagnostic'"
+                      :value="tab.diagnosticNotation"
+                      placeholder="Diagnostic notation"
+                      readonly
+                      class="w-full h-full resize-none font-mono text-xs bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 p-3 focus:outline-none overflow-auto"
+                    />
                   </div>
                 </template>
               </div>
 
               <!-- Status Bar -->
               <div class="flex items-center justify-between px-2 py-0.5 border-t border-gray-200 dark:border-gray-800/50 bg-gray-100 dark:bg-gray-900/50 text-xs text-gray-500 dark:text-gray-500">
-                <div class="flex items-center gap-3">
-                  <span>{{ getByteCount(tab) }} bytes</span>
-                  <span v-if="tab.parsedCbor">CBOR</span>
-                  <span v-if="tab.isEnvelopeInput" class="text-blue-600 dark:text-blue-400">Envelope</span>
-                </div>
                 <UTabs
                   v-model="tab.viewMode"
                   :items="[
-                    { label: 'Input', value: 'input' },
-                    { label: 'Hex', value: 'hex' },
+                    { label: 'Auto', value: 'auto' },
+                    { label: 'JSON', value: 'json' },
+                    { label: 'dCBOR', value: 'dcbor' },
                     { label: 'UR', value: 'ur' },
                     { label: 'Bytewords', value: 'bytewords' },
-                    ...(tab.isEnvelopeInput ? [{ label: 'Envelope', value: 'envelope' }] : []),
+                    { label: 'Envelope', value: 'envelope' },
                     { label: 'Diagnostic', value: 'diagnostic' }
                   ]"
                   size="xs"
                   class="w-auto"
                   :ui="{ root: 'gap-0', list: 'p-0' }"
                 />
+                <div class="flex items-center gap-3">
+                  <span v-if="tab.isEnvelopeInput" class="text-blue-600 dark:text-blue-400">Envelope</span>
+                  <span v-if="tab.parsedCbor">CBOR</span>
+                  <span>{{ getByteCount(tab) }} bytes</span>
+                </div>
               </div>
             </div>
           </template>
+
+          <!-- Empty State - No Tabs -->
+          <div v-else class="flex-1 flex items-center justify-center bg-white dark:bg-gray-900">
+            <div class="text-center max-w-md px-4">
+              <div class="bg-gray-100 dark:bg-gray-800/50 rounded-full p-4 mb-4 inline-block">
+                <UIcon name="i-heroicons-document-plus" class="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              </div>
+              <h3 class="text-base font-semibold text-gray-900 dark:text-gray-200 mb-2">No tabs open</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Create a new tab to start working with dCBOR data</p>
+              <UButton
+                icon="i-heroicons-plus"
+                color="primary"
+                @click="addTab(pane.id)"
+              >
+                New Tab
+              </UButton>
+            </div>
+          </div>
         </div>
       </div>
     </template>

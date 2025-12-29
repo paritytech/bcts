@@ -8,13 +8,17 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCProvenanceMark",
+  globalName: "bctsProvenanceMark",
+  external: [/@noble\/.*/],
   outputOptions: {
     globals: {
-      "@bcts/dcbor": "BCDcbor",
-      "@bcts/rand": "BCRand",
-      "@bcts/tags": "BCTags",
-      "@bcts/uniform-resources": "BCUR",
+      "@bcts/dcbor": "bctsDcbor",
+      "@bcts/rand": "bctsRand",
+      "@bcts/tags": "bctsTags",
+      "@bcts/uniform-resources": "bctsUniformResources",
+      "@noble/hashes/sha2.js": "nobleHashesSha2",
+      "@noble/hashes/hkdf.js": "nobleHashesHkdf",
+      "@noble/ciphers/chacha.js": "nobleCiphersChacha",
     },
   },
 });

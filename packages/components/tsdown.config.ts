@@ -8,15 +8,21 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCComponents",
+  globalName: "bctsComponents",
+  // Keep @noble/* and @scure/* as external - don't bundle them
+  external: [/@noble\/.*/, /@scure\/.*/],
   outputOptions: {
     globals: {
-      "@bcts/crypto": "BCCrypto",
-      "@bcts/dcbor": "BCDcbor",
-      "@bcts/rand": "BCRand",
-      "@bcts/sskr": "BCSSKR",
-      "@bcts/tags": "BCTags",
-      "@bcts/uniform-resources": "BCUR",
+      "@bcts/crypto": "bctsCrypto",
+      "@bcts/dcbor": "bctsDcbor",
+      "@bcts/rand": "bctsRand",
+      "@bcts/sskr": "bctsSskr",
+      "@bcts/tags": "bctsTags",
+      "@bcts/uniform-resources": "bctsUniformResources",
+      "@noble/hashes/blake2.js": "nobleHashesBlake2",
+      "@noble/post-quantum/ml-dsa.js": "noblePostQuantumMldsa",
+      "@noble/post-quantum/ml-kem.js": "noblePostQuantumMlkem",
+      "@scure/sr25519": "scureSr25519",
     },
   },
 });

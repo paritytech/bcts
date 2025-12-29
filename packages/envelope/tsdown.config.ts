@@ -8,15 +8,16 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCEnvelope",
+  globalName: "bctsEnvelope",
   outputOptions: {
     globals: {
-      "@bcts/components": "BCComponents",
-      "@bcts/crypto": "BCCrypto",
-      "@bcts/dcbor": "BCDcbor",
-      "@bcts/known-values": "BCKnownValues",
-      "@bcts/rand": "BCRand",
-      "@bcts/uniform-resources": "BCUR",
+      "@bcts/components": "bctsComponents",
+      "@bcts/crypto": "bctsCrypto",
+      "@bcts/dcbor": "bctsDcbor",
+      "@bcts/known-values": "bctsKnownValues",
+      "@bcts/rand": "bctsRand",
+      "@bcts/uniform-resources": "bctsUniformResources",
+      pako: "pako",
     },
   },
 });

@@ -1,9 +1,9 @@
 // Ported from bc-crypto-rust/src/hash.rs
 
-import { sha256 as nobleSha256, sha512 as nobleSha512 } from "@noble/hashes/sha2";
-import { hmac } from "@noble/hashes/hmac";
-import { pbkdf2 } from "@noble/hashes/pbkdf2";
-import { hkdf } from "@noble/hashes/hkdf";
+import { sha256 as nobleSha256, sha512 as nobleSha512 } from "@noble/hashes/sha2.js";
+import { hmac } from "@noble/hashes/hmac.js";
+import { pbkdf2 } from "@noble/hashes/pbkdf2.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
 
 // Constants
 export const CRC32_SIZE = 4;

@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/schnorr_signing.rs
 
-import { schnorr } from "@noble/curves/secp256k1";
+import { schnorr } from "@noble/curves/secp256k1.js";
 import type { RandomNumberGenerator } from "@bcts/rand";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
 import { ECDSA_PRIVATE_KEY_SIZE, SCHNORR_PUBLIC_KEY_SIZE } from "./ecdsa-keys.js";

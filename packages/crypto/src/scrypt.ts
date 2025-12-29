@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/scrypt.rs
 
-import { scrypt as nobleScrypt } from "@noble/hashes/scrypt";
+import { scrypt as nobleScrypt } from "@noble/hashes/scrypt.js";
 
 /**
  * Derive a key using Scrypt with recommended parameters.

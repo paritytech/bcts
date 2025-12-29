@@ -1,6 +1,6 @@
 {
   "name": "@bcts/components",
-  "version": "1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
   "type": "module",
   "description": "A TypeScript implementation of Blockchain Commons cryptographic components. Supports key generation, signing, verification, encryption, and post-quantum cryptography.",
   "license": "BSD-2-Clause-Patent",
@@ -63,21 +63,21 @@
     "@bcts/sskr": "workspace:*",
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
-    "@noble/hashes": "^1.8.0",
-    "@noble/post-quantum": "^0.2.1",
+    "@noble/hashes": "^2.0.1",
+    "@noble/post-quantum": "^0.5.4",
     "@scure/sr25519": "^1.0.0",
     "pako": "^2.1.0"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@eslint/js": "^9.39.1",
-    "@types/node": "^24.10.2",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.3",
     "@types/pako": "^2.0.4",
-    "eslint": "^9.39.1",
-    "tsdown": "^0.17.2",
+    "eslint": "^9.39.2",
+    "tsdown": "^0.18.3",
     "typedoc": "^0.28.15",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.16"
   }
 }

@@ -1,8 +1,8 @@
 // Ported from provenance-mark-rust/src/crypto_utils.rs
 
-import { sha256 as sha256Hash } from "@noble/hashes/sha256";
-import { hkdf } from "@noble/hashes/hkdf";
-import { chacha20 } from "@noble/ciphers/chacha";
+import { sha256 as sha256Hash } from "@noble/hashes/sha2.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
+import { chacha20 } from "@noble/ciphers/chacha.js";
 
 export const SHA256_SIZE = 32;
 

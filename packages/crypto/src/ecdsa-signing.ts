@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/ecdsa_signing.rs
 
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { doubleSha256 } from "./hash.js";
 import {
   ECDSA_PRIVATE_KEY_SIZE,
@@ -28,10 +28,8 @@ export function ecdsaSign(privateKey: Uint8Array, message: Uint8Array): Uint8Arr
   }
 
   const messageHash = doubleSha256(message);
-  const signature = secp256k1.sign(messageHash, privateKey);
-
-  // Return compact signature (r || s)
-  return signature.toCompactRawBytes();
+  // prehash: false because we already hashed the message with doubleSha256
+  return secp256k1.sign(messageHash, privateKey, { prehash: false });
 }
 
 /**
@@ -59,7 +57,8 @@ export function ecdsaVerify(
 
   try {
     const messageHash = doubleSha256(message);
-    return secp256k1.verify(signature, messageHash, publicKey);
+    // prehash: false because we already hashed the message with doubleSha256
+    return secp256k1.verify(signature, messageHash, publicKey, { prehash: false });
   } catch {
     return false;
   }

@@ -8,7 +8,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCDcbor",
+  globalName: "bctsDcbor",
   noExternal: ["byte-data", "collections/sorted-map"],
   outputOptions: {
     globals: {

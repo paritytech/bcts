@@ -1,8 +1,8 @@
 {
   "name": "bcts",
-  "version": "1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
   "private": true,
-  "description": "TypeScript implementations of Blockchain Commons specifications including dCBOR, Gordian Envelope, Uniform Resources, SSKR, and other cryptographic standards",
+  "description": "TypeScript implementations of Blockchain Commons specifications including dCBOR, Gordian Envelopes, Uniform Resources, SSKR, and other cryptographic standards",
   "contributors": [
     {
       "name": "Leonardo Custodio",
@@ -24,14 +24,14 @@
     "url": "https://github.com/leonardocustodio/bcts/issues"
   },
   "keywords": [
-    "blockchain-commons",
+    "blockchain commons",
     "cbor",
     "dcbor",
-    "gordian-envelope",
-    "uniform-resources",
+    "gordian envelopes",
+    "uniform resources",
     "sskr",
     "shamir",
-    "cryptography",
+    "provenance mark",
     "typescript"
   ],
   "engines": {
@@ -54,7 +54,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "prettier": "^3.7.4",
-    "turbo": "^2.6.3",
+    "turbo": "^2.7.2",
     "typescript": "^5.9.3"
   },
   "packageManager": "bun@1.2.22",

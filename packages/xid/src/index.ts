@@ -41,7 +41,7 @@ export {
 export { Service } from "./service";
 
 // Delegate
-export { Delegate, registerXIDDocumentClass } from "./delegate";
+export { Delegate, registerXIDDocumentClass, type XIDDocumentType } from "./delegate";
 
 // Provenance
 export {

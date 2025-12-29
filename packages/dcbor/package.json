@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor",
-  "version": "1.0.0-alpha.9",
+  "version": "1.0.0-alpha.10",
   "type": "module",
   "description": "Blockchain Commons Deterministic CBOR (dCBOR) for TypeScript",
   "license": "BSD-2-Clause-Patent",
@@ -61,16 +61,17 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@eslint/js": "^9.39.1",
+    "@eslint/js": "^9.39.2",
     "@types/collections": "^5.1.5",
-    "@typescript-eslint/eslint-plugin": "^8.49.0",
-    "@typescript-eslint/parser": "^8.49.0",
-    "eslint": "^9.39.1",
+    "@types/node": "^25.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.17.2",
+    "tsdown": "^0.18.3",
     "typedoc": "^0.28.15",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "byte-data": "^19.0.1",

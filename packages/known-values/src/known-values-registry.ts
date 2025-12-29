@@ -178,7 +178,7 @@ export const CHILD = new KnownValue(705, "child");
  * users of the API, who should access Known Values through the constants
  * exposed in the `known_values` module.
  */
-class LazyKnownValues {
+export class LazyKnownValues {
   private _data: KnownValuesStore | undefined;
 
   /**

@@ -17,7 +17,7 @@
 import * as sr25519 from "@scure/sr25519";
 import type { RandomNumberGenerator } from "@bcts/rand";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
-import { blake2b } from "@noble/hashes/blake2b";
+import { blake2b } from "@noble/hashes/blake2.js";
 import { Sr25519PublicKey } from "./sr25519-public-key.js";
 import { bytesToHex } from "../utils.js";
 
@@ -188,7 +188,7 @@ export class Sr25519PrivateKey {
    * will produce signatures verifiable by this library.
    *
    * @param message - The message to sign
-   * @param context - The signing context (only "substrate" is supported)
+   * @param _context - The signing context (only "substrate" is supported)
    * @returns 64-byte signature
    */
   signWithContext(message: Uint8Array, _context: Uint8Array): Uint8Array {

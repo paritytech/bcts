@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/argon.rs
 
-import { argon2id } from "@noble/hashes/argon2";
+import { argon2id } from "@noble/hashes/argon2.js";
 
 /**
  * Derive a key using Argon2id with default parameters.

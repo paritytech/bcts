@@ -1,6 +1,6 @@
 // Ported from bc-crypto-rust/src/ecdsa_keys.rs
 
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 import type { RandomNumberGenerator } from "@bcts/rand";
 import { hkdfHmacSha256 } from "./hash.js";
 
@@ -40,8 +40,8 @@ export function ecdsaDecompressPublicKey(compressed: Uint8Array): Uint8Array {
   if (compressed.length !== ECDSA_PUBLIC_KEY_SIZE) {
     throw new Error(`Compressed public key must be ${ECDSA_PUBLIC_KEY_SIZE} bytes`);
   }
-  const point = secp256k1.ProjectivePoint.fromHex(compressed);
-  return point.toRawBytes(false); // false = uncompressed
+  const point = secp256k1.Point.fromBytes(compressed);
+  return point.toBytes(false); // false = uncompressed
 }
 
 /**
@@ -51,8 +51,8 @@ export function ecdsaCompressPublicKey(uncompressed: Uint8Array): Uint8Array {
   if (uncompressed.length !== ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE) {
     throw new Error(`Uncompressed public key must be ${ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE} bytes`);
   }
-  const point = secp256k1.ProjectivePoint.fromHex(uncompressed);
-  return point.toRawBytes(true); // true = compressed
+  const point = secp256k1.Point.fromBytes(uncompressed);
+  return point.toBytes(true); // true = compressed
 }
 
 /**

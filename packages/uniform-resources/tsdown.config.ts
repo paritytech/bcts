@@ -8,11 +8,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCUR",
+  globalName: "bctsUniformResources",
   noExternal: ["@bcts/dcbor"],
   outputOptions: {
     globals: {
-      "@bcts/dcbor": "BCDcbor",
+      "@bcts/dcbor": "bctsDcbor",
     },
   },
 });

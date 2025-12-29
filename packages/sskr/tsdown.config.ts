@@ -8,11 +8,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "BCSSKR",
+  globalName: "bctsSskr",
   outputOptions: {
     globals: {
-      "@bcts/rand": "BCRand",
-      "@bcts/shamir": "BCShamir",
+      "@bcts/rand": "bctsRand",
+      "@bcts/shamir": "bctsShamir",
     },
   },
 });
