@@ -6,13 +6,13 @@
  * @module envelope-pattern/pattern/leaf/array-pattern
  */
 
-import type { Envelope } from "@bcts/envelope";
-import type { Cbor } from "@bcts/dcbor";
+import { Envelope } from "@bcts/envelope";
 import { asCborArray } from "@bcts/dcbor";
 import {
-  Pattern as DCBORPattern,
+  type Pattern as DCBORPattern,
   Interval,
-  type Matcher as DCBORMatcher,
+  patternPathsWithCaptures as dcborPatternPathsWithCaptures,
+  patternDisplay as dcborPatternDisplay,
 } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
 import type { Matcher } from "../matcher";
@@ -62,7 +62,7 @@ export class ArrayPattern implements Matcher {
   static count(count: number): ArrayPattern {
     return new ArrayPattern({
       type: "Interval",
-      interval: Interval.exact(count),
+      interval: Interval.exactly(count),
     });
   }
 
@@ -71,7 +71,7 @@ export class ArrayPattern implements Matcher {
    */
   static interval(min: number, max?: number): ArrayPattern {
     const interval = max !== undefined
-      ? Interval.range(min, max)
+      ? Interval.from(min, max)
       : Interval.atLeast(min);
     return new ArrayPattern({ type: "Interval", interval });
   }
@@ -92,9 +92,7 @@ export class ArrayPattern implements Matcher {
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     // Try to extract CBOR from the envelope
-    const subject = haystack.subject();
-    const cbor = subject.asLeaf();
-
+    const cbor = haystack.asLeaf();
     if (cbor === undefined) {
       return [[], new Map<string, Path[]>()];
     }
@@ -119,7 +117,7 @@ export class ArrayPattern implements Matcher {
 
       case "DCBORPattern": {
         // Delegate to dcbor-pattern for matching
-        const [dcborPaths, dcborCaptures] = (this.#pattern.pattern as DCBORMatcher).pathsWithCaptures(cbor);
+        const { paths: dcborPaths, captures: dcborCaptures } = dcborPatternPathsWithCaptures(this.#pattern.pattern, cbor);
 
         if (dcborPaths.length > 0) {
           // Convert dcbor paths to envelope paths
@@ -129,7 +127,7 @@ export class ArrayPattern implements Matcher {
             for (let i = 1; i < dcborPath.length; i++) {
               const elem = dcborPath[i];
               if (elem !== undefined) {
-                envPath.push(subject.constructor.new(elem) as Envelope);
+                envPath.push(Envelope.newLeaf(elem));
               }
             }
             return envPath;
@@ -143,7 +141,7 @@ export class ArrayPattern implements Matcher {
               for (let i = 1; i < dcborPath.length; i++) {
                 const elem = dcborPath[i];
                 if (elem !== undefined) {
-                  envPath.push(subject.constructor.new(elem) as Envelope);
+                  envPath.push(Envelope.newLeaf(elem));
                 }
               }
               return envPath;
@@ -185,7 +183,7 @@ export class ArrayPattern implements Matcher {
       case "Interval":
         return `[{${this.#pattern.interval}}]`;
       case "DCBORPattern":
-        return this.#pattern.pattern.toString();
+        return dcborPatternDisplay(this.#pattern.pattern);
     }
   }
 
@@ -204,9 +202,9 @@ export class ArrayPattern implements Matcher {
           (other.#pattern as { type: "Interval"; interval: Interval }).interval
         );
       case "DCBORPattern":
-        return this.#pattern.pattern.equals(
-          (other.#pattern as { type: "DCBORPattern"; pattern: DCBORPattern }).pattern
-        );
+        // Compare using display representation
+        return dcborPatternDisplay(this.#pattern.pattern) ===
+          dcborPatternDisplay((other.#pattern as { type: "DCBORPattern"; pattern: DCBORPattern }).pattern);
     }
   }
 
@@ -218,9 +216,24 @@ export class ArrayPattern implements Matcher {
       case "Any":
         return 0;
       case "Interval":
-        return this.#pattern.interval.hashCode();
+        // Simple hash based on min/max
+        return this.#pattern.interval.min() * 31 + (this.#pattern.interval.max() ?? 0);
       case "DCBORPattern":
-        return this.#pattern.pattern.hashCode();
+        // Simple hash based on display string
+        return simpleStringHash(dcborPatternDisplay(this.#pattern.pattern));
     }
   }
+}
+
+/**
+ * Simple string hash function for hashCode implementations.
+ */
+function simpleStringHash(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash;
 }

@@ -537,7 +537,7 @@ export class Lexer {
     }
 
     if (max !== undefined) {
-      return ok(Quantifier.range(min, max, mode));
+      return ok(Quantifier.between(min, max, mode));
     }
     return ok(Quantifier.atLeast(min, mode));
   }

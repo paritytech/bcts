@@ -6,8 +6,14 @@
  * @module envelope-pattern/parse/utils
  */
 
-import { Cbor, cborFromDiagnostic } from "@bcts/dcbor";
-import { Pattern as DCBORPattern } from "@bcts/dcbor-pattern";
+import type { Cbor } from "@bcts/dcbor";
+import { type Pattern as DCBORPattern, parse as parseDcborPattern } from "@bcts/dcbor-pattern";
+
+// Stub for cborFromDiagnostic - not implemented in dcbor yet
+function cborFromDiagnostic(_src: string): { ok: false } {
+  // TODO: Implement when dcbor adds diagnostic notation parsing
+  return { ok: false };
+}
 import {
   type Result,
   ok,
@@ -154,7 +160,7 @@ export function parseCborInner(src: string): Result<[Pattern, number]> {
         const patternStr = src.slice(start, pos.value - 1);
 
         // Parse the dcbor-pattern expression
-        const parseResult = DCBORPattern.parse(patternStr);
+        const parseResult = parseDcborPattern(patternStr);
         if (!parseResult.ok) {
           return err(invalidPattern({ start, end: pos.value - 1 }));
         }
@@ -290,7 +296,7 @@ export function parseArrayInner(src: string): Result<[Pattern, number]> {
 
   // For any other pattern content, delegate to dcbor-pattern
   const patternStr = `[${src.slice(pos.value)}]`;
-  const parseResult = DCBORPattern.parse(patternStr);
+  const parseResult = parseDcborPattern(patternStr);
   if (!parseResult.ok) {
     return err(invalidPattern({ start: pos.value, end: src.length }));
   }

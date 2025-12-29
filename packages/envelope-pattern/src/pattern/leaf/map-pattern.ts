@@ -55,7 +55,7 @@ export class MapPattern implements Matcher {
    */
   static interval(min: number, max?: number): MapPattern {
     const interval = max !== undefined
-      ? Interval.range(min, max)
+      ? Interval.from(min, max)
       : Interval.atLeast(min);
     return new MapPattern({ type: "Interval", interval });
   }
@@ -69,9 +69,7 @@ export class MapPattern implements Matcher {
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     // Try to extract CBOR from the envelope
-    const subject = haystack.subject();
-    const cbor = subject.asLeaf();
-
+    const cbor = haystack.asLeaf();
     if (cbor === undefined) {
       return [[], new Map<string, Path[]>()];
     }

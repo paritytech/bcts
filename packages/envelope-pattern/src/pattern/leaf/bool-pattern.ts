@@ -71,10 +71,9 @@ export class BoolPattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    // For leaf envelopes, extract the CBOR subject and delegate to dcbor-pattern
-    if (haystack.isLeaf()) {
-      const cbor = haystack.subject().cbor();
-
+    // For leaf envelopes, extract the CBOR and delegate to dcbor-pattern
+    const cbor = haystack.asLeaf();
+    if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
       const dcborPaths = dcborBoolPatternPaths(this.#inner, cbor);
 

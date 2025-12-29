@@ -27,7 +27,10 @@ export type PathElementFormat =
  * Creates a Summary format.
  */
 export function summaryFormat(maxLength?: number): PathElementFormat {
-  return { type: "Summary", maxLength };
+  if (maxLength !== undefined) {
+    return { type: "Summary", maxLength };
+  }
+  return { type: "Summary" };
 }
 
 /**
@@ -225,9 +228,10 @@ export function formatPathOpt(path: Path, opts: FormatPathsOpts = defaultFormatP
         return truncateWithEllipsis(summary, opts.elementFormat.maxLength);
       }
       case "EnvelopeUR":
-        return element.urString();
+        // TODO: Implement proper UR string format when available
+        return element.digest().toString();
       case "DigestUR":
-        return element.digest().urString();
+        return element.digest().toString();
     }
   }
 
@@ -247,11 +251,11 @@ export function formatPathOpt(path: Path, opts: FormatPathsOpts = defaultFormatP
       return lines.join("\n");
     }
     case "EnvelopeUR":
-      // Single-line, space-separated envelope URs
-      return path.map((element) => element.urString()).join(" ");
+      // TODO: Implement proper UR string format when available
+      return path.map((element) => element.digest().toString()).join(" ");
     case "DigestUR":
-      // Single-line, space-separated digest URs
-      return path.map((element) => element.digest().urString()).join(" ");
+      // Single-line, space-separated digest strings
+      return path.map((element) => element.digest().toString()).join(" ");
   }
 }
 

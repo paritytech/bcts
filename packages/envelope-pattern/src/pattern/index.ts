@@ -8,17 +8,13 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Digest } from "@bcts/components";
-import type { CborEncodable, CborDate, Cbor } from "@bcts/dcbor";
-import { cbor as toCbor } from "@bcts/dcbor";
+import type { CborEncodable, CborDate, Tag } from "@bcts/dcbor";
 import type { KnownValue } from "@bcts/known-values";
 import { UNIT as KNOWN_VALUE_UNIT } from "@bcts/known-values";
-import type { Tag } from "@bcts/tags";
-import { Pattern as DCBORPattern, Quantifier, Interval, Reluctance } from "@bcts/dcbor-pattern";
+import { type Pattern as DCBORPattern, Quantifier, Interval, Reluctance } from "@bcts/dcbor-pattern";
 
 import type { Path } from "../format";
-import type { Matcher } from "./matcher";
-import { compileAsAtomic } from "./matcher";
-import type { Instr, Program } from "./vm";
+import type { Instr } from "./vm";
 
 // Re-export sub-modules
 export * from "./leaf";
@@ -577,9 +573,9 @@ export function traverse(patterns: Pattern[]): Pattern {
 /**
  * Creates a new Pattern that matches with repetition.
  */
-export function repeat(pattern: Pattern, min: number, max?: number, reluctance: Reluctance = Reluctance.greedy()): Pattern {
-  const interval = max !== undefined ? Interval.range(min, max) : Interval.atLeast(min);
-  const quantifier = Quantifier.fromInterval(interval, reluctance);
+export function repeat(pattern: Pattern, min: number, max?: number, reluctance: Reluctance = Reluctance.Greedy): Pattern {
+  const interval = max !== undefined ? Interval.from(min, max) : Interval.atLeast(min);
+  const quantifier = new Quantifier(interval, reluctance);
   return patternMeta(metaGroup(GroupPattern.repeat(pattern, quantifier)));
 }
 
