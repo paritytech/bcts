@@ -147,7 +147,8 @@ export class MapPattern implements Matcher {
       case "Any":
         return 0;
       case "Interval":
-        return this.#pattern.interval.hashCode();
+        // Simple hash based on interval min/max
+        return this.#pattern.interval.min() * 31 + (this.#pattern.interval.max() ?? 0);
     }
   }
 }

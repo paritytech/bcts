@@ -79,7 +79,7 @@ export class SearchPattern implements Matcher {
     const seen = new Set<string>();
     const uniquePaths: Path[] = [];
     for (const path of resultPaths) {
-      const digestPath = path.map(e => e.digest().toHex()).join(",");
+      const digestPath = path.map(e => e.digest().hex).join(",");
       if (!seen.has(digestPath)) {
         seen.add(digestPath);
         uniquePaths.push(path);

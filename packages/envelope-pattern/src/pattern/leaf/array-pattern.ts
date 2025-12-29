@@ -7,7 +7,7 @@
  */
 
 import { Envelope } from "@bcts/envelope";
-import { asCborArray } from "@bcts/dcbor";
+import { asCborArray, type Cbor } from "@bcts/dcbor";
 import {
   type Pattern as DCBORPattern,
   Interval,
@@ -121,7 +121,7 @@ export class ArrayPattern implements Matcher {
 
         if (dcborPaths.length > 0) {
           // Convert dcbor paths to envelope paths
-          const envelopePaths: Path[] = dcborPaths.map((dcborPath) => {
+          const envelopePaths: Path[] = dcborPaths.map((dcborPath: Cbor[]) => {
             const envPath: Path = [haystack];
             // Skip the first element (root) and convert rest to envelopes
             for (let i = 1; i < dcborPath.length; i++) {
@@ -135,8 +135,8 @@ export class ArrayPattern implements Matcher {
 
           // Convert dcbor captures to envelope captures
           const envelopeCaptures = new Map<string, Path[]>();
-          for (const [name, paths] of dcborCaptures) {
-            const envCapturePaths: Path[] = paths.map((dcborPath) => {
+          for (const [name, capturePaths] of dcborCaptures) {
+            const envCapturePaths: Path[] = capturePaths.map((dcborPath: Cbor[]) => {
               const envPath: Path = [haystack];
               for (let i = 1; i < dcborPath.length; i++) {
                 const elem = dcborPath[i];

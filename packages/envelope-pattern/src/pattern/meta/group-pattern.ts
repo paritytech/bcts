@@ -7,8 +7,7 @@
  */
 
 import type { Envelope } from "@bcts/envelope";
-import type { Quantifier } from "@bcts/dcbor-pattern";
-import { Quantifier as QuantifierClass } from "@bcts/dcbor-pattern";
+import { Quantifier } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
 import type { Matcher } from "../matcher";
 import type { Instr } from "../vm";
@@ -46,7 +45,7 @@ export class GroupPattern implements Matcher {
    * Creates a new GroupPattern with a quantifier that matches exactly once.
    */
   static new(pattern: Pattern): GroupPattern {
-    return new GroupPattern(pattern, QuantifierClass.new());
+    return new GroupPattern(pattern, Quantifier.exactly(1));
   }
 
   /**
@@ -105,6 +104,7 @@ export class GroupPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#quantifier.hashCode();
+    // Simple hash based on quantifier min/max
+    return this.#quantifier.min() * 31 + (this.#quantifier.max() ?? 0);
   }
 }

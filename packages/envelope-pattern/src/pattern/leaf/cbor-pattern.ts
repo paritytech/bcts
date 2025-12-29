@@ -175,7 +175,7 @@ export class CBORPattern implements Matcher {
 
           if (dcborPaths.length > 0) {
             const basePath: Path = [haystack];
-            const envelopePaths: Path[] = dcborPaths.map((dcborPath) => {
+            const envelopePaths: Path[] = dcborPaths.map((dcborPath: Cbor[]) => {
               const extendedPath = [...basePath];
               // Skip the first element as it represents the root CBOR
               for (let i = 1; i < dcborPath.length; i++) {
@@ -218,7 +218,7 @@ export class CBORPattern implements Matcher {
         if (dcborPaths.length > 0) {
           const basePath: Path = [haystack];
 
-          const envelopePaths: Path[] = dcborPaths.map((dcborPath) => {
+          const envelopePaths: Path[] = dcborPaths.map((dcborPath: Cbor[]) => {
             const extendedPath = [...basePath];
             // Skip the first element only if it exactly matches our root CBOR
             const skipFirst = dcborPath.length > 0 &&
