@@ -9,7 +9,6 @@ import {
   assertActualExpected,
   matches,
   getPathsWithCaptures,
-  formatPathsWithCapturesStr,
   formatPathsStr,
   getPaths,
 } from "./common";

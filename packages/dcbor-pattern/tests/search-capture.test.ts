@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { cbor, parse, matches, getPathsWithCaptures, getPaths } from "./common";
+import { cbor, parse, getPathsWithCaptures, getPaths } from "./common";
 
 describe("search capture tests", () => {
   it("test_search_capture_basic", () => {

@@ -23,12 +23,7 @@ import { type OrPattern, orPatternPaths, orPatternDisplay } from "./or-pattern";
 import { type NotPattern, notPatternPaths, notPatternDisplay } from "./not-pattern";
 import { type RepeatPattern, repeatPatternPaths, repeatPatternDisplay } from "./repeat-pattern";
 import { type CapturePattern, capturePatternPaths, capturePatternDisplay } from "./capture-pattern";
-import {
-  type SearchPattern,
-  searchPatternPaths,
-  searchPatternDisplay,
-  searchPatternPathsWithCaptures,
-} from "./search-pattern";
+import { type SearchPattern, searchPatternPaths, searchPatternDisplay } from "./search-pattern";
 import {
   type SequencePattern,
   sequencePatternPaths,

@@ -137,9 +137,11 @@ const cborEquals = (a: Cbor, b: Cbor): boolean => {
 
 /**
  * Hash a path for deduplication.
+ * Uses CBOR diagnostic notation for proper serialization.
  */
 const pathHash = (path: Path): string => {
-  return JSON.stringify(path);
+  // Use toDiagnostic for proper CBOR serialization
+  return path.map((item) => (item.toDiagnostic ? item.toDiagnostic() : String(item))).join("|");
 };
 
 /**

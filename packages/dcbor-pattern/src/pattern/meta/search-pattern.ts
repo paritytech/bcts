@@ -5,7 +5,7 @@
  * @module pattern/meta/search-pattern
  */
 
-import type { Cbor } from "@bcts/dcbor";
+import type { Cbor, CborInput } from "@bcts/dcbor";
 import {
   isArray,
   isMap,
@@ -15,6 +15,7 @@ import {
   mapKeys,
   mapValue,
   tagContent,
+  cbor,
 } from "@bcts/dcbor";
 import type { Path } from "../../format";
 import type { Pattern } from "../index";
@@ -68,9 +69,13 @@ const searchRecursive = (
         // Search in keys
         searchRecursive(pattern, key, [...currentPath, haystack], results);
         // Search in values
-        const value = mapValue(haystack, key);
-        if (value !== undefined && value !== null) {
-          searchRecursive(pattern, value as Cbor, [...currentPath, haystack], results);
+        const rawValue = mapValue(haystack, key);
+        if (rawValue !== undefined && rawValue !== null) {
+          // Wrap raw JavaScript value in CBOR if needed
+          const value = (rawValue as Cbor)?.isCbor
+            ? (rawValue as Cbor)
+            : cbor(rawValue as CborInput);
+          searchRecursive(pattern, value, [...currentPath, haystack], results);
         }
       }
     }
@@ -159,11 +164,15 @@ const searchRecursiveWithCaptures = (
           collectCapture,
         );
         // Search in values
-        const value = mapValue(haystack, key);
-        if (value !== undefined && value !== null) {
+        const rawValue = mapValue(haystack, key);
+        if (rawValue !== undefined && rawValue !== null) {
+          // Wrap raw JavaScript value in CBOR if needed
+          const value = (rawValue as Cbor)?.isCbor
+            ? (rawValue as Cbor)
+            : cbor(rawValue as CborInput);
           searchRecursiveWithCaptures(
             pattern,
-            value as Cbor,
+            value,
             [...currentPath, haystack],
             results,
             captures,
@@ -189,19 +198,73 @@ const searchRecursiveWithCaptures = (
 
 /**
  * Extract capture from a pattern at a given match location.
+ * Recursively searches for all capture patterns.
  */
 const extractCaptures = (
   pattern: Pattern,
   matchPath: Cbor[],
   captures: Map<string, Path[]>,
 ): void => {
-  if (pattern.kind === "Meta" && pattern.pattern.type === "Capture") {
-    const captureName = pattern.pattern.pattern.name;
-    const existing = captures.get(captureName) ?? [];
-    existing.push(matchPath);
-    captures.set(captureName, existing);
-    // Also extract from inner pattern
-    extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+  if (pattern.kind === "Meta") {
+    switch (pattern.pattern.type) {
+      case "Capture": {
+        const captureName = pattern.pattern.pattern.name;
+        const existing = captures.get(captureName) ?? [];
+        existing.push(matchPath);
+        captures.set(captureName, existing);
+        // Also extract from inner pattern
+        extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        break;
+      }
+      case "And":
+        for (const p of pattern.pattern.pattern.patterns) {
+          extractCaptures(p, matchPath, captures);
+        }
+        break;
+      case "Or":
+        for (const p of pattern.pattern.pattern.patterns) {
+          extractCaptures(p, matchPath, captures);
+        }
+        break;
+      case "Sequence":
+        for (const p of pattern.pattern.pattern.patterns) {
+          extractCaptures(p, matchPath, captures);
+        }
+        break;
+      case "Not":
+        extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        break;
+      case "Repeat":
+        extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        break;
+      case "Search":
+        extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        break;
+      case "Any":
+        // No captures
+        break;
+    }
+  } else if (pattern.kind === "Structure") {
+    switch (pattern.pattern.type) {
+      case "Array":
+        if (pattern.pattern.pattern.variant === "Elements") {
+          extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        }
+        break;
+      case "Map":
+        if (pattern.pattern.pattern.variant === "Constraints") {
+          for (const [keyPattern, valuePattern] of pattern.pattern.pattern.constraints) {
+            extractCaptures(keyPattern, matchPath, captures);
+            extractCaptures(valuePattern, matchPath, captures);
+          }
+        }
+        break;
+      case "Tagged":
+        if (pattern.pattern.pattern.variant !== "Any") {
+          extractCaptures(pattern.pattern.pattern.pattern, matchPath, captures);
+        }
+        break;
+    }
   }
 };
 
