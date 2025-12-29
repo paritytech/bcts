@@ -1,17 +1,18 @@
 # Blockchain Commons - TypeScript
 
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha.11-green)](https://github.com/leonardocustodio/bcts/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
 [![Status](https://img.shields.io/badge/Status-Early%20Development-orange)](#-disclaimer)
 
-🔷 **Community Implementation:** This is an independent TypeScript monorepo implementing [Blockchain Commons](https://www.blockchaincommons.com/) open specifications. It is **not an official** Blockchain Commons repository.
+🔷 **Community Implementation:** This is an independent TypeScript monorepo implementing Blockchain Commons' open specifications and implementations. It is **not an official** Blockchain Commons repository.
 
-> 🚧 **Disclaimer:** This repository is in early development stages. APIs and interfaces are subject to change and are not yet stable.
+> 🚧 **Disclaimer:** This repository is in early development stages. APIs and interfaces are subject to change.
 
 ## Overview
 
-This monorepo provides TypeScript implementations of Blockchain Commons specifications including deterministic CBOR encoding, Gordian Envelope, Uniform Resources (URs), Sharded Secret Key Reconstruction (SSKR), and other cryptographic standards. All implementations follow the Rust reference implementations as the source of truth and maintain compatibility with the official specifications.
+This monorepo provides TypeScript implementations of Blockchain Commons specifications, including deterministic CBOR encoding, Gordian Envelope, Uniform Resources (URs), Sharded Secret Key Reconstruction (SSKR), and other cryptographic standards. All implementations follow the Rust reference implementations as the source of truth and maintain compatibility with the official specifications.
 
 ## 📦 Packages
 
@@ -22,6 +23,7 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 | [**components**](packages/components) | Shared component utilities and helpers for the Blockchain Commons ecosystem. [📖 API Docs](https://bcts.dev/docs/components) | [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) |
 | [**crypto**](packages/crypto) | Cryptographic primitives including symmetric encryption (ChaCha20-Poly1305), hashing (SHA-256, BLAKE3), and key derivation (HKDF, PBKDF2). [📖 API Docs](https://bcts.dev/docs/crypto) | [bc-crypto-rust](https://github.com/BlockchainCommons/bc-crypto-rust) |
 | [**dcbor**](packages/dcbor) | Deterministic CBOR encoding - a specification for serializing data in a canonical, reproducible format. Ensures identical byte sequences for cryptographic operations and blockchain applications. [📖 API Docs](https://bcts.dev/docs/dcbor) | [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
+| [**dcbor-pattern**](packages/dcbor-pattern) | Pattern matching for dCBOR - a powerful query language for matching and extracting data from dCBOR structures. Supports value, structure, and meta patterns with named captures and VM-based execution. [📖 API Docs](https://bcts.dev/docs/dcbor-pattern) | [bc-dcbor-pattern-rust](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust) |
 | [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. [📖 API Docs](https://bcts.dev/docs/envelope) | [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
 | [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 API Docs](https://bcts.dev/docs/known-values) | [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) |
 | [**provenance-mark**](packages/provenance-mark) | Provenance Marks - cryptographically-secured system for establishing authenticity and provenance of digital works. Generates verifiable mark chains with configurable resolution levels. [📖 API Docs](https://bcts.dev/docs/provenance-mark) | [provenance-mark-rust](https://github.com/BlockchainCommons/provenance-mark-rust) |
@@ -33,6 +35,10 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 | [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 API Docs](https://bcts.dev/docs/xid) | [bc-xid-rust](https://github.com/BlockchainCommons/bc-xid-rust) |
 
 ## 🎮 Applications
+
+### [Examples](apps/examples)
+
+A collection of runnable TypeScript examples demonstrating the capabilities of this library.
 
 ### [Playground](apps/playground)
 An interactive web application for experimenting with dCBOR encoding, Uniform Resources decoding, and Gordian Envelope visualization.
@@ -51,9 +57,6 @@ bun playground
 
 **Live Demo:** https://bcts.dev
 
-### [Examples](apps/examples)
-A collection of runnable TypeScript examples demonstrating the capabilities of this library.
-
 ## 🛠️ Development
 
 This is a monorepo managed with Turborepo. Common commands:
@@ -71,23 +74,16 @@ bun run format
 bun run test --filter=@bcts/dcbor
 ```
 
-## 📚 Specifications
-
-Each package implements specifications from Blockchain Commons. The specifications are the source of truth:
-
-| Specification | Link | BCR |
-|---|---|---|
-| **Deterministic CBOR (dCBOR)** | [IETF Internet Draft](https://datatracker.ietf.org/doc/draft-mcnally-deterministic-cbor/) | Based on RFC-8949 |
-| **Known Values** | [BCR-2023-002](https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2023-002-known-value.md) | Compact ontological identifiers |
-| **Uniform Resources (UR)** | [BCR-2020-005](https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-005-ur.md) | Binary data encoding for QR codes |
-| **Gordian Envelope** | [IETF Internet Draft](https://datatracker.ietf.org/doc/draft-mcnally-envelope/) | Privacy-focused data structures |
-| **Shamir's Secret Sharing** | [BCR-2020-011 (SSKR)](https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-011-sskr.md) | Secret sharing with threshold reconstruction |
-| **SSKR (Sharded Secret Key Reconstruction)** | [BCR-2020-011](https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-011-sskr.md) | Hierarchical secret sharing with groups |
-| **Provenance Marks** | [White Paper](https://provemark.com) | Cryptographic authenticity marks |
-| **XIDs (Extensible Identifiers)** | [Design Paper](https://hackmd.io/@bc-community/SkdxVyY11g) | Decentralized digital identity |
-
 ## 👥 Credits
 
 This TypeScript implementation is a direct port from the work of [@ChristopherA](https://github.com/ChristopherA) and [@WolfMcNally](https://github.com/wolfmcnally).
 
 Consider visiting [Blockchain Commons](https://www.blockchaincommons.com/) to learn more about the organization and their mission.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the BSD-2-Clause-Patent License – see the [LICENSE](./LICENSE) file for details.

@@ -1,10 +1,21 @@
 {
   "name": "@bcts/known-values",
-  "version": "1.0.0-alpha.10",
+  "version": "1.0.0-alpha.11",
   "type": "module",
   "description": "Blockchain Commons Known Values for TypeScript",
   "license": "BSD-2-Clause-Patent",
-  "author": "Leonardo Custodio <leonardo@custodio.me>",
+  "contributors": [
+    {
+      "name": "Leonardo Custodio",
+      "email": "leonardo.custodio@parity.io",
+      "url": "https://github.com/leonardocustodio"
+    },
+    {
+      "name": "Karim Jedda",
+      "email": "karim@parity.io",
+      "url": "https://github.com/KarimJedda"
+    }
+  ],
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
