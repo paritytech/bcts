@@ -74,8 +74,8 @@ describe("meta pattern tests", () => {
     expect(matches(pattern, cbor(12))).toBe(false); // > 10
     expect(matches(pattern, cbor("hello"))).toBe(false); // not a number
 
-    // Display should use & operator (with parentheses in TS)
-    expect(display(pattern)).toBe("(>5 & <10)");
+    // Display uses & operator
+    expect(display(pattern)).toBe(">5 & <10");
   });
 
   it("test_or_pattern", () => {
@@ -96,8 +96,8 @@ describe("meta pattern tests", () => {
     expect(matches(pattern, cbor("world"))).toBe(false);
     expect(matches(pattern, cbor(false))).toBe(false);
 
-    // Display should use | operator (with parentheses in TS)
-    expect(display(pattern)).toBe('(5 | "hello" | true)');
+    // Display uses | operator
+    expect(display(pattern)).toBe('5 | "hello" | true');
   });
 
   it("test_not_pattern", () => {
@@ -158,8 +158,8 @@ describe("meta pattern tests", () => {
     expect(matches(pattern, cbor(12))).toBe(false);
     expect(matches(pattern, cbor("world"))).toBe(false);
 
-    // Display should properly nest the operators (with parentheses in TS)
-    expect(display(pattern)).toBe('((>5 & <10) | "hello")');
+    // Display shows nested operators
+    expect(display(pattern)).toBe('>5 & <10 | "hello"');
   });
 
   it("test_capture_pattern_basic", () => {
@@ -249,8 +249,8 @@ describe("meta pattern tests", () => {
     expect(matches(pattern, cbor([1, 2, 3]))).toBe(false);
     expect(matches(pattern, cbor({ key: 2 }))).toBe(false);
 
-    // Display shows `..pattern` syntax in TS
-    expect(display(pattern)).toBe("..42");
+    // Display shows search(pattern) syntax
+    expect(display(pattern)).toBe("search(42)");
   });
 
   it("test_search_pattern_text", () => {
@@ -270,8 +270,8 @@ describe("meta pattern tests", () => {
     // Test that it doesn't match when the text is not present
     expect(matches(pattern, cbor(["goodbye", "world"]))).toBe(false);
 
-    // Display shows `..pattern` syntax in TS
-    expect(display(pattern)).toBe('.."hello"');
+    // Display shows search(pattern) syntax
+    expect(display(pattern)).toBe('search("hello")');
   });
 
   it("test_search_pattern_any", () => {
@@ -298,8 +298,8 @@ describe("meta pattern tests", () => {
     const emptyMapPaths = getPaths(pattern, cbor({}));
     assertActualExpected(formatPathsStr(emptyMapPaths), "{}");
 
-    // Display shows `..pattern` syntax in TS
-    expect(display(pattern)).toBe("..*");
+    // Display shows search(pattern) syntax
+    expect(display(pattern)).toBe("search(*)");
   });
 
   it("test_search_pattern_edge_cases", () => {

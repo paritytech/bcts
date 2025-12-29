@@ -301,5 +301,5 @@ export const searchPatternDisplay = (
   pattern: SearchPattern,
   patternDisplay: (p: Pattern) => string,
 ): string => {
-  return `..${patternDisplay(pattern.pattern)}`;
+  return `search(${patternDisplay(pattern.pattern)})`;
 };

@@ -107,10 +107,11 @@ export const repeatPatternPaths = (pattern: RepeatPattern, haystack: Cbor): Path
 
 /**
  * Formats a RepeatPattern as a string.
+ * Always wraps the inner pattern in parentheses to match Rust behavior.
  */
 export const repeatPatternDisplay = (
   pattern: RepeatPattern,
   patternDisplay: (p: Pattern) => string,
 ): string => {
-  return `${patternDisplay(pattern.pattern)}${pattern.quantifier.toString()}`;
+  return `(${patternDisplay(pattern.pattern)})${pattern.quantifier.toString()}`;
 };

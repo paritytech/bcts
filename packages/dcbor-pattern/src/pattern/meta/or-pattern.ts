@@ -52,5 +52,5 @@ export const orPatternDisplay = (
   patternDisplay: (p: Pattern) => string,
 ): string => {
   const parts = pattern.patterns.map(patternDisplay);
-  return `(${parts.join(" | ")})`;
+  return parts.join(" | ");
 };

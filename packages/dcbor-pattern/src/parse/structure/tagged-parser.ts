@@ -15,7 +15,7 @@ import type { Pattern } from "../../pattern";
 import type { Result } from "../../error";
 import { Ok, Err } from "../../error";
 import { anyTagged } from "../../pattern";
-import { Tag } from "@bcts/tags";
+import { createTag } from "@bcts/dcbor";
 import {
   taggedPatternWithTag,
   taggedPatternWithName,
@@ -86,7 +86,7 @@ export const parseTagged = (lexer: Lexer): Result<Pattern> => {
   let taggedPattern;
   switch (tagSelector.type) {
     case "Value": {
-      const tag = new Tag(BigInt(tagSelector.value), "");
+      const tag = createTag(BigInt(tagSelector.value));
       taggedPattern = taggedPatternWithTag(tag, contentPattern);
       break;
     }

@@ -45,11 +45,26 @@ export const notPatternPaths = (pattern: NotPattern, haystack: Cbor): Path[] => 
 };
 
 /**
+ * Check if a pattern is complex for display purposes.
+ * Complex patterns need parentheses when inside a NOT pattern.
+ */
+const isComplex = (pattern: Pattern): boolean => {
+  if (pattern.kind === "Meta") {
+    // AND, OR, NOT, Sequence are complex
+    return ["And", "Or", "Not", "Sequence"].includes(pattern.pattern.type);
+  }
+  return false;
+};
+
+/**
  * Formats a NotPattern as a string.
  */
 export const notPatternDisplay = (
   pattern: NotPattern,
   patternDisplay: (p: Pattern) => string,
 ): string => {
+  if (isComplex(pattern.pattern)) {
+    return `!(${patternDisplay(pattern.pattern)})`;
+  }
   return `!${patternDisplay(pattern.pattern)}`;
 };

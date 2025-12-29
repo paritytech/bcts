@@ -294,7 +294,7 @@ import { searchPattern as searchPatternCreate } from "./meta/search-pattern";
 import { sequencePattern as sequencePatternCreate } from "./meta/sequence-pattern";
 import { repeatPattern as repeatPatternCreate } from "./meta/repeat-pattern";
 import { Quantifier } from "../quantifier";
-import type { Tag } from "@bcts/tags";
+import type { Tag } from "@bcts/dcbor";
 import type { CborDate } from "@bcts/dcbor";
 import type { Digest } from "@bcts/components";
 import { KnownValue } from "@bcts/known-values";
