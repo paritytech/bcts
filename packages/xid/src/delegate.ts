@@ -12,9 +12,11 @@ import { Reference, type XID } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { Shared } from "./shared";
 
-// Forward declaration - XIDDocument will be imported dynamically to avoid circular dependency
-// The actual XIDDocument type will be set when the module is loaded
-interface XIDDocumentType {
+/**
+ * Forward declaration interface for XIDDocument to avoid circular dependency.
+ * The actual XIDDocument class implements this interface.
+ */
+export interface XIDDocumentType {
   xid(): XID;
   intoEnvelope(): Envelope;
   clone(): XIDDocumentType;

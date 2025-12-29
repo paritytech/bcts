@@ -188,7 +188,7 @@ export class Sr25519PrivateKey {
    * will produce signatures verifiable by this library.
    *
    * @param message - The message to sign
-   * @param context - The signing context (only "substrate" is supported)
+   * @param _context - The signing context (only "substrate" is supported)
    * @returns 64-byte signature
    */
   signWithContext(message: Uint8Array, _context: Uint8Array): Uint8Array {

@@ -98,7 +98,7 @@ export class Sr25519PublicKey {
    *
    * @param signature - The 64-byte signature
    * @param message - The message that was signed
-   * @param context - The signing context (only "substrate" is supported)
+   * @param _context - The signing context (only "substrate" is supported)
    * @returns true if the signature is valid
    */
   verifyWithContext(signature: Uint8Array, message: Uint8Array, _context: Uint8Array): boolean {

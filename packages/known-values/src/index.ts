@@ -112,4 +112,5 @@ export {
   PARENT,
   CHILD,
   KNOWN_VALUES,
+  LazyKnownValues,
 } from "./known-values-registry";
