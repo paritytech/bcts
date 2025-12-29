@@ -29,7 +29,7 @@
     "@iconify-json/lucide": "^1.2.82",
     "@iconify-json/simple-icons": "^1.2.63",
     "@nuxt/eslint": "^1.12.1",
-    "@types/node": "^24.10.4",
+    "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
     "nuxt": "^4.2.2",
     "typescript": "^5.9.3",

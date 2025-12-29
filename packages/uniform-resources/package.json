@@ -61,14 +61,14 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^24.10.4",
+    "@types/node": "^25.0.3",
     "@types/pako": "^2.0.4",
     "eslint": "^9.39.2",
     "prettier": "^3.7.4",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.17.4",
+    "tsdown": "^0.18.3",
     "typedoc": "^0.28.15",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.16"
   }
 }

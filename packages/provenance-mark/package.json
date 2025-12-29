@@ -62,10 +62,10 @@
     "@typescript-eslint/parser": "^8.50.1",
     "eslint": "^9.39.2",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.17.4",
+    "tsdown": "^0.18.3",
     "typedoc": "^0.28.15",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.16"
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
