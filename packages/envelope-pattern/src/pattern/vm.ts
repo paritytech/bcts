@@ -213,13 +213,12 @@ function repeatPaths(
       const subPaths = _patternPaths(pat, e);
       for (const subPath of subPaths) {
         const last = subPath[subPath.length - 1];
-        if (last !== undefined && last.digest().hex() === e.digest().hex()) {
+        if (last?.digest().hex() === e.digest().hex()) {
           continue; // Avoid infinite loops
         }
         if (last !== undefined) {
           const combined = [...pth];
-          const subPathFirst = subPath[0];
-          if (subPathFirst !== undefined && subPathFirst.digest().hex() === e.digest().hex()) {
+          if (subPath[0]?.digest().hex() === e.digest().hex()) {
             combined.push(...subPath.slice(1));
           } else {
             combined.push(...subPath);
@@ -512,8 +511,7 @@ function runThread(prog: Program, start: Thread, out: [Path, Path[][]][]): boole
             produced = true;
             for (const foundPath of foundPaths) {
               const resultPath = [...th.path];
-              const first = foundPath[0];
-              if (first !== undefined && first.digest().hex() === th.env.digest().hex()) {
+              if (foundPath[0]?.digest().hex() === th.env.digest().hex()) {
                 resultPath.push(...foundPath.slice(1));
               } else {
                 resultPath.push(...foundPath);
@@ -594,13 +592,8 @@ function runThread(prog: Program, start: Thread, out: [Path, Path[][]][]): boole
           if (savedPath !== undefined) {
             const combined = [...savedPath];
             const savedLast = savedPath[savedPath.length - 1];
-            const currentFirst = th.path[0];
 
-            if (
-              savedLast !== undefined &&
-              currentFirst !== undefined &&
-              savedLast.digest().hex() === currentFirst.digest().hex()
-            ) {
+            if (savedLast?.digest().hex() === th.path[0]?.digest().hex() && savedLast !== undefined) {
               // Skip first element to avoid duplication
               combined.push(...th.path.slice(1));
             } else {

@@ -116,9 +116,7 @@ export class CBORPattern implements Matcher {
 
     // Skip first element if it matches the base envelope's CBOR content (compare by diagnostic)
     const skipFirst =
-      dcborPath.length > 0 &&
-      dcborPath[0] !== undefined &&
-      dcborPath[0].toDiagnostic() === baseCbor.toDiagnostic();
+      dcborPath.length > 0 && dcborPath[0]?.toDiagnostic() === baseCbor.toDiagnostic();
 
     const elementsToAdd = skipFirst ? dcborPath.slice(1) : dcborPath;
 
@@ -237,9 +235,7 @@ export class CBORPattern implements Matcher {
             const extendedPath = [...basePath];
             // Skip the first element only if it exactly matches our root CBOR
             const skipFirst =
-              dcborPath.length > 0 &&
-              dcborPath[0] !== undefined &&
-              dcborPath[0].toDiagnostic() === leafCbor.toDiagnostic();
+              dcborPath.length > 0 && dcborPath[0]?.toDiagnostic() === leafCbor.toDiagnostic();
 
             const elementsToAdd = skipFirst ? dcborPath.slice(1) : dcborPath;
 
