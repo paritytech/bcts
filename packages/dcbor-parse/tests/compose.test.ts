@@ -3,22 +3,27 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { diagnosticOpt } from "@bcts/dcbor";
 import { parseDcborItem } from "../src/parse";
 import { composeDcborArray, composeDcborMap } from "../src/compose";
+
+function toDiagnosticFlat(cbor: Parameters<typeof diagnosticOpt>[0]): string {
+  return diagnosticOpt(cbor, { flat: true });
+}
 
 function roundtripArray(array: readonly string[], expectedDiag: string): void {
   const result = composeDcborArray(array);
   expect(result.ok).toBe(true);
   if (result.ok) {
-    const diag = result.value.toDiagnosticFlat();
+    const diag = toDiagnosticFlat(result.value);
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
     const parseResult = parseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
-      expect(parseResult.value.toDiagnosticFlat()).toBe(
-        result.value.toDiagnosticFlat()
+      expect(toDiagnosticFlat(parseResult.value)).toBe(
+        toDiagnosticFlat(result.value)
       );
     }
   }
@@ -28,15 +33,15 @@ function roundtripMap(array: readonly string[], expectedDiag: string): void {
   const result = composeDcborMap(array);
   expect(result.ok).toBe(true);
   if (result.ok) {
-    const diag = result.value.toDiagnosticFlat();
+    const diag = toDiagnosticFlat(result.value);
     expect(diag).toBe(expectedDiag);
 
     // Parse it back and verify
     const parseResult = parseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
-      expect(parseResult.value.toDiagnosticFlat()).toBe(
-        result.value.toDiagnosticFlat()
+      expect(toDiagnosticFlat(parseResult.value)).toBe(
+        toDiagnosticFlat(result.value)
       );
     }
   }

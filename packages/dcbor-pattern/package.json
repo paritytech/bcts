@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor-pattern",
-  "version": "1.0.0-alpha.12",
+  "version": "1.0.0-alpha.13",
   "type": "module",
   "description": "Pattern matching for dCBOR (Deterministic CBOR) for TypeScript",
   "license": "BSD-2-Clause-Patent",
