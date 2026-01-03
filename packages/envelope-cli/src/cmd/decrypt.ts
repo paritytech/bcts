@@ -65,7 +65,7 @@ export class DecryptCommand implements ExecAsync {
       const password = await readPassword(
         "Decryption password:",
         this.args.password || undefined,
-        this.args.askpass
+        this.args.askpass,
       );
       const unlocked = envelope.unlockSubject(new TextEncoder().encode(password));
       return unlocked.urString();
@@ -85,7 +85,7 @@ export class DecryptCommand implements ExecAsync {
           return decrypted.urString();
         } catch {
           throw new Error(
-            "invalid recipient private key: must be ur:crypto-prvkeys or ur:crypto-prvkey-base"
+            "invalid recipient private key: must be ur:crypto-prvkeys or ur:crypto-prvkey-base",
           );
         }
       }
@@ -101,7 +101,7 @@ export class DecryptCommand implements ExecAsync {
     }
 
     throw new Error(
-      "missing unlock method: either a symmetric key, password, recipient's private key, or SSH identity must be provided"
+      "missing unlock method: either a symmetric key, password, recipient's private key, or SSH identity must be provided",
     );
   }
 }

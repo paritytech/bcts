@@ -8,14 +8,7 @@
 
 import { type CborDate, CborDate as DCborDate } from "@bcts/dcbor";
 import { UR } from "@bcts/uniform-resources";
-import {
-  type Span,
-  span,
-  parseError as PE,
-  type ParseResult,
-  ok,
-  err,
-} from "./error";
+import { type Span, span, parseError as PE, type ParseResult, ok, err } from "./error";
 
 /**
  * Token types produced by the lexer.
@@ -203,7 +196,11 @@ export class Lexer {
       }
 
       // Skip inline comments: /.../ (not preceded by another /)
-      if (ch === "/" && this.#position + 1 < this.#source.length && this.#source[this.#position + 1] !== "/") {
+      if (
+        ch === "/" &&
+        this.#position + 1 < this.#source.length &&
+        this.#source[this.#position + 1] !== "/"
+      ) {
         this.#position++; // Skip opening /
         while (this.#position < this.#source.length && this.#source[this.#position] !== "/") {
           this.#position++;
@@ -287,14 +284,22 @@ export class Lexer {
       const nextChar = this.#source[this.#position + numStr.length];
 
       // Check if this is a tag value (integer followed by parenthesis)
-      if (nextChar === "(" && !numStr.includes(".") && !numStr.includes("e") && !numStr.includes("E") && !numStr.startsWith("-")) {
+      if (
+        nextChar === "(" &&
+        !numStr.includes(".") &&
+        !numStr.includes("e") &&
+        !numStr.includes("E") &&
+        !numStr.startsWith("-")
+      ) {
         // It's a tag value
         this.#position += numStr.length + 1; // Include the (
         this.#tokenEnd = this.#position;
 
         const tagValue = parseInt(numStr, 10);
         if (!Number.isSafeInteger(tagValue) || tagValue < 0) {
-          return err(PE.invalidTagValue(numStr, span(this.#tokenStart, this.#tokenStart + numStr.length)));
+          return err(
+            PE.invalidTagValue(numStr, span(this.#tokenStart, this.#tokenStart + numStr.length)),
+          );
         }
 
         return ok(token.tagValue(tagValue));

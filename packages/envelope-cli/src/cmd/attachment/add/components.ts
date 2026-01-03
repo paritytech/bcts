@@ -31,9 +31,7 @@ export class AddComponentsCommand implements Exec {
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
     const payload = readEnvelope(this.args.payload);
-    return envelope
-      .addAttachment(payload, this.args.vendor, this.args.conformsTo)
-      .urString();
+    return envelope.addAttachment(payload, this.args.vendor, this.args.conformsTo).urString();
   }
 }
 

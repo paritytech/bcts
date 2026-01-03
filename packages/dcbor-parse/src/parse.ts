@@ -193,7 +193,9 @@ function parseItemToken(token: Token, lexer: Lexer): ParseResult<Cbor> {
         return ok(knownValue.taggedCbor());
       }
       const tokenSpan = lexer.span();
-      return err(PE.unknownKnownValueName(token.value, span(tokenSpan.start + 1, tokenSpan.end - 1)));
+      return err(
+        PE.unknownKnownValueName(token.value, span(tokenSpan.start + 1, tokenSpan.end - 1)),
+      );
     }
 
     case "Unit":
@@ -241,7 +243,9 @@ function parseUr(ur: UR, tokenSpan: Span): ParseResult<Cbor> {
     return ok(cbor({ tag, value: ur.cbor() }));
   }
 
-  return err(PE.unknownUrType(urType, span(tokenSpan.start + 3, tokenSpan.start + 3 + urType.length)));
+  return err(
+    PE.unknownUrType(urType, span(tokenSpan.start + 3, tokenSpan.start + 3 + urType.length)),
+  );
 }
 
 function parseNumberTag(tagValue: number, lexer: Lexer): ParseResult<Cbor> {

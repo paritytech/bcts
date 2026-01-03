@@ -4,14 +4,7 @@
  * Equivalent to the format-related code in Rust's main.rs
  */
 
-import {
-  type Cbor,
-  type Result,
-  diagnosticOpt,
-  hexOpt,
-  bytesToHex,
-  cborData,
-} from "@bcts/dcbor";
+import { type Cbor, type Result, diagnosticOpt, hexOpt, bytesToHex, cborData } from "@bcts/dcbor";
 
 /**
  * Input format options
@@ -30,7 +23,7 @@ export type OutputFormat = "diag" | "hex" | "bin" | "none";
 export function formatOutput(
   cbor: Cbor,
   outFormat: OutputFormat,
-  annotate: boolean
+  annotate: boolean,
 ): Result<string, Error> {
   try {
     switch (outFormat) {

@@ -6,11 +6,7 @@
 import { type Cbor, type Result, decodeCbor, hexToBytes } from "@bcts/dcbor";
 import { parseDcborItem } from "@bcts/dcbor-parse";
 import type { Exec } from "./index.js";
-import {
-  type InputFormat,
-  type OutputFormat,
-  formatOutput,
-} from "../format.js";
+import { type InputFormat, type OutputFormat, formatOutput } from "../format.js";
 
 /**
  * Command arguments for default parsing behavior
@@ -32,7 +28,7 @@ export interface DefaultCommandArgs {
 export function execDefaultWithReader(
   args: DefaultCommandArgs,
   readString: () => string,
-  readData: () => Uint8Array
+  readData: () => Uint8Array,
 ): Result<string, Error> {
   let cbor: Cbor;
 
@@ -90,7 +86,7 @@ export function execDefaultWithReader(
  */
 export function execDefault(
   args: DefaultCommandArgs,
-  stdinContent?: string
+  stdinContent?: string,
 ): Result<string, Error> {
   return execDefaultWithReader(
     args,
@@ -100,17 +96,14 @@ export function execDefault(
         return new TextEncoder().encode(stdinContent);
       }
       return new Uint8Array(0);
-    }
+    },
   );
 }
 
 /**
  * Create an Exec implementation for default command
  */
-export function createDefaultCommand(
-  args: DefaultCommandArgs,
-  stdinContent?: string
-): Exec {
+export function createDefaultCommand(args: DefaultCommandArgs, stdinContent?: string): Exec {
   return {
     exec: () => execDefault(args, stdinContent),
   };

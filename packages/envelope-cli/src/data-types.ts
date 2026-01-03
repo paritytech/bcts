@@ -51,7 +51,7 @@ export enum DataType {
 export function parseDataTypeToEnvelope(
   dataType: DataType,
   value: string | undefined,
-  urCborTagValue?: number | bigint
+  urCborTagValue?: number | bigint,
 ): Envelope {
   if (value === undefined || value === "") {
     throw new Error("No value provided");
@@ -284,7 +284,7 @@ export function parseUrToCbor(s: string, cborTagValue?: number | bigint): Cbor {
   }
 
   throw new Error(
-    `Unknown UR type: '${ur.urTypeStr()}'. Use --ur-tag to specify the CBOR tag value.`
+    `Unknown UR type: '${ur.urTypeStr()}'. Use --ur-tag to specify the CBOR tag value.`,
   );
 }
 

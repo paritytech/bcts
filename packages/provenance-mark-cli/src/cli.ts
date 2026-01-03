@@ -18,11 +18,7 @@ program
   .description("Create a new provenance mark chain")
   .argument("<dir>", "Directory to create the chain in")
   .option("--seed <base64>", "Seed for the chain (default: random)")
-  .option(
-    "--resolution <level>",
-    "Resolution: low, medium, quartile, high",
-    "quartile"
-  )
+  .option("--resolution <level>", "Resolution: low, medium, quartile, high", "quartile")
   .option("--comment <text>", "Comment for genesis mark", "Genesis mark.")
   .option("--quiet", "Suppress status messages")
   .action((_dir, _options) => {

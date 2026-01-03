@@ -29,16 +29,8 @@ export interface PredObjArgsLike {
  * Create an assertion envelope from predicate/object arguments.
  */
 export function assertionEnvelope(args: PredObjArgsLike): Envelope {
-  const predicate = parseDataTypeToEnvelope(
-    args.predType,
-    args.predValue,
-    args.predTag
-  );
-  const object = parseDataTypeToEnvelope(
-    args.objType,
-    args.objValue,
-    args.objTag
-  );
+  const predicate = parseDataTypeToEnvelope(args.predType, args.predValue, args.predTag);
+  const object = parseDataTypeToEnvelope(args.objType, args.objValue, args.objTag);
   return Envelope.newAssertion(predicate, object);
 }
 

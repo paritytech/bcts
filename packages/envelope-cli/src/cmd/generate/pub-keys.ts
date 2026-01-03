@@ -62,7 +62,7 @@ export class PubKeysCommand implements Exec {
         sshKey.setComment(this.args.comment);
         publicKeys = PublicKeys.new(
           SigningPublicKey.ssh(sshKey),
-          publicKeys.encapsulationPublicKey()
+          publicKeys.encapsulationPublicKey(),
         );
       }
 
@@ -88,9 +88,7 @@ export class PubKeysCommand implements Exec {
       // Not SigningPrivateKey
     }
 
-    throw new Error(
-      "invalid private key: must be ur:crypto-prvkeys or ur:signing-private-key"
-    );
+    throw new Error("invalid private key: must be ur:crypto-prvkeys or ur:signing-private-key");
   }
 }
 

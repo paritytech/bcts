@@ -8,10 +8,7 @@ import { VERSION } from "./index.js";
 
 const program = new Command();
 
-program
-  .name("envelope")
-  .description("Gordian Envelope command line tool")
-  .version(VERSION);
+program.name("envelope").description("Gordian Envelope command line tool").version(VERSION);
 
 program
   .command("subject")

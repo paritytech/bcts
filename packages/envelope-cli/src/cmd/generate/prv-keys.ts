@@ -89,12 +89,7 @@ function seedFromEnvelope(input: string): Seed {
   const note = envelope.extractOptionalObjectForPredicate<string>(NOTE) ?? "";
   const creationDate = envelope.extractOptionalObjectForPredicate<CborDate>(DATE);
 
-  return Seed.newOpt(
-    data,
-    name || undefined,
-    note || undefined,
-    creationDate
-  );
+  return Seed.newOpt(data, name || undefined, note || undefined, creationDate);
 }
 
 /**
@@ -104,9 +99,7 @@ export class PrvKeysCommand implements Exec {
   constructor(private args: CommandArgs) {}
 
   exec(): string {
-    const privateKeyBase = this.args.input
-      ? parseInput(this.args.input)
-      : PrivateKeyBase.new();
+    const privateKeyBase = this.args.input ? parseInput(this.args.input) : PrivateKeyBase.new();
 
     let privateKeys: PrivateKeys;
     switch (this.args.signing) {
@@ -119,7 +112,7 @@ export class PrvKeysCommand implements Exec {
       case SigningScheme.Ed25519:
         privateKeys = PrivateKeys.withKeys(
           privateKeyBase.ed25519SigningPrivateKey(),
-          EncapsulationPrivateKey.x25519(privateKeyBase.x25519PrivateKey())
+          EncapsulationPrivateKey.x25519(privateKeyBase.x25519PrivateKey()),
         );
         break;
       case SigningScheme.SshEd25519:

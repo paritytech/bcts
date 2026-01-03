@@ -51,8 +51,7 @@ function formatPatternError(error: PatternParseError, patternStr: string): strin
     case "UnrecognizedToken": {
       const start = Math.min(error.span.start, patternStr.length);
       const end = Math.min(error.span.end, patternStr.length);
-      const errorText =
-        start < patternStr.length ? patternStr.slice(start, end) : "<end of input>";
+      const errorText = start < patternStr.length ? patternStr.slice(start, end) : "<end of input>";
       return `Failed to parse pattern at position ${start}..${end}: unrecognized token '${errorText}'\nPattern: ${patternStr}\n         ${" ".repeat(start)}^`;
     }
 
@@ -74,10 +73,7 @@ function formatPatternError(error: PatternParseError, patternStr: string): strin
 /**
  * Execute match command
  */
-export function execMatch(
-  args: MatchCommandArgs,
-  stdinContent?: string
-): Result<string, Error> {
+export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result<string, Error> {
   // Read input data
   let inputData: Uint8Array;
   if (args.input !== undefined) {
@@ -192,10 +188,7 @@ export function execMatch(
 /**
  * Create an Exec implementation for match command
  */
-export function createMatchCommand(
-  args: MatchCommandArgs,
-  stdinContent?: string
-): Exec {
+export function createMatchCommand(args: MatchCommandArgs, stdinContent?: string): Exec {
   return {
     exec: () => execMatch(args, stdinContent),
   };

@@ -30,7 +30,7 @@ export class FindCommand implements Exec {
     const envelope = readEnvelope(this.args.envelope);
     const attachments = envelope.attachmentsWithVendorAndConformsTo(
       this.args.vendor,
-      this.args.conformsTo
+      this.args.conformsTo,
     );
     return attachments.map((a) => a.urString()).join("\n");
   }

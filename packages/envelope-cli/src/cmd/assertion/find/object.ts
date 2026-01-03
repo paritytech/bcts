@@ -33,7 +33,7 @@ export class FindObjectCommand implements Exec {
     const object = parseDataTypeToEnvelope(
       this.args.subjectType,
       this.args.subjectValue,
-      this.args.urTag
+      this.args.urTag,
     );
     const assertions = envelope.assertions();
     const result = assertions

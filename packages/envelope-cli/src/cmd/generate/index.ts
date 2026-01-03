@@ -14,5 +14,11 @@ export * as pubKeys from "./pub-keys.js";
 export * as seed from "./seed.js";
 
 // Re-export common types
-export { SigningScheme as KeypairsSigningScheme, EncryptionScheme as KeypairsEncryptionScheme } from "./keypairs.js";
-export { SigningScheme as PrvKeysSigningScheme, EncryptionScheme as PrvKeysEncryptionScheme } from "./prv-keys.js";
+export {
+  SigningScheme as KeypairsSigningScheme,
+  EncryptionScheme as KeypairsEncryptionScheme,
+} from "./keypairs.js";
+export {
+  SigningScheme as PrvKeysSigningScheme,
+  EncryptionScheme as PrvKeysEncryptionScheme,
+} from "./prv-keys.js";

@@ -28,11 +28,7 @@ export class CreateCommand implements Exec {
 
   exec(): string {
     const payload = readEnvelope(this.args.payload);
-    const assertion = Envelope.newAttachment(
-      payload,
-      this.args.vendor,
-      this.args.conformsTo
-    );
+    const assertion = Envelope.newAttachment(payload, this.args.vendor, this.args.conformsTo);
     return assertion.urString();
   }
 }

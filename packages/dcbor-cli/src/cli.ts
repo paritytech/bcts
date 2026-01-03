@@ -25,85 +25,86 @@ program
   .addOption(
     new Option("-i, --in <format>", "The input format")
       .choices(["diag", "hex", "bin"])
-      .default("diag")
+      .default("diag"),
   )
   .addOption(
     new Option("-o, --out <format>", "The output format")
       .choices(["diag", "hex", "bin", "none"])
-      .default("hex")
+      .default("hex"),
   )
-  .option(
-    "-a, --annotate",
-    "Output diagnostic notation or hexadecimal with annotations"
-  )
-  .action(async (input: string | undefined, options: {
-    in: InputFormat;
-    out: OutputFormat;
-    annotate?: boolean;
-  }) => {
-    // Read stdin if needed
-    let stdinContent: string | undefined;
-    if (input === undefined && options.in !== "bin") {
-      stdinContent = await readStdin();
-    } else if (options.in === "bin") {
-      stdinContent = await readStdin();
-    }
+  .option("-a, --annotate", "Output diagnostic notation or hexadecimal with annotations")
+  .action(
+    async (
+      input: string | undefined,
+      options: {
+        in: InputFormat;
+        out: OutputFormat;
+        annotate?: boolean;
+      },
+    ) => {
+      // Read stdin if needed
+      let stdinContent: string | undefined;
+      if (input === undefined && options.in !== "bin") {
+        stdinContent = await readStdin();
+      } else if (options.in === "bin") {
+        stdinContent = await readStdin();
+      }
 
-    const command: CmdType = {
-      type: "default",
-      input,
-      in: options.in,
-      out: options.out,
-      annotate: options.annotate ?? false,
-    };
+      const command: CmdType = {
+        type: "default",
+        input,
+        in: options.in,
+        out: options.out,
+        annotate: options.annotate ?? false,
+      };
 
-    const result = run({ command, stdinContent });
+      const result = run({ command, stdinContent });
 
-    if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
-      process.exit(1);
-    }
+      if (!result.ok) {
+        console.error(`Error: ${result.error.message}`);
+        process.exit(1);
+      }
 
-    writeOutput(result.value.output, result.value.isBinary);
-  });
+      writeOutput(result.value.output, result.value.isBinary);
+    },
+  );
 
 // Array subcommand
 program
   .command("array")
   .description("Compose a dCBOR array from the provided elements")
-  .argument(
-    "<elements...>",
-    "Each element is parsed as a dCBOR item in diagnostic notation"
-  )
+  .argument("<elements...>", "Each element is parsed as a dCBOR item in diagnostic notation")
   .addOption(
     new Option("-o, --out <format>", "The output format")
       .choices(["diag", "hex", "bin", "none"])
-      .default("hex")
+      .default("hex"),
   )
-  .option(
-    "-a, --annotate",
-    "Output diagnostic notation or hexadecimal with annotations"
-  )
-  .action((elements: string[], options: {
-    out: OutputFormat;
-    annotate?: boolean;
-  }) => {
-    const command: CmdType = {
-      type: "array",
-      elements,
-      out: options.out,
-      annotate: options.annotate ?? false,
-    };
+  .option("-a, --annotate", "Output diagnostic notation or hexadecimal with annotations")
+  .action(
+    (
+      elements: string[],
+      options: {
+        out: OutputFormat;
+        annotate?: boolean;
+      },
+    ) => {
+      const command: CmdType = {
+        type: "array",
+        elements,
+        out: options.out,
+        annotate: options.annotate ?? false,
+      };
 
-    const result = run({ command });
+      const result = run({ command });
 
-    if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
-      process.exit(1);
-    }
+      if (!result.ok) {
+        console.error(`Error: ${result.error.message}`);
+        process.exit(1);
+      }
 
-    writeOutput(result.value.output, result.value.isBinary);
-  });
+      writeOutput(result.value.output, result.value.isBinary);
+    },
+  );
 
 // Map subcommand
 program
@@ -111,37 +112,39 @@ program
   .description("Compose a dCBOR map from the provided keys and values")
   .argument(
     "<pairs...>",
-    "Each alternating key and value is parsed as a dCBOR item in diagnostic notation"
+    "Each alternating key and value is parsed as a dCBOR item in diagnostic notation",
   )
   .addOption(
     new Option("-o, --out <format>", "The output format")
       .choices(["diag", "hex", "bin", "none"])
-      .default("hex")
+      .default("hex"),
   )
-  .option(
-    "-a, --annotate",
-    "Output diagnostic notation or hexadecimal with annotations"
-  )
-  .action((pairs: string[], options: {
-    out: OutputFormat;
-    annotate?: boolean;
-  }) => {
-    const command: CmdType = {
-      type: "map",
-      kvPairs: pairs,
-      out: options.out,
-      annotate: options.annotate ?? false,
-    };
+  .option("-a, --annotate", "Output diagnostic notation or hexadecimal with annotations")
+  .action(
+    (
+      pairs: string[],
+      options: {
+        out: OutputFormat;
+        annotate?: boolean;
+      },
+    ) => {
+      const command: CmdType = {
+        type: "map",
+        kvPairs: pairs,
+        out: options.out,
+        annotate: options.annotate ?? false,
+      };
 
-    const result = run({ command });
+      const result = run({ command });
 
-    if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
-      process.exit(1);
-    }
+      if (!result.ok) {
+        console.error(`Error: ${result.error.message}`);
+        process.exit(1);
+      }
 
-    writeOutput(result.value.output, result.value.isBinary);
-  });
+      writeOutput(result.value.output, result.value.isBinary);
+    },
+  );
 
 // Match subcommand
 program
@@ -150,54 +153,58 @@ program
   .argument("<pattern>", "The pattern to match against")
   .argument("[input]", "dCBOR input (hex, diag, or binary). If not provided, reads from stdin")
   .addOption(
-    new Option("-i, --in <format>", "Input format")
-      .choices(["diag", "hex", "bin"])
-      .default("diag")
+    new Option("-i, --in <format>", "Input format").choices(["diag", "hex", "bin"]).default("diag"),
   )
   .addOption(
     new Option("-o, --out <format>", "Output format")
       .choices(["paths", "diag", "hex", "bin"])
-      .default("paths")
+      .default("paths"),
   )
   .option("--no-indent", "Disable indentation of path elements")
   .option("--last-only", "Show only the last element of each path")
   .option("--annotate", "Add annotations to output")
   .option("--captures", "Include capture information in output")
-  .action(async (pattern: string, input: string | undefined, options: {
-    in: InputFormat;
-    out: MatchOutputFormat;
-    indent: boolean;
-    lastOnly?: boolean;
-    annotate?: boolean;
-    captures?: boolean;
-  }) => {
-    // Read stdin if needed
-    let stdinContent: string | undefined;
-    if (input === undefined) {
-      stdinContent = await readStdin();
-    }
+  .action(
+    async (
+      pattern: string,
+      input: string | undefined,
+      options: {
+        in: InputFormat;
+        out: MatchOutputFormat;
+        indent: boolean;
+        lastOnly?: boolean;
+        annotate?: boolean;
+        captures?: boolean;
+      },
+    ) => {
+      // Read stdin if needed
+      let stdinContent: string | undefined;
+      if (input === undefined) {
+        stdinContent = await readStdin();
+      }
 
-    const command: CmdType = {
-      type: "match",
-      pattern,
-      input,
-      in: options.in,
-      out: options.out,
-      noIndent: !options.indent,
-      lastOnly: options.lastOnly ?? false,
-      annotate: options.annotate ?? false,
-      captures: options.captures ?? false,
-    };
+      const command: CmdType = {
+        type: "match",
+        pattern,
+        input,
+        in: options.in,
+        out: options.out,
+        noIndent: !options.indent,
+        lastOnly: options.lastOnly ?? false,
+        annotate: options.annotate ?? false,
+        captures: options.captures ?? false,
+      };
 
-    const result = run({ command, stdinContent });
+      const result = run({ command, stdinContent });
 
-    if (!result.ok) {
-      console.error(`Error: ${result.error.message}`);
-      process.exit(1);
-    }
+      if (!result.ok) {
+        console.error(`Error: ${result.error.message}`);
+        process.exit(1);
+      }
 
-    writeOutput(result.value.output, result.value.isBinary);
-  });
+      writeOutput(result.value.output, result.value.isBinary);
+    },
+  );
 
 /**
  * Read from stdin

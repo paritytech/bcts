@@ -35,7 +35,7 @@ terminal.`;
 export async function readPassword(
   prompt: string,
   passwordOverride?: string,
-  useAskpass = false
+  useAskpass = false,
 ): Promise<string> {
   // 1. If the caller already supplied a password, trust it and return.
   if (passwordOverride !== undefined) {
@@ -234,6 +234,35 @@ export function readStdinLine(): string {
 }
 
 /**
+ * Read all stdin as bytes synchronously.
+ */
+export function readStdinBytes(): Uint8Array {
+  const BUFSIZE = 256;
+  const buf = Buffer.alloc(BUFSIZE);
+  const chunks: Buffer[] = [];
+
+  try {
+    const fd = fs.openSync(0, "r"); // stdin
+
+    while (true) {
+      try {
+        const bytesRead = fs.readSync(fd, buf, 0, BUFSIZE, null);
+        if (bytesRead === 0) break;
+        chunks.push(Buffer.from(buf.subarray(0, bytesRead)));
+      } catch {
+        break;
+      }
+    }
+
+    fs.closeSync(fd);
+  } catch {
+    // Fallback: stdin might not be readable
+  }
+
+  return new Uint8Array(Buffer.concat(chunks));
+}
+
+/**
  * Convert a UR to an Envelope.
  * Handles envelope URs, tagged CBOR, and XID URs.
  */
@@ -318,19 +347,20 @@ export function parseDigestFromUr(target: string): Digest {
 
 /**
  * Parse multiple digests from a space-separated string.
+ * Returns a Set of Digest objects.
  */
-export function parseDigests(target: string): Set<string> {
+export function parseDigests(target: string): Set<Digest> {
   const trimmed = target.trim();
   if (!trimmed) {
     return new Set();
   }
 
   const digestStrings = trimmed.split(/\s+/);
-  const digests = new Set<string>();
+  const digests = new Set<Digest>();
 
   for (const s of digestStrings) {
     const digest = parseDigestFromUr(s);
-    digests.add(digest.urString());
+    digests.add(digest);
   }
 
   return digests;

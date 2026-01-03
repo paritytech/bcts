@@ -5,13 +5,7 @@
 
 import { registerTags } from "@bcts/dcbor";
 import type { InputFormat, OutputFormat } from "./format.js";
-import {
-  execArray,
-  execDefault,
-  execMap,
-  execMatch,
-  type MatchOutputFormat,
-} from "./cmd/index.js";
+import { execArray, execDefault, execMap, execMatch, type MatchOutputFormat } from "./cmd/index.js";
 
 /**
  * Command type discriminator
@@ -52,7 +46,9 @@ export interface RunResult {
  * Main execution function
  * Equivalent to Rust's run<I, T, R, W> function
  */
-export function run(options: RunOptions): { ok: true; value: RunResult } | { ok: false; error: Error } {
+export function run(
+  options: RunOptions,
+): { ok: true; value: RunResult } | { ok: false; error: Error } {
   // Register BC components tags
   registerTags();
 
@@ -102,7 +98,7 @@ export function run(options: RunOptions): { ok: true; value: RunResult } | { ok:
           annotate: command.annotate,
           captures: command.captures,
         },
-        stdinContent
+        stdinContent,
       );
       if (!result.ok) {
         return result;
@@ -120,7 +116,7 @@ export function run(options: RunOptions): { ok: true; value: RunResult } | { ok:
           out: command.out,
           annotate: command.annotate,
         },
-        stdinContent
+        stdinContent,
       );
       if (!result.ok) {
         return result;

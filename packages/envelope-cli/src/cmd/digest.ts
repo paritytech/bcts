@@ -62,18 +62,14 @@ export class DigestCommand implements Exec {
       case Depth.Shallow: {
         const shallowDigests = envelope.shallowDigests();
         digests = new Set(
-          Array.from(shallowDigests).map((d: Digest) =>
-            this.args.hex ? d.hex() : d.urString()
-          )
+          Array.from(shallowDigests).map((d: Digest) => (this.args.hex ? d.hex() : d.urString())),
         );
         break;
       }
       case Depth.Deep: {
         const deepDigests = envelope.deepDigests();
         digests = new Set(
-          Array.from(deepDigests).map((d: Digest) =>
-            this.args.hex ? d.hex() : d.urString()
-          )
+          Array.from(deepDigests).map((d: Digest) => (this.args.hex ? d.hex() : d.urString())),
         );
         break;
       }

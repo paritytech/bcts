@@ -125,7 +125,8 @@ export class SignCommand implements Exec {
         ? {
             type: "ssh" as const,
             namespace: this.args.namespace,
-            hashAlg: this.args.hashType === HashType.Sha512 ? "sha512" as const : "sha256" as const,
+            hashAlg:
+              this.args.hashType === HashType.Sha512 ? ("sha512" as const) : ("sha256" as const),
           }
         : undefined;
       signers.push({ signer: key, options });
@@ -144,9 +145,7 @@ export class SignCommand implements Exec {
         throw new Error("can only add a note on a single signature");
       }
       const metadata = SignatureMetadata.new().withAssertion(NOTE, this.args.note);
-      return envelope
-        .addSignatureOpt(signers[0].signer, signers[0].options, metadata)
-        .urString();
+      return envelope.addSignatureOpt(signers[0].signer, signers[0].options, metadata).urString();
     }
 
     // Add all signatures

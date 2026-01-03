@@ -22,9 +22,7 @@ function roundtripArray(array: readonly string[], expectedDiag: string): void {
     const parseResult = parseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
-      expect(toDiagnosticFlat(parseResult.value)).toBe(
-        toDiagnosticFlat(result.value)
-      );
+      expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
     }
   }
 }
@@ -40,9 +38,7 @@ function roundtripMap(array: readonly string[], expectedDiag: string): void {
     const parseResult = parseDcborItem(diag);
     expect(parseResult.ok).toBe(true);
     if (parseResult.ok) {
-      expect(toDiagnosticFlat(parseResult.value)).toBe(
-        toDiagnosticFlat(result.value)
-      );
+      expect(toDiagnosticFlat(parseResult.value)).toBe(toDiagnosticFlat(result.value));
     }
   }
 }
@@ -62,10 +58,7 @@ describe("compose", () => {
     });
 
     it("should compose mixed types array", () => {
-      roundtripArray(
-        ["true", "false", "null", "3.14"],
-        "[true, false, null, 3.14]"
-      );
+      roundtripArray(["true", "false", "null", "3.14"], "[true, false, null, 3.14]");
     });
 
     it("should compose nested arrays", () => {
@@ -94,16 +87,13 @@ describe("compose", () => {
     });
 
     it("should compose mixed key-value map", () => {
-      roundtripMap(
-        ["true", "false", "null", "null"],
-        "{true: false, null: null}"
-      );
+      roundtripMap(["true", "false", "null", "null"], "{true: false, null: null}");
     });
 
     it("should compose string key-value map", () => {
       roundtripMap(
         ['"key1"', '"value1"', '"key2"', '"value2"'],
-        '{"key1": "value1", "key2": "value2"}'
+        '{"key1": "value1", "key2": "value2"}',
       );
     });
 

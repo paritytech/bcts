@@ -98,13 +98,13 @@ export class EncryptCommand implements ExecAsync {
       const password = await readPassword(
         "Encryption password:",
         this.args.password || undefined,
-        this.args.askpass
+        this.args.askpass,
       );
       const derivationMethod = toKeyDerivationMethod(this.args.passwordDerivation);
       encryptedEnvelope = encryptedEnvelope.addSecret(
         derivationMethod,
         new TextEncoder().encode(password),
-        contentKey
+        contentKey,
       );
     }
 
@@ -113,7 +113,7 @@ export class EncryptCommand implements ExecAsync {
       encryptedEnvelope = encryptedEnvelope.addSecret(
         KeyDerivationMethod.SSHAgent,
         new TextEncoder().encode(this.args.sshId),
-        contentKey
+        contentKey,
       );
     }
 

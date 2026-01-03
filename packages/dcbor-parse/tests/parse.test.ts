@@ -76,9 +76,7 @@ describe("parse", () => {
 
   describe("byte strings", () => {
     it("should parse hex byte strings", () => {
-      const bytes = new Uint8Array([
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-      ]);
+      const bytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
       const cborBytes = cbor(bytes);
       roundtrip(cborBytes);
 
@@ -92,9 +90,7 @@ describe("parse", () => {
     });
 
     it("should parse base64 byte strings", () => {
-      const bytes = new Uint8Array([
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-      ]);
+      const bytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
       const cborBytes = cbor(bytes);
 
       const base64 = base64Diagnostic(bytes);
@@ -148,9 +144,7 @@ describe("parse", () => {
     });
 
     it("should parse nested arrays", () => {
-      roundtrip(
-        cbor([cbor([cbor(1), cbor(2)]), cbor([cbor(3), cbor(4)])])
-      );
+      roundtrip(cbor([cbor([cbor(1), cbor(2)]), cbor([cbor(3), cbor(4)])]));
     });
   });
 
@@ -228,10 +222,7 @@ describe("parse", () => {
   });
 
   describe("errors", () => {
-    function checkError(
-      source: string,
-      expectedType: ParseError["type"]
-    ): void {
+    function checkError(source: string, expectedType: ParseError["type"]): void {
       const result = parseDcborItem(source);
       expect(result.ok).toBe(false);
       if (!result.ok) {
