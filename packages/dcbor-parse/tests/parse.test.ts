@@ -35,11 +35,8 @@ function hexDiagnostic(bytes: Uint8Array): string {
 }
 
 function base64Diagnostic(bytes: Uint8Array): string {
-  // Use btoa for base64 encoding
-  const binary = Array.from(bytes)
-    .map((b) => String.fromCharCode(b))
-    .join("");
-  return `b64'${btoa(binary)}'`;
+  // Use Buffer for base64 encoding (works in Node.js/Bun)
+  return `b64'${Buffer.from(bytes).toString("base64")}'`;
 }
 
 describe("parse", () => {

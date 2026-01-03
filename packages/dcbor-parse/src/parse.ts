@@ -12,7 +12,7 @@ import type { UR } from "@bcts/uniform-resources";
 import {
   type Span,
   span,
-  ParseError as PE,
+  parseError as PE,
   type ParseResult,
   ok,
   err,
@@ -205,7 +205,13 @@ function parseItemToken(token: Token, lexer: Lexer): ParseResult<Cbor> {
     case "BraceOpen":
       return parseMap(lexer);
 
-    default:
+    // Syntactic tokens that cannot start an item
+    case "BraceClose":
+    case "BracketClose":
+    case "ParenthesisOpen":
+    case "ParenthesisClose":
+    case "Colon":
+    case "Comma":
       return err(PE.unexpectedToken(token, lexer.span()));
   }
 }

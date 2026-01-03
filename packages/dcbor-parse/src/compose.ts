@@ -20,8 +20,8 @@ export type ComposeError =
   | { readonly type: "DuplicateMapKey" }
   | { readonly type: "ParseError"; readonly error: ParseError };
 
-// ComposeError constructors
-export const ComposeError = {
+// ComposeError constructors (lowercase to differentiate from the type)
+export const composeError = {
   oddMapLength(): ComposeError {
     return { type: "OddMapLength" };
   },

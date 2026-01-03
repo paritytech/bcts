@@ -11,7 +11,7 @@ import { UR } from "@bcts/uniform-resources";
 import {
   type Span,
   span,
-  ParseError as PE,
+  parseError as PE,
   type ParseResult,
   ok,
   err,
@@ -526,11 +526,11 @@ export class Lexer {
       ",": token.comma(),
     };
 
-    const token = punctuation[ch];
-    if (token !== undefined) {
+    const matched = punctuation[ch];
+    if (matched !== undefined) {
       this.#position++;
       this.#tokenEnd = this.#position;
-      return ok(token);
+      return ok(matched);
     }
 
     return undefined;
