@@ -79,13 +79,16 @@
   },
   "dependencies": {
     "@bcts/components": "workspace:*",
+    "@bcts/crypto": "workspace:*",
     "@bcts/dcbor": "workspace:*",
     "@bcts/envelope": "workspace:*",
     "@bcts/envelope-pattern": "workspace:*",
-    "@bcts/uniform-resources": "workspace:*",
-    "@bcts/rand": "workspace:*",
-    "@bcts/xid": "workspace:*",
+    "@bcts/known-values": "workspace:*",
     "@bcts/provenance-mark": "workspace:*",
-    "commander": "^13.1.0"
+    "@bcts/rand": "workspace:*",
+    "@bcts/tags": "workspace:*",
+    "@bcts/uniform-resources": "workspace:*",
+    "@bcts/xid": "workspace:*",
+    "commander": "^14.0.0"
   }
 }
