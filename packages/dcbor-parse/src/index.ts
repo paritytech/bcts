@@ -72,7 +72,7 @@ export {
 // Compose functions
 export {
   type ComposeError,
-  ComposeError as ComposeErrorConstructor,
+  composeError,
   type ComposeResult,
   composeOk,
   composeErr,

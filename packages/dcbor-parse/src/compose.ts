@@ -95,7 +95,7 @@ export function composeDcborArray(array: readonly string[]): ComposeResult<Cbor>
   for (const item of array) {
     const parseResult = parseDcborItem(item);
     if (!parseResult.ok) {
-      return composeErr(ComposeError.parseError(parseResult.error));
+      return composeErr(composeError.parseError(parseResult.error));
     }
     result.push(parseResult.value);
   }
@@ -125,7 +125,7 @@ export function composeDcborArray(array: readonly string[]): ComposeResult<Cbor>
  */
 export function composeDcborMap(array: readonly string[]): ComposeResult<Cbor> {
   if (array.length % 2 !== 0) {
-    return composeErr(ComposeError.oddMapLength());
+    return composeErr(composeError.oddMapLength());
   }
 
   const map = new CborMap();
@@ -136,17 +136,17 @@ export function composeDcborMap(array: readonly string[]): ComposeResult<Cbor> {
 
     const keyResult = parseDcborItem(keyStr);
     if (!keyResult.ok) {
-      return composeErr(ComposeError.parseError(keyResult.error));
+      return composeErr(composeError.parseError(keyResult.error));
     }
 
     const valueResult = parseDcborItem(valueStr);
     if (!valueResult.ok) {
-      return composeErr(ComposeError.parseError(valueResult.error));
+      return composeErr(composeError.parseError(valueResult.error));
     }
 
     // Check for duplicate key
     if (map.has(keyResult.value)) {
-      return composeErr(ComposeError.duplicateMapKey());
+      return composeErr(composeError.duplicateMapKey());
     }
 
     map.set(keyResult.value, valueResult.value);
