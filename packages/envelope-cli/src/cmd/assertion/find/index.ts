@@ -1,0 +1,8 @@
+/**
+ * Assertion find module - 1:1 port of cmd/assertion/find/mod.rs
+ *
+ * Find all assertions matching the given criteria.
+ */
+
+export * as object from "./object.js";
+export * as predicate from "./predicate.js";
