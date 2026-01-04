@@ -30,6 +30,7 @@
     "@iconify-json/lucide": "^1.2.82",
     "@iconify-json/simple-icons": "^1.2.63",
     "@nuxt/eslint": "^1.12.1",
+    "@nuxthub/core": "0.10.4",
     "@types/node": "^25.0.3",
     "eslint": "^9.39.2",
     "nuxt": "^4.2.2",
