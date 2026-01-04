@@ -4,6 +4,8 @@
  * Generate the next provenance mark in a chain.
  */
 
+/* eslint-disable no-console, no-undef */
+
 import * as fs from "fs";
 import * as path from "path";
 import {

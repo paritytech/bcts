@@ -4,6 +4,8 @@
  * Shared arguments for supplying provenance mark `info` payloads.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+
 import { type Cbor, cbor, decodeCbor, expectTag } from "@bcts/dcbor";
 import { UR } from "@bcts/uniform-resources";
 import { tagForName } from "@bcts/tags";
@@ -137,7 +139,7 @@ function parseUrPayload(input: string, tagOverride?: number): Cbor {
 function ensureTag(cborValue: Cbor, expectedTag: number, typeStr: string): Cbor {
   // Check if already tagged
   try {
-    const [tag, inner] = expectTag(cborValue);
+    const [tag, _inner] = expectTag(cborValue);
     if (tag !== expectedTag) {
       throw new Error(
         `UR type '${typeStr}' encodes CBOR tag ${tag} but ${expectedTag} was expected`,

@@ -4,6 +4,8 @@
  * Functions for parsing provenance seeds from various formats.
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+
 import { UR } from "@bcts/uniform-resources";
 import { Seed } from "@bcts/components";
 import { ProvenanceSeed, PROVENANCE_SEED_LENGTH } from "@bcts/provenance-mark";
