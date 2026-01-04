@@ -4,7 +4,6 @@ export default defineNuxtConfig({
   modules: ["@nuxt/eslint", "@nuxt/ui", "@nuxthub/core"],
   css: ["~/assets/css/main.css"],
   devtools: { enabled: false },
-  ssr: false,
   app: {
     head: {
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],

@@ -6,13 +6,10 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "deploy": "npx wrangler deploy",
-    "deploy:preview": "npx wrangler versions upload"
+    "deploy": "npx wrangler deploy"
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
