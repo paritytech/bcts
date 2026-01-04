@@ -801,7 +801,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns A diagnostic string
   declare diagnostic: () => string;
-  
+
   //
   // Extension methods (implemented via prototype extension in extension modules)
   // These declarations ensure TypeScript recognizes the methods when consuming the package

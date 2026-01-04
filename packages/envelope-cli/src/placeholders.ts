@@ -154,7 +154,9 @@ export function keyDerivationMethodSSHAgent(): never {
  * Placeholder for SignatureScheme variants that don't exist
  */
 export function signatureSchemeFromString(_scheme: string): never {
-  notImplemented("SignatureScheme variants (Schnorr, Ecdsa, SshEd25519, SshDsa, SshEcdsaP256, SshEcdsaP384, MLDSA44, MLDSA65, MLDSA87)");
+  notImplemented(
+    "SignatureScheme variants (Schnorr, Ecdsa, SshEd25519, SshDsa, SshEcdsaP256, SshEcdsaP384, MLDSA44, MLDSA65, MLDSA87)",
+  );
 }
 
 /**
