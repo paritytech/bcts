@@ -2,7 +2,6 @@
  * Compose a dCBOR array from the provided elements
  * Equivalent to Rust's cmd/array.rs
  */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import { type Result, errorMsg } from "@bcts/dcbor";
 import { composeDcborArray, composeErrorMessage } from "@bcts/dcbor-parse";

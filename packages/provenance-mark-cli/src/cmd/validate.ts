@@ -4,8 +4,6 @@
  * Validate one or more provenance marks.
  */
 
- 
-
 import * as fs from "fs";
 import * as path from "path";
 import { UR } from "@bcts/uniform-resources";

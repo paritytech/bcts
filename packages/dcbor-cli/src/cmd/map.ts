@@ -2,7 +2,6 @@
  * Compose a dCBOR map from the provided keys and values
  * Equivalent to Rust's cmd/map.rs
  */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import { type Result, errorMsg } from "@bcts/dcbor";
 import { composeDcborMap, composeErrorMessage } from "@bcts/dcbor-parse";

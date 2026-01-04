@@ -5,7 +5,15 @@
  */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 
-import { type Cbor, type Result, diagnosticOpt, hexOpt, bytesToHex, cborData, errorMsg } from "@bcts/dcbor";
+import {
+  type Cbor,
+  type Result,
+  diagnosticOpt,
+  hexOpt,
+  bytesToHex,
+  cborData,
+  errorMsg,
+} from "@bcts/dcbor";
 
 /**
  * Input format options

@@ -4,8 +4,6 @@
  * Functions for parsing provenance seeds from various formats.
  */
 
- 
-
 import { UR } from "@bcts/uniform-resources";
 import { Seed } from "@bcts/components";
 import { ProvenanceSeed, PROVENANCE_SEED_LENGTH } from "@bcts/provenance-mark";

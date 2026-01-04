@@ -2,9 +2,8 @@
  * Main run function for dcbor-cli
  * Equivalent to Rust's run function in main.rs
  */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 
-import { registerTags } from "@bcts/dcbor";
+import { registerTags, errorToString } from "@bcts/dcbor";
 import type { InputFormat, OutputFormat } from "./format.js";
 import { execArray, execDefault, execMap, execMatch, type MatchOutputFormat } from "./cmd/index.js";
 
@@ -66,7 +65,7 @@ export function run(
         annotate: command.annotate,
       });
       if (!result.ok) {
-        return result;
+        return { ok: false, error: new Error(errorToString(result.error)) };
       }
       output = result.value;
       isBinary = command.out === "bin";
@@ -80,7 +79,7 @@ export function run(
         annotate: command.annotate,
       });
       if (!result.ok) {
-        return result;
+        return { ok: false, error: new Error(errorToString(result.error)) };
       }
       output = result.value;
       isBinary = command.out === "bin";
@@ -102,7 +101,7 @@ export function run(
         stdinContent,
       );
       if (!result.ok) {
-        return result;
+        return { ok: false, error: new Error(errorToString(result.error)) };
       }
       output = result.value;
       isBinary = command.out === "bin";
@@ -120,7 +119,7 @@ export function run(
         stdinContent,
       );
       if (!result.ok) {
-        return result;
+        return { ok: false, error: new Error(errorToString(result.error)) };
       }
       output = result.value;
       isBinary = command.out === "bin";

@@ -2,7 +2,7 @@
  * Match dCBOR data against a pattern
  * Equivalent to Rust's cmd/match.rs
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-return, @typescript-eslint/switch-exhaustiveness-check, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/switch-exhaustiveness-check */
 
 import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
 import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";
@@ -74,7 +74,7 @@ function formatPatternError(error: PatternParseError, patternStr: string): strin
 /**
  * Execute match command
  */
-export function execMatch(args: MatchCommandArgs, stdinContent?: string | undefined): Result<string> {
+export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result<string> {
   // Read input data
   let inputData: Uint8Array;
   if (args.input !== undefined) {
@@ -189,7 +189,7 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string | undefi
 /**
  * Create an Exec implementation for match command
  */
-export function createMatchCommand(args: MatchCommandArgs, stdinContent?: string | undefined): Exec {
+export function createMatchCommand(args: MatchCommandArgs, stdinContent?: string): Exec {
   return {
     exec: () => execMatch(args, stdinContent),
   };

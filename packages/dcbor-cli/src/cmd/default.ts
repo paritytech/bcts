@@ -2,7 +2,7 @@
  * Default parsing and validation behavior
  * Equivalent to Rust's cmd/default.rs
  */
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions */
 
 import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
 import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";
@@ -85,10 +85,7 @@ export function execDefaultWithReader(
 /**
  * Execute default command (reads from stdin if input not provided)
  */
-export function execDefault(
-  args: DefaultCommandArgs,
-  stdinContent?: string | undefined,
-): Result<string> {
+export function execDefault(args: DefaultCommandArgs, stdinContent?: string): Result<string> {
   return execDefaultWithReader(
     args,
     () => stdinContent ?? "",
@@ -104,7 +101,7 @@ export function execDefault(
 /**
  * Create an Exec implementation for default command
  */
-export function createDefaultCommand(args: DefaultCommandArgs, stdinContent?: string | undefined): Exec {
+export function createDefaultCommand(args: DefaultCommandArgs, stdinContent?: string): Exec {
   return {
     exec: () => execDefault(args, stdinContent),
   };
