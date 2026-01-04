@@ -76,11 +76,7 @@ export function arrayCmd(
 /**
  * Create a map command
  */
-export function mapCmd(
-  kvPairs: string[],
-  out: OutputFormat = "diag",
-  annotate = false,
-): Command {
+export function mapCmd(kvPairs: string[], out: OutputFormat = "diag", annotate = false): Command {
   return {
     type: "map",
     kvPairs,

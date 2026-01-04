@@ -24,10 +24,7 @@ describe("match command", () => {
 
   describe("structure patterns", () => {
     it("matches array with typed elements", () => {
-      runCliExpect(
-        matchCmd("[number, text]", '[42, "hello"]', { out: "diag" }),
-        '[42, "hello"]',
-      );
+      runCliExpect(matchCmd("[number, text]", '[42, "hello"]', { out: "diag" }), '[42, "hello"]');
     });
 
     it("matches map with typed values", () => {
@@ -67,10 +64,7 @@ describe("match command", () => {
       const expected = `@num
     42
 42`;
-      runCliExpect(
-        matchCmd("@num(number)", "42", { out: "paths", captures: true }),
-        expected,
-      );
+      runCliExpect(matchCmd("@num(number)", "42", { out: "paths", captures: true }), expected);
     });
 
     it("captures with or pattern - first match", () => {
@@ -112,10 +106,7 @@ describe("match command", () => {
 
   describe("input formats", () => {
     it("accepts hex input", () => {
-      runCliExpect(
-        matchCmd("number", "182a", { in: "hex", out: "diag" }),
-        "42",
-      );
+      runCliExpect(matchCmd("number", "182a", { in: "hex", out: "diag" }), "42");
     });
 
     it("accepts diag input (default)", () => {
@@ -141,10 +132,7 @@ describe("match command", () => {
 
   describe("array patterns", () => {
     it("matches array with specific value", () => {
-      runCliExpect(
-        matchCmd("[42, text]", '[42, "hello"]', { out: "diag" }),
-        '[42, "hello"]',
-      );
+      runCliExpect(matchCmd("[42, text]", '[42, "hello"]', { out: "diag" }), '[42, "hello"]');
     });
 
     it("captures from array elements", () => {
@@ -183,8 +171,9 @@ describe("match command", () => {
     {"name": "Alice"}
         "Alice"
 {"name": "Alice"}`;
+      // Use the correct pattern syntax: @key("name") is a capture wrapping the text pattern
       runCliExpect(
-        matchCmd('{"@key("name")": @value(text)}', '{"name": "Alice"}', {
+        matchCmd('{@key("name"): @value(text)}', '{"name": "Alice"}', {
           out: "paths",
           captures: true,
         }),
@@ -195,18 +184,14 @@ describe("match command", () => {
 
   describe("complex patterns", () => {
     it("finds nested structures with search", () => {
-      const input =
-        '{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}';
+      const input = '{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}';
       const expected = `{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
     [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
         {"id": 1, "name": "Alice"}
 {"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]}
     [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
         {"id": 2, "name": "Bob"}`;
-      runCliExpect(
-        matchCmd('search({"id": number})', input, { out: "paths" }),
-        expected,
-      );
+      runCliExpect(matchCmd('search({"id": number})', input, { out: "paths" }), expected);
     });
   });
 
@@ -241,9 +226,10 @@ describe("match command", () => {
 
   describe("tagged values", () => {
     it("matches tagged value pattern", () => {
-      // Tag 1 is timestamp, so it gets formatted as a date
+      // Tag 1 is timestamp, so it gets formatted as a date in paths output
+      // (The Rust test uses default output format which is 'paths')
       runCliExpect(
-        matchCmd("tagged(1, number)", "1(42)", { out: "diag" }),
+        matchCmd("tagged(1, number)", "1(42)", { out: "paths" }),
         "1970-01-01T00:00:42Z",
       );
     });
@@ -270,10 +256,7 @@ describe("match command", () => {
       expect(hexResult).toBe("182a");
 
       // Then use hex as input
-      runCliExpect(
-        matchCmd("number", "182a", { in: "hex", out: "diag" }),
-        "42",
-      );
+      runCliExpect(matchCmd("number", "182a", { in: "hex", out: "diag" }), "42");
     });
   });
 

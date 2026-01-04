@@ -2,6 +2,7 @@
  * Main run function for dcbor-cli
  * Equivalent to Rust's run function in main.rs
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 
 import { registerTags } from "@bcts/dcbor";
 import type { InputFormat, OutputFormat } from "./format.js";

@@ -6,8 +6,8 @@
  * - ref/bc-dcbor-cli/src/main.rs (test_compose_array)
  */
 
-import { describe, it, expect } from "vitest";
-import { runCliExpect, runCli, arrayCmd } from "./common.js";
+import { describe, it } from "vitest";
+import { runCliExpect, arrayCmd } from "./common.js";
 
 describe("array command", () => {
   it("creates basic array", () => {
@@ -39,10 +39,7 @@ describe("array command", () => {
   });
 
   it("creates array with complex elements", () => {
-    runCliExpect(
-      arrayCmd(['{"1": "a"}', '{"2": "b"}'], "diag"),
-      '[{"1": "a"}, {"2": "b"}]',
-    );
+    runCliExpect(arrayCmd(['{"1": "a"}', '{"2": "b"}'], "diag"), '[{"1": "a"}, {"2": "b"}]');
   });
 
   // Inline test from main.rs

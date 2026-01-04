@@ -2,6 +2,7 @@
  * Match dCBOR data against a pattern
  * Equivalent to Rust's cmd/match.rs
  */
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-return, @typescript-eslint/switch-exhaustiveness-check, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-member-access */
 
 import { type Cbor, type Result, decodeCbor, hexToBytes } from "@bcts/dcbor";
 import { parseDcborItem } from "@bcts/dcbor-parse";

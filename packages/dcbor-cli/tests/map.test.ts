@@ -38,17 +38,11 @@ describe("map command", () => {
   });
 
   it("creates map with mixed types", () => {
-    runCliExpect(
-      mapCmd(["1", '"text"', '"key"', "42"], "diag"),
-      '{1: "text", "key": 42}',
-    );
+    runCliExpect(mapCmd(["1", '"text"', '"key"', "42"], "diag"), '{1: "text", "key": 42}');
   });
 
   it("creates map with nested values", () => {
-    runCliExpect(
-      mapCmd(["1", "[1, 2]", "2", "{3: 4}"], "diag"),
-      "{1: [1, 2], 2: {3: 4}}",
-    );
+    runCliExpect(mapCmd(["1", "[1, 2]", "2", "{3: 4}"], "diag"), "{1: [1, 2], 2: {3: 4}}");
   });
 
   it("fails with odd number of arguments", () => {

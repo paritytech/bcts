@@ -7,12 +7,7 @@
  */
 
 import { describe, it } from "vitest";
-import {
-  runCliExpect,
-  diagToHex,
-  hexToDiag,
-  testRoundTrip,
-} from "./common.js";
+import { runCliExpect, diagToHex, hexToDiag, testRoundTrip } from "./common.js";
 
 describe("default command", () => {
   describe("diag to hex conversion", () => {
@@ -126,11 +121,7 @@ describe("default command", () => {
     });
 
     it("round-trips base64 bytestring to hex bytestring", () => {
-      testRoundTrip(
-        "b64'AQIDBAUGBwgJCg=='",
-        "4a0102030405060708090a",
-        "h'0102030405060708090a'",
-      );
+      testRoundTrip("b64'AQIDBAUGBwgJCg=='", "4a0102030405060708090a", "h'0102030405060708090a'");
     });
 
     it("round-trips array with booleans and null", () => {

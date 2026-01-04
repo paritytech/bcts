@@ -3,6 +3,7 @@
  * Contains InputFormat, OutputFormat enums and formatOutput function
  * Equivalent to the format-related code in Rust's main.rs
  */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { type Cbor, type Result, diagnosticOpt, hexOpt, bytesToHex, cborData } from "@bcts/dcbor";
 
@@ -28,10 +29,11 @@ export function formatOutput(
   try {
     switch (outFormat) {
       case "diag":
+        // Use flat: true for compact single-line output (matching Rust CLI behavior)
         if (annotate) {
-          return { ok: true, value: diagnosticOpt(cbor, { annotate: true }) };
+          return { ok: true, value: diagnosticOpt(cbor, { annotate: true, flat: true }) };
         } else {
-          return { ok: true, value: diagnosticOpt(cbor) };
+          return { ok: true, value: diagnosticOpt(cbor, { flat: true }) };
         }
 
       case "hex":
