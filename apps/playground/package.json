@@ -11,7 +11,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "deploy": "npx wrangler deploy"
+    "deploy": "npx wrangler deploy",
+    "deploy:preview": "npx wrangler versions upload"
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
