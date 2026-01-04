@@ -11,13 +11,13 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
-    '/': { prerender: true }
+    "/": { prerender: true },
   },
   nitro: {
     preset: "cloudflare_module",
     cloudflare: {
       deployConfig: true,
-      nodeCompat: true
-    }
-  }
+      nodeCompat: true,
+    },
+  },
 });
