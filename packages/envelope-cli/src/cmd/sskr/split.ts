@@ -63,7 +63,7 @@ export class SplitCommand implements Exec {
     });
 
     const contentKey = this.args.key
-      ? SymmetricKey.fromUrString(this.args.key)
+      ? SymmetricKey.fromURString(this.args.key)
       : SymmetricKey.new();
 
     const wrapped = envelope.wrap();
@@ -77,7 +77,7 @@ export class SplitCommand implements Exec {
 
     if (this.args.recipients.length > 0) {
       const recipients = this.args.recipients.map((r) =>
-        PublicKeys.fromUrString(r)
+        PublicKeys.fromURString(r)
       );
       flattenedShares = flattenedShares.map((share) => {
         let result = share;

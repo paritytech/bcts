@@ -72,7 +72,7 @@ export class SignCommand implements Exec {
     for (const s of this.args.signers) {
       // Try parsing as different key types
       try {
-        const key = PrivateKeyBase.fromUrString(s);
+        const key = PrivateKeyBase.fromURString(s);
         privateKeyBases.push(key);
         continue;
       } catch {
@@ -80,7 +80,7 @@ export class SignCommand implements Exec {
       }
 
       try {
-        const key = PrivateKeys.fromUrString(s);
+        const key = PrivateKeys.fromURString(s);
         privateKeysVec.push(key);
         continue;
       } catch {
@@ -88,7 +88,7 @@ export class SignCommand implements Exec {
       }
 
       try {
-        const key = SigningPrivateKey.fromUrString(s);
+        const key = SigningPrivateKey.fromURString(s);
         if (key.isSsh()) {
           signingOptions.push({
             type: "ssh",

@@ -29,7 +29,7 @@ export function execWithEnvelopeAndTarget(
     );
   }
 
-  const replacement = Envelope.fromUrString(args.replacement);
+  const replacement = Envelope.fromURString(args.replacement);
   const result = envelope.walkReplace(targetDigests, replacement);
   return result.urString();
 }

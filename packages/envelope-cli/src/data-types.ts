@@ -102,7 +102,7 @@ function parseArid(s: string): Envelope {
   } catch {
     // Try UR
     try {
-      const arid = ARID.fromUrString(s);
+      const arid = ARID.fromURString(s);
       return Envelope.new(arid);
     } catch {
       throw new Error("Invalid ARID");
@@ -154,7 +154,7 @@ function parseDate(s: string): Envelope {
  * Parse a Digest from a ur:digest string.
  */
 function parseDigest(s: string): Envelope {
-  const digest = Digest.fromUrString(s);
+  const digest = Digest.fromURString(s);
   return Envelope.new(digest);
 }
 
@@ -162,7 +162,7 @@ function parseDigest(s: string): Envelope {
  * Parse an Envelope from a ur:envelope string.
  */
 function parseEnvelope(s: string): Envelope {
-  return Envelope.fromUrString(s);
+  return Envelope.fromURString(s);
 }
 
 /**
@@ -218,7 +218,7 @@ function parseString(s: string): Envelope {
  *   CBOR tag to use.
  */
 function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
-  const ur = UR.fromUrString(s);
+  const ur = UR.fromURString(s);
   if (ur.urTypeStr() === "envelope") {
     const envelope = Envelope.fromUr(ur);
     return envelope.wrap();
@@ -258,7 +258,7 @@ function parseUuid(s: string): Envelope {
  * Parse a wrapped envelope from a ur:envelope string.
  */
 function parseWrappedEnvelope(s: string): Envelope {
-  const envelope = Envelope.fromUrString(s);
+  const envelope = Envelope.fromURString(s);
   return envelope.wrap();
 }
 
@@ -271,7 +271,7 @@ function parseWrappedEnvelope(s: string): Envelope {
  * - Returns the UR's CBOR content wrapped in the appropriate CBOR tag
  */
 export function parseUrToCbor(s: string, cborTagValue?: number | bigint): Cbor {
-  const ur = UR.fromUrString(s);
+  const ur = UR.fromURString(s);
 
   // Look up the CBOR tag for this UR type
   const tagsStore = getGlobalTagsStore();

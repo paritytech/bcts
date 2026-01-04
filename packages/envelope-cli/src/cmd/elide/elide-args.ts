@@ -50,7 +50,7 @@ export function getAction(args: ElideArgsLike): ObscureAction {
       if (!args.key) {
         throw new Error("No key provided");
       }
-      const key = SymmetricKey.fromUrString(args.key);
+      const key = SymmetricKey.fromURString(args.key);
       return { type: "encrypt", key };
     }
     case Action.Compress:

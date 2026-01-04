@@ -314,11 +314,11 @@ export function readEnvelope(envelope?: string): Envelope {
 
   // Try parsing as ur:envelope first
   try {
-    return Envelope.fromUrString(urString);
+    return Envelope.fromURString(urString);
   } catch {
     // Try as other UR type
     try {
-      const ur = UR.fromUrString(urString);
+      const ur = UR.fromURString(urString);
       return envelopeFromUr(ur);
     } catch {
       throw new Error("Invalid envelope");
@@ -331,7 +331,7 @@ export function readEnvelope(envelope?: string): Envelope {
  * Accepts ur:digest or ur:envelope (takes the digest of the envelope).
  */
 export function parseDigestFromUr(target: string): Digest {
-  const ur = UR.fromUrString(target);
+  const ur = UR.fromURString(target);
 
   switch (ur.urTypeStr()) {
     case "digest":

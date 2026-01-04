@@ -44,7 +44,7 @@ export class InfoCommand implements Exec {
       throw new Error("Unknown object.");
     }
 
-    const ur = UR.fromUrString(object);
+    const ur = UR.fromURString(object);
     const urType = ur.urTypeStr();
     const cborSize = cborData(ur.cbor()).length;
 

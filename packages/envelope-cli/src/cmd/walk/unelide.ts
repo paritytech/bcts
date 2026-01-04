@@ -19,7 +19,7 @@ export interface CommandArgs {
  */
 export function execWithEnvelope(args: CommandArgs, envelope: Envelope): string {
   const unelideEnvelopes = args.envelopes.map((urString) =>
-    Envelope.fromUrString(urString)
+    Envelope.fromURString(urString)
   );
   const result = envelope.walkUnelide(unelideEnvelopes);
   return result.urString();

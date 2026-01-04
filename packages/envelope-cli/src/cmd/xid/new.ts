@@ -86,20 +86,20 @@ export class NewCommand implements Exec {
     let xidDocument: XIDDocument;
 
     try {
-      const privateKeyBase = PrivateKeyBase.fromUrString(this.args.keys);
+      const privateKeyBase = PrivateKeyBase.fromURString(this.args.keys);
       xidDocument = XIDDocument.new(
         XIDInceptionKeyOptions.privateKeyBase(privateKeyBase)
       );
     } catch {
       try {
-        const privateKeys = PrivateKeys.fromUrString(this.args.keys);
+        const privateKeys = PrivateKeys.fromURString(this.args.keys);
         const publicKeys = privateKeys.publicKeys();
         xidDocument = XIDDocument.new(
           XIDInceptionKeyOptions.publicAndPrivateKeys(publicKeys, privateKeys)
         );
       } catch {
         try {
-          const publicKeys = PublicKeys.fromUrString(this.args.keys);
+          const publicKeys = PublicKeys.fromURString(this.args.keys);
           xidDocument = XIDDocument.new(
             XIDInceptionKeyOptions.publicKeys(publicKeys)
           );

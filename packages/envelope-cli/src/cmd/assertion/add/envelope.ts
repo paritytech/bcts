@@ -37,7 +37,7 @@ export class AddEnvelopeCommand implements Exec {
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
-    const assertion = Envelope.fromUrString(this.args.assertion);
+    const assertion = Envelope.fromURString(this.args.assertion);
     return envelope.addAssertionEnvelopeSalted(assertion, this.args.salted).urString();
   }
 }

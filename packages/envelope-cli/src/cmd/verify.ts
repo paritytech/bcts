@@ -60,7 +60,7 @@ export class VerifyCommand implements Exec {
     for (const v of this.args.verifiers) {
       // Try parsing as different key types
       try {
-        const key = PrivateKeyBase.fromUrString(v);
+        const key = PrivateKeyBase.fromURString(v);
         privateKeyBases.push(key);
         continue;
       } catch {
@@ -68,7 +68,7 @@ export class VerifyCommand implements Exec {
       }
 
       try {
-        const key = PublicKeys.fromUrString(v);
+        const key = PublicKeys.fromURString(v);
         publicKeysVec.push(key);
         continue;
       } catch {
@@ -76,7 +76,7 @@ export class VerifyCommand implements Exec {
       }
 
       try {
-        const key = SigningPrivateKey.fromUrString(v);
+        const key = SigningPrivateKey.fromURString(v);
         signingPrivateKeys.push(key);
         continue;
       } catch {
@@ -84,7 +84,7 @@ export class VerifyCommand implements Exec {
       }
 
       try {
-        const key = SigningPublicKey.fromUrString(v);
+        const key = SigningPublicKey.fromURString(v);
         signingPublicKeys.push(key);
         continue;
       } catch {

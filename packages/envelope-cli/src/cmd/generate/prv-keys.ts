@@ -60,14 +60,14 @@ export function defaultArgs(): Partial<CommandArgs> {
 function parseInput(input: string): PrivateKeyBase {
   // Try parsing as PrivateKeyBase first
   try {
-    return PrivateKeyBase.fromUrString(input);
+    return PrivateKeyBase.fromURString(input);
   } catch {
     // Not a PrivateKeyBase
   }
 
   // Try parsing as Seed
   try {
-    const seed = Seed.fromUrString(input);
+    const seed = Seed.fromURString(input);
     return PrivateKeyBase.newWithProvider(seed);
   } catch {
     // Not a Seed
@@ -81,7 +81,7 @@ function parseInput(input: string): PrivateKeyBase {
  * Extract Seed from an Envelope.
  */
 function seedFromEnvelope(input: string): Seed {
-  const envelope = Envelope.fromUrString(input);
+  const envelope = Envelope.fromURString(input);
   envelope.checkTypeValue(SEED_TYPE);
 
   const data = envelope.subject().expectLeaf().expectByteString();

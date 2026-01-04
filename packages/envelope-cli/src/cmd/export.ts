@@ -45,7 +45,7 @@ export class ExportCommand implements ExecAsync {
 
     // Try SSH signing private key
     try {
-      const signingPrivateKey = SigningPrivateKey.fromUrString(object);
+      const signingPrivateKey = SigningPrivateKey.fromURString(object);
       const sshPrivateKey = signingPrivateKey.toSsh();
       if (!sshPrivateKey) {
         throw new Error("UR is not an SSH private key.");
@@ -69,7 +69,7 @@ export class ExportCommand implements ExecAsync {
 
     // Try SSH signing public key
     try {
-      const signingPublicKey = SigningPublicKey.fromUrString(object);
+      const signingPublicKey = SigningPublicKey.fromURString(object);
       const sshPublicKey = signingPublicKey.toSsh();
       if (!sshPublicKey) {
         throw new Error("UR is not an SSH public key.");
@@ -84,7 +84,7 @@ export class ExportCommand implements ExecAsync {
 
     // Try PublicKeys with SSH public key
     try {
-      const publicKeys = PublicKeys.fromUrString(object);
+      const publicKeys = PublicKeys.fromURString(object);
       const sshPublicKey = publicKeys.signingPublicKey().toSsh();
       if (!sshPublicKey) {
         throw new Error("UR is not a PublicKeys with an SSH public key.");
@@ -101,7 +101,7 @@ export class ExportCommand implements ExecAsync {
 
     // Try SSH signature
     try {
-      const signature = Signature.fromUrString(object);
+      const signature = Signature.fromURString(object);
       const sshSignature = signature.toSsh();
       if (!sshSignature) {
         throw new Error("UR is not an SSH signature.");

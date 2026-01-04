@@ -79,7 +79,7 @@ export class EncryptCommand implements ExecAsync {
     // Get the content key
     let contentKey: SymmetricKey;
     if (this.args.key) {
-      contentKey = SymmetricKey.fromUrString(this.args.key);
+      contentKey = SymmetricKey.fromURString(this.args.key);
     } else {
       contentKey = SymmetricKey.new();
     }
@@ -89,7 +89,7 @@ export class EncryptCommand implements ExecAsync {
 
     // Convert recipients to PublicKeys and add them
     for (const recipientUr of this.args.recipients) {
-      const recipient = PublicKeys.fromUrString(recipientUr);
+      const recipient = PublicKeys.fromURString(recipientUr);
       encryptedEnvelope = encryptedEnvelope.addRecipient(recipient, contentKey);
     }
 

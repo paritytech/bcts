@@ -30,7 +30,7 @@ export function parseTargetDigests(target: string[]): Set<Digest> | undefined {
 
   const digests = new Set<Digest>();
   for (const urString of target) {
-    const digest = Digest.fromUrString(urString);
+    const digest = Digest.fromURString(urString);
     digests.add(digest);
   }
   return digests;

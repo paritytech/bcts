@@ -37,7 +37,7 @@ export class JoinCommand implements Exec {
       throw new Error("No share envelopes provided");
     }
 
-    const shareEnvelopes = shares.map((s) => Envelope.fromUrString(s));
+    const shareEnvelopes = shares.map((s) => Envelope.fromURString(s));
     const wrapped = Envelope.sskrJoin(shareEnvelopes);
     const result = wrapped.tryUnwrap();
     return result.urString();

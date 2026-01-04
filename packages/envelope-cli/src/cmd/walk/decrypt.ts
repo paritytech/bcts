@@ -20,7 +20,7 @@ export interface CommandArgs {
  */
 export function execWithEnvelope(args: CommandArgs, envelope: Envelope): string {
   const symmetricKeys = args.keys.map((urString) =>
-    SymmetricKey.fromUrString(urString)
+    SymmetricKey.fromURString(urString)
   );
   const result = envelope.walkDecrypt(symmetricKeys);
   return result.urString();

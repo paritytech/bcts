@@ -53,7 +53,7 @@ export class PubKeysCommand implements Exec {
 
     // Try to parse as PrivateKeys first
     try {
-      const privateKeys = PrivateKeys.fromUrString(urString);
+      const privateKeys = PrivateKeys.fromURString(urString);
       let publicKeys = privateKeys.publicKeys();
 
       // If a comment is provided and the signing key is SSH, update the comment
@@ -73,7 +73,7 @@ export class PubKeysCommand implements Exec {
 
     // Try to parse as SigningPrivateKey
     try {
-      const signingPrivateKey = SigningPrivateKey.fromUrString(urString);
+      const signingPrivateKey = SigningPrivateKey.fromURString(urString);
       const signingPublicKey = signingPrivateKey.publicKey();
 
       // If a comment is provided and the signing key is SSH, update the comment

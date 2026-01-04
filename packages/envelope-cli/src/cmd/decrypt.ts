@@ -48,7 +48,7 @@ export class DecryptCommand implements ExecAsync {
 
     if (this.args.key) {
       // If a content key is provided, decrypt the subject using it
-      const key = SymmetricKey.fromUrString(this.args.key);
+      const key = SymmetricKey.fromURString(this.args.key);
       try {
         const decrypted = envelope.decryptSubject(key);
         return decrypted.urString();
@@ -75,12 +75,12 @@ export class DecryptCommand implements ExecAsync {
       // If a recipient's private key is provided, decrypt the subject using it
       // Try to parse as PrivateKeys first, then PrivateKeyBase
       try {
-        const recipient = PrivateKeys.fromUrString(this.args.recipient);
+        const recipient = PrivateKeys.fromURString(this.args.recipient);
         const decrypted = envelope.decryptSubjectToRecipient(recipient);
         return decrypted.urString();
       } catch {
         try {
-          const recipient = PrivateKeyBase.fromUrString(this.args.recipient);
+          const recipient = PrivateKeyBase.fromURString(this.args.recipient);
           const decrypted = envelope.decryptSubjectToRecipient(recipient);
           return decrypted.urString();
         } catch {
