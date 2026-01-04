@@ -45,13 +45,11 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown",
     "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build && npm test"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "envelope",
