@@ -10,7 +10,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "deploy": "npx wrangler deploy"
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
