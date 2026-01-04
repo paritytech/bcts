@@ -162,7 +162,7 @@ function parseDigest(s: string): Envelope {
  * Parse an Envelope from a ur:envelope string.
  */
 function parseEnvelope(s: string): Envelope {
-  return Envelope.fromUrString(s);
+  return Envelope.fromURString(s);
 }
 
 /**
@@ -258,7 +258,7 @@ function parseUuid(s: string): Envelope {
  * Parse a wrapped envelope from a ur:envelope string.
  */
 function parseWrappedEnvelope(s: string): Envelope {
-  const envelope = Envelope.fromUrString(s);
+  const envelope = Envelope.fromURString(s);
   return envelope.wrap();
 }
 

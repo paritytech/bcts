@@ -41,7 +41,7 @@ export class ConfirmCommand implements Exec {
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
-    const proof = Envelope.fromUrString(this.args.proof);
+    const proof = Envelope.fromURString(this.args.proof);
     const digests = parseDigests(this.args.target);
 
     if (!envelope.confirmContainsSet(digests, proof)) {

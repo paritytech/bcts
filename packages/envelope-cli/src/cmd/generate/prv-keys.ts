@@ -81,7 +81,7 @@ function parseInput(input: string): PrivateKeyBase {
  * Extract Seed from an Envelope.
  */
 function seedFromEnvelope(input: string): Seed {
-  const envelope = Envelope.fromUrString(input);
+  const envelope = Envelope.fromURString(input);
   envelope.checkTypeValue(SEED_TYPE);
 
   const data = envelope.subject().expectLeaf().expectByteString();

@@ -314,7 +314,7 @@ export function readEnvelope(envelope?: string): Envelope {
 
   // Try parsing as ur:envelope first
   try {
-    return Envelope.fromUrString(urString);
+    return Envelope.fromURString(urString);
   } catch {
     // Try as other UR type
     try {

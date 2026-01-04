@@ -27,7 +27,7 @@ export function execWithEnvelopeAndTarget(
     throw new Error("walk replace requires --target digests to specify which nodes to replace");
   }
 
-  const replacement = Envelope.fromUrString(args.replacement);
+  const replacement = Envelope.fromURString(args.replacement);
   const result = envelope.walkReplace(targetDigests, replacement);
   return result.urString();
 }
