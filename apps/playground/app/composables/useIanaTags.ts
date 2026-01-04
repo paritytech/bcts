@@ -53,8 +53,10 @@ function parseIanaXml(xmlText: string): { tags: IanaTagItem[]; lastUpdated: stri
     const value = record.querySelector("value")?.textContent ?? "";
     const description = record.querySelector("description")?.textContent ?? "";
     const semantics = record.querySelector("semantics")?.textContent ?? "";
-    const date = record.getAttribute("date") ?? record.querySelector("date")?.textContent ?? undefined;
-    const updated = record.getAttribute("updated") ?? record.querySelector("updated")?.textContent ?? undefined;
+    const date =
+      record.getAttribute("date") ?? record.querySelector("date")?.textContent ?? undefined;
+    const updated =
+      record.getAttribute("updated") ?? record.querySelector("updated")?.textContent ?? undefined;
 
     // Collect all references
     const references: string[] = [];
