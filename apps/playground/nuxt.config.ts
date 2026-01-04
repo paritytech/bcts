@@ -10,4 +10,14 @@ export default defineNuxtConfig({
       meta: [{ name: "theme-color", content: "#FF2670" }],
     },
   },
+  routeRules: {
+    "/": { prerender: true },
+  },
+  nitro: {
+    preset: "cloudflare_module",
+    cloudflare: {
+      deployConfig: true,
+      nodeCompat: true,
+    },
+  },
 });
