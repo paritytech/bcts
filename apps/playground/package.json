@@ -15,6 +15,7 @@
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
     "@bcts/envelope": "workspace:*",
+    "@bcts/known-values": "workspace:*",
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@nuxt/ui": "^4.3.0",

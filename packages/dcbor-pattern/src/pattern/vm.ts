@@ -422,7 +422,11 @@ const runThread = (
           // Use recursive search with captures
           const result = searchPatternPathsWithCaptures(searchPat, th.cbor);
 
-          for (const searchPath of result.paths) {
+          // Reverse the paths before pushing to stack, since stack.pop() is LIFO
+          // This ensures results come out in the same order as Rust
+          const reversedPaths = [...result.paths].reverse();
+
+          for (const searchPath of reversedPaths) {
             const newThread: Thread = {
               pc: th.pc + 1,
               cbor: th.cbor,

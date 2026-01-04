@@ -1,0 +1,87 @@
+{
+  "name": "@bcts/dcbor-cli",
+  "version": "1.0.0-alpha.13",
+  "type": "module",
+  "description": "Command line parser/validator for deterministic CBOR (dCBOR)",
+  "license": "BSD-2-Clause-Patent",
+  "contributors": [
+    {
+      "name": "Leonardo Custodio",
+      "email": "leonardo.custodio@parity.io",
+      "url": "https://github.com/leonardocustodio"
+    },
+    {
+      "name": "Karim Jedda",
+      "email": "karim@parity.io",
+      "url": "https://github.com/KarimJedda"
+    }
+  ],
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leonardocustodio/bcts.git",
+    "directory": "packages/dcbor-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/bcts/issues"
+  },
+  "bin": {
+    "dcbor": "./dist/cli.mjs"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "cbor",
+    "dcbor",
+    "cli",
+    "validator",
+    "blockchain-commons",
+    "serialization"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@types/node": "^25.0.3",
+    "eslint": "^9.39.2",
+    "tsdown": "^0.18.3",
+    "typedoc": "^0.28.15",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "dependencies": {
+    "@bcts/components": "workspace:*",
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/dcbor-parse": "workspace:*",
+    "@bcts/dcbor-pattern": "workspace:*",
+    "commander": "^13.1.0"
+  }
+}

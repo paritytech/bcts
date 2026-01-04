@@ -177,8 +177,9 @@ const formatCborElement = (cbor: Cbor, format: PathElementFormat, maxLength?: nu
     // summary() provides a compact representation with summarizers
     diagnostic = summary(cbor);
   } else {
-    // diagnosticOpt with flat: true provides a single-line representation
-    diagnostic = diagnosticOpt(cbor, { flat: true });
+    // diagnosticOpt with flat: true and summarize: true provides a single-line
+    // representation with date/time formatting for known tags like tag 1
+    diagnostic = diagnosticOpt(cbor, { flat: true, summarize: true });
   }
 
   return truncateWithEllipsis(diagnostic, maxLength);

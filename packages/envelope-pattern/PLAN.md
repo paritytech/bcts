@@ -307,7 +307,8 @@ tests/
 | `Path` | `Envelope[]` |
 | `Envelope` | `Envelope` (from @bcts/envelope) |
 | `CBOR` | `Cbor` (from @bcts/dcbor) |
-| `Digest` | `Digest` (from @bcts/components) |
+| `Digest` | `Digest` (from @bcts/envelope) |
+| `Tag` | `Tag` (from @bcts/dcbor) |
 | `KnownValue` | `KnownValue` (from @bcts/known-values) |
 | `Quantifier` | `Quantifier` (from @bcts/dcbor-pattern) |
 | `Reluctance` | `Reluctance` (from @bcts/dcbor-pattern) |
@@ -477,21 +478,107 @@ any_date()
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Package Setup | Pending |
-| 2 | Core Types | Pending |
-| 3 | Lexer/Tokenizer | Pending |
-| 4 | Leaf Patterns | Pending |
-| 5 | Structure Patterns | Pending |
-| 6 | Meta Patterns | Pending |
-| 7 | Pattern Core & Matcher | Pending |
-| 8 | VM Execution | Pending |
-| 9 | Parsers - Leaf | Pending |
-| 10 | Parsers - Structure | Pending |
-| 11 | Parsers - Meta | Pending |
-| 12 | Main Parser Entry | Pending |
-| 13 | Main Export | Pending |
-| 14 | Tests | Pending |
-| 15 | Final | Pending |
+| 1 | Package Setup | ✅ Complete |
+| 2 | Core Types | ✅ Complete (error.ts, format.ts) |
+| 3 | Lexer/Tokenizer | ✅ Complete (token.ts, utils.ts) |
+| 4 | Leaf Patterns | ✅ Complete (API aligned) |
+| 5 | Structure Patterns | ✅ Complete (API aligned) |
+| 6 | Meta Patterns | ✅ Complete (API aligned) |
+| 7 | Pattern Core & Matcher | ✅ Complete (API aligned) |
+| 8 | VM Execution | 🔲 Stub only |
+| 9 | Parsers - Leaf | 🔲 Pending |
+| 10 | Parsers - Structure | 🔲 Pending |
+| 11 | Parsers - Meta | 🔲 Pending |
+| 12 | Main Parser Entry | 🔲 Pending |
+| 13 | Main Export | ✅ Complete (src/index.ts) |
+| 14 | Tests | 🔲 Pending |
+| 15 | Final | 🔲 Build passes, tests pending |
+
+### 2024-12-30: Implementation Session Notes
+
+**Files Created:**
+- `src/error.ts` - Error types and Result type
+- `src/format.ts` - Path formatting utilities
+- `src/parse/token.ts` - Token enum and manual Lexer implementation
+- `src/parse/utils.ts` - Parser utility functions (partial)
+- `src/pattern/matcher.ts` - Matcher interface
+- `src/pattern/vm.ts` - VM instruction types (stub)
+- `src/pattern/leaf/*.ts` - All 11 leaf pattern types
+- `src/pattern/structure/*.ts` - All 9 structure pattern types
+- `src/pattern/meta/*.ts` - All 8 meta pattern types
+- `src/pattern/index.ts` - Main Pattern type with convenience constructors
+
+**API Alignment Issues Identified (All Resolved ✅):**
+1. ✅ dcbor-pattern uses `kind` for Pattern discriminator, not `type`
+2. ✅ dcbor-pattern uses factory functions (e.g., `boolPatternAny()`) not class methods (e.g., `BoolPattern.any()`)
+3. ✅ Interval uses `exactly()` not `exact()`, and `from()` not `range()`
+4. ✅ Quantifier uses `exactly()` not `fromInterval()`
+5. ✅ Reluctance uses `Greedy` enum value, not `greedy()` method
+6. ✅ Envelope API: use `haystack.case().type === "knownValue"` for KnownValue detection
+7. ✅ Digest API: uses `hex` property not `toHex()` method, and `data()` is a method
+8. ✅ Pattern types use `kind: "Value" | "Structure" | "Meta"` at top level
+9. ✅ Tag type is in @bcts/dcbor, not @bcts/tags
+10. ✅ Digest type from @bcts/envelope differs from @bcts/components
+
+**Next Steps:**
+1. ~~Align leaf patterns with dcbor-pattern's actual API~~ ✅ Done
+2. ~~Update Pattern type to use `kind` discriminator~~ ✅ Done
+3. ~~Fix Envelope integration once Envelope API is confirmed~~ ✅ Done
+4. Complete VM implementation
+5. Implement parsers
+
+### 2024-12-30: API Alignment Session (Continuation)
+
+**Issues Fixed:**
+
+1. **known-value-pattern.ts**
+   - Changed from class methods to factory functions (`knownValuePatternAny`, `knownValuePatternValue`, etc.)
+   - Fixed `asKnownValue()` to use `haystack.case().type === "knownValue"`
+   - Implemented custom `equals()` and `hashCode()` methods
+
+2. **tagged-pattern.ts**
+   - Import `Tag` from `@bcts/dcbor` instead of `@bcts/tags`
+   - Use factory functions (`taggedPatternAny`, `taggedPatternWithTag`, etc.)
+   - Changed destructuring from tuple to object for `taggedPatternPathsWithCaptures`
+   - Use `Envelope.newLeaf()` for creating envelopes from CBOR values
+   - Implemented custom `equals()` and `hashCode()` methods
+
+3. **digest-pattern.ts**
+   - Import `Digest` from `@bcts/envelope` instead of `@bcts/components`
+   - Use `digest.data()` method instead of `digest.data` property
+   - Implemented custom hash code calculation
+
+4. **null-pattern.ts**
+   - Create `NullPattern` directly as `{ variant: "Null" }` instead of calling wrapper function
+
+5. **parse/utils.ts**
+   - Fixed `cborFromDiagnostic` stub to return proper discriminated union type
+
+6. **pattern/index.ts**
+   - Changed `CborEncodable` to `CborInput` for correct type compatibility
+   - Import `Digest` from `@bcts/envelope`
+
+7. **leaf-structure-pattern.ts**
+   - Use `haystack.case().type === "knownValue"` instead of `haystack.isKnownValue()`
+
+8. **Various index files**
+   - Restored necessary type imports
+
+9. **Meta/structure patterns**
+   - Prefixed unused factory variables with underscore for late-binding infrastructure
+
+**Key API Patterns Learned:**
+- dcbor-pattern uses factory functions (not class methods)
+- `patternPathsWithCaptures()` returns `{ paths, captures }` object, not tuple
+- `Envelope.newLeaf()` for creating envelopes from Cbor values
+- Access KnownValue via `haystack.case().type === "knownValue"`
+- `Tag` type is in `@bcts/dcbor`, not `@bcts/tags`
+- Envelope's `Digest` class is different from components' `Digest`
+- `Interval.from()` not `Interval.range()`
+- `Quantifier.exactly(1)` not `Quantifier.new()`
+- `e.digest().hex` not `e.digest().toHex()`
+
+**Build Status:** ✅ Passes (with TS6133 warnings for unused late-binding variables)
 
 ---
 

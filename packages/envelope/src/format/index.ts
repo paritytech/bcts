@@ -2,7 +2,7 @@
 ///
 /// This module provides various formatting options for displaying and
 /// serializing envelopes, including hex, diagnostic, notation, tree,
-/// and mermaid diagram formats.
+/// UR, and mermaid diagram formats.
 
 // Export types
 export type { TreeFormatOptions } from "./tree";
