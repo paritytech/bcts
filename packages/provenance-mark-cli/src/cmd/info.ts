@@ -15,9 +15,9 @@ import { hexToBytes } from "../utils.js";
  */
 export interface InfoArgs {
   /** Hex-encoded dCBOR or UR payload to embed in the mark's `info` field. */
-  info?: string;
+  info?: string | undefined;
   /** CBOR tag value to associate with an unknown UR type. */
-  infoTag?: number;
+  infoTag?: number | undefined;
 }
 
 /**
@@ -108,12 +108,13 @@ function parseUrPayload(input: string, tagOverride?: number): Cbor {
 
   // Check if we have a registered tag for this UR type
   const registeredTag = getGlobalTagsStore().tagForName(typeStr);
+  const registeredTagValue = registeredTag !== undefined ? Number(registeredTag.value) : undefined;
 
-  if (registeredTag !== undefined && tagOverride !== undefined) {
+  if (registeredTagValue !== undefined && tagOverride !== undefined) {
     throw new Error(`UR type '${typeStr}' has a known CBOR tag; --info-tag must not be supplied`);
   }
 
-  const expectedTag = registeredTag ?? tagOverride;
+  const expectedTag = registeredTagValue ?? tagOverride;
   if (expectedTag === undefined) {
     throw new Error(
       `UR type '${typeStr}' is not registered; supply --info-tag with the CBOR tag value`,

@@ -4,7 +4,7 @@
  * Validate one or more provenance marks.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return */
+ 
 
 import * as fs from "fs";
 import * as path from "path";
@@ -208,7 +208,8 @@ export class ValidateCommand implements Exec {
     }
 
     // Find all assertions with the 'provenance' predicate
-    const provenanceAssertions = workingEnvelope.assertionsWithPredicate(PROVENANCE);
+    const provenancePredicate = Envelope.newWithKnownValue(PROVENANCE);
+    const provenanceAssertions = workingEnvelope.assertionsWithPredicate(provenancePredicate);
 
     // Verify exactly one provenance assertion exists
     if (provenanceAssertions.length === 0) {
@@ -222,14 +223,19 @@ export class ValidateCommand implements Exec {
 
     // Get the object of the provenance assertion
     const provenanceAssertion = provenanceAssertions[0];
-    const objectEnvelope = provenanceAssertion.object();
+    const objectEnvelope = provenanceAssertion.asObject();
     if (objectEnvelope === undefined) {
       throw new Error(`Failed to extract object from provenance assertion in '${urString}'`);
     }
 
     // The object should be decodable as a ProvenanceMark.
+    // Extract the CBOR from the leaf envelope and parse it.
     try {
-      return ProvenanceMark.fromEnvelope(objectEnvelope);
+      const cborValue = objectEnvelope.asLeaf();
+      if (cborValue === undefined) {
+        throw new Error("Object envelope is not a leaf");
+      }
+      return ProvenanceMark.fromTaggedCbor(cborValue);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       throw new Error(

@@ -16,7 +16,6 @@ export default defineConfig({
     "@bcts/envelope",
     "@bcts/known-values",
     "@bcts/provenance-mark",
-    "@bcts/tags",
     "@bcts/uniform-resources",
     "commander",
   ],

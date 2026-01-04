@@ -4,7 +4,7 @@
  * Functions for parsing provenance seeds from various formats.
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
+ 
 
 import { UR } from "@bcts/uniform-resources";
 import { Seed } from "@bcts/components";
@@ -50,8 +50,8 @@ export function parseSeed(input: string): ProvenanceSeed {
 function parseSeedUr(input: string): ProvenanceSeed {
   try {
     const ur = UR.fromURString(input);
-    const seed = Seed.fromUr(ur);
-    return seedFromExact(seed.data());
+    const seed = Seed.fromUR(ur);
+    return seedFromExact(seed.toData());
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     throw new Error(`failed to parse seed UR: ${message}`);

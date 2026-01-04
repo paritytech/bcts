@@ -75,7 +75,8 @@ export function readStdinSync(): string {
   const buf = Buffer.alloc(BUFSIZE);
 
   try {
-    const fd = fs.openSync(0, "r"); // stdin
+    // Use process.stdin.fd (file descriptor 0) directly for reading
+    const fd = process.stdin.fd;
 
     while (true) {
       try {
@@ -86,8 +87,6 @@ export function readStdinSync(): string {
         break;
       }
     }
-
-    fs.closeSync(fd);
   } catch {
     // Fallback: stdin might not be readable
   }
