@@ -64,6 +64,15 @@ export const taggedPatternWithRegex = (regex: RegExp, pattern: Pattern): TaggedP
 });
 
 /**
+ * Compare two tag values, handling both number and bigint types.
+ */
+const tagsEqual = (a: number | bigint | undefined, b: number | bigint): boolean => {
+  if (a === undefined) return false;
+  // Convert both to Number for comparison (safe for tag values < 2^53)
+  return Number(a) === Number(b);
+};
+
+/**
  * Tests if a CBOR value matches this tagged pattern.
  */
 export const taggedPatternMatches = (pattern: TaggedPattern, haystack: Cbor): boolean => {
@@ -82,7 +91,7 @@ export const taggedPatternMatches = (pattern: TaggedPattern, haystack: Cbor): bo
     case "Any":
       return true;
     case "Tag":
-      return tag === pattern.tag.value && matchPattern(pattern.pattern, content);
+      return tagsEqual(tag, pattern.tag.value) && matchPattern(pattern.pattern, content);
     case "Name": {
       // Get tag name from global tags store
       // For now, compare the tag value as string
@@ -131,7 +140,7 @@ export const taggedPatternPathsWithCaptures = (
       return [[[haystack]], new Map<string, Path[]>()];
 
     case "Tag": {
-      if (tag !== pattern.tag.value) {
+      if (!tagsEqual(tag, pattern.tag.value)) {
         return [[], new Map<string, Path[]>()];
       }
       // Get paths and captures from inner pattern
