@@ -1,251 +1,23 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRegistryData, type TagItem, type KnownValueItem } from '~/composables/useRegistryData'
+import { useIanaTags } from '~/composables/useIanaTags'
 
 useHead({
   title: 'Registry Browser | BCTS',
   meta: [{ name: 'description', content: 'Browse CBOR tags and Known Values registry' }],
 })
 
-type RegistryTab = 'tags' | 'known-values'
-
-interface TagItem {
-  value: number
-  name: string
-  category: string
-  deprecated?: boolean
-}
-
-interface KnownValueItem {
-  value: number
-  name: string
-  category: string
-}
+type RegistryTab = 'tags' | 'known-values' | 'iana'
 
 const activeTab = ref<RegistryTab>('tags')
 const searchQuery = ref('')
 
-// CBOR Tags data organized by category
-const tagsData: TagItem[] = [
-  // Standard IANA Tags
-  { value: 32, name: 'url', category: 'Standard IANA' },
-  { value: 37, name: 'uuid', category: 'Standard IANA' },
+// Get data from the packages via composable
+const { tagsData, knownValuesData } = useRegistryData()
 
-  // Core Envelope
-  { value: 24, name: 'encoded-cbor', category: 'Core Envelope' },
-  { value: 200, name: 'envelope', category: 'Core Envelope' },
-  { value: 201, name: 'leaf', category: 'Core Envelope' },
-  { value: 262, name: 'json', category: 'Core Envelope' },
-
-  // Envelope Extensions
-  { value: 40000, name: 'known-value', category: 'Envelope Extension' },
-  { value: 40001, name: 'digest', category: 'Envelope Extension' },
-  { value: 40002, name: 'encrypted', category: 'Envelope Extension' },
-  { value: 40003, name: 'compressed', category: 'Envelope Extension' },
-
-  // Distributed Function Calls
-  { value: 40004, name: 'request', category: 'Function Calls' },
-  { value: 40005, name: 'response', category: 'Function Calls' },
-  { value: 40006, name: 'function', category: 'Function Calls' },
-  { value: 40007, name: 'parameter', category: 'Function Calls' },
-  { value: 40008, name: 'placeholder', category: 'Function Calls' },
-  { value: 40009, name: 'replacement', category: 'Function Calls' },
-
-  // Cryptographic Keys
-  { value: 40010, name: 'agreement-private-key', category: 'Cryptography' },
-  { value: 40011, name: 'agreement-public-key', category: 'Cryptography' },
-  { value: 40012, name: 'arid', category: 'Cryptography' },
-  { value: 40013, name: 'crypto-prvkeys', category: 'Cryptography' },
-  { value: 40014, name: 'nonce', category: 'Cryptography' },
-  { value: 40015, name: 'password', category: 'Cryptography' },
-  { value: 40016, name: 'crypto-prvkey-base', category: 'Cryptography' },
-  { value: 40017, name: 'crypto-pubkeys', category: 'Cryptography' },
-  { value: 40018, name: 'salt', category: 'Cryptography' },
-  { value: 40019, name: 'crypto-sealed', category: 'Cryptography' },
-  { value: 40020, name: 'signature', category: 'Cryptography' },
-  { value: 40021, name: 'signing-private-key', category: 'Cryptography' },
-  { value: 40022, name: 'signing-public-key', category: 'Cryptography' },
-  { value: 40023, name: 'crypto-key', category: 'Cryptography' },
-  { value: 40024, name: 'xid', category: 'Cryptography' },
-  { value: 40025, name: 'reference', category: 'Cryptography' },
-  { value: 40026, name: 'event', category: 'Cryptography' },
-  { value: 40027, name: 'encrypted-key', category: 'Cryptography' },
-
-  // Post-Quantum Cryptography
-  { value: 40100, name: 'mlkem-private-key', category: 'Post-Quantum' },
-  { value: 40101, name: 'mlkem-public-key', category: 'Post-Quantum' },
-  { value: 40102, name: 'mlkem-ciphertext', category: 'Post-Quantum' },
-  { value: 40103, name: 'mldsa-private-key', category: 'Post-Quantum' },
-  { value: 40104, name: 'mldsa-public-key', category: 'Post-Quantum' },
-  { value: 40105, name: 'mldsa-signature', category: 'Post-Quantum' },
-
-  // Seeds & Keys
-  { value: 40300, name: 'seed', category: 'Seeds & Keys' },
-  { value: 40303, name: 'hdkey', category: 'Seeds & Keys' },
-  { value: 40304, name: 'keypath', category: 'Seeds & Keys' },
-  { value: 40305, name: 'coin-info', category: 'Seeds & Keys' },
-  { value: 40306, name: 'eckey', category: 'Seeds & Keys' },
-  { value: 40307, name: 'address', category: 'Seeds & Keys' },
-  { value: 40308, name: 'output-descriptor', category: 'Seeds & Keys' },
-  { value: 40309, name: 'sskr', category: 'Seeds & Keys' },
-  { value: 40310, name: 'psbt', category: 'Seeds & Keys' },
-  { value: 40311, name: 'account-descriptor', category: 'Seeds & Keys' },
-
-  // SSH
-  { value: 40800, name: 'ssh-private', category: 'SSH' },
-  { value: 40801, name: 'ssh-public', category: 'SSH' },
-  { value: 40802, name: 'ssh-signature', category: 'SSH' },
-  { value: 40803, name: 'ssh-certificate', category: 'SSH' },
-
-  // Provenance
-  { value: 1347571542, name: 'provenance', category: 'Provenance' },
-
-  // Deprecated Tags
-  { value: 300, name: 'crypto-seed', category: 'Deprecated', deprecated: true },
-  { value: 303, name: 'crypto-hdkey', category: 'Deprecated', deprecated: true },
-  { value: 304, name: 'crypto-keypath', category: 'Deprecated', deprecated: true },
-  { value: 305, name: 'crypto-coin-info', category: 'Deprecated', deprecated: true },
-  { value: 306, name: 'crypto-eckey', category: 'Deprecated', deprecated: true },
-  { value: 307, name: 'crypto-output', category: 'Deprecated', deprecated: true },
-  { value: 309, name: 'crypto-sskr', category: 'Deprecated', deprecated: true },
-  { value: 310, name: 'crypto-psbt', category: 'Deprecated', deprecated: true },
-  { value: 311, name: 'crypto-account', category: 'Deprecated', deprecated: true },
-
-  // Output Descriptors
-  { value: 400, name: 'output-script-hash', category: 'Output Descriptors' },
-  { value: 401, name: 'output-witness-script-hash', category: 'Output Descriptors' },
-  { value: 402, name: 'output-public-key', category: 'Output Descriptors' },
-  { value: 403, name: 'output-public-key-hash', category: 'Output Descriptors' },
-  { value: 404, name: 'output-witness-public-key-hash', category: 'Output Descriptors' },
-  { value: 405, name: 'output-combo', category: 'Output Descriptors' },
-  { value: 406, name: 'output-multisig', category: 'Output Descriptors' },
-  { value: 407, name: 'output-sorted-multisig', category: 'Output Descriptors' },
-  { value: 408, name: 'output-raw-script', category: 'Output Descriptors' },
-  { value: 409, name: 'output-taproot', category: 'Output Descriptors' },
-  { value: 410, name: 'output-cosigner', category: 'Output Descriptors' },
-]
-
-// Known Values data organized by category
-const knownValuesData: KnownValueItem[] = [
-  // General
-  { value: 0, name: '', category: 'General' },
-  { value: 1, name: 'isA', category: 'General' },
-  { value: 2, name: 'id', category: 'General' },
-  { value: 3, name: 'signed', category: 'General' },
-  { value: 4, name: 'note', category: 'General' },
-  { value: 5, name: 'hasRecipient', category: 'General' },
-  { value: 6, name: 'sskrShare', category: 'General' },
-  { value: 7, name: 'controller', category: 'General' },
-  { value: 8, name: 'key', category: 'General' },
-  { value: 9, name: 'dereferenceVia', category: 'General' },
-  { value: 10, name: 'entity', category: 'General' },
-  { value: 11, name: 'name', category: 'General' },
-  { value: 12, name: 'language', category: 'General' },
-  { value: 13, name: 'issuer', category: 'General' },
-  { value: 14, name: 'holder', category: 'General' },
-  { value: 15, name: 'salt', category: 'General' },
-  { value: 16, name: 'date', category: 'General' },
-  { value: 17, name: 'Unknown', category: 'General' },
-  { value: 18, name: 'version', category: 'General' },
-  { value: 19, name: 'hasSecret', category: 'General' },
-  { value: 20, name: 'edits', category: 'General' },
-  { value: 21, name: 'validFrom', category: 'General' },
-  { value: 22, name: 'validUntil', category: 'General' },
-  { value: 23, name: 'position', category: 'General' },
-  { value: 24, name: 'nickname', category: 'General' },
-
-  // Attachments
-  { value: 50, name: 'attachment', category: 'Attachments' },
-  { value: 51, name: 'vendor', category: 'Attachments' },
-  { value: 52, name: 'conformsTo', category: 'Attachments' },
-
-  // XID Documents
-  { value: 60, name: 'allow', category: 'XID Documents' },
-  { value: 61, name: 'deny', category: 'XID Documents' },
-  { value: 62, name: 'endpoint', category: 'XID Documents' },
-  { value: 63, name: 'delegate', category: 'XID Documents' },
-  { value: 64, name: 'provenance', category: 'XID Documents' },
-  { value: 65, name: 'privateKey', category: 'XID Documents' },
-  { value: 66, name: 'service', category: 'XID Documents' },
-  { value: 67, name: 'capability', category: 'XID Documents' },
-  { value: 68, name: 'provenanceGenerator', category: 'XID Documents' },
-
-  // XID Privileges
-  { value: 70, name: 'All', category: 'XID Privileges' },
-  { value: 71, name: 'Auth', category: 'XID Privileges' },
-  { value: 72, name: 'Sign', category: 'XID Privileges' },
-  { value: 73, name: 'Encrypt', category: 'XID Privileges' },
-  { value: 74, name: 'Elide', category: 'XID Privileges' },
-  { value: 75, name: 'Issue', category: 'XID Privileges' },
-  { value: 76, name: 'Access', category: 'XID Privileges' },
-  { value: 80, name: 'Delegate', category: 'XID Privileges' },
-  { value: 81, name: 'Verify', category: 'XID Privileges' },
-  { value: 82, name: 'Update', category: 'XID Privileges' },
-  { value: 83, name: 'Transfer', category: 'XID Privileges' },
-  { value: 84, name: 'Elect', category: 'XID Privileges' },
-  { value: 85, name: 'Burn', category: 'XID Privileges' },
-  { value: 86, name: 'Revoke', category: 'XID Privileges' },
-
-  // Expression & Function Calls
-  { value: 100, name: 'body', category: 'Expressions' },
-  { value: 101, name: 'result', category: 'Expressions' },
-  { value: 102, name: 'error', category: 'Expressions' },
-  { value: 103, name: 'OK', category: 'Expressions' },
-  { value: 104, name: 'Processing', category: 'Expressions' },
-  { value: 105, name: 'sender', category: 'Expressions' },
-  { value: 106, name: 'senderContinuation', category: 'Expressions' },
-  { value: 107, name: 'recipientContinuation', category: 'Expressions' },
-  { value: 108, name: 'content', category: 'Expressions' },
-
-  // Cryptography
-  { value: 200, name: 'Seed', category: 'Cryptography' },
-  { value: 201, name: 'PrivateKey', category: 'Cryptography' },
-  { value: 202, name: 'PublicKey', category: 'Cryptography' },
-  { value: 203, name: 'MasterKey', category: 'Cryptography' },
-
-  // Cryptocurrency Assets
-  { value: 300, name: 'asset', category: 'Crypto Assets' },
-  { value: 301, name: 'BTC', category: 'Crypto Assets' },
-  { value: 302, name: 'ETH', category: 'Crypto Assets' },
-  { value: 303, name: 'XTZ', category: 'Crypto Assets' },
-
-  // Cryptocurrency Networks
-  { value: 400, name: 'network', category: 'Networks' },
-  { value: 401, name: 'MainNet', category: 'Networks' },
-  { value: 402, name: 'TestNet', category: 'Networks' },
-
-  // Bitcoin
-  { value: 500, name: 'BIP32Key', category: 'Bitcoin' },
-  { value: 501, name: 'chainCode', category: 'Bitcoin' },
-  { value: 502, name: 'DerivationPath', category: 'Bitcoin' },
-  { value: 503, name: 'parent', category: 'Bitcoin' },
-  { value: 504, name: 'children', category: 'Bitcoin' },
-  { value: 505, name: 'parentFingerprint', category: 'Bitcoin' },
-  { value: 506, name: 'PSBT', category: 'Bitcoin' },
-  { value: 507, name: 'OutputDescriptor', category: 'Bitcoin' },
-  { value: 508, name: 'outputDescriptor', category: 'Bitcoin' },
-
-  // Graphs
-  { value: 600, name: 'graph', category: 'Graphs' },
-  { value: 601, name: 'SourceTargetGraph', category: 'Graphs' },
-  { value: 602, name: 'ParentChildGraph', category: 'Graphs' },
-  { value: 603, name: 'Digraph', category: 'Graphs' },
-  { value: 604, name: 'AcyclicGraph', category: 'Graphs' },
-  { value: 605, name: 'Multigraph', category: 'Graphs' },
-  { value: 606, name: 'Pseudograph', category: 'Graphs' },
-  { value: 607, name: 'GraphFragment', category: 'Graphs' },
-  { value: 608, name: 'DAG', category: 'Graphs' },
-  { value: 609, name: 'Tree', category: 'Graphs' },
-  { value: 610, name: 'Forest', category: 'Graphs' },
-  { value: 611, name: 'CompoundGraph', category: 'Graphs' },
-  { value: 612, name: 'Hypergraph', category: 'Graphs' },
-  { value: 613, name: 'Dihypergraph', category: 'Graphs' },
-  { value: 700, name: 'node', category: 'Graphs' },
-  { value: 701, name: 'edge', category: 'Graphs' },
-  { value: 702, name: 'source', category: 'Graphs' },
-  { value: 703, name: 'target', category: 'Graphs' },
-  { value: 704, name: 'parent', category: 'Graphs' },
-  { value: 705, name: 'child', category: 'Graphs' },
-]
+// Get IANA tags (fetched dynamically)
+const ianaResult = useIanaTags()
 
 // Get unique categories
 const tagCategories = computed(() => [...new Set(tagsData.map(t => t.category))])
@@ -288,6 +60,22 @@ const filteredKnownValues = computed(() => {
       k.name.toLowerCase().includes(query) ||
       k.value.toString().includes(query) ||
       k.category.toLowerCase().includes(query)
+    )
+  }
+
+  return result
+})
+
+// Filtered IANA tags
+const filteredIanaTags = computed(() => {
+  let result = ianaResult.value.tags
+
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(t =>
+      t.value.toLowerCase().includes(query) ||
+      t.description.toLowerCase().includes(query) ||
+      t.semantics.toLowerCase().includes(query)
     )
   }
 
@@ -341,6 +129,14 @@ const knownValueStats = computed(() => ({
   total: knownValuesData.length,
   filtered: filteredKnownValues.value.length,
 }))
+
+const ianaStats = computed(() => ({
+  total: ianaResult.value.tags.length,
+  filtered: filteredIanaTags.value.length,
+  loading: ianaResult.value.loading,
+  error: ianaResult.value.error,
+  lastUpdated: ianaResult.value.lastUpdated,
+}))
 </script>
 
 <template>
@@ -375,7 +171,8 @@ const knownValueStats = computed(() => ({
               v-model="activeTab"
               :items="[
                 { label: 'CBOR Tags', value: 'tags' },
-                { label: 'Known Values', value: 'known-values' }
+                { label: 'Known Values', value: 'known-values' },
+                { label: 'IANA Registry', value: 'iana' }
               ]"
               size="sm"
             />
@@ -389,8 +186,8 @@ const knownValueStats = computed(() => ({
             />
           </div>
 
-          <!-- Category Pills -->
-          <div class="px-4 pb-3 flex flex-wrap gap-1.5">
+          <!-- Category Pills (not shown for IANA) -->
+          <div v-if="activeTab !== 'iana'" class="px-4 pb-3 flex flex-wrap gap-1.5">
             <template v-if="activeTab === 'tags'">
               <button
                 :class="[
@@ -487,7 +284,7 @@ const knownValueStats = computed(() => ({
           </table>
 
           <!-- Known Values Table -->
-          <table v-else class="w-full">
+          <table v-else-if="activeTab === 'known-values'" class="w-full">
             <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800/80 backdrop-blur z-10">
               <tr>
                 <th class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 w-32">Value</th>
@@ -518,9 +315,77 @@ const knownValueStats = computed(() => ({
             </tbody>
           </table>
 
+          <!-- IANA Tags Table -->
+          <div v-else-if="activeTab === 'iana'">
+            <!-- Loading state -->
+            <div v-if="ianaStats.loading" class="flex items-center justify-center h-64">
+              <div class="text-center">
+                <UIcon name="i-heroicons-arrow-path" class="w-8 h-8 text-gray-400 dark:text-gray-500 animate-spin mb-3" />
+                <p class="text-sm text-gray-500 dark:text-gray-400">Loading IANA registry...</p>
+              </div>
+            </div>
+
+            <!-- Error state -->
+            <div v-else-if="ianaStats.error" class="flex items-center justify-center h-64">
+              <div class="text-center">
+                <div class="bg-red-100 dark:bg-red-900/30 rounded-full p-4 mb-3 inline-block">
+                  <UIcon name="i-heroicons-exclamation-triangle" class="w-8 h-8 text-red-500 dark:text-red-400" />
+                </div>
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-1">Failed to load IANA registry</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ ianaStats.error }}</p>
+              </div>
+            </div>
+
+            <!-- IANA Table -->
+            <table v-else class="w-full">
+              <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800/80 backdrop-blur z-10">
+                <tr>
+                  <th class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 w-32">Tag</th>
+                  <th class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 w-40">Data Item</th>
+                  <th class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3">Semantics</th>
+                  <th class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 w-48">Reference</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 dark:divide-gray-800/50">
+                <tr
+                  v-for="tag in filteredIanaTags"
+                  :key="tag.value"
+                  class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                >
+                  <td class="px-4 py-3">
+                    <code class="text-sm font-mono font-semibold text-blue-600 dark:text-blue-400">
+                      {{ tag.value }}
+                    </code>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-gray-600 dark:text-gray-300">{{ tag.description || '-' }}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="text-sm text-gray-900 dark:text-gray-100">{{ tag.semantics || '-' }}</span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <div class="flex flex-col gap-0.5">
+                      <span
+                        v-for="(ref, idx) in tag.references.slice(0, 2)"
+                        :key="idx"
+                        class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]"
+                        :title="ref"
+                      >
+                        {{ ref }}
+                      </span>
+                      <span v-if="tag.references.length > 2" class="text-xs text-gray-400">
+                        +{{ tag.references.length - 2 }} more
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
           <!-- Empty state -->
           <div
-            v-if="(activeTab === 'tags' && filteredTags.length === 0) || (activeTab === 'known-values' && filteredKnownValues.length === 0)"
+            v-if="(activeTab === 'tags' && filteredTags.length === 0) || (activeTab === 'known-values' && filteredKnownValues.length === 0) || (activeTab === 'iana' && !ianaStats.loading && !ianaStats.error && filteredIanaTags.length === 0)"
             class="flex items-center justify-center h-64"
           >
             <div class="text-center">
@@ -538,8 +403,18 @@ const knownValueStats = computed(() => ({
           <span v-if="activeTab === 'tags'">
             Showing {{ tagStats.filtered }} of {{ tagStats.total }} tags
           </span>
-          <span v-else>
+          <span v-else-if="activeTab === 'known-values'">
             Showing {{ knownValueStats.filtered }} of {{ knownValueStats.total }} known values
+          </span>
+          <span v-else-if="activeTab === 'iana'">
+            <template v-if="ianaStats.loading">Loading IANA registry...</template>
+            <template v-else-if="ianaStats.error">Error loading registry</template>
+            <template v-else>
+              Showing {{ ianaStats.filtered }} of {{ ianaStats.total }} IANA tags
+              <span v-if="ianaStats.lastUpdated" class="ml-2 text-gray-400">
+                (Updated: {{ ianaStats.lastUpdated }})
+              </span>
+            </template>
           </span>
           <a
             href="https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml"

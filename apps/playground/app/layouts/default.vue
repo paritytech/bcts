@@ -219,7 +219,7 @@ const bottomNavigationItems: NavigationMenuItem[] = [
       <template #header="{ collapsed }">
         <div :class="['flex items-center', collapsed ? 'justify-center w-full' : 'gap-2']">
           <BctsLogo width="24" height="24" />
-          <h2 v-if="!collapsed" class="font-semibold text-gray-900 dark:text-white">BCTS UI</h2>
+          <h2 v-if="!collapsed" class="font-semibold text-gray-900 dark:text-white">BCTS IDE</h2>
         </div>
       </template>
 
