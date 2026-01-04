@@ -5,7 +5,7 @@
  */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 
-import { type Cbor, type Result, diagnosticOpt, hexOpt, bytesToHex, cborData } from "@bcts/dcbor";
+import { type Cbor, type Result, diagnosticOpt, hexOpt, bytesToHex, cborData, errorMsg } from "@bcts/dcbor";
 
 /**
  * Input format options
@@ -25,7 +25,7 @@ export function formatOutput(
   cbor: Cbor,
   outFormat: OutputFormat,
   annotate: boolean,
-): Result<string, Error> {
+): Result<string> {
   try {
     switch (outFormat) {
       case "diag":
@@ -52,10 +52,10 @@ export function formatOutput(
         return { ok: true, value: "" };
 
       default:
-        return { ok: false, error: new Error(`Unknown output format: ${outFormat}`) };
+        return { ok: false, error: errorMsg(`Unknown output format: ${outFormat}`) };
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e : new Error(String(e)) };
+    return { ok: false, error: errorMsg(e instanceof Error ? e.message : String(e)) };
   }
 }
 

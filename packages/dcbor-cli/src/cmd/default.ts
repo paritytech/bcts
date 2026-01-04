@@ -4,8 +4,8 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-return */
 
-import { type Cbor, type Result, decodeCbor, hexToBytes } from "@bcts/dcbor";
-import { parseDcborItem } from "@bcts/dcbor-parse";
+import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
+import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";
 import type { Exec } from "./index.js";
 import { type InputFormat, type OutputFormat, formatOutput } from "../format.js";
 
@@ -14,7 +14,7 @@ import { type InputFormat, type OutputFormat, formatOutput } from "../format.js"
  */
 export interface DefaultCommandArgs {
   /** Input dCBOR in the format specified by `in`. Optional - reads from stdin if not provided */
-  input?: string;
+  input?: string | undefined;
   /** The input format (default: diag) */
   in: InputFormat;
   /** The output format (default: hex) */
@@ -30,7 +30,7 @@ export function execDefaultWithReader(
   args: DefaultCommandArgs,
   readString: () => string,
   readData: () => Uint8Array,
-): Result<string, Error> {
+): Result<string> {
   let cbor: Cbor;
 
   try {
@@ -41,7 +41,7 @@ export function execDefaultWithReader(
           if (!result.ok) {
             return {
               ok: false,
-              error: new Error(result.error.fullMessage(args.input)),
+              error: errorMsg(fullErrorMessage(result.error, args.input)),
             };
           }
           cbor = result.value;
@@ -51,7 +51,7 @@ export function execDefaultWithReader(
           if (!result.ok) {
             return {
               ok: false,
-              error: new Error(result.error.fullMessage(diag)),
+              error: errorMsg(fullErrorMessage(result.error, diag)),
             };
           }
           cbor = result.value;
@@ -73,10 +73,10 @@ export function execDefaultWithReader(
         break;
       }
       default:
-        return { ok: false, error: new Error(`Unknown input format: ${args.in}`) };
+        return { ok: false, error: errorMsg(`Unknown input format: ${args.in}`) };
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e : new Error(String(e)) };
+    return { ok: false, error: errorMsg(e instanceof Error ? e.message : String(e)) };
   }
 
   return formatOutput(cbor, args.out, args.annotate);
@@ -87,8 +87,8 @@ export function execDefaultWithReader(
  */
 export function execDefault(
   args: DefaultCommandArgs,
-  stdinContent?: string,
-): Result<string, Error> {
+  stdinContent?: string | undefined,
+): Result<string> {
   return execDefaultWithReader(
     args,
     () => stdinContent ?? "",
@@ -104,7 +104,7 @@ export function execDefault(
 /**
  * Create an Exec implementation for default command
  */
-export function createDefaultCommand(args: DefaultCommandArgs, stdinContent?: string): Exec {
+export function createDefaultCommand(args: DefaultCommandArgs, stdinContent?: string | undefined): Exec {
   return {
     exec: () => execDefault(args, stdinContent),
   };

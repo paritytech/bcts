@@ -15,5 +15,5 @@ export * from "./match.js";
  * Equivalent to Rust's `pub trait Exec`
  */
 export interface Exec {
-  exec(): Result<string, Error>;
+  exec(): Result<string>;
 }

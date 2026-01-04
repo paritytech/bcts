@@ -4,8 +4,8 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-return, @typescript-eslint/switch-exhaustiveness-check, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unsafe-member-access */
 
-import { type Cbor, type Result, decodeCbor, hexToBytes } from "@bcts/dcbor";
-import { parseDcborItem } from "@bcts/dcbor-parse";
+import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
+import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";
 import {
   parse as parsePattern,
   pathsWithCaptures,
@@ -29,7 +29,7 @@ export interface MatchCommandArgs {
   /** The pattern to match against */
   pattern: string;
   /** dCBOR input (hex, diag, or binary). If not provided, reads from stdin */
-  input?: string;
+  input?: string | undefined;
   /** Input format (default: diag) */
   in: InputFormat;
   /** Output format (default: paths) */
@@ -74,7 +74,7 @@ function formatPatternError(error: PatternParseError, patternStr: string): strin
 /**
  * Execute match command
  */
-export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result<string, Error> {
+export function execMatch(args: MatchCommandArgs, stdinContent?: string | undefined): Result<string> {
   // Read input data
   let inputData: Uint8Array;
   if (args.input !== undefined) {
@@ -95,7 +95,7 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result
         if (!result.ok) {
           return {
             ok: false,
-            error: new Error(result.error.fullMessage(inputStr)),
+            error: errorMsg(fullErrorMessage(result.error, inputStr)),
           };
         }
         cbor = result.value;
@@ -111,10 +111,10 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result
         break;
       }
       default:
-        return { ok: false, error: new Error(`Unknown input format: ${args.in}`) };
+        return { ok: false, error: errorMsg(`Unknown input format: ${args.in}`) };
     }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e : new Error(String(e)) };
+    return { ok: false, error: errorMsg(e instanceof Error ? e.message : String(e)) };
   }
 
   // Parse pattern
@@ -122,7 +122,7 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result
   if (!patternResult.ok) {
     return {
       ok: false,
-      error: new Error(formatPatternError(patternResult.error, args.pattern)),
+      error: errorMsg(formatPatternError(patternResult.error, args.pattern)),
     };
   }
   const pattern = patternResult.value;
@@ -132,7 +132,7 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result
 
   // Check for matches
   if (paths.length === 0) {
-    return { ok: false, error: new Error("No match") };
+    return { ok: false, error: errorMsg("No match") };
   }
 
   // Format output based on requested format
@@ -182,14 +182,14 @@ export function execMatch(args: MatchCommandArgs, stdinContent?: string): Result
     }
 
     default:
-      return { ok: false, error: new Error(`Unknown output format: ${args.out}`) };
+      return { ok: false, error: errorMsg(`Unknown output format: ${args.out}`) };
   }
 }
 
 /**
  * Create an Exec implementation for match command
  */
-export function createMatchCommand(args: MatchCommandArgs, stdinContent?: string): Exec {
+export function createMatchCommand(args: MatchCommandArgs, stdinContent?: string | undefined): Exec {
   return {
     exec: () => execMatch(args, stdinContent),
   };

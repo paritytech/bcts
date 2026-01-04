@@ -17,7 +17,7 @@ export type Command =
   | {
       type: "match";
       pattern: string;
-      input?: string;
+      input?: string | undefined;
       in: InputFormat;
       out: MatchOutputFormat;
       noIndent: boolean;
@@ -27,7 +27,7 @@ export type Command =
     }
   | {
       type: "default";
-      input?: string;
+      input?: string | undefined;
       in: InputFormat;
       out: OutputFormat;
       annotate: boolean;
@@ -35,7 +35,7 @@ export type Command =
 
 export interface RunOptions {
   command: Command;
-  stdinContent?: string;
+  stdinContent?: string | undefined;
 }
 
 export interface RunResult {
