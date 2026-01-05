@@ -876,9 +876,16 @@ export class Lexer {
     }
 
     const [cbor] = parseResult.value;
-    const value = cbor.value as number;
+    const numValue = cbor.asNumber();
 
-    if (typeof value !== "number" || !isFinite(value)) {
+    if (numValue === undefined) {
+      return Err({ type: "InvalidNumberFormat", span: this.spanFrom(start) });
+    }
+
+    // Convert bigint to number if needed, ensuring it's a valid JavaScript number
+    const value = typeof numValue === "bigint" ? Number(numValue) : numValue;
+
+    if (!isFinite(value)) {
       return Err({ type: "InvalidNumberFormat", span: this.spanFrom(start) });
     }
 

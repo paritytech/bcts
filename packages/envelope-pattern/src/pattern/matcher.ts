@@ -86,3 +86,34 @@ export function compileAsAtomic(
   literals.push(pat);
   code.push({ type: "MatchPredicate", literalIndex: idx });
 }
+
+// ============================================================================
+// Pattern Match Registry
+// ============================================================================
+
+/**
+ * Registry for pattern matching function to break circular dependencies.
+ * This allows meta patterns to match child patterns without importing from index.ts.
+ */
+let patternMatchFn: ((pattern: Pattern, haystack: Envelope) => boolean) | undefined;
+
+/**
+ * Registers the pattern match function.
+ * Called from index.ts after all patterns are defined.
+ */
+export function registerPatternMatchFn(
+  fn: (pattern: Pattern, haystack: Envelope) => boolean
+): void {
+  patternMatchFn = fn;
+}
+
+/**
+ * Match a pattern against an envelope using the registered match function.
+ * Used by meta patterns to match child patterns.
+ */
+export function matchPattern(pattern: Pattern, haystack: Envelope): boolean {
+  if (patternMatchFn === undefined) {
+    throw new Error("Pattern match function not registered");
+  }
+  return patternMatchFn(pattern, haystack);
+}

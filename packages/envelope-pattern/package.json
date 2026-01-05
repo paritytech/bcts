@@ -68,6 +68,7 @@
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
+    "@bcts/dcbor-parse": "workspace:*",
     "@bcts/dcbor-pattern": "workspace:*",
     "@bcts/envelope": "workspace:*",
     "@bcts/known-values": "workspace:*"
