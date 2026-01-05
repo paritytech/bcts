@@ -25,9 +25,7 @@ import {
   type Pattern,
   patternMatches,
 } from "../src";
-import {
-  convertDcborPatternToEnvelopePattern,
-} from "../src/pattern/dcbor-integration";
+import { convertDcborPatternToEnvelopePattern } from "../src/pattern/dcbor-integration";
 import {
   anyBool as dcborAnyBool,
   bool as dcborBool,
@@ -222,10 +220,7 @@ describe("dCBOR Pattern Integration", () => {
 
   describe("Meta Patterns", () => {
     it("converts and matches AND pattern", () => {
-      const dcborPattern = dcborAnd(
-        dcborNumberGreaterThan(10),
-        dcborNumberLessThan(50)
-      );
+      const dcborPattern = dcborAnd(dcborNumberGreaterThan(10), dcborNumberLessThan(50));
       const result = convertDcborPatternToEnvelopePattern(dcborPattern);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
@@ -242,10 +237,7 @@ describe("dCBOR Pattern Integration", () => {
     });
 
     it("converts and matches OR pattern", () => {
-      const dcborPattern = dcborOr(
-        dcborText("hello"),
-        dcborNumber(42)
-      );
+      const dcborPattern = dcborOr(dcborText("hello"), dcborNumber(42));
       const result = convertDcborPatternToEnvelopePattern(dcborPattern);
       expect(result.ok).toBe(true);
       if (!result.ok) return;

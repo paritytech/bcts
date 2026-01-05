@@ -10,12 +10,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Envelope } from "@bcts/envelope";
-import {
-  parse,
-  patternMatches,
-  patternPaths,
-  convertDcborPatternToEnvelopePattern,
-} from "../src";
+import { parse, patternMatches, patternPaths, convertDcborPatternToEnvelopePattern } from "../src";
 import { bool } from "@bcts/dcbor-pattern";
 
 describe("Parser Integration Tests", () => {

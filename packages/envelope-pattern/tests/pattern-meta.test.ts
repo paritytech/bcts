@@ -143,9 +143,7 @@ describe("Meta Pattern Tests", () => {
   describe("Search Pattern", () => {
     // Note: Search patterns require VM implementation for tree traversal
     it.skip("searches for patterns in envelope tree", () => {
-      const envelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       // Search for any assertion
       const searchPat = search(anyAssertion());
@@ -158,8 +156,7 @@ describe("Meta Pattern Tests", () => {
 
   describe("Traverse Pattern", () => {
     it("traverses through pattern sequence", () => {
-      const envelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob");
+      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob");
 
       // Note: Traverse functionality depends on VM implementation
       const traversePat = traverse([anySubject(), anyAssertion()]);
@@ -172,10 +169,7 @@ describe("Meta Pattern Tests", () => {
       const envelope = Envelope.new(42);
 
       // 42 is (a number AND > 10) OR (text)
-      const complexPat = or([
-        and([anyNumber(), numberGreaterThan(10)]),
-        anyText(),
-      ]);
+      const complexPat = or([and([anyNumber(), numberGreaterThan(10)]), anyText()]);
       expect(patternMatches(complexPat, envelope)).toBe(true);
 
       // "hello" is (a number AND > 10) OR (text)

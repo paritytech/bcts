@@ -188,7 +188,9 @@ describe("Structure Pattern Matching Tests", () => {
     });
 
     it("matches compressed envelopes", () => {
-      const original = Envelope.new("Secret data that is long enough to compress effectively and test the compression pattern matching functionality");
+      const original = Envelope.new(
+        "Secret data that is long enough to compress effectively and test the compression pattern matching functionality",
+      );
       const compressedEnvelope = original.compress();
 
       expect(patternMatches(obscured(), compressedEnvelope)).toBe(true);
@@ -206,8 +208,7 @@ describe("Structure Pattern Matching Tests", () => {
     });
 
     it.skip("matches envelopes with assertions (nodes)", () => {
-      const singleAssertionEnvelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob");
+      const singleAssertionEnvelope = Envelope.new("Alice").addAssertion("knows", "Bob");
       expect(patternMatches(anyNode(), singleAssertionEnvelope)).toBe(true);
     });
   });

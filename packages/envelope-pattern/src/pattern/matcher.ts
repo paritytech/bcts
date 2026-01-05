@@ -102,7 +102,7 @@ let patternMatchFn: ((pattern: Pattern, haystack: Envelope) => boolean) | undefi
  * Called from index.ts after all patterns are defined.
  */
 export function registerPatternMatchFn(
-  fn: (pattern: Pattern, haystack: Envelope) => boolean
+  fn: (pattern: Pattern, haystack: Envelope) => boolean,
 ): void {
   patternMatchFn = fn;
 }

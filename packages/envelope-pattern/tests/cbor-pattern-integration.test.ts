@@ -132,7 +132,7 @@ describe("CBOR Pattern Integration Tests", () => {
         new Map<string, unknown>([
           ["name", "Alice"],
           ["age", 42],
-        ])
+        ]),
       );
       const result = parse('cbor({"name": "Alice", "age": 42})');
       expect(result.ok).toBe(true);

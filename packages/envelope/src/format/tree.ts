@@ -43,7 +43,10 @@ interface TreeElement {
 // This module provides the prototype implementations.
 
 /// Implementation of shortId()
-Envelope.prototype.shortId = function (this: Envelope, format: "short" | "full" | "ur" = "short"): string {
+Envelope.prototype.shortId = function (
+  this: Envelope,
+  format: "short" | "full" | "ur" = "short",
+): string {
   const digest = this.digest();
   if (format === "full") {
     return digest.hex();

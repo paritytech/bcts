@@ -68,9 +68,7 @@ import {
  * @param dcborPattern - The dcbor-pattern Pattern to convert
  * @returns The converted envelope pattern, or an error if conversion fails
  */
-export function convertDcborPatternToEnvelopePattern(
-  dcborPattern: DCBORPattern
-): Result<Pattern> {
+export function convertDcborPatternToEnvelopePattern(dcborPattern: DCBORPattern): Result<Pattern> {
   switch (dcborPattern.kind) {
     case "Value":
       return convertValuePatternToEnvelopePattern(dcborPattern.pattern);
@@ -84,9 +82,7 @@ export function convertDcborPatternToEnvelopePattern(
 /**
  * Convert a dcbor-pattern ValuePattern to an envelope leaf pattern.
  */
-function convertValuePatternToEnvelopePattern(
-  valuePattern: DCBORValuePattern
-): Result<Pattern> {
+function convertValuePatternToEnvelopePattern(valuePattern: DCBORValuePattern): Result<Pattern> {
   switch (valuePattern.type) {
     case "Bool": {
       const boolPattern = BoolPattern.fromDcborPattern(valuePattern.pattern);
@@ -131,7 +127,7 @@ function convertValuePatternToEnvelopePattern(
  * Convert a dcbor-pattern StructurePattern to an envelope pattern.
  */
 function convertStructurePatternToEnvelopePattern(
-  structurePattern: DCBORStructurePattern
+  structurePattern: DCBORStructurePattern,
 ): Result<Pattern> {
   switch (structurePattern.type) {
     case "Array": {
@@ -160,7 +156,7 @@ function convertStructurePatternToEnvelopePattern(
  */
 function convertMetaPatternToEnvelopePattern(
   metaPattern: DCBORMetaPattern,
-  originalPattern: DCBORPattern
+  originalPattern: DCBORPattern,
 ): Result<Pattern> {
   switch (metaPattern.type) {
     case "Any": {
