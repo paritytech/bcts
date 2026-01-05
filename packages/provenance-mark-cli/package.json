@@ -83,6 +83,6 @@
     "@bcts/known-values": "workspace:*",
     "@bcts/provenance-mark": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
-    "commander": "^13.1.0"
+    "commander": "^14.0.2"
   }
 }
