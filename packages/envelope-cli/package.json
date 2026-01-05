@@ -46,7 +46,6 @@
   ],
   "scripts": {
     "dev": "tsdown --watch",
-    "test": "vitest run",
     "test:watch": "vitest",
     "lint:fix": "eslint 'src/**/*.ts' --fix",
     "clean": "rm -rf dist"
