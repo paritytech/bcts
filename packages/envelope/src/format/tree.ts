@@ -21,8 +21,8 @@ export interface TreeFormatOptions {
   hideNodes?: boolean;
   /// Set of digest strings to highlight in the tree
   highlightDigests?: Set<string>;
-  /// Format for displaying digests
-  digestDisplay?: "short" | "full";
+  /// Format for displaying digests: "short" (7 hex chars), "full" (64 hex chars), or "ur" (UR string)
+  digestDisplay?: "short" | "full" | "ur";
 }
 
 /// Represents an element in the tree representation
@@ -43,10 +43,13 @@ interface TreeElement {
 // This module provides the prototype implementations.
 
 /// Implementation of shortId()
-Envelope.prototype.shortId = function (this: Envelope, format: "short" | "full" = "short"): string {
+Envelope.prototype.shortId = function (this: Envelope, format: "short" | "full" | "ur" = "short"): string {
   const digest = this.digest();
   if (format === "full") {
     return digest.hex();
+  }
+  if (format === "ur") {
+    return digest.urString();
   }
   return digest.short();
 };

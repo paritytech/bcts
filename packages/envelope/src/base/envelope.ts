@@ -772,14 +772,14 @@ export class Envelope implements DigestProvider {
   declare treeFormat: (options?: {
     hideNodes?: boolean;
     highlightDigests?: Set<string>;
-    digestDisplay?: "short" | "full";
+    digestDisplay?: "short" | "full" | "ur";
   }) => string;
 
   /// Returns a short identifier for this envelope based on its digest.
   ///
-  /// @param format - Format for the digest ('short' or 'full')
+  /// @param format - Format for the digest ('short', 'full', or 'ur')
   /// @returns A digest identifier string
-  declare shortId: (format?: "short" | "full") => string;
+  declare shortId: (format?: "short" | "full" | "ur") => string;
 
   /// Returns a summary string for this envelope.
   ///
