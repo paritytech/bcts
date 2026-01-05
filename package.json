@@ -46,7 +46,6 @@
     "typecheck": "turbo run typecheck",
     "docs": "turbo run docs",
     "playground": "turbo run dev --filter=@bcts/playground",
-    "deploy": "turbo run deploy --filter=@bcts/playground",
     "clean": "turbo run clean",
     "release": "turbo run build lint test && changeset publish",
     "version": "changeset version",

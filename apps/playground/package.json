@@ -8,8 +8,7 @@
     "dev": "nuxt dev",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck",
-    "deploy": "nuxt build"
+    "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
