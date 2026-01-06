@@ -13,11 +13,20 @@ export default defineNuxtConfig({
   routeRules: {
     "/": { prerender: true },
   },
+  hub: {
+    kv: true,
+  },
   nitro: {
     preset: "cloudflare_module",
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,
+    },
+    storage: {
+      cache: {
+        driver: "cloudflare-kv-binding",
+        binding: "CACHE",
+      },
     },
   },
 });

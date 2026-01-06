@@ -26,6 +26,7 @@ export * from "./structure";
 export * from "./meta";
 export * from "./matcher";
 export * from "./vm";
+export * from "./dcbor-integration";
 
 // Import leaf patterns
 import {
@@ -717,3 +718,7 @@ registerAllFactories();
 // Register VM pattern functions to resolve circular dependencies
 import { registerVMPatternFunctions } from "./vm";
 registerVMPatternFunctions(patternPathsWithCaptures, patternMatches, patternPaths);
+
+// Register pattern match function for meta patterns
+import { registerPatternMatchFn } from "./matcher";
+registerPatternMatchFn(patternMatches);

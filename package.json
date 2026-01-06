@@ -45,6 +45,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
     "docs": "turbo run docs",
+    "deploy": "turbo run deploy --filter=@bcts/playground",
     "playground": "turbo run dev --filter=@bcts/playground",
     "clean": "turbo run clean",
     "release": "turbo run build lint test && changeset publish",

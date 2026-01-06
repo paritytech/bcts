@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { type Matcher, matchPattern } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -46,10 +46,7 @@ export class OrPattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const anyMatch = this.#patterns.some((pattern) => {
-      const matcher = pattern as unknown as Matcher;
-      return matcher.matches(haystack);
-    });
+    const anyMatch = this.#patterns.some((pattern) => matchPattern(pattern, haystack));
 
     const paths = anyMatch ? [[haystack]] : [];
     return [paths, new Map<string, Path[]>()];

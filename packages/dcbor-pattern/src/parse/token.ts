@@ -7,6 +7,7 @@
  * @module parse/token
  */
 
+import { parseDcborItemPartial } from "@bcts/dcbor-parse";
 import { type Span, span, type Result, Ok, Err } from "../error";
 import { Quantifier } from "../quantifier";
 import { Reluctance } from "../reluctance";
@@ -820,7 +821,7 @@ export class Lexer {
   }
 
   /**
-   * Parse a number literal.
+   * Parse a number literal using dcbor-parse for consistency with dCBOR.
    */
   private parseNumber(start: number): Result<SpannedToken> {
     const numStart = this.#position;
@@ -867,7 +868,22 @@ export class Lexer {
     }
 
     const numStr = this.#input.slice(numStart, this.#position);
-    const value = parseFloat(numStr);
+
+    // Use dcbor-parse for dCBOR-compliant number parsing
+    const parseResult = parseDcborItemPartial(numStr);
+    if (!parseResult.ok) {
+      return Err({ type: "InvalidNumberFormat", span: this.spanFrom(start) });
+    }
+
+    const [cbor] = parseResult.value;
+    const numValue = cbor.asNumber();
+
+    if (numValue === undefined) {
+      return Err({ type: "InvalidNumberFormat", span: this.spanFrom(start) });
+    }
+
+    // Convert bigint to number if needed, ensuring it's a valid JavaScript number
+    const value = typeof numValue === "bigint" ? Number(numValue) : numValue;
 
     if (!isFinite(value)) {
       return Err({ type: "InvalidNumberFormat", span: this.spanFrom(start) });

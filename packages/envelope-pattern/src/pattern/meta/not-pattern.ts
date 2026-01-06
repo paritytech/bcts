@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { type Matcher, matchPattern } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -47,8 +47,7 @@ export class NotPattern implements Matcher {
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     // If the inner pattern doesn't match, then we return the current envelope as a match
-    const matcher = this.#pattern as unknown as Matcher;
-    const paths = !matcher.matches(haystack) ? [[haystack]] : [];
+    const paths = !matchPattern(this.#pattern, haystack) ? [[haystack]] : [];
     return [paths, new Map<string, Path[]>()];
   }
 

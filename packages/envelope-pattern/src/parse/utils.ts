@@ -7,13 +7,8 @@
  */
 
 import type { Cbor } from "@bcts/dcbor";
+import { parseDcborItemPartial } from "@bcts/dcbor-parse";
 import { type Pattern as DCBORPattern, parse as parseDcborPattern } from "@bcts/dcbor-pattern";
-
-// Stub for cborFromDiagnostic - not implemented in dcbor yet
-function cborFromDiagnostic(_src: string): { ok: true; value: Cbor } | { ok: false } {
-  // TODO: Implement when dcbor adds diagnostic notation parsing
-  return { ok: false };
-}
 import {
   type Result,
   ok,
@@ -175,20 +170,24 @@ export function parseCborInner(src: string): Result<[Pattern, number]> {
 
   // Check if this is a UR (ur:type/value)
   if (src.slice(pos.value, pos.value + 3) === "ur:") {
-    // For now, parse as CBOR diagnostic notation
-    // TODO: Add proper UR parsing when available
+    // Parse as UR and convert to CBOR
+    const remaining = src.slice(pos.value);
+    const parseResult = parseDcborItemPartial(remaining);
+    if (!parseResult.ok) {
+      return err(unknown());
+    }
+    const [cborValue, consumed] = parseResult.value;
+    return ok([createCborPattern(cborValue), pos.value + consumed]);
   }
 
   // Default: parse as CBOR diagnostic notation
   const remaining = src.slice(pos.value);
-  const cborResult = cborFromDiagnostic(remaining);
-  if (!cborResult.ok) {
+  const parseResult = parseDcborItemPartial(remaining);
+  if (!parseResult.ok) {
     return err(unknown());
   }
-
-  // Count consumed characters (approximation - full string was consumed)
-  const consumed = remaining.length;
-  return ok([createCborPattern(cborResult.value), pos.value + consumed]);
+  const [cborValue, consumed] = parseResult.value;
+  return ok([createCborPattern(cborValue), pos.value + consumed]);
 }
 
 /**

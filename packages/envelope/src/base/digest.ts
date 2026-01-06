@@ -1,4 +1,6 @@
 import { sha256 } from "@bcts/crypto";
+import { toByteString } from "@bcts/dcbor";
+import { UR } from "@bcts/uniform-resources";
 
 /// A cryptographic digest used to uniquely identify digital objects.
 ///
@@ -101,6 +103,24 @@ export class Digest {
   /// ```
   short(): string {
     return this.hex().substring(0, 7);
+  }
+
+  /// Returns the UR string representation of the digest.
+  ///
+  /// This encodes the digest as a Uniform Resource (UR) string, which is
+  /// a self-describing format that includes the type ("digest") and the
+  /// data encoded in a compact, checksummed format.
+  ///
+  /// @returns A UR string like "ur:digest/..."
+  ///
+  /// @example
+  /// ```typescript
+  /// const digest = Digest.fromImage(data);
+  /// console.log(digest.urString()); // "ur:digest/hdcx..."
+  /// ```
+  urString(): string {
+    const ur = UR.new("digest", toByteString(this.#data));
+    return ur.string();
   }
 
   /// Creates a digest from a hexadecimal string.
