@@ -89,7 +89,8 @@ export const cborEnvelopeSummary = (
       if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
       return String(value);
     }
-    return String(value);
+    // Fallback for other simple values - use diagnostic notation
+    return diagnosticOpt(cbor, { summarize: true });
   }
 
   // Handle arrays, maps, and tagged values - use diagnostic notation
