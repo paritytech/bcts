@@ -184,7 +184,9 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
         const delimiter = i.value;
         if (delimiter.length > 0) {
           const c =
-            currentLine.length === 0 ? delimiter : `${addSpaceAtEndIfNeeded(currentLine)}${delimiter}`;
+            currentLine.length === 0
+              ? delimiter
+              : `${addSpaceAtEndIfNeeded(currentLine)}${delimiter}`;
           lines.push(`${indent(level)}${c}\n`);
         }
         level += 1;
