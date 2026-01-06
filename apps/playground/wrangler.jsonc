@@ -15,5 +15,11 @@
   "assets": {
     "directory": ".output/public",
     "binding": "ASSETS"
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "bcts"
+    }
+  ]
 }
