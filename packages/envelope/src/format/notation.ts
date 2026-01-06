@@ -183,9 +183,7 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
         const delimiter = i.value;
         if (delimiter.length > 0) {
           const c =
-            currentLine.length === 0
-              ? delimiter
-              : addSpaceAtEndIfNeeded(currentLine) + delimiter;
+            currentLine.length === 0 ? delimiter : addSpaceAtEndIfNeeded(currentLine) + delimiter;
           lines.push(indent(level) + c + "\n");
         }
         level += 1;
@@ -225,10 +223,7 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
 };
 
 /// Format a format item according to options
-const formatFormatItem = (
-  item: EnvelopeFormatItem,
-  opts: EnvelopeFormatOpts,
-): string => {
+const formatFormatItem = (item: EnvelopeFormatItem, opts: EnvelopeFormatOpts): string => {
   if (opts.flat) {
     return formatFlat(item);
   }
@@ -240,10 +235,7 @@ const formatFormatItem = (
 // ============================================================================
 
 /// Format a CBOR value as an envelope format item
-export const formatCbor = (
-  cbor: Cbor,
-  opts: EnvelopeFormatOpts,
-): EnvelopeFormatItem => {
+export const formatCbor = (cbor: Cbor, opts: EnvelopeFormatOpts): EnvelopeFormatItem => {
   // Check if this is a tagged envelope
   if (isTagged(cbor)) {
     const tag = tagValue(cbor);
@@ -287,11 +279,7 @@ export const formatEnvelope = (
       return formatCbor(c.cbor, opts);
 
     case "wrapped":
-      return formatList([
-        formatBegin("{"),
-        formatEnvelope(c.envelope, opts),
-        formatEnd("}"),
-      ]);
+      return formatList([formatBegin("{"), formatEnvelope(c.envelope, opts), formatEnd("}")]);
 
     case "assertion":
       return formatAssertion(c.assertion, opts);
@@ -427,10 +415,7 @@ export const formatEnvelope = (
 };
 
 /// Compare format items for sorting
-const compareFormatItems = (
-  a: EnvelopeFormatItem,
-  b: EnvelopeFormatItem,
-): number => {
+const compareFormatItems = (a: EnvelopeFormatItem, b: EnvelopeFormatItem): number => {
   const getIndex = (item: EnvelopeFormatItem): number => {
     switch (item.type) {
       case "begin":
@@ -483,10 +468,7 @@ declare module "../base/envelope" {
 }
 
 /// Implementation of formatOpt
-Envelope.prototype.formatOpt = function (
-  this: Envelope,
-  opts: EnvelopeFormatOpts,
-): string {
+Envelope.prototype.formatOpt = function (this: Envelope, opts: EnvelopeFormatOpts): string {
   const item = formatEnvelope(this, opts);
   return formatFormatItem(item, opts).trim();
 };

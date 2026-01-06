@@ -24,9 +24,7 @@ describe("Seal Extension", () => {
 
     it("should preserve envelope structure", () => {
       const bob = PrivateKeyBase.generate();
-      const message = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const message = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       const encrypted = message.encryptToRecipient(bob.publicKeys());
       const decrypted = encrypted.decryptToRecipient(bob);

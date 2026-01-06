@@ -286,7 +286,6 @@ export class SSKRShareCbor implements CborTaggedEncodable, CborTaggedDecodable<S
     const dummy = new SSKRShareCbor(new Uint8Array(METADATA_SIZE_BYTES + 16));
     return dummy.fromUntaggedCbor(cborValue);
   }
-
 }
 
 // ============================================================================
@@ -340,10 +339,7 @@ export const SSKRShare = {
  * // shares[0] contains 3 SSKRShare instances
  * ```
  */
-export function sskrGenerateShares(
-  spec: SSKRSpec,
-  masterSecret: SSKRSecret,
-): SSKRShare[][] {
+export function sskrGenerateShares(spec: SSKRSpec, masterSecret: SSKRSecret): SSKRShare[][] {
   const rawGroups = sskrGenerate(spec, masterSecret);
   return rawGroups.map((group) => group.map((shareData) => SSKRShareCbor.fromData(shareData)));
 }
@@ -394,4 +390,3 @@ export function sskrCombineShares(shares: SSKRShare[]): SSKRSecret {
   const rawShares = shares.map((share) => share.data());
   return sskrCombine(rawShares);
 }
-

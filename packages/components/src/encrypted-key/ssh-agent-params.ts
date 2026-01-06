@@ -157,7 +157,9 @@ export class SSHAgentParams implements KeyDerivation {
 
     const index = expectNumber(array[0]);
     if (index !== SSHAgentParams.INDEX) {
-      throw new Error(`Invalid SSHAgentParams index: expected ${SSHAgentParams.INDEX}, got ${index}`);
+      throw new Error(
+        `Invalid SSHAgentParams index: expected ${SSHAgentParams.INDEX}, got ${index}`,
+      );
     }
 
     const saltData = expectBytes(array[1]);

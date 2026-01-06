@@ -91,10 +91,7 @@ Envelope.prototype.mermaidFormat = function (this: Envelope): string {
 };
 
 /// Implementation of mermaidFormatOpt
-Envelope.prototype.mermaidFormatOpt = function (
-  this: Envelope,
-  opts: MermaidFormatOpts,
-): string {
+Envelope.prototype.mermaidFormatOpt = function (this: Envelope, opts: MermaidFormatOpts): string {
   const hideNodes = opts.hideNodes ?? false;
   const monochrome = opts.monochrome ?? false;
   const theme = opts.theme ?? MermaidTheme.Default;
@@ -237,9 +234,7 @@ const formatNode = (element: MermaidElement, formattedIds: Set<number>): string 
 
     // Get summary
     const summary = withFormatContext((ctx) => {
-      return element.envelope
-        .summaryWithContext(20, ctx)
-        .replace(/"/g, "&quot;");
+      return element.envelope.summaryWithContext(20, ctx).replace(/"/g, "&quot;");
     });
     lines.push(summary);
 

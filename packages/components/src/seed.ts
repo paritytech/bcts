@@ -64,7 +64,9 @@ export interface SeedMetadata {
   createdAt?: Date;
 }
 
-export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, UREncodable, PrivateKeyDataProvider {
+export class Seed
+  implements CborTaggedEncodable, CborTaggedDecodable<Seed>, UREncodable, PrivateKeyDataProvider
+{
   /**
    * Minimum seed length in bytes (matches Rust MIN_SEED_LENGTH).
    */
@@ -160,12 +162,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    * @param metadata - Optional metadata object
    */
   static from(data: Uint8Array, metadata?: SeedMetadata): Seed {
-    return new Seed(
-      new Uint8Array(data),
-      metadata?.name,
-      metadata?.note,
-      metadata?.createdAt,
-    );
+    return new Seed(new Uint8Array(data), metadata?.name, metadata?.note, metadata?.createdAt);
   }
 
   /**

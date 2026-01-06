@@ -162,9 +162,7 @@ Envelope.prototype.sskrSplitUsing = function (
 };
 
 /// Helper function to extract SSKR shares from envelopes, grouped by identifier
-const extractSskrSharesGrouped = (
-  envelopes: Envelope[],
-): Map<number, SSKRShareCbor[]> => {
+const extractSskrSharesGrouped = (envelopes: Envelope[]): Map<number, SSKRShareCbor[]> => {
   const result = new Map<number, SSKRShareCbor[]>();
 
   for (const envelope of envelopes) {

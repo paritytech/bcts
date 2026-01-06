@@ -7,10 +7,7 @@ describe("SSKR Extension", () => {
   const simpleSpec = SSKRSpec.new(1, [SSKRGroupSpec.new(2, 3)]);
 
   // Multi-group scheme: 2 groups, each 2-of-3, any 1 group sufficient
-  const multiGroupSpec = SSKRSpec.new(1, [
-    SSKRGroupSpec.new(2, 3),
-    SSKRGroupSpec.new(2, 3),
-  ]);
+  const multiGroupSpec = SSKRSpec.new(1, [SSKRGroupSpec.new(2, 3), SSKRGroupSpec.new(2, 3)]);
 
   describe("sskrSplit()", () => {
     it("should split envelope into shares", () => {
@@ -98,9 +95,9 @@ describe("SSKR Extension", () => {
       const subset = shares.slice(0, 2);
 
       // Join should recover the original
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(subset);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        subset,
+      );
 
       expect(recovered.asText()).toBe("Secret to recover");
     });
@@ -117,17 +114,13 @@ describe("SSKR Extension", () => {
 
       // Join should fail
       expect(() =>
-        (
-          Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-        ).sskrJoin(insufficient),
+        (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(insufficient),
       ).toThrow();
     });
 
     it("should fail with empty array", () => {
       expect(() =>
-        (
-          Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-        ).sskrJoin([]),
+        (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin([]),
       ).toThrow();
     });
 
@@ -161,9 +154,9 @@ describe("SSKR Extension", () => {
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
 
       // Using all 3 should also work
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(shares);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        shares,
+      );
 
       expect(recovered.asText()).toBe("Full recovery");
     });
@@ -180,9 +173,9 @@ describe("SSKR Extension", () => {
       // Use 2 shares from first group only
       const groupOneShares = shares[0].slice(0, 2);
 
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(groupOneShares);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        groupOneShares,
+      );
 
       expect(recovered.asText()).toBe("Multi-group secret");
     });
@@ -197,9 +190,9 @@ describe("SSKR Extension", () => {
       // Use 2 shares from second group only
       const groupTwoShares = shares[1].slice(0, 2);
 
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(groupTwoShares);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        groupTwoShares,
+      );
 
       expect(recovered.asText()).toBe("Multi-group secret");
     });
@@ -207,17 +200,15 @@ describe("SSKR Extension", () => {
 
   describe("Complex content", () => {
     it("should handle envelope with assertions", () => {
-      const original = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const original = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       const contentKey = SymmetricKey.generate();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(shares.slice(0, 2));
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        shares.slice(0, 2),
+      );
 
       // Should recover the subject with its assertions
       expect(recovered.subject().asText()).toBe("Alice");
@@ -231,9 +222,9 @@ describe("SSKR Extension", () => {
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(shares.slice(0, 2));
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        shares.slice(0, 2),
+      );
 
       const recoveredBytes = recovered.extractBytes();
       expect(recoveredBytes).toBeDefined();
@@ -290,9 +281,7 @@ describe("SSKR Extension", () => {
 
       // Should produce different shares with different seeds
       // (very unlikely all 3 shares have same digest)
-      const allSame = shares1[0].every(
-        (s, i) => s.digest().hex() === shares2[0][i].digest().hex(),
-      );
+      const allSame = shares1[0].every((s, i) => s.digest().hex() === shares2[0][i].digest().hex());
       expect(allSame).toBe(false);
     });
 
@@ -308,9 +297,9 @@ describe("SSKR Extension", () => {
 
       // Take 2 shares and recover
       const subset = shares[0].slice(0, 2);
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin(subset);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        subset,
+      );
 
       expect(recovered.asText()).toBe("Recoverable deterministic");
     });

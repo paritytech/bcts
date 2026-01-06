@@ -25,9 +25,7 @@ describe("Compressed", () => {
     });
 
     it("test_2 - should handle medium text correctly", () => {
-      const source = new TextEncoder().encode(
-        "Lorem ipsum dolor sit amet consectetur adipiscing",
-      );
+      const source = new TextEncoder().encode("Lorem ipsum dolor sit amet consectetur adipiscing");
       const compressed = Compressed.fromDecompressedData(source);
 
       // Medium text may or may not compress depending on content

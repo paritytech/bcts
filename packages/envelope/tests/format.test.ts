@@ -22,9 +22,7 @@ describe("Mermaid Formatting", () => {
     });
 
     it("should generate mermaid diagram for envelope with assertions", () => {
-      const envelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       const mermaid = envelope.mermaidFormat();
 
@@ -112,9 +110,7 @@ describe("Notation Formatting", () => {
     });
 
     it("should format envelope with assertions", () => {
-      const envelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       const formatted = envelope.format();
 

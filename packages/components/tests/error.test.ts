@@ -9,13 +9,7 @@
  * - Type guards
  */
 
-import {
-  CryptoError,
-  ErrorKind,
-  isError,
-  isCryptoError,
-  isCryptoErrorKind,
-} from "../src";
+import { CryptoError, ErrorKind, isError, isCryptoError, isCryptoErrorKind } from "../src";
 
 describe("ErrorKind enum", () => {
   it("should have all 17 error kinds", () => {

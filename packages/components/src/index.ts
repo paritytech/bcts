@@ -5,13 +5,7 @@
  */
 
 // Error handling
-export {
-  ErrorKind,
-  CryptoError,
-  isError,
-  isCryptoError,
-  isCryptoErrorKind,
-} from "./error.js";
+export { ErrorKind, CryptoError, isError, isCryptoError, isCryptoErrorKind } from "./error.js";
 export type {
   Result,
   ErrorData,

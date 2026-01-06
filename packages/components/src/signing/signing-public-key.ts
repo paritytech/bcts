@@ -19,7 +19,11 @@
  * Ported from bc-components-rust/src/signing/signing_public_key.rs
  */
 
-import { ED25519_PUBLIC_KEY_SIZE, ECDSA_PUBLIC_KEY_SIZE, SCHNORR_PUBLIC_KEY_SIZE } from "@bcts/crypto";
+import {
+  ED25519_PUBLIC_KEY_SIZE,
+  ECDSA_PUBLIC_KEY_SIZE,
+  SCHNORR_PUBLIC_KEY_SIZE,
+} from "@bcts/crypto";
 import {
   type Cbor,
   type Tag,

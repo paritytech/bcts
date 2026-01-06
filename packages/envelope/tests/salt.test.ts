@@ -166,10 +166,7 @@ describe("Salt Extension", () => {
     it("should add unsalted assertion when salted=false", () => {
       const assertion = Envelope.newAssertion("knows", "Bob");
       const envelope1 = Envelope.new("Alice").addOptionalAssertionEnvelope(assertion);
-      const envelope2 = Envelope.new("Alice").addOptionalAssertionEnvelopeSalted(
-        assertion,
-        false,
-      );
+      const envelope2 = Envelope.new("Alice").addOptionalAssertionEnvelopeSalted(assertion, false);
 
       // Should have same digest since no salt was added
       expect(envelope1.digest().equals(envelope2.digest())).toBe(true);

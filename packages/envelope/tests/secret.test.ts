@@ -84,9 +84,7 @@ describe("Secret Extension", () => {
     });
 
     it("should preserve envelope structure after lock/unlock", () => {
-      const envelope = Envelope.new("Alice")
-        .addAssertion("knows", "Bob")
-        .addAssertion("age", 30);
+      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       const locked = envelope.lock(KeyDerivationMethod.HKDF, testPassword);
       const unlocked = locked.unlock(testPassword);
@@ -140,11 +138,7 @@ describe("Secret Extension", () => {
       const encrypted = envelope.encryptSubject(contentKey);
 
       // Add primary secret
-      const withSecret1 = encrypted.addSecret(
-        KeyDerivationMethod.HKDF,
-        testPassword,
-        contentKey,
-      );
+      const withSecret1 = encrypted.addSecret(KeyDerivationMethod.HKDF, testPassword, contentKey);
 
       // Add secondary secret
       const secondPassword = new TextEncoder().encode("second-password");

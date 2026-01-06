@@ -67,11 +67,7 @@ declare module "../base/envelope" {
     /// @param secret - The secret (password or key material) to derive from
     /// @param contentKey - The symmetric key used to encrypt the subject
     /// @returns A new envelope with an additional hasSecret assertion
-    addSecret(
-      method: KeyDerivationMethod,
-      secret: Uint8Array,
-      contentKey: SymmetricKey,
-    ): Envelope;
+    addSecret(method: KeyDerivationMethod, secret: Uint8Array, contentKey: SymmetricKey): Envelope;
 
     /// Lock the entire envelope (wrap and lock subject).
     ///
@@ -115,10 +111,7 @@ Envelope.prototype.lockSubject = function (
 };
 
 /// Implementation of unlockSubject
-Envelope.prototype.unlockSubject = function (
-  this: Envelope,
-  secret: Uint8Array,
-): Envelope {
+Envelope.prototype.unlockSubject = function (this: Envelope, secret: Uint8Array): Envelope {
   // Find all hasSecret assertions
   const assertions = this.assertionsWithPredicate(HAS_SECRET);
 

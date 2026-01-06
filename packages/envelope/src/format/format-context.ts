@@ -58,10 +58,7 @@ export class FormatContext implements TagsStoreTrait {
   readonly #tags: TagsStore;
   readonly #knownValues: KnownValuesStore;
 
-  constructor(
-    tags?: TagsStore,
-    knownValues?: KnownValuesStore,
-  ) {
+  constructor(tags?: TagsStore, knownValues?: KnownValuesStore) {
     this.#tags = tags ?? new TagsStoreClass();
     this.#knownValues = knownValues ?? new KnownValuesStoreClass();
   }

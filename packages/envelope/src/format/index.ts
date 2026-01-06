@@ -24,11 +24,7 @@ export {
 } from "./format-context";
 
 // Export envelope summary
-export {
-  type EnvelopeSummary,
-  cborEnvelopeSummary,
-  envelopeSummary,
-} from "./envelope-summary";
+export { type EnvelopeSummary, cborEnvelopeSummary, envelopeSummary } from "./envelope-summary";
 
 // Export notation formatting
 export {

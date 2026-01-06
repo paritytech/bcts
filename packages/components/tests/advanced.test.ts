@@ -712,7 +712,6 @@ describe("SSKR Integration", () => {
       const recovered = sskrCombineShares([recoveredShares[0], recoveredShares[1]]);
       expect(recovered.getData()).toEqual(secretData);
     });
-
   });
 
   describe("raw sskr functions", () => {

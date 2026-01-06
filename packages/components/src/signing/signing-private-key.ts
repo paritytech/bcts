@@ -171,7 +171,10 @@ export class SigningPrivateKey
    * @returns The EC private key if this is a Schnorr or ECDSA key, null otherwise
    */
   toEc(): ECPrivateKey | null {
-    if ((this._type === SignatureScheme.Schnorr || this._type === SignatureScheme.Ecdsa) && this._ecKey !== undefined) {
+    if (
+      (this._type === SignatureScheme.Schnorr || this._type === SignatureScheme.Ecdsa) &&
+      this._ecKey !== undefined
+    ) {
       return this._ecKey;
     }
     return null;

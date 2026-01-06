@@ -98,9 +98,9 @@ export interface DataTooShortData {
  * Union type for all possible error data.
  */
 export type ErrorData =
-  | { kind: ErrorKind.InvalidSize } & InvalidSizeData
-  | { kind: ErrorKind.InvalidData } & InvalidDataData
-  | { kind: ErrorKind.DataTooShort } & DataTooShortData
+  | ({ kind: ErrorKind.InvalidSize } & InvalidSizeData)
+  | ({ kind: ErrorKind.InvalidData } & InvalidDataData)
+  | ({ kind: ErrorKind.DataTooShort } & DataTooShortData)
   | { kind: ErrorKind.Crypto; message: string }
   | { kind: ErrorKind.Cbor; message: string }
   | { kind: ErrorKind.Sskr; message: string }
@@ -498,21 +498,27 @@ export class CryptoError extends Error {
   /**
    * Check if this is an InvalidSize error.
    */
-  isInvalidSize(): this is CryptoError & { errorData: InvalidSizeData & { kind: ErrorKind.InvalidSize } } {
+  isInvalidSize(): this is CryptoError & {
+    errorData: InvalidSizeData & { kind: ErrorKind.InvalidSize };
+  } {
     return this.errorKind === ErrorKind.InvalidSize;
   }
 
   /**
    * Check if this is an InvalidData error.
    */
-  isInvalidData(): this is CryptoError & { errorData: InvalidDataData & { kind: ErrorKind.InvalidData } } {
+  isInvalidData(): this is CryptoError & {
+    errorData: InvalidDataData & { kind: ErrorKind.InvalidData };
+  } {
     return this.errorKind === ErrorKind.InvalidData;
   }
 
   /**
    * Check if this is a DataTooShort error.
    */
-  isDataTooShort(): this is CryptoError & { errorData: DataTooShortData & { kind: ErrorKind.DataTooShort } } {
+  isDataTooShort(): this is CryptoError & {
+    errorData: DataTooShortData & { kind: ErrorKind.DataTooShort };
+  } {
     return this.errorKind === ErrorKind.DataTooShort;
   }
 

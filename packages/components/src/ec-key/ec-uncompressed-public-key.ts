@@ -44,7 +44,11 @@ import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 import type { ECKeyBase } from "./ec-key-base.js";
 
 export class ECUncompressedPublicKey
-  implements ECKeyBase, CborTaggedEncodable, CborTaggedDecodable<ECUncompressedPublicKey>, UREncodable
+  implements
+    ECKeyBase,
+    CborTaggedEncodable,
+    CborTaggedDecodable<ECUncompressedPublicKey>,
+    UREncodable
 {
   static readonly KEY_SIZE = ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE;
 
