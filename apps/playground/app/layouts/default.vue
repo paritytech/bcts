@@ -123,73 +123,73 @@ const navigationItems: NavigationMenuItem[] = [
       {
         label: 'components',
         icon: 'i-heroicons-puzzle-piece',
-        to: 'https://bcts.dev/docs/components',
+        to: 'https://docs.bcts.dev/api/components',
         target: '_blank'
       },
       {
         label: 'crypto',
         icon: 'i-heroicons-lock-closed',
-        to: 'https://bcts.dev/docs/crypto',
+        to: 'https://docs.bcts.dev/api/crypto',
         target: '_blank'
       },
       {
         label: 'dcbor',
         icon: 'i-heroicons-code-bracket',
-        to: 'https://bcts.dev/docs/dcbor',
+        to: 'https://docs.bcts.dev/api/dcbor',
         target: '_blank'
       },
       {
         label: 'envelope',
         icon: 'i-heroicons-envelope',
-        to: 'https://bcts.dev/docs/envelope',
+        to: 'https://docs.bcts.dev/api/envelope',
         target: '_blank'
       },
       {
         label: 'known-values',
         icon: 'i-heroicons-bookmark',
-        to: 'https://bcts.dev/docs/known-values',
+        to: 'https://docs.bcts.dev/api/known-values',
         target: '_blank'
       },
       {
         label: 'provenance-mark',
         icon: 'i-heroicons-shield-check',
-        to: 'https://bcts.dev/docs/provenance-mark',
+        to: 'https://docs.bcts.dev/api/provenance-mark',
         target: '_blank'
       },
       {
         label: 'rand',
         icon: 'i-heroicons-arrow-path',
-        to: 'https://bcts.dev/docs/rand',
+        to: 'https://docs.bcts.dev/api/rand',
         target: '_blank'
       },
       {
         label: 'shamir',
         icon: 'i-heroicons-key',
-        to: 'https://bcts.dev/docs/shamir',
+        to: 'https://docs.bcts.dev/api/shamir',
         target: '_blank'
       },
       {
         label: 'sskr',
         icon: 'i-heroicons-squares-2x2',
-        to: 'https://bcts.dev/docs/sskr',
+        to: 'https://docs.bcts.dev/api/sskr',
         target: '_blank'
       },
       {
         label: 'tags',
         icon: 'i-heroicons-tag',
-        to: 'https://bcts.dev/docs/tags',
+        to: 'https://docs.bcts.dev/api/tags',
         target: '_blank'
       },
       {
         label: 'uniform-resources',
         icon: 'i-heroicons-qr-code',
-        to: 'https://bcts.dev/docs/uniform-resources',
+        to: 'https://docs.bcts.dev/api/uniform-resources',
         target: '_blank'
       },
       {
         label: 'xid',
         icon: 'i-heroicons-identification',
-        to: 'https://bcts.dev/docs/xid',
+        to: 'https://docs.bcts.dev/api/xid',
         target: '_blank'
       }
     ]

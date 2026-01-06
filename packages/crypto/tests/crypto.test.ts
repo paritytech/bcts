@@ -43,7 +43,7 @@ import {
   // Memzero
   memzero,
 } from "../src/index.js";
-import { SecureRandomNumberGenerator } from "@bcts/rand";
+import { SecureRandomNumberGenerator, makeFakeRandomNumberGenerator } from "@bcts/rand";
 
 // Helper to convert hex string to Uint8Array
 function hexToBytes(hex: string): Uint8Array {
@@ -213,6 +213,36 @@ describe("X25519 Key Agreement", () => {
     const bobShared = x25519SharedKey(bobPrivate, alicePublic);
 
     expect(bytesToHex(aliceShared)).toBe(bytesToHex(bobShared));
+  });
+
+  // Cross-platform test vector from Rust bc-crypto implementation
+  test("test_key_agreement_cross_platform", () => {
+    const rng = makeFakeRandomNumberGenerator();
+
+    // Alice's keys (deterministic from fake RNG)
+    const alicePrivate = x25519NewPrivateKeyUsing(rng);
+    expect(bytesToHex(alicePrivate)).toBe(
+      "7eb559bbbf6cce2632cf9f194aeb50943de7e1cbad54dcfab27a42759f5e2fed",
+    );
+    const alicePublic = x25519PublicKeyFromPrivateKey(alicePrivate);
+    expect(bytesToHex(alicePublic)).toBe(
+      "f1bd7a7e118ea461eba95126a3efef543ebb78439d1574bedcbe7d89174cf025",
+    );
+
+    // Bob's keys (deterministic from fake RNG)
+    const bobPrivate = x25519NewPrivateKeyUsing(rng);
+    const bobPublic = x25519PublicKeyFromPrivateKey(bobPrivate);
+
+    // Both should derive the same shared key
+    const aliceShared = x25519SharedKey(alicePrivate, bobPublic);
+    const bobShared = x25519SharedKey(bobPrivate, alicePublic);
+
+    expect(bytesToHex(aliceShared)).toBe(bytesToHex(bobShared));
+
+    // Verify exact value matches Rust implementation
+    expect(bytesToHex(aliceShared)).toBe(
+      "1e9040d1ff45df4bfca7ef2b4dd2b11101b40d91bf5bf83f8c83d53f0fbb6c23",
+    );
   });
 });
 
