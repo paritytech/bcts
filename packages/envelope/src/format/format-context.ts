@@ -127,7 +127,7 @@ export const getGlobalFormatContext = (): FormatContext => {
 
     // Get the global stores
     const tags = getGlobalTagsStore();
-    const knownValues = KNOWN_VALUES;
+    const knownValues = KNOWN_VALUES.get();
 
     _globalFormatContextInstance = new FormatContext(tags, knownValues);
     isInitialized = true;

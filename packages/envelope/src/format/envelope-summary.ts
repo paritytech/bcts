@@ -56,13 +56,13 @@ export const cborEnvelopeSummary = (
   // Handle negative integers
   if (isNegative(cbor)) {
     // In CBOR, negative integers are stored as -(n+1), so we need to compute the actual value
-    const n = cbor as bigint;
+    const n = cbor as unknown as bigint;
     return String(-1n - n);
   }
 
   // Handle byte strings
   if (isBytes(cbor)) {
-    const bytes = cbor as Uint8Array;
+    const bytes = cbor as unknown as Uint8Array;
     return `Bytes(${bytes.length})`;
   }
 
@@ -79,16 +79,17 @@ export const cborEnvelopeSummary = (
 
   // Handle simple values (bool, null, undefined, float)
   if (isSimple(cbor)) {
-    if (cbor === true) return "true";
-    if (cbor === false) return "false";
-    if (cbor === null) return "null";
-    if (cbor === undefined) return "undefined";
-    if (typeof cbor === "number") {
-      if (Number.isNaN(cbor)) return "NaN";
-      if (!Number.isFinite(cbor)) return cbor > 0 ? "Infinity" : "-Infinity";
-      return String(cbor);
+    const value = cbor as unknown;
+    if (value === true) return "true";
+    if (value === false) return "false";
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
+    if (typeof value === "number") {
+      if (Number.isNaN(value)) return "NaN";
+      if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
+      return String(value);
     }
-    return String(cbor);
+    return String(value);
   }
 
   // Handle arrays, maps, and tagged values - use diagnostic notation

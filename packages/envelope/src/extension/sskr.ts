@@ -196,8 +196,9 @@ const extractSskrSharesGrouped = (envelopes: Envelope[]): Map<number, SSKRShareC
 };
 
 /// Implementation of sskrJoin (static method)
-// @ts-expect-error - Adding static method to Envelope
-Envelope.sskrJoin = function (envelopes: Envelope[]): Envelope {
+(Envelope as unknown as { sskrJoin: (envelopes: Envelope[]) => Envelope }).sskrJoin = function (
+  envelopes: Envelope[],
+): Envelope {
   if (envelopes.length === 0) {
     throw EnvelopeError.invalidShares();
   }

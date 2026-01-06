@@ -83,7 +83,7 @@ describe("Typed Extraction Methods", () => {
       "type" in cbor &&
       (cbor as { type: number }).type === 3
     ) {
-      return (cbor as { value: string }).value;
+      return (cbor as unknown as { value: string }).value;
     }
     throw new Error("Not a string");
   };
@@ -95,7 +95,7 @@ describe("Typed Extraction Methods", () => {
       "type" in cbor &&
       (cbor as { type: number }).type === 0
     ) {
-      const value = (cbor as { value: number | bigint }).value;
+      const value = (cbor as unknown as { value: number | bigint }).value;
       return typeof value === "bigint" ? Number(value) : value;
     }
     throw new Error("Not a number");

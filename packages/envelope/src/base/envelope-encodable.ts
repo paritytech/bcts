@@ -1,3 +1,5 @@
+import type { CborTaggedEncodable } from "@bcts/dcbor";
+import type { KnownValue } from "@bcts/known-values";
 import type { Envelope } from "./envelope";
 
 /// A trait for types that can be encoded as a Gordian Envelope.
@@ -68,4 +70,6 @@ export type EnvelopeEncodableValue =
   | Uint8Array
   | null
   | undefined
-  | Envelope;
+  | Envelope
+  | KnownValue
+  | CborTaggedEncodable;

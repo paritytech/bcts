@@ -996,12 +996,9 @@ export class Envelope implements DigestProvider {
   declare decryptSubjectToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
   declare decryptToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
   declare encryptToRecipients: (recipients: PublicKeyBase[]) => Envelope;
-  declare encryptToRecipient: (recipientPublicKey: PublicKeyBase) => Envelope;
   declare recipients: () => SealedMessage[];
 
-  // From seal.ts
-  declare seal: (sender: Signer, recipientPublicKey: PublicKeyBase) => Envelope;
-  declare unseal: (senderPublicKey: Verifier, recipientPrivateKey: PrivateKeyBase) => Envelope;
+  // From seal.ts - encryptToRecipient, seal, unseal declared in seal.ts module augmentation
 
   // From salt.ts
   declare addSalt: () => Envelope;
