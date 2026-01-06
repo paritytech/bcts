@@ -39,7 +39,8 @@ function parseIanaXml(xmlText: string): IanaTagsResponse {
   const tagsRegistryContent = tagsRegistryMatch[1];
 
   // Extract all record elements
-  const recordRegex = /<record(?:\s+date="([^"]*)")?(?:\s+updated="([^"]*)")?[^>]*>([\s\S]*?)<\/record>/g;
+  const recordRegex =
+    /<record(?:\s+date="([^"]*)")?(?:\s+updated="([^"]*)")?[^>]*>([\s\S]*?)<\/record>/g;
   const tags: IanaTagItem[] = [];
 
   let match;
@@ -109,5 +110,5 @@ export default defineCachedEventHandler(
     maxAge: 60 * 60 * 24, // Cache for 1 day
     swr: true, // Stale-while-revalidate: serve stale content while fetching fresh
     name: "iana-cbor-tags",
-  }
+  },
 );
