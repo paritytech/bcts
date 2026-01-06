@@ -5,6 +5,10 @@
  * signatures using different cryptographic algorithms, including:
  *
  * - **Edwards Curve Schemes**: Ed25519 signatures (RFC 8032)
+ * - **SR25519**: Schnorr over Ristretto25519 (Polkadot/Substrate)
+ * - **Schnorr**: BIP-340 Schnorr signatures (secp256k1)
+ * - **ECDSA**: ECDSA signatures (secp256k1)
+ * - **SSH Schemes**: Ed25519, DSA, ECDSA P-256/P-384 via SSH agent (not yet fully implemented)
  *
  * The key types include:
  *
@@ -19,7 +23,13 @@
  */
 
 export type { Signer, Verifier } from "./signer.js";
-export { SignatureScheme } from "./signature-scheme.js";
+export {
+  SignatureScheme,
+  defaultSignatureScheme,
+  isSshScheme,
+  createKeypair,
+  createKeypairUsing,
+} from "./signature-scheme.js";
 export { Signature } from "./signature.js";
 export { SigningPrivateKey } from "./signing-private-key.js";
 export { SigningPublicKey } from "./signing-public-key.js";

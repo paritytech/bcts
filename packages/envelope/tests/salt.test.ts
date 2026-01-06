@@ -108,4 +108,80 @@ describe("Salt Extension", () => {
       expect(SALT).toBe("salt");
     });
   });
+
+  describe("addAssertionSalted", () => {
+    it("should add unsalted assertion when salted=false", () => {
+      const envelope1 = Envelope.new("Alice").addAssertion("knows", "Bob");
+      const envelope2 = Envelope.new("Alice").addAssertionSalted("knows", "Bob", false);
+
+      // Should have same digest since no salt was added
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(true);
+    });
+
+    it("should add salted assertion when salted=true", () => {
+      const envelope1 = Envelope.new("Alice").addAssertion("knows", "Bob");
+      const envelope2 = Envelope.new("Alice").addAssertionSalted("knows", "Bob", true);
+
+      // Should have different digest due to salt
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(false);
+    });
+
+    it("should create different digests for multiple salted assertions", () => {
+      const envelope1 = Envelope.new("Alice").addAssertionSalted("knows", "Bob", true);
+      const envelope2 = Envelope.new("Alice").addAssertionSalted("knows", "Bob", true);
+
+      // Each salted assertion should be unique
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(false);
+    });
+  });
+
+  describe("addAssertionEnvelopeSalted", () => {
+    it("should add unsalted assertion envelope when salted=false", () => {
+      const assertion = Envelope.newAssertion("knows", "Bob");
+      const envelope1 = Envelope.new("Alice").addAssertionEnvelope(assertion);
+      const envelope2 = Envelope.new("Alice").addAssertionEnvelopeSalted(assertion, false);
+
+      // Should have same digest since no salt was added
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(true);
+    });
+
+    it("should add salted assertion envelope when salted=true", () => {
+      const assertion = Envelope.newAssertion("knows", "Bob");
+      const envelope1 = Envelope.new("Alice").addAssertionEnvelope(assertion);
+      const envelope2 = Envelope.new("Alice").addAssertionEnvelopeSalted(assertion, true);
+
+      // Should have different digest due to salt
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(false);
+    });
+  });
+
+  describe("addOptionalAssertionEnvelopeSalted", () => {
+    it("should return original envelope when assertion is undefined", () => {
+      const envelope = Envelope.new("Alice");
+      const result = envelope.addOptionalAssertionEnvelopeSalted(undefined, true);
+
+      expect(envelope.digest().equals(result.digest())).toBe(true);
+    });
+
+    it("should add unsalted assertion when salted=false", () => {
+      const assertion = Envelope.newAssertion("knows", "Bob");
+      const envelope1 = Envelope.new("Alice").addOptionalAssertionEnvelope(assertion);
+      const envelope2 = Envelope.new("Alice").addOptionalAssertionEnvelopeSalted(
+        assertion,
+        false,
+      );
+
+      // Should have same digest since no salt was added
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(true);
+    });
+
+    it("should add salted assertion when salted=true", () => {
+      const assertion = Envelope.newAssertion("knows", "Bob");
+      const envelope1 = Envelope.new("Alice").addOptionalAssertionEnvelope(assertion);
+      const envelope2 = Envelope.new("Alice").addOptionalAssertionEnvelopeSalted(assertion, true);
+
+      // Should have different digest due to salt
+      expect(envelope1.digest().equals(envelope2.digest())).toBe(false);
+    });
+  });
 });

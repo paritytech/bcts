@@ -44,9 +44,10 @@ import { EC_KEY as TAG_EC_KEY, EC_KEY_V1 as TAG_EC_KEY_V1 } from "@bcts/tags";
 import { CryptoError } from "../error.js";
 import { ECUncompressedPublicKey } from "./ec-uncompressed-public-key.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
+import type { ECPublicKeyBase } from "./ec-key-base.js";
 
 export class ECPublicKey
-  implements CborTaggedEncodable, CborTaggedDecodable<ECPublicKey>, UREncodable
+  implements ECPublicKeyBase, CborTaggedEncodable, CborTaggedDecodable<ECPublicKey>, UREncodable
 {
   static readonly KEY_SIZE = ECDSA_PUBLIC_KEY_SIZE;
 
@@ -132,6 +133,16 @@ export class ECPublicKey
    */
   toBase64(): string {
     return toBase64(this._data);
+  }
+
+  /**
+   * Returns the compressed public key (self).
+   *
+   * This method implements the ECKey interface. Since ECPublicKey is already
+   * a compressed public key, this returns itself.
+   */
+  publicKey(): ECPublicKey {
+    return this;
   }
 
   /**

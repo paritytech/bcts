@@ -18,7 +18,9 @@ import {
   createKeypair,
   createKeypairUsing,
   defaultSignatureScheme,
+  isSshScheme,
   Ed25519PrivateKey,
+  ECPrivateKey,
 } from "../src";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
 
@@ -31,11 +33,34 @@ describe("SignatureScheme", () => {
     it("should have Ed25519 scheme", () => {
       expect(SignatureScheme.Ed25519).toBe("Ed25519");
     });
+
+    it("should have SSH signature schemes", () => {
+      expect(SignatureScheme.SshEd25519).toBe("SshEd25519");
+      expect(SignatureScheme.SshDsa).toBe("SshDsa");
+      expect(SignatureScheme.SshEcdsaP256).toBe("SshEcdsaP256");
+      expect(SignatureScheme.SshEcdsaP384).toBe("SshEcdsaP384");
+    });
   });
 
   describe("defaultSignatureScheme", () => {
     it("should return Ed25519", () => {
       expect(defaultSignatureScheme()).toBe(SignatureScheme.Ed25519);
+    });
+  });
+
+  describe("isSshScheme", () => {
+    it("should return false for non-SSH schemes", () => {
+      expect(isSshScheme(SignatureScheme.Ed25519)).toBe(false);
+      expect(isSshScheme(SignatureScheme.Sr25519)).toBe(false);
+      expect(isSshScheme(SignatureScheme.Schnorr)).toBe(false);
+      expect(isSshScheme(SignatureScheme.Ecdsa)).toBe(false);
+    });
+
+    it("should return true for SSH schemes", () => {
+      expect(isSshScheme(SignatureScheme.SshEd25519)).toBe(true);
+      expect(isSshScheme(SignatureScheme.SshDsa)).toBe(true);
+      expect(isSshScheme(SignatureScheme.SshEcdsaP256)).toBe(true);
+      expect(isSshScheme(SignatureScheme.SshEcdsaP384)).toBe(true);
     });
   });
 
@@ -54,6 +79,13 @@ describe("SignatureScheme", () => {
       const [privateKey2] = createKeypair(SignatureScheme.Ed25519);
 
       expect(privateKey1.equals(privateKey2)).toBe(false);
+    });
+
+    it("should throw error for SSH schemes (not yet implemented)", () => {
+      expect(() => createKeypair(SignatureScheme.SshEd25519)).toThrow("SSH agent");
+      expect(() => createKeypair(SignatureScheme.SshDsa)).toThrow("SSH agent");
+      expect(() => createKeypair(SignatureScheme.SshEcdsaP256)).toThrow("SSH agent");
+      expect(() => createKeypair(SignatureScheme.SshEcdsaP384)).toThrow("SSH agent");
     });
   });
 
@@ -491,5 +523,230 @@ describe("Ed25519 signing integration", () => {
     // Sign again with recovered private key
     const newSignature = recoveredPrivateKey.sign(message);
     expect(recoveredPublicKey.verify(newSignature, message)).toBe(true);
+  });
+});
+
+describe("Schnorr signing (secp256k1)", () => {
+  describe("key creation", () => {
+    it("should create Schnorr keypair", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Schnorr);
+
+      expect(privateKey).toBeInstanceOf(SigningPrivateKey);
+      expect(publicKey).toBeInstanceOf(SigningPublicKey);
+      expect(privateKey.scheme()).toBe(SignatureScheme.Schnorr);
+      expect(publicKey.scheme()).toBe(SignatureScheme.Schnorr);
+      expect(privateKey.isSchnorr()).toBe(true);
+      expect(publicKey.isSchnorr()).toBe(true);
+    });
+
+    it("should create from ECPrivateKey", () => {
+      const ecKey = ECPrivateKey.random();
+      const privateKey = SigningPrivateKey.newSchnorr(ecKey);
+
+      expect(privateKey.scheme()).toBe(SignatureScheme.Schnorr);
+      expect(privateKey.toEc()?.equals(ecKey)).toBe(true);
+    });
+
+    it("should create random Schnorr key", () => {
+      const privateKey = SigningPrivateKey.randomSchnorr();
+
+      expect(privateKey.scheme()).toBe(SignatureScheme.Schnorr);
+      expect(privateKey.isSchnorr()).toBe(true);
+    });
+  });
+
+  describe("signing and verification", () => {
+    it("should sign and verify messages", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Schnorr);
+      const message = new TextEncoder().encode("Hello Schnorr!");
+
+      const signature = privateKey.sign(message);
+      expect(signature.scheme()).toBe(SignatureScheme.Schnorr);
+      expect(signature.isSchnorr()).toBe(true);
+
+      expect(publicKey.verify(signature, message)).toBe(true);
+    });
+
+    it("should reject tampered messages", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Schnorr);
+      const message = new TextEncoder().encode("Original message");
+
+      const signature = privateKey.sign(message);
+      const tamperedMessage = new TextEncoder().encode("Tampered message");
+
+      expect(publicKey.verify(signature, tamperedMessage)).toBe(false);
+    });
+
+    it("should reject signatures from different keys", () => {
+      const [privateKey1] = createKeypair(SignatureScheme.Schnorr);
+      const [, publicKey2] = createKeypair(SignatureScheme.Schnorr);
+      const message = new TextEncoder().encode("Test message");
+
+      const signature = privateKey1.sign(message);
+      expect(publicKey2.verify(signature, message)).toBe(false);
+    });
+  });
+
+  describe("CBOR serialization", () => {
+    it("should roundtrip private key through CBOR", () => {
+      const ecKey = ECPrivateKey.random();
+      const privateKey = SigningPrivateKey.newSchnorr(ecKey);
+
+      const data = privateKey.taggedCborData();
+      const recovered = SigningPrivateKey.fromTaggedCborData(data);
+
+      expect(recovered.equals(privateKey)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Schnorr);
+    });
+
+    it("should roundtrip public key through CBOR", () => {
+      const [privateKey] = createKeypair(SignatureScheme.Schnorr);
+      const publicKey = privateKey.publicKey();
+
+      const data = publicKey.taggedCborData();
+      const recovered = SigningPublicKey.fromTaggedCborData(data);
+
+      expect(recovered.equals(publicKey)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Schnorr);
+    });
+
+    it("should roundtrip signature through CBOR", () => {
+      const [privateKey] = createKeypair(SignatureScheme.Schnorr);
+      const message = new TextEncoder().encode("Test");
+      const signature = privateKey.sign(message);
+
+      const data = signature.taggedCborData();
+      const recovered = Signature.fromTaggedCborData(data);
+
+      expect(recovered.equals(signature)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Schnorr);
+    });
+  });
+});
+
+describe("ECDSA signing (secp256k1)", () => {
+  describe("key creation", () => {
+    it("should create ECDSA keypair", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Ecdsa);
+
+      expect(privateKey).toBeInstanceOf(SigningPrivateKey);
+      expect(publicKey).toBeInstanceOf(SigningPublicKey);
+      expect(privateKey.scheme()).toBe(SignatureScheme.Ecdsa);
+      expect(publicKey.scheme()).toBe(SignatureScheme.Ecdsa);
+      expect(privateKey.isEcdsa()).toBe(true);
+      expect(publicKey.isEcdsa()).toBe(true);
+    });
+
+    it("should create from ECPrivateKey", () => {
+      const ecKey = ECPrivateKey.random();
+      const privateKey = SigningPrivateKey.newEcdsa(ecKey);
+
+      expect(privateKey.scheme()).toBe(SignatureScheme.Ecdsa);
+      expect(privateKey.toEc()?.equals(ecKey)).toBe(true);
+    });
+
+    it("should create random ECDSA key", () => {
+      const privateKey = SigningPrivateKey.randomEcdsa();
+
+      expect(privateKey.scheme()).toBe(SignatureScheme.Ecdsa);
+      expect(privateKey.isEcdsa()).toBe(true);
+    });
+  });
+
+  describe("signing and verification", () => {
+    it("should sign and verify messages", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Ecdsa);
+      const message = new TextEncoder().encode("Hello ECDSA!");
+
+      const signature = privateKey.sign(message);
+      expect(signature.scheme()).toBe(SignatureScheme.Ecdsa);
+      expect(signature.isEcdsa()).toBe(true);
+
+      expect(publicKey.verify(signature, message)).toBe(true);
+    });
+
+    it("should reject tampered messages", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.Ecdsa);
+      const message = new TextEncoder().encode("Original message");
+
+      const signature = privateKey.sign(message);
+      const tamperedMessage = new TextEncoder().encode("Tampered message");
+
+      expect(publicKey.verify(signature, tamperedMessage)).toBe(false);
+    });
+
+    it("should reject signatures from different keys", () => {
+      const [privateKey1] = createKeypair(SignatureScheme.Ecdsa);
+      const [, publicKey2] = createKeypair(SignatureScheme.Ecdsa);
+      const message = new TextEncoder().encode("Test message");
+
+      const signature = privateKey1.sign(message);
+      expect(publicKey2.verify(signature, message)).toBe(false);
+    });
+  });
+
+  describe("CBOR serialization", () => {
+    it("should roundtrip private key through CBOR", () => {
+      const ecKey = ECPrivateKey.random();
+      const privateKey = SigningPrivateKey.newEcdsa(ecKey);
+
+      const data = privateKey.taggedCborData();
+      const recovered = SigningPrivateKey.fromTaggedCborData(data);
+
+      expect(recovered.equals(privateKey)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Ecdsa);
+    });
+
+    it("should roundtrip public key through CBOR", () => {
+      const [privateKey] = createKeypair(SignatureScheme.Ecdsa);
+      const publicKey = privateKey.publicKey();
+
+      const data = publicKey.taggedCborData();
+      const recovered = SigningPublicKey.fromTaggedCborData(data);
+
+      expect(recovered.equals(publicKey)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Ecdsa);
+    });
+
+    it("should roundtrip signature through CBOR", () => {
+      const [privateKey] = createKeypair(SignatureScheme.Ecdsa);
+      const message = new TextEncoder().encode("Test");
+      const signature = privateKey.sign(message);
+
+      const data = signature.taggedCborData();
+      const recovered = Signature.fromTaggedCborData(data);
+
+      expect(recovered.equals(signature)).toBe(true);
+      expect(recovered.scheme()).toBe(SignatureScheme.Ecdsa);
+    });
+  });
+});
+
+describe("Cross-scheme compatibility", () => {
+  it("should not verify Ed25519 signature with Schnorr public key", () => {
+    const [ed25519PrivateKey] = createKeypair(SignatureScheme.Ed25519);
+    const [, schnorrPublicKey] = createKeypair(SignatureScheme.Schnorr);
+    const message = new TextEncoder().encode("Test");
+
+    const signature = ed25519PrivateKey.sign(message);
+    expect(schnorrPublicKey.verify(signature, message)).toBe(false);
+  });
+
+  it("should not verify Schnorr signature with ECDSA public key", () => {
+    const [schnorrPrivateKey] = createKeypair(SignatureScheme.Schnorr);
+    const [, ecdsaPublicKey] = createKeypair(SignatureScheme.Ecdsa);
+    const message = new TextEncoder().encode("Test");
+
+    const signature = schnorrPrivateKey.sign(message);
+    expect(ecdsaPublicKey.verify(signature, message)).toBe(false);
+  });
+
+  it("should not verify ECDSA signature with Ed25519 public key", () => {
+    const [ecdsaPrivateKey] = createKeypair(SignatureScheme.Ecdsa);
+    const [, ed25519PublicKey] = createKeypair(SignatureScheme.Ed25519);
+    const message = new TextEncoder().encode("Test");
+
+    const signature = ecdsaPrivateKey.sign(message);
+    expect(ed25519PublicKey.verify(signature, message)).toBe(false);
   });
 });

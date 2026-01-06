@@ -5,11 +5,12 @@
  *
  * CDDL:
  * ```cddl
- * KeyDerivationMethod = HKDF / PBKDF2 / Scrypt / Argon2id
+ * KeyDerivationMethod = HKDF / PBKDF2 / Scrypt / Argon2id / SSHAgent
  * HKDF = 0
  * PBKDF2 = 1
  * Scrypt = 2
  * Argon2id = 3
+ * SSHAgent = 4
  * ```
  *
  * Ported from bc-components-rust/src/encrypted_key/key_derivation_method.rs
@@ -29,6 +30,8 @@ export enum KeyDerivationMethod {
   Scrypt = 2,
   /** Argon2id - RFC 9106 (default, most secure for passwords) */
   Argon2id = 3,
+  /** SSH Agent - Uses SSH agent for key derivation */
+  SSHAgent = 4,
 }
 
 /**
@@ -58,6 +61,8 @@ export function keyDerivationMethodFromIndex(index: number): KeyDerivationMethod
       return KeyDerivationMethod.Scrypt;
     case 3:
       return KeyDerivationMethod.Argon2id;
+    case 4:
+      return KeyDerivationMethod.SSHAgent;
     default:
       return undefined;
   }
@@ -76,6 +81,8 @@ export function keyDerivationMethodToString(method: KeyDerivationMethod): string
       return "Scrypt";
     case KeyDerivationMethod.Argon2id:
       return "Argon2id";
+    case KeyDerivationMethod.SSHAgent:
+      return "SSHAgent";
     default:
       throw new Error(`Unknown KeyDerivationMethod: ${String(method)}`);
   }

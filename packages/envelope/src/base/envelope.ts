@@ -198,6 +198,11 @@ export class Envelope implements DigestProvider {
       return subject;
     }
 
+    // Handle KnownValue specially to create knownValue envelopes
+    if (subject instanceof KnownValue) {
+      return Envelope.newWithKnownValue(subject);
+    }
+
     // Handle primitives and create leaf envelopes
     return Envelope.newLeaf(subject);
   }
@@ -869,6 +874,30 @@ export class Envelope implements DigestProvider {
   declare extractBytes: () => Uint8Array;
   declare extractNull: () => null;
 
+  // Generic typed extraction methods from envelope-decodable.ts
+  declare extractSubject: <T>(decoder: (cbor: Cbor) => T) => T;
+  declare tryObjectForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T;
+  declare tryOptionalObjectForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T | undefined;
+  declare extractObjectForPredicateWithDefault: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+    defaultValue: T,
+  ) => T;
+  declare extractObjectsForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T[];
+  declare tryObjectsForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T[];
+
   // From queries.ts
   declare isFalse: () => boolean;
   declare isTrue: () => boolean;
@@ -884,6 +913,11 @@ export class Envelope implements DigestProvider {
   declare asMap: () => CborMap | undefined;
   declare asText: () => string | undefined;
   declare asLeaf: () => Cbor | undefined;
+  declare asKnownValue: () => KnownValue | undefined;
+  declare tryKnownValue: () => KnownValue;
+  declare isKnownValue: () => boolean;
+  declare isSubjectUnit: () => boolean;
+  declare checkSubjectUnit: () => Envelope;
   declare hasAssertions: () => boolean;
   declare asAssertion: () => Envelope | undefined;
   declare tryAssertion: () => Envelope;
@@ -908,6 +942,12 @@ export class Envelope implements DigestProvider {
   declare optionalObjectForPredicate: (predicate: EnvelopeEncodableValue) => Envelope | undefined;
   declare objectsForPredicate: (predicate: EnvelopeEncodableValue) => Envelope[];
   declare elementsCount: () => number;
+  declare isSubjectEncrypted: () => boolean;
+  declare isSubjectCompressed: () => boolean;
+  declare isSubjectElided: () => boolean;
+  declare setPosition: (position: number) => Envelope;
+  declare position: () => number;
+  declare removePosition: () => Envelope;
 
   // From walk.ts
   declare walk: <State>(hideNodes: boolean, state: State, visit: Visitor<State>) => void;
@@ -956,7 +996,12 @@ export class Envelope implements DigestProvider {
   declare decryptSubjectToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
   declare decryptToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
   declare encryptToRecipients: (recipients: PublicKeyBase[]) => Envelope;
+  declare encryptToRecipient: (recipientPublicKey: PublicKeyBase) => Envelope;
   declare recipients: () => SealedMessage[];
+
+  // From seal.ts
+  declare seal: (sender: Signer, recipientPublicKey: PublicKeyBase) => Envelope;
+  declare unseal: (senderPublicKey: Verifier, recipientPrivateKey: PrivateKeyBase) => Envelope;
 
   // From salt.ts
   declare addSalt: () => Envelope;
@@ -985,4 +1030,7 @@ export class Envelope implements DigestProvider {
     vendor: string,
     conformsTo?: string,
   ) => Envelope;
+
+  // Static methods from leaf.ts
+  declare static unit: () => Envelope;
 }

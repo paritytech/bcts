@@ -58,6 +58,9 @@ export enum ErrorCode {
   INVALID_TYPE = "INVALID_TYPE",
   AMBIGUOUS_TYPE = "AMBIGUOUS_TYPE",
 
+  // Known Value Extension
+  SUBJECT_NOT_UNIT = "SUBJECT_NOT_UNIT",
+
   // Expressions Extension
   UNEXPECTED_RESPONSE_ID = "UNEXPECTED_RESPONSE_ID",
   INVALID_RESPONSE = "INVALID_RESPONSE",
@@ -374,6 +377,13 @@ export class EnvelopeError extends Error {
   /// with each other or create ambiguity about the envelope's type.
   static ambiguousType(): EnvelopeError {
     return new EnvelopeError(ErrorCode.AMBIGUOUS_TYPE, "ambiguous type");
+  }
+
+  //
+  // Known Value Extension
+  /// Returned when the subject is expected to be the unit value but isn't.
+  static subjectNotUnit(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.SUBJECT_NOT_UNIT, "subject is not the unit value");
   }
 
   //

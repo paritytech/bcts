@@ -1,5 +1,6 @@
 import { Envelope } from "../base/envelope";
 import { EnvelopeError } from "../base/error";
+import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
 import {
   SecureRandomNumberGenerator,
   rngRandomData,
@@ -32,6 +33,54 @@ import {
 /// // The salted envelope has a different digest than the original
 /// console.log(envelope.digest().equals(salted.digest())); // false
 /// ```
+
+// ============================================================================
+// Envelope Prototype Extensions for Salted Assertions
+// ============================================================================
+
+declare module "../base/envelope" {
+  interface Envelope {
+    /// Add an assertion with optional salting.
+    ///
+    /// If `salted` is true, the assertion envelope will have salt added to it
+    /// before being added to this envelope. This decorrelates the assertion
+    /// from other identical assertions.
+    ///
+    /// @param predicate - The predicate of the assertion
+    /// @param object - The object of the assertion
+    /// @param salted - Whether to add salt to the assertion
+    /// @returns A new envelope with the (optionally salted) assertion added
+    addAssertionSalted(
+      predicate: EnvelopeEncodableValue,
+      object: EnvelopeEncodableValue,
+      salted: boolean,
+    ): Envelope;
+
+    /// Add an assertion envelope with optional salting.
+    ///
+    /// If `salted` is true, the assertion envelope will have salt added to it
+    /// before being added to this envelope.
+    ///
+    /// @param assertionEnvelope - The assertion envelope to add
+    /// @param salted - Whether to add salt to the assertion
+    /// @returns A new envelope with the (optionally salted) assertion added
+    addAssertionEnvelopeSalted(assertionEnvelope: Envelope, salted: boolean): Envelope;
+
+    /// Add an optional assertion envelope with optional salting.
+    ///
+    /// If the assertion envelope is undefined, returns the original envelope.
+    /// If `salted` is true, the assertion envelope will have salt added to it
+    /// before being added to this envelope.
+    ///
+    /// @param assertionEnvelope - The assertion envelope to add (or undefined)
+    /// @param salted - Whether to add salt to the assertion
+    /// @returns A new envelope with the (optionally salted) assertion added, or the original
+    addOptionalAssertionEnvelopeSalted(
+      assertionEnvelope: Envelope | undefined,
+      salted: boolean,
+    ): Envelope;
+  }
+}
 
 /// The standard predicate for salt assertions
 export const SALT = "salt";
@@ -110,5 +159,87 @@ if (Envelope?.prototype) {
     const saltSize = rngNextInClosedRangeI32(rng, min, max);
     const saltBytes = generateRandomBytes(saltSize, rng);
     return this.addAssertion(SALT, saltBytes);
+  };
+
+  /// Implementation of addAssertionSalted()
+  Envelope.prototype.addAssertionSalted = function (
+    this: Envelope,
+    predicate: EnvelopeEncodableValue,
+    object: EnvelopeEncodableValue,
+    salted: boolean,
+  ): Envelope {
+    // Create the assertion envelope
+    const assertion = Envelope.newAssertion(predicate, object);
+
+    // If not salted, use the normal addAssertionEnvelope
+    if (!salted) {
+      return this.addAssertionEnvelope(assertion);
+    }
+
+    // Add salt to the assertion envelope (this creates a node with assertion as subject)
+    const saltedAssertion = assertion.addSalt();
+
+    // When salted, we need to use newWithUncheckedAssertions because the salted
+    // assertion is a node (not pure assertion type) and would fail normal validation
+    const c = this.case();
+    if (c.type === "node") {
+      return Envelope.newWithUncheckedAssertions(c.subject, [...c.assertions, saltedAssertion]);
+    }
+    return Envelope.newWithUncheckedAssertions(this, [saltedAssertion]);
+  };
+
+  /// Implementation of addAssertionEnvelopeSalted()
+  Envelope.prototype.addAssertionEnvelopeSalted = function (
+    this: Envelope,
+    assertionEnvelope: Envelope,
+    salted: boolean,
+  ): Envelope {
+    // If not salted, use the normal addAssertionEnvelope
+    if (!salted) {
+      return this.addAssertionEnvelope(assertionEnvelope);
+    }
+
+    // Add salt to the assertion envelope (this creates a node with assertion as subject)
+    const saltedAssertion = assertionEnvelope.addSalt();
+
+    // When salted, we need to use newWithUncheckedAssertions because the salted
+    // assertion is a node (not pure assertion type) and would fail normal validation
+    const c = this.case();
+    if (c.type === "node") {
+      return Envelope.newWithUncheckedAssertions(c.subject, [...c.assertions, saltedAssertion]);
+    }
+    return Envelope.newWithUncheckedAssertions(this, [saltedAssertion]);
+  };
+
+  /// Implementation of addOptionalAssertionEnvelopeSalted()
+  Envelope.prototype.addOptionalAssertionEnvelopeSalted = function (
+    this: Envelope,
+    assertionEnvelope: Envelope | undefined,
+    salted: boolean,
+  ): Envelope {
+    if (assertionEnvelope === undefined) {
+      return this;
+    }
+
+    // If not salted, use the normal addOptionalAssertionEnvelope
+    if (!salted) {
+      return this.addOptionalAssertionEnvelope(assertionEnvelope);
+    }
+
+    // Add salt to the assertion envelope (this creates a node with assertion as subject)
+    const saltedAssertion = assertionEnvelope.addSalt();
+
+    // When salted, we need to use newWithUncheckedAssertions because the salted
+    // assertion is a node (not pure assertion type) and would fail normal validation
+    const c = this.case();
+    if (c.type === "node") {
+      // Check for duplicate assertions
+      const isDuplicate = c.assertions.some((a) => a.digest().equals(saltedAssertion.digest()));
+      if (isDuplicate) {
+        return this;
+      }
+      return Envelope.newWithUncheckedAssertions(c.subject, [...c.assertions, saltedAssertion]);
+    }
+    return Envelope.newWithUncheckedAssertions(this.subject(), [saltedAssertion]);
   };
 }

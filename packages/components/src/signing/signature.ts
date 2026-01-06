@@ -2,21 +2,22 @@
  * A digital signature created with various signature algorithms.
  *
  * `Signature` represents different types of digital signatures.
- * Currently, only Ed25519 signatures are implemented (64 bytes).
+ * Supports Schnorr, ECDSA, Ed25519, and Sr25519 signatures.
  *
  * Signatures can be serialized to and from CBOR with tag 40020.
  *
  * # CBOR Serialization
  *
- * The CBOR encoding for Ed25519 signatures is:
- * ```
- * #6.40020([2, h'<64-byte-signature>'])
- * ```
+ * The CBOR encoding:
+ * - Schnorr: `#6.40020([0, h'<64-byte-signature>'])`
+ * - ECDSA:   `#6.40020([1, h'<64-byte-signature>'])`
+ * - Ed25519: `#6.40020([2, h'<64-byte-signature>'])`
+ * - Sr25519: `#6.40020([3, h'<64-byte-signature>'])`
  *
  * Ported from bc-components-rust/src/signing/signature.rs
  */
 
-import { ED25519_SIGNATURE_SIZE } from "@bcts/crypto";
+import { ED25519_SIGNATURE_SIZE, ECDSA_SIGNATURE_SIZE, SCHNORR_SIGNATURE_SIZE } from "@bcts/crypto";
 import { SR25519_SIGNATURE_SIZE } from "../sr25519/sr25519-private-key.js";
 import {
   type Cbor,
@@ -43,8 +44,10 @@ import { SignatureScheme } from "./signature-scheme.js";
  * A digital signature created with various signature algorithms.
  *
  * Currently supports:
- * - Ed25519 signatures (64 bytes)
- * - Sr25519 signatures (64 bytes)
+ * - Schnorr signatures (64 bytes) - discriminator 0
+ * - ECDSA signatures (64 bytes) - discriminator 1
+ * - Ed25519 signatures (64 bytes) - discriminator 2
+ * - Sr25519 signatures (64 bytes) - discriminator 3
  */
 export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signature> {
   private readonly _type: SignatureScheme;
@@ -58,6 +61,52 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   // ============================================================================
   // Static Factory Methods
   // ============================================================================
+
+  /**
+   * Creates a Schnorr signature from a 64-byte array.
+   *
+   * @param data - The 64-byte signature data
+   * @returns A new Schnorr signature
+   */
+  static schnorrFromData(data: Uint8Array): Signature {
+    if (data.length !== SCHNORR_SIGNATURE_SIZE) {
+      throw CryptoError.invalidSize(SCHNORR_SIGNATURE_SIZE, data.length);
+    }
+    return new Signature(SignatureScheme.Schnorr, data);
+  }
+
+  /**
+   * Creates a Schnorr signature from a hex string.
+   *
+   * @param hex - The hex-encoded signature data
+   * @returns A new Schnorr signature
+   */
+  static schnorrFromHex(hex: string): Signature {
+    return Signature.schnorrFromData(hexToBytes(hex));
+  }
+
+  /**
+   * Creates an ECDSA signature from a 64-byte array.
+   *
+   * @param data - The 64-byte signature data
+   * @returns A new ECDSA signature
+   */
+  static ecdsaFromData(data: Uint8Array): Signature {
+    if (data.length !== ECDSA_SIGNATURE_SIZE) {
+      throw CryptoError.invalidSize(ECDSA_SIGNATURE_SIZE, data.length);
+    }
+    return new Signature(SignatureScheme.Ecdsa, data);
+  }
+
+  /**
+   * Creates an ECDSA signature from a hex string.
+   *
+   * @param hex - The hex-encoded signature data
+   * @returns A new ECDSA signature
+   */
+  static ecdsaFromHex(hex: string): Signature {
+    return Signature.ecdsaFromData(hexToBytes(hex));
+  }
 
   /**
    * Creates an Ed25519 signature from a 64-byte array.
@@ -121,6 +170,44 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    */
   data(): Uint8Array {
     return this._data;
+  }
+
+  /**
+   * Returns the Schnorr signature data if this is a Schnorr signature.
+   *
+   * @returns The 64-byte signature data if this is a Schnorr signature, null otherwise
+   */
+  toSchnorr(): Uint8Array | null {
+    if (this._type === SignatureScheme.Schnorr) {
+      return this._data;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if this is a Schnorr signature.
+   */
+  isSchnorr(): boolean {
+    return this._type === SignatureScheme.Schnorr;
+  }
+
+  /**
+   * Returns the ECDSA signature data if this is an ECDSA signature.
+   *
+   * @returns The 64-byte signature data if this is an ECDSA signature, null otherwise
+   */
+  toEcdsa(): Uint8Array | null {
+    if (this._type === SignatureScheme.Ecdsa) {
+      return this._data;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if this is an ECDSA signature.
+   */
+  isEcdsa(): boolean {
+    return this._type === SignatureScheme.Ecdsa;
   }
 
   /**
@@ -201,11 +288,17 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   /**
    * Returns the untagged CBOR encoding.
    *
+   * Format for Schnorr: [0, h'<64-byte-signature>']
+   * Format for ECDSA:   [1, h'<64-byte-signature>']
    * Format for Ed25519: [2, h'<64-byte-signature>']
    * Format for Sr25519: [3, h'<64-byte-signature>']
    */
   untaggedCbor(): Cbor {
     switch (this._type) {
+      case SignatureScheme.Schnorr:
+        return cbor([0, toByteString(this._data)]);
+      case SignatureScheme.Ecdsa:
+        return cbor([1, toByteString(this._data)]);
       case SignatureScheme.Ed25519:
         return cbor([2, toByteString(this._data)]);
       case SignatureScheme.Sr25519:
@@ -235,6 +328,8 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    * Creates a Signature by decoding it from untagged CBOR.
    *
    * Format:
+   * - [0, h'<64-byte-signature>'] for Schnorr
+   * - [1, h'<64-byte-signature>'] for ECDSA
    * - [2, h'<64-byte-signature>'] for Ed25519
    * - [3, h'<64-byte-signature>'] for Sr25519
    */
@@ -249,6 +344,10 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     const signatureData = expectBytes(elements[1]);
 
     switch (Number(discriminator)) {
+      case 0: // Schnorr
+        return Signature.schnorrFromData(signatureData);
+      case 1: // ECDSA
+        return Signature.ecdsaFromData(signatureData);
       case 2: // Ed25519
         return Signature.ed25519FromData(signatureData);
       case 3: // Sr25519

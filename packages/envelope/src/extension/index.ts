@@ -61,6 +61,12 @@ export {
   type ParameterID,
 } from "./expression";
 
+// Secret support (password-based locking)
+export { registerSecretExtension } from "./secret";
+
+// SSKR support (Sharded Secret Key Reconstruction)
+export { registerSskrExtension } from "./sskr";
+
 // Import side-effect modules to register prototype extensions
 import "./types";
 import "./salt";
@@ -70,3 +76,5 @@ import "./signature";
 import "./attachment";
 import "./recipient";
 import "./proof";
+import "./secret";
+import "./sskr";

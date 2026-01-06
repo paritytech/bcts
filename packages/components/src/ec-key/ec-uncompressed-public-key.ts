@@ -41,12 +41,10 @@ import { UR, type UREncodable } from "@bcts/uniform-resources";
 import { EC_KEY as TAG_EC_KEY, EC_KEY_V1 as TAG_EC_KEY_V1 } from "@bcts/tags";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
-
-// Note: ECPublicKey type is used in JSDoc comments but not directly imported
-// to avoid circular dependency issues
+import type { ECKeyBase } from "./ec-key-base.js";
 
 export class ECUncompressedPublicKey
-  implements CborTaggedEncodable, CborTaggedDecodable<ECUncompressedPublicKey>, UREncodable
+  implements ECKeyBase, CborTaggedEncodable, CborTaggedDecodable<ECUncompressedPublicKey>, UREncodable
 {
   static readonly KEY_SIZE = ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE;
 

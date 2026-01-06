@@ -50,6 +50,7 @@ import {
   keyDerivationParamsFromCbor,
   lockWithParams,
   isPasswordBased,
+  isSshAgent,
 } from "./key-derivation-params.js";
 
 /**
@@ -155,6 +156,17 @@ export class EncryptedKey
    */
   isPasswordBased(): boolean {
     return isPasswordBased(this._params);
+  }
+
+  /**
+   * Check if this uses SSH Agent for key derivation.
+   *
+   * Note: SSH Agent key derivation is not yet functional in TypeScript.
+   * This method is useful for detecting envelopes locked by other
+   * implementations (e.g., Rust).
+   */
+  isSshAgent(): boolean {
+    return isSshAgent(this._params);
   }
 
   /**

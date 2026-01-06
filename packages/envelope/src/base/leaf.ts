@@ -1,6 +1,8 @@
 import type { Cbor } from "@bcts/dcbor";
 import { isNumber, isNaN, asArray, asMap, asText } from "@bcts/dcbor";
+import { KnownValue, UNIT } from "@bcts/known-values";
 import { Envelope } from "./envelope";
+import { EnvelopeError } from "./error";
 
 /// Provides methods for working with envelope leaf nodes,
 /// which are dCBOR values of any kind.
@@ -144,4 +146,58 @@ Envelope.prototype.asLeaf = function (this: Envelope): Cbor | undefined {
     return c.cbor;
   }
   return undefined;
+};
+
+// ============================================================================
+// Known Value Methods
+// ============================================================================
+
+/// Implementation of static unit()
+/// Unit envelopes have the known value ''. They represent a position
+/// where no meaningful data *can* exist. In this sense they make a
+/// semantically stronger assertion than `null`, which represents a
+/// position where no meaningful data currently exists, but could exist in
+/// the future.
+(Envelope as unknown as { unit: () => Envelope }).unit = function (): Envelope {
+  return Envelope.new(UNIT);
+};
+
+/// Implementation of asKnownValue()
+Envelope.prototype.asKnownValue = function (this: Envelope): KnownValue | undefined {
+  const c = this.case();
+  if (c.type === "knownValue") {
+    return c.value;
+  }
+  return undefined;
+};
+
+/// Implementation of tryKnownValue()
+Envelope.prototype.tryKnownValue = function (this: Envelope): KnownValue {
+  const kv = this.asKnownValue();
+  if (kv === undefined) {
+    throw EnvelopeError.notKnownValue();
+  }
+  return kv;
+};
+
+/// Implementation of isKnownValue()
+Envelope.prototype.isKnownValue = function (this: Envelope): boolean {
+  return this.case().type === "knownValue";
+};
+
+/// Implementation of isSubjectUnit()
+Envelope.prototype.isSubjectUnit = function (this: Envelope): boolean {
+  const kv = this.subject().asKnownValue();
+  if (kv === undefined) {
+    return false;
+  }
+  return kv.equals(UNIT);
+};
+
+/// Implementation of checkSubjectUnit()
+Envelope.prototype.checkSubjectUnit = function (this: Envelope): Envelope {
+  if (this.isSubjectUnit()) {
+    return this;
+  }
+  throw EnvelopeError.subjectNotUnit();
 };

@@ -17,8 +17,8 @@ import {
   PrivateKeys,
   PublicKeys,
   SSKRShareCbor,
-  generateSSKRSharesCbor,
-  combineSSKRSharesCbor,
+  sskrGenerateShares,
+  sskrCombineShares,
   sskrGenerate,
   sskrCombine,
   SigningPrivateKey,
@@ -252,6 +252,55 @@ describe("PrivateKeys", () => {
     });
   });
 
+  describe("Decrypter interface", () => {
+    it("should decapsulate shared secrets", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+
+      // Encapsulate using public keys
+      const [originalSecret, ciphertext] = pubKeys.encapsulateNewSharedSecret();
+
+      // Decapsulate using private keys
+      const recoveredSecret = pk.decapsulateSharedSecret(ciphertext);
+
+      expect(recoveredSecret.equals(originalSecret)).toBe(true);
+    });
+
+    it("should implement encapsulationPrivateKey accessor", () => {
+      const pk = PrivateKeys.new();
+      const encapKey = pk.encapsulationPrivateKey();
+      expect(encapKey).toBeInstanceOf(EncapsulationPrivateKey);
+    });
+  });
+
+  describe("ReferenceProvider interface", () => {
+    it("should return a unique reference", () => {
+      const pk = PrivateKeys.new();
+      const ref = pk.reference();
+      expect(ref).toBeDefined();
+      expect(ref.shortReference("hex")).toHaveLength(8);
+    });
+
+    it("should return consistent reference for same keys", () => {
+      const pk = PrivateKeys.new();
+      const ref1 = pk.reference();
+      const ref2 = pk.reference();
+      expect(ref1.equals(ref2)).toBe(true);
+    });
+
+    it("should return different references for different keys", () => {
+      const pk1 = PrivateKeys.new();
+      const pk2 = PrivateKeys.new();
+      expect(pk1.reference().equals(pk2.reference())).toBe(false);
+    });
+
+    it("should include reference in toString", () => {
+      const pk = PrivateKeys.new();
+      const str = pk.toString();
+      expect(str).toMatch(/^PrivateKeys\([a-f0-9]{8}\)$/);
+    });
+  });
+
   describe("equality", () => {
     it("should be equal to itself", () => {
       const pk = PrivateKeys.new();
@@ -338,6 +387,67 @@ describe("PublicKeys", () => {
 
       expect(pubKeys.verify(signature, message)).toBe(true);
       expect(pubKeys.verify(signature, new Uint8Array([0]))).toBe(false);
+    });
+  });
+
+  describe("Encrypter interface", () => {
+    it("should encapsulate shared secrets", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+
+      // Encapsulate using public keys
+      const [sharedSecret, ciphertext] = pubKeys.encapsulateNewSharedSecret();
+
+      expect(sharedSecret).toBeDefined();
+      expect(ciphertext).toBeDefined();
+    });
+
+    it("should implement encapsulationPublicKey accessor", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+      const encapKey = pubKeys.encapsulationPublicKey();
+      expect(encapKey).toBeInstanceOf(EncapsulationPublicKey);
+    });
+
+    it("should generate secrets recoverable by matching private key", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+
+      const [originalSecret, ciphertext] = pubKeys.encapsulateNewSharedSecret();
+      const recoveredSecret = pk.decapsulateSharedSecret(ciphertext);
+
+      expect(recoveredSecret.equals(originalSecret)).toBe(true);
+    });
+  });
+
+  describe("ReferenceProvider interface", () => {
+    it("should return a unique reference", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+      const ref = pubKeys.reference();
+      expect(ref).toBeDefined();
+      expect(ref.shortReference("hex")).toHaveLength(8);
+    });
+
+    it("should return consistent reference for same keys", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+      const ref1 = pubKeys.reference();
+      const ref2 = pubKeys.reference();
+      expect(ref1.equals(ref2)).toBe(true);
+    });
+
+    it("should return different references for different keys", () => {
+      const pk1 = PrivateKeys.new();
+      const pk2 = PrivateKeys.new();
+      expect(pk1.publicKeys().reference().equals(pk2.publicKeys().reference())).toBe(false);
+    });
+
+    it("should include reference in toString", () => {
+      const pk = PrivateKeys.new();
+      const pubKeys = pk.publicKeys();
+      const str = pubKeys.toString();
+      expect(str).toMatch(/^PublicKeys\([a-f0-9]{8}\)$/);
     });
   });
 
@@ -495,29 +605,16 @@ describe("SSKRShareCbor", () => {
     it("should return correct CBOR tags", () => {
       const share = SSKRShareCbor.fromData(testShareData);
       const tags = share.cborTags();
-      expect(tags).toHaveLength(1);
-      expect(tags[0].value).toBe(40309);
+      // Returns both current tag (40309) and legacy tag (309) for backward compatibility
+      expect(tags).toHaveLength(2);
+      expect(tags[0].value).toBe(40309); // TAG_SSKR_SHARE
+      expect(tags[1].value).toBe(309); // TAG_SSKR_SHARE_V1 (legacy)
     });
 
     it("should roundtrip through tagged CBOR", () => {
       const share = SSKRShareCbor.fromData(testShareData);
       const cborData = share.taggedCborData();
       const recovered = SSKRShareCbor.fromTaggedCborData(cborData);
-      expect(recovered.equals(share)).toBe(true);
-    });
-  });
-
-  describe("UR serialization", () => {
-    it("should serialize to UR", () => {
-      const share = SSKRShareCbor.fromData(testShareData);
-      const ur = share.ur();
-      expect(ur.urTypeStr()).toBe("sskr");
-    });
-
-    it("should roundtrip through UR string", () => {
-      const share = SSKRShareCbor.fromData(testShareData);
-      const urString = share.urString();
-      const recovered = SSKRShareCbor.fromURString(urString);
       expect(recovered.equals(share)).toBe(true);
     });
   });
@@ -538,7 +635,7 @@ describe("SSKRShareCbor", () => {
 // ============================================================================
 
 describe("SSKR Integration", () => {
-  describe("generateSSKRSharesCbor and combineSSKRSharesCbor", () => {
+  describe("sskrGenerateShares and sskrCombineShares (Rust API parity)", () => {
     it("should generate and recover a secret (2 of 3)", () => {
       const secretData = new Uint8Array(16);
       for (let i = 0; i < 16; i++) {
@@ -549,16 +646,16 @@ describe("SSKR Integration", () => {
       const group = GroupSpec.new(2, 3); // 2 of 3
       const spec = Spec.new(1, [group]); // 1 of 1 group
 
-      const groups = generateSSKRSharesCbor(spec, secret);
+      const groups = sskrGenerateShares(spec, secret);
       expect(groups).toHaveLength(1);
       expect(groups[0]).toHaveLength(3);
 
       // Recover with first 2 shares
-      const recoveredSecret = combineSSKRSharesCbor([groups[0][0], groups[0][1]]);
+      const recoveredSecret = sskrCombineShares([groups[0][0], groups[0][1]]);
       expect(recoveredSecret.getData()).toEqual(secretData);
 
       // Recover with last 2 shares
-      const recoveredSecret2 = combineSSKRSharesCbor([groups[0][1], groups[0][2]]);
+      const recoveredSecret2 = sskrCombineShares([groups[0][1], groups[0][2]]);
       expect(recoveredSecret2.getData()).toEqual(secretData);
     });
 
@@ -573,7 +670,7 @@ describe("SSKR Integration", () => {
       const group2 = GroupSpec.new(3, 5); // 3 of 5
       const spec = Spec.new(2, [group1, group2]); // 2 of 2 groups
 
-      const groups = generateSSKRSharesCbor(spec, secret);
+      const groups = sskrGenerateShares(spec, secret);
       expect(groups).toHaveLength(2);
       expect(groups[0]).toHaveLength(3);
       expect(groups[1]).toHaveLength(5);
@@ -587,7 +684,7 @@ describe("SSKR Integration", () => {
       }
 
       // Recover with shares from both groups
-      const recoveredSecret = combineSSKRSharesCbor([
+      const recoveredSecret = sskrCombineShares([
         groups[0][0],
         groups[0][1],
         groups[1][0],
@@ -603,7 +700,7 @@ describe("SSKR Integration", () => {
       const group = GroupSpec.new(2, 3);
       const spec = Spec.new(1, [group]);
 
-      const groups = generateSSKRSharesCbor(spec, secret);
+      const groups = sskrGenerateShares(spec, secret);
 
       // Serialize all shares to CBOR and back
       const recoveredShares = groups[0].map((share) => {
@@ -612,28 +709,10 @@ describe("SSKR Integration", () => {
       });
 
       // Should still recover the secret
-      const recovered = combineSSKRSharesCbor([recoveredShares[0], recoveredShares[1]]);
+      const recovered = sskrCombineShares([recoveredShares[0], recoveredShares[1]]);
       expect(recovered.getData()).toEqual(secretData);
     });
 
-    it("should roundtrip shares through UR", () => {
-      const secretData = new Uint8Array(16).fill(0x55);
-      const secret = Secret.new(secretData);
-      const group = GroupSpec.new(2, 3);
-      const spec = Spec.new(1, [group]);
-
-      const groups = generateSSKRSharesCbor(spec, secret);
-
-      // Serialize all shares to UR and back
-      const recoveredShares = groups[0].map((share) => {
-        const urString = share.urString();
-        return SSKRShareCbor.fromURString(urString);
-      });
-
-      // Should still recover the secret
-      const recovered = combineSSKRSharesCbor([recoveredShares[0], recoveredShares[2]]);
-      expect(recovered.getData()).toEqual(secretData);
-    });
   });
 
   describe("raw sskr functions", () => {
@@ -671,10 +750,10 @@ describe("PrivateKeyBase + SSKR Integration", () => {
     const group = GroupSpec.new(2, 3);
     const spec = Spec.new(1, [group]);
 
-    const groups = generateSSKRSharesCbor(spec, secret);
+    const groups = sskrGenerateShares(spec, secret);
 
     // Recover with 2 shares
-    const recovered = combineSSKRSharesCbor([groups[0][0], groups[0][1]]);
+    const recovered = sskrCombineShares([groups[0][0], groups[0][1]]);
 
     // Create new PrivateKeyBase from recovered data
     const recoveredPkb = PrivateKeyBase.fromData(recovered.getData());

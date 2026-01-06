@@ -38,6 +38,14 @@ export {
   extractBytes,
   extractNull,
   EnvelopeDecoder,
+  // Generic typed extraction
+  type CborDecoder,
+  extractSubject,
+  tryObjectForPredicate,
+  tryOptionalObjectForPredicate,
+  extractObjectForPredicateWithDefault,
+  extractObjectsForPredicate,
+  tryObjectsForPredicate,
 } from "./envelope-decodable";
 
 // Elision and selective disclosure

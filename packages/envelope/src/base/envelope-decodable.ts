@@ -1,6 +1,7 @@
 import type { Cbor } from "@bcts/dcbor";
 import { tryIntoText, tryIntoBool, tryIntoByteString, isNull, decodeCbor } from "@bcts/dcbor";
 import { Envelope } from "./envelope";
+import type { EnvelopeEncodableValue } from "./envelope-encodable";
 import { EnvelopeError } from "./error";
 
 /// Provides functions for extracting typed values from envelopes.
@@ -183,4 +184,181 @@ Envelope.prototype.extractBytes = function (this: Envelope): Uint8Array {
 
 Envelope.prototype.extractNull = function (this: Envelope): null {
   return extractNull(this);
+};
+
+// ============================================================================
+// Generic Typed Extraction Methods
+// ============================================================================
+
+/// Type for CBOR decoder functions
+export type CborDecoder<T> = (cbor: Cbor) => T;
+
+/// Extracts the subject of an envelope as type T using a decoder function.
+///
+/// This is the TypeScript equivalent of Rust's `TryFrom<Envelope>` trait bound.
+/// Since TypeScript doesn't have trait bounds on generics, we pass a decoder
+/// function explicitly.
+///
+/// @example
+/// ```typescript
+/// const envelope = Envelope.new(myEncryptedKey.taggedCbor());
+/// const extracted = envelope.extractSubject(EncryptedKey.fromTaggedCbor);
+/// ```
+///
+/// @param decoder - Function to decode CBOR to type T
+/// @returns The decoded value of type T
+/// @throws {EnvelopeError} If the envelope is not a leaf or decoding fails
+export function extractSubject<T>(envelope: Envelope, decoder: CborDecoder<T>): T {
+  const cbor = envelope.subject().tryLeaf();
+  try {
+    return decoder(cbor);
+  } catch (error) {
+    throw EnvelopeError.cbor(
+      "failed to decode subject",
+      error instanceof Error ? error : undefined,
+    );
+  }
+}
+
+/// Add extractSubject method to Envelope prototype
+Envelope.prototype.extractSubject = function <T>(this: Envelope, decoder: CborDecoder<T>): T {
+  return extractSubject(this, decoder);
+};
+
+/// Extracts the object for a predicate as type T using a decoder function.
+///
+/// @param envelope - The envelope to query
+/// @param predicate - The predicate to match
+/// @param decoder - Function to decode CBOR to type T
+/// @returns The decoded value of type T
+/// @throws {EnvelopeError} If predicate not found or decoding fails
+export function tryObjectForPredicate<T>(
+  envelope: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T {
+  const obj = envelope.objectForPredicate(predicate);
+  return extractSubject(obj, decoder);
+}
+
+/// Add tryObjectForPredicate method to Envelope prototype
+Envelope.prototype.tryObjectForPredicate = function <T>(
+  this: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T {
+  return tryObjectForPredicate(this, predicate, decoder);
+};
+
+/// Extracts the optional object for a predicate as type T using a decoder function.
+///
+/// @param envelope - The envelope to query
+/// @param predicate - The predicate to match
+/// @param decoder - Function to decode CBOR to type T
+/// @returns The decoded value of type T, or undefined if predicate not found
+/// @throws {EnvelopeError} If decoding fails (but not if predicate not found)
+export function tryOptionalObjectForPredicate<T>(
+  envelope: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T | undefined {
+  const obj = envelope.optionalObjectForPredicate(predicate);
+  if (obj === undefined) {
+    return undefined;
+  }
+  return extractSubject(obj, decoder);
+}
+
+/// Add tryOptionalObjectForPredicate method to Envelope prototype
+Envelope.prototype.tryOptionalObjectForPredicate = function <T>(
+  this: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T | undefined {
+  return tryOptionalObjectForPredicate(this, predicate, decoder);
+};
+
+/// Extracts the object for a predicate as type T, with a default value if not found.
+///
+/// @param envelope - The envelope to query
+/// @param predicate - The predicate to match
+/// @param decoder - Function to decode CBOR to type T
+/// @param defaultValue - Value to return if predicate not found
+/// @returns The decoded value of type T, or the default value
+/// @throws {EnvelopeError} If decoding fails (but not if predicate not found)
+export function extractObjectForPredicateWithDefault<T>(
+  envelope: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+  defaultValue: T,
+): T {
+  const result = tryOptionalObjectForPredicate(envelope, predicate, decoder);
+  return result !== undefined ? result : defaultValue;
+}
+
+/// Add extractObjectForPredicateWithDefault method to Envelope prototype
+Envelope.prototype.extractObjectForPredicateWithDefault = function <T>(
+  this: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+  defaultValue: T,
+): T {
+  return extractObjectForPredicateWithDefault(this, predicate, decoder, defaultValue);
+};
+
+/// Extracts all objects for a predicate as type T using a decoder function.
+///
+/// @param envelope - The envelope to query
+/// @param predicate - The predicate to match
+/// @param decoder - Function to decode CBOR to type T
+/// @returns Array of decoded values of type T
+/// @throws {EnvelopeError} If any decoding fails
+export function extractObjectsForPredicate<T>(
+  envelope: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T[] {
+  const objects = envelope.objectsForPredicate(predicate);
+  return objects.map((obj) => extractSubject(obj, decoder));
+}
+
+/// Add extractObjectsForPredicate method to Envelope prototype
+Envelope.prototype.extractObjectsForPredicate = function <T>(
+  this: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T[] {
+  return extractObjectsForPredicate(this, predicate, decoder);
+};
+
+/// Extracts all objects for a predicate as type T, returning empty array if none found.
+///
+/// @param envelope - The envelope to query
+/// @param predicate - The predicate to match
+/// @param decoder - Function to decode CBOR to type T
+/// @returns Array of decoded values of type T (empty if no matches)
+/// @throws {EnvelopeError} If any decoding fails
+export function tryObjectsForPredicate<T>(
+  envelope: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T[] {
+  try {
+    return extractObjectsForPredicate(envelope, predicate, decoder);
+  } catch (error) {
+    // If it's a nonexistent predicate error, return empty array
+    if (error instanceof EnvelopeError && error.code === "NONEXISTENT_PREDICATE") {
+      return [];
+    }
+    throw error;
+  }
+}
+
+/// Add tryObjectsForPredicate method to Envelope prototype
+Envelope.prototype.tryObjectsForPredicate = function <T>(
+  this: Envelope,
+  predicate: EnvelopeEncodableValue,
+  decoder: CborDecoder<T>,
+): T[] {
+  return tryObjectsForPredicate(this, predicate, decoder);
 };

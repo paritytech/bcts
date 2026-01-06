@@ -9,12 +9,13 @@
  * - PBKDF2: Password-based, widely compatible
  * - Scrypt: Memory-hard, resistant to GPU attacks
  * - Argon2id: Most secure for passwords (default)
+ * - SSHAgent: Uses SSH agent for key derivation (not yet fully implemented)
  *
  * The main components are:
  * - `EncryptedKey`: Encrypted symmetric key with derivation parameters
  * - `KeyDerivationMethod`: Enum of supported methods
  * - `KeyDerivationParams`: Union type for method-specific parameters
- * - Individual parameter types: `HKDFParams`, `PBKDF2Params`, `ScryptParams`, `Argon2idParams`
+ * - Individual parameter types: `HKDFParams`, `PBKDF2Params`, `ScryptParams`, `Argon2idParams`, `SSHAgentParams`
  *
  * Ported from bc-components-rust/src/encrypted_key/mod.rs
  */
@@ -43,6 +44,7 @@ export {
   DEFAULT_SCRYPT_P,
 } from "./scrypt-params.js";
 export { Argon2idParams } from "./argon2id-params.js";
+export { SSHAgentParams, SALT_LEN as SSH_AGENT_SALT_LEN } from "./ssh-agent-params.js";
 
 // Union type and helpers
 export {
@@ -51,9 +53,11 @@ export {
   pbkdf2Params,
   scryptParams,
   argon2idParams,
+  sshAgentParams,
   defaultKeyDerivationParams,
   keyDerivationParamsMethod,
   isPasswordBased,
+  isSshAgent,
   lockWithParams,
   keyDerivationParamsToCbor,
   keyDerivationParamsToCborData,

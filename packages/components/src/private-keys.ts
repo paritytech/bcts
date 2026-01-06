@@ -36,9 +36,27 @@ import { PRIVATE_KEYS as TAG_PRIVATE_KEYS } from "@bcts/tags";
 
 import { SigningPrivateKey } from "./signing/signing-private-key.js";
 import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-key.js";
+import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
+import { SymmetricKey } from "./symmetric/symmetric-key.js";
 import { PublicKeys } from "./public-keys.js";
 import type { Signature } from "./signing/signature.js";
 import type { Signer } from "./signing/signer.js";
+import type { Decrypter } from "./encrypter.js";
+import { Reference, type ReferenceProvider } from "./reference.js";
+import { Digest } from "./digest.js";
+
+/**
+ * Trait for types that provide access to a PrivateKeys container.
+ *
+ * This is useful for types that wrap or contain private keys and need
+ * to provide access to the underlying key material.
+ */
+export interface PrivateKeysProvider {
+  /**
+   * Returns the PrivateKeys container.
+   */
+  privateKeys(): PrivateKeys;
+}
 
 /**
  * PrivateKeys - Container for a signing key and an encapsulation key.
@@ -47,7 +65,13 @@ import type { Signer } from "./signing/signer.js";
  * for both signing and encryption operations.
  */
 export class PrivateKeys
-  implements Signer, CborTaggedEncodable, CborTaggedDecodable<PrivateKeys>, UREncodable
+  implements
+    Signer,
+    Decrypter,
+    ReferenceProvider,
+    CborTaggedEncodable,
+    CborTaggedDecodable<PrivateKeys>,
+    UREncodable
 {
   private readonly _signingPrivateKey: SigningPrivateKey;
   private readonly _encapsulationPrivateKey: EncapsulationPrivateKey;
@@ -124,6 +148,35 @@ export class PrivateKeys
   }
 
   // ============================================================================
+  // Decrypter Interface
+  // ============================================================================
+
+  /**
+   * Decapsulate a shared secret from a ciphertext.
+   *
+   * This implements the Decrypter interface, allowing PrivateKeys to be used
+   * in encryption contexts where a shared secret needs to be recovered.
+   */
+  decapsulateSharedSecret(ciphertext: EncapsulationCiphertext): SymmetricKey {
+    return this._encapsulationPrivateKey.decapsulateSharedSecret(ciphertext);
+  }
+
+  // ============================================================================
+  // ReferenceProvider Interface
+  // ============================================================================
+
+  /**
+   * Returns a unique reference to this PrivateKeys instance.
+   *
+   * The reference is derived from the SHA-256 hash of the tagged CBOR
+   * representation, providing a unique, content-addressable identifier.
+   */
+  reference(): Reference {
+    const digest = Digest.fromImage(this.taggedCborData());
+    return Reference.from(digest);
+  }
+
+  // ============================================================================
   // Equality and String Representation
   // ============================================================================
 
@@ -139,9 +192,11 @@ export class PrivateKeys
 
   /**
    * Get string representation.
+   *
+   * Format matches Rust: `PrivateKeys(<short_reference>)`
    */
   toString(): string {
-    return `PrivateKeys(${String(this._signingPrivateKey)}, ${String(this._encapsulationPrivateKey)})`;
+    return `PrivateKeys(${this.reference().shortReference("hex")})`;
   }
 
   // ============================================================================

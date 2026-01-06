@@ -16,7 +16,11 @@ import {
   SchnorrPublicKey,
   hexToBytes,
   bytesToHex,
+  isECKeyBase,
+  isECKey,
+  isECPublicKeyBase,
 } from "../src";
+import type { ECKeyBase, ECKey, ECPublicKeyBase } from "../src";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
 
 // Test vectors
@@ -730,5 +734,130 @@ describe("EC key integration", () => {
     expect(alice.equals(bob)).toBe(true);
     expect(alice.publicKey().equals(bob.publicKey())).toBe(true);
     expect(alice.schnorrPublicKey().equals(bob.schnorrPublicKey())).toBe(true);
+  });
+});
+
+describe("EC Key Base Interfaces (Rust trait parity)", () => {
+  describe("ECKeyBase interface", () => {
+    it("ECPrivateKey implements ECKeyBase", () => {
+      const key = ECPrivateKey.new();
+      expect(isECKeyBase(key)).toBe(true);
+
+      // Type assertion works
+      const ecKeyBase: ECKeyBase = key;
+      expect(ecKeyBase.data()).toBeInstanceOf(Uint8Array);
+      expect(typeof ecKeyBase.hex()).toBe("string");
+    });
+
+    it("ECPublicKey implements ECKeyBase", () => {
+      const [_, key] = ECPrivateKey.keypair();
+      expect(isECKeyBase(key)).toBe(true);
+
+      const ecKeyBase: ECKeyBase = key;
+      expect(ecKeyBase.data()).toBeInstanceOf(Uint8Array);
+      expect(typeof ecKeyBase.hex()).toBe("string");
+    });
+
+    it("ECUncompressedPublicKey implements ECKeyBase", () => {
+      const [_, pubKey] = ECPrivateKey.keypair();
+      const key = pubKey.uncompressedPublicKey();
+      expect(isECKeyBase(key)).toBe(true);
+
+      const ecKeyBase: ECKeyBase = key;
+      expect(ecKeyBase.data()).toBeInstanceOf(Uint8Array);
+      expect(typeof ecKeyBase.hex()).toBe("string");
+    });
+
+    it("SchnorrPublicKey implements ECKeyBase", () => {
+      const privateKey = ECPrivateKey.new();
+      const key = privateKey.schnorrPublicKey();
+      expect(isECKeyBase(key)).toBe(true);
+
+      const ecKeyBase: ECKeyBase = key;
+      expect(ecKeyBase.data()).toBeInstanceOf(Uint8Array);
+      expect(typeof ecKeyBase.hex()).toBe("string");
+    });
+
+    it("isECKeyBase returns false for non-EC objects", () => {
+      expect(isECKeyBase(null)).toBe(false);
+      expect(isECKeyBase(undefined)).toBe(false);
+      expect(isECKeyBase({})).toBe(false);
+      expect(isECKeyBase({ data: 123 })).toBe(false);
+    });
+  });
+
+  describe("ECKey interface", () => {
+    it("ECPrivateKey implements ECKey", () => {
+      const key = ECPrivateKey.new();
+      expect(isECKey(key)).toBe(true);
+
+      const ecKey: ECKey = key;
+      expect(ecKey.publicKey()).toBeInstanceOf(ECPublicKey);
+    });
+
+    it("ECPublicKey implements ECKey (returns self)", () => {
+      const [_, key] = ECPrivateKey.keypair();
+      expect(isECKey(key)).toBe(true);
+
+      const ecKey: ECKey = key;
+      const pubKey = ecKey.publicKey();
+      expect(pubKey).toBe(key); // Same reference (self)
+    });
+
+    it("isECKey returns false for non-ECKey objects", () => {
+      expect(isECKey(null)).toBe(false);
+      expect(isECKey({ data: () => new Uint8Array(0), hex: () => "" })).toBe(false);
+    });
+  });
+
+  describe("ECPublicKeyBase interface", () => {
+    it("ECPublicKey implements ECPublicKeyBase", () => {
+      const [_, key] = ECPrivateKey.keypair();
+      expect(isECPublicKeyBase(key)).toBe(true);
+
+      const ecPubKeyBase: ECPublicKeyBase = key;
+      expect(ecPubKeyBase.uncompressedPublicKey()).toBeInstanceOf(ECUncompressedPublicKey);
+    });
+
+    it("isECPublicKeyBase returns false for ECPrivateKey", () => {
+      const key = ECPrivateKey.new();
+      expect(isECPublicKeyBase(key)).toBe(false);
+    });
+
+    it("isECPublicKeyBase returns false for SchnorrPublicKey", () => {
+      const privateKey = ECPrivateKey.new();
+      const key = privateKey.schnorrPublicKey();
+      expect(isECPublicKeyBase(key)).toBe(false);
+    });
+  });
+
+  describe("interface polymorphism", () => {
+    it("can work with any ECKeyBase polymorphically", () => {
+      const keys: ECKeyBase[] = [
+        ECPrivateKey.new(),
+        ECPrivateKey.new().publicKey(),
+        ECPrivateKey.new().publicKey().uncompressedPublicKey(),
+        ECPrivateKey.new().schnorrPublicKey(),
+      ];
+
+      for (const key of keys) {
+        expect(key.data()).toBeInstanceOf(Uint8Array);
+        expect(key.data().length).toBeGreaterThan(0);
+        expect(typeof key.hex()).toBe("string");
+        expect(key.hex().length).toBeGreaterThan(0);
+      }
+    });
+
+    it("can work with any ECKey polymorphically", () => {
+      const privateKey = ECPrivateKey.new();
+      const publicKey = privateKey.publicKey();
+
+      const keys: ECKey[] = [privateKey, publicKey];
+
+      for (const key of keys) {
+        const pubKey = key.publicKey();
+        expect(pubKey).toBeInstanceOf(ECPublicKey);
+      }
+    });
   });
 });

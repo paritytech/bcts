@@ -7,6 +7,40 @@ import { CryptoError } from "./error.js";
 
 export type ReferenceEncodingFormat = "hex" | "bytewords" | "bytemojis";
 
+/**
+ * Implementers of this interface provide a globally unique reference to themselves.
+ *
+ * The `ReferenceProvider` interface is used to create a unique, cryptographic
+ * reference to an object. This is particularly useful for distributed systems
+ * where objects need to be uniquely identified across networks or storage
+ * systems.
+ *
+ * The reference is derived from a cryptographic digest of the object's
+ * serialized form, ensuring that the reference uniquely identifies the
+ * object's contents.
+ */
+export interface ReferenceProvider {
+  /**
+   * Returns a cryptographic reference that uniquely identifies this object.
+   *
+   * The reference is derived from a digest of the object's serialized form,
+   * ensuring that it uniquely identifies the object's contents.
+   */
+  reference(): Reference;
+}
+
+/**
+ * Type guard to check if an object implements the ReferenceProvider interface.
+ */
+export function isReferenceProvider(obj: unknown): obj is ReferenceProvider {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "reference" in obj &&
+    typeof (obj as ReferenceProvider).reference === "function"
+  );
+}
+
 // Bytewords mapping (256 words)
 const BYTEWORDS = [
   "abled",
