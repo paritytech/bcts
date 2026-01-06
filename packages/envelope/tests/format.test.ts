@@ -8,7 +8,6 @@ import {
   FormatContext,
   globalFormatContext,
   withFormatContext,
-  getGlobalFormatContext,
 } from "../src/format";
 
 describe("Mermaid Formatting", () => {

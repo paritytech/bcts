@@ -10,7 +10,7 @@
 import {
   SymmetricKey as ComponentsSymmetricKey,
   EncryptedKey,
-  KeyDerivationMethod,
+  type KeyDerivationMethod,
 } from "@bcts/components";
 import { HAS_SECRET } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
@@ -125,7 +125,7 @@ Envelope.prototype.unlockSubject = function (this: Envelope, secret: Uint8Array)
 
     try {
       // Try to extract the EncryptedKey
-      const encryptedKey = obj.extractSubject(EncryptedKey.fromTaggedCbor);
+      const encryptedKey = obj.extractSubject((cbor) => EncryptedKey.fromTaggedCbor(cbor));
 
       // Try to unlock with the provided secret (returns ComponentsSymmetricKey)
       const componentsKey = encryptedKey.unlock(secret);
@@ -154,7 +154,7 @@ Envelope.prototype.isLockedWithPassword = function (this: Envelope): boolean {
     if (obj === undefined) continue;
 
     try {
-      const encryptedKey = obj.extractSubject(EncryptedKey.fromTaggedCbor);
+      const encryptedKey = obj.extractSubject((cbor) => EncryptedKey.fromTaggedCbor(cbor));
       if (encryptedKey.isPasswordBased()) {
         return true;
       }
@@ -175,7 +175,7 @@ Envelope.prototype.isLockedWithSshAgent = function (this: Envelope): boolean {
     if (obj === undefined) continue;
 
     try {
-      const encryptedKey = obj.extractSubject(EncryptedKey.fromTaggedCbor);
+      const encryptedKey = obj.extractSubject((cbor) => EncryptedKey.fromTaggedCbor(cbor));
       if (encryptedKey.isSshAgent()) {
         return true;
       }

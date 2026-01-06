@@ -2,7 +2,7 @@ import type { Cbor } from "@bcts/dcbor";
 import { tryIntoText, tryIntoBool, tryIntoByteString, isNull, decodeCbor } from "@bcts/dcbor";
 import { Envelope } from "./envelope";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
-import { EnvelopeError } from "./error";
+import { EnvelopeError, ErrorCode } from "./error";
 
 /// Provides functions for extracting typed values from envelopes.
 ///
@@ -293,7 +293,7 @@ export function extractObjectForPredicateWithDefault<T>(
   defaultValue: T,
 ): T {
   const result = tryOptionalObjectForPredicate(envelope, predicate, decoder);
-  return result !== undefined ? result : defaultValue;
+  return result ?? defaultValue;
 }
 
 /// Add extractObjectForPredicateWithDefault method to Envelope prototype
@@ -347,7 +347,7 @@ export function tryObjectsForPredicate<T>(
     return extractObjectsForPredicate(envelope, predicate, decoder);
   } catch (error) {
     // If it's a nonexistent predicate error, return empty array
-    if (error instanceof EnvelopeError && error.code === "NONEXISTENT_PREDICATE") {
+    if (error instanceof EnvelopeError && error.code === ErrorCode.NONEXISTENT_PREDICATE) {
       return [];
     }
     throw error;

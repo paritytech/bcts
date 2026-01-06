@@ -8,8 +8,8 @@
 /// flowchart graph, with edges showing relationships between components.
 
 import { Envelope } from "../base/envelope";
-import { type EdgeType, edgeLabel } from "../base/walk";
-import { Digest } from "../base/digest";
+import { EdgeType, edgeLabel } from "../base/walk";
+import type { Digest } from "../base/digest";
 import { withFormatContext } from "./format-context";
 
 // ============================================================================
@@ -254,6 +254,7 @@ const formatNode = (element: MermaidElement, formattedIds: Set<number>): string 
 
 /// Format an edge element
 const formatEdge = (element: MermaidElement, formattedIds: Set<number>): string => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Parent is always defined for edge elements
   const parent = element.parent!;
   const label = edgeLabel(element.incomingEdge);
   const arrow = label !== undefined ? `-- ${label} -->` : "-->";
@@ -316,15 +317,16 @@ const nodeColor = (envelope: Envelope): string => {
 /// Get the link stroke color for an edge type
 const linkStrokeColor = (edgeType: EdgeType): string | undefined => {
   switch (edgeType) {
-    case "subject":
+    case EdgeType.Subject:
       return "red";
-    case "content":
+    case EdgeType.Content:
       return "blue";
-    case "predicate":
+    case EdgeType.Predicate:
       return "cyan";
-    case "object":
+    case EdgeType.Object:
       return "magenta";
-    default:
+    case EdgeType.None:
+    case EdgeType.Assertion:
       return undefined;
   }
 };

@@ -298,16 +298,13 @@ Envelope.prototype.setPosition = function (this: Envelope, position: number): En
     throw EnvelopeError.invalidFormat();
   }
 
-  // If there is a single POSITION assertion, remove it
-  let result: Envelope;
-  if (positionAssertions.length === 1) {
-    result = this.removeAssertion(positionAssertions[0]);
-  } else {
-    result = this;
-  }
+  // If there is a single POSITION assertion, remove it and add the new position
+  // Otherwise, just add the new position to this envelope
+  const baseEnvelope =
+    positionAssertions.length === 1 ? this.removeAssertion(positionAssertions[0]) : this;
 
   // Add a new POSITION assertion with the given position
-  return result.addAssertion(POSITION, position);
+  return baseEnvelope.addAssertion(POSITION, position);
 };
 
 /// Implementation of position()

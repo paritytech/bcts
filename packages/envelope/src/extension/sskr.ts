@@ -15,8 +15,8 @@ import {
   SSKRSecret,
   SSKRSpec,
   SSKRGroupSpec,
-  generateSSKRSharesCbor,
-  combineSSKRSharesCbor,
+  sskrGenerateShares,
+  sskrCombineShares,
   sskrGenerateUsing,
 } from "@bcts/components";
 import type { RandomNumberGenerator } from "@bcts/rand";
@@ -77,7 +77,6 @@ declare module "../base/envelope" {
     ): Envelope[][];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Envelope {
     /// Reconstruct the original envelope from a set of SSKR shares.
     ///
@@ -108,7 +107,7 @@ Envelope.prototype.sskrSplit = function (
   const masterSecret = SSKRSecret.new(contentKey.data());
 
   // Generate SSKR shares with CBOR wrappers
-  const shareGroups = generateSSKRSharesCbor(spec, masterSecret);
+  const shareGroups: SSKRShareCbor[][] = sskrGenerateShares(spec, masterSecret);
 
   // Create envelope copies with SSKR share assertions
   const result: Envelope[][] = [];
@@ -177,11 +176,11 @@ const extractSskrSharesGrouped = (envelopes: Envelope[]): Map<number, SSKRShareC
 
       try {
         // Try to extract the SSKRShareCbor
-        const share = obj.extractSubject(SSKRShareCbor.fromTaggedCbor);
+        const share = obj.extractSubject((cbor) => SSKRShareCbor.fromTaggedCbor(cbor));
         const identifier = share.identifier();
 
         const existing = result.get(identifier);
-        if (existing) {
+        if (existing !== undefined) {
           existing.push(share);
         } else {
           result.set(identifier, [share]);
@@ -210,7 +209,7 @@ Envelope.sskrJoin = function (envelopes: Envelope[]): Envelope {
   for (const shares of groupedShares.values()) {
     try {
       // Try to combine the shares
-      const secret = combineSSKRSharesCbor(shares);
+      const secret: SSKRSecret = sskrCombineShares(shares);
 
       // Convert secret back to symmetric key (local SymmetricKey uses `from`)
       const contentKey = SymmetricKey.from(secret.getData());

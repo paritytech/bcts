@@ -1,5 +1,5 @@
-import { Envelope, EnvelopeError } from "../src";
-import { KnownValue, UNIT } from "@bcts/known-values";
+import { Envelope } from "../src";
+import { UNIT } from "@bcts/known-values";
 
 describe("Known Value Methods", () => {
   describe("unit()", () => {

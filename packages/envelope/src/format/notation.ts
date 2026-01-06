@@ -19,7 +19,7 @@ import type { Cbor } from "@bcts/dcbor";
 import { isTagged, tagValue } from "@bcts/dcbor";
 import { IS_A } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { Assertion } from "../base/assertion";
+import type { Assertion } from "../base/assertion";
 import {
   type FormatContextOpt,
   getGlobalFormatContext,
@@ -108,6 +108,7 @@ const nicen = (items: EnvelopeFormatItem[]): EnvelopeFormatItem[] => {
   const result: EnvelopeFormatItem[] = [];
 
   while (input.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Array length checked above
     const current = input.shift()!;
     if (input.length === 0) {
       result.push(current);
@@ -135,7 +136,7 @@ const indent = (level: number): string => " ".repeat(level * 4);
 const addSpaceAtEndIfNeeded = (s: string): string => {
   if (s.length === 0) return " ";
   if (s.endsWith(" ")) return s;
-  return s + " ";
+  return `${s} `;
 };
 
 /// Format items in flat mode (single line)
@@ -147,17 +148,17 @@ const formatFlat = (item: EnvelopeFormatItem): string => {
     switch (i.type) {
       case "begin":
         if (!line.endsWith(" ")) line += " ";
-        line += i.value + " ";
+        line += `${i.value} `;
         break;
       case "end":
         if (!line.endsWith(" ")) line += " ";
-        line += i.value + " ";
+        line += `${i.value} `;
         break;
       case "item":
         line += i.value;
         break;
       case "separator":
-        line = line.trimEnd() + ", ";
+        line = `${line.trimEnd()}, `;
         break;
       case "list":
         for (const subItem of i.items) {
@@ -183,8 +184,8 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
         const delimiter = i.value;
         if (delimiter.length > 0) {
           const c =
-            currentLine.length === 0 ? delimiter : addSpaceAtEndIfNeeded(currentLine) + delimiter;
-          lines.push(indent(level) + c + "\n");
+            currentLine.length === 0 ? delimiter : `${addSpaceAtEndIfNeeded(currentLine)}${delimiter}`;
+          lines.push(`${indent(level)}${c}\n`);
         }
         level += 1;
         currentLine = "";
@@ -193,11 +194,11 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
       case "end": {
         const delimiter = i.value;
         if (currentLine.length > 0) {
-          lines.push(indent(level) + currentLine + "\n");
+          lines.push(`${indent(level)}${currentLine}\n`);
           currentLine = "";
         }
         level -= 1;
-        lines.push(indent(level) + delimiter + "\n");
+        lines.push(`${indent(level)}${delimiter}\n`);
         break;
       }
       case "item":
@@ -205,7 +206,7 @@ const formatHierarchical = (item: EnvelopeFormatItem): string => {
         break;
       case "separator":
         if (currentLine.length > 0) {
-          lines.push(indent(level) + currentLine + "\n");
+          lines.push(`${indent(level)}${currentLine}\n`);
           currentLine = "";
         }
         break;
@@ -334,18 +335,18 @@ export const formatEnvelope = (
           case "compressed":
             compressedCount += 1;
             break;
-          default: {
+          case "node":
+          case "leaf":
+          case "wrapped":
+          case "assertion":
+          case "knownValue": {
             const item = [formatEnvelope(assertion, opts)];
 
             // Check if this is a type assertion (isA predicate)
             let isTypeAssertion = false;
             const predicate = assertion.asPredicate();
-            if (predicate !== undefined) {
-              const predicateSubject = predicate.subject();
-              const knownValue = predicateSubject.asKnownValue();
-              if (knownValue !== undefined && knownValue.equals(IS_A)) {
-                isTypeAssertion = true;
-              }
+            if (predicate?.subject().asKnownValue()?.equals(IS_A) === true) {
+              isTypeAssertion = true;
             }
 
             if (isTypeAssertion) {

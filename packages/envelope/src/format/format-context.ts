@@ -135,6 +135,7 @@ export const getGlobalFormatContext = (): FormatContext => {
     // Set up known value summarizer
     setupKnownValueSummarizer(_globalFormatContextInstance);
   }
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- Safe: initialized in the if block above
   return _globalFormatContextInstance!;
 };
 

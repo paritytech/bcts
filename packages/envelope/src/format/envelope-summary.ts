@@ -70,7 +70,7 @@ export const cborEnvelopeSummary = (
   if (isText(cbor)) {
     let text = asText(cbor) ?? "";
     if (text.length > maxLength) {
-      text = text.substring(0, maxLength) + "…";
+      text = `${text.substring(0, maxLength)}…`;
     }
     // Replace newlines with escaped version
     text = text.replace(/\n/g, "\\n");

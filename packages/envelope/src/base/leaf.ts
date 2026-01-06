@@ -1,6 +1,7 @@
 import type { Cbor } from "@bcts/dcbor";
 import { isNumber, isNaN, asArray, asMap, asText } from "@bcts/dcbor";
-import { KnownValue, UNIT } from "@bcts/known-values";
+import type { KnownValue } from "@bcts/known-values";
+import { UNIT } from "@bcts/known-values";
 import { Envelope } from "./envelope";
 import { EnvelopeError } from "./error";
 
