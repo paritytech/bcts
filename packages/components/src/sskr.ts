@@ -305,12 +305,14 @@ export type SSKRShare = SSKRShareCbor;
  * Create an SSKRShare from raw data.
  * This is a convenience function that matches the Rust constructor pattern.
  */
+// eslint-disable-next-line no-redeclare -- Intentional: TypeScript allows type/value with same name
 export const SSKRShare = {
-  fromData: SSKRShareCbor.fromData,
-  fromHex: SSKRShareCbor.fromHex,
-  fromTaggedCbor: SSKRShareCbor.fromTaggedCbor,
-  fromTaggedCborData: SSKRShareCbor.fromTaggedCborData,
-  fromUntaggedCborData: SSKRShareCbor.fromUntaggedCborData,
+  fromData: (data: Uint8Array): SSKRShareCbor => SSKRShareCbor.fromData(data),
+  fromHex: (hex: string): SSKRShareCbor => SSKRShareCbor.fromHex(hex),
+  fromTaggedCbor: (cborValue: Cbor): SSKRShareCbor => SSKRShareCbor.fromTaggedCbor(cborValue),
+  fromTaggedCborData: (data: Uint8Array): SSKRShareCbor => SSKRShareCbor.fromTaggedCborData(data),
+  fromUntaggedCborData: (data: Uint8Array): SSKRShareCbor =>
+    SSKRShareCbor.fromUntaggedCborData(data),
 };
 
 // ============================================================================

@@ -303,6 +303,11 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
         return cbor([2, toByteString(this._data)]);
       case SignatureScheme.Sr25519:
         return cbor([3, toByteString(this._data)]);
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        throw new Error(`SSH signature scheme ${this._type} is not supported for CBOR encoding`);
     }
   }
 

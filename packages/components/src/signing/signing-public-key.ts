@@ -19,11 +19,7 @@
  * Ported from bc-components-rust/src/signing/signing_public_key.rs
  */
 
-import {
-  ED25519_PUBLIC_KEY_SIZE,
-  ECDSA_PUBLIC_KEY_SIZE,
-  SCHNORR_PUBLIC_KEY_SIZE,
-} from "@bcts/crypto";
+import { ED25519_PUBLIC_KEY_SIZE } from "@bcts/crypto";
 import {
   type Cbor,
   type Tag,
@@ -230,6 +226,11 @@ export class SigningPublicKey
       case SignatureScheme.Sr25519:
         if (this._sr25519Key === undefined || other._sr25519Key === undefined) return false;
         return this._sr25519Key.equals(other._sr25519Key);
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        return false;
     }
   }
 
@@ -246,6 +247,11 @@ export class SigningPublicKey
         return `SigningPublicKey(${this._type}, ${this._ed25519Key?.toHex().substring(0, 16)}...)`;
       case SignatureScheme.Sr25519:
         return `SigningPublicKey(${this._type}, ${this._sr25519Key?.toHex().substring(0, 16)}...)`;
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        return `SigningPublicKey(${this._type}, SSH scheme not supported)`;
     }
   }
 
@@ -323,6 +329,11 @@ export class SigningPublicKey
           return false;
         }
       }
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        return false;
     }
   }
 
@@ -371,6 +382,11 @@ export class SigningPublicKey
         }
         return cbor([3, toByteString(this._sr25519Key.toData())]);
       }
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        throw new Error(`SSH signature scheme ${this._type} is not supported for CBOR encoding`);
     }
   }
 

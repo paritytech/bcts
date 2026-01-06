@@ -119,8 +119,10 @@ export class EncryptedKey
       case KeyDerivationMethod.Argon2id:
         params = argon2idParams();
         break;
-      default:
-        throw new Error(`Unknown key derivation method: ${String(method)}`);
+      case KeyDerivationMethod.SSHAgent:
+        throw new Error(
+          "SSH Agent key derivation cannot be used with lock() - use lockOpt() with sshAgentParams() instead",
+        );
     }
 
     return EncryptedKey.lockOpt(params, secret, contentKey);
@@ -196,6 +198,8 @@ export class EncryptedKey
       case "scrypt":
         return params.params.unlock(this._encryptedMessage, secret);
       case "argon2id":
+        return params.params.unlock(this._encryptedMessage, secret);
+      case "sshagent":
         return params.params.unlock(this._encryptedMessage, secret);
     }
   }

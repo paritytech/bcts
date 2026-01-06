@@ -15,8 +15,8 @@
 import { type Cbor, cbor, expectArray, expectNumber, expectBytes, expectText } from "@bcts/dcbor";
 
 import { Salt } from "../salt.js";
-import { SymmetricKey } from "../symmetric/symmetric-key.js";
-import { type EncryptedMessage } from "../symmetric/encrypted-message.js";
+import type { SymmetricKey } from "../symmetric/symmetric-key.js";
+import type { EncryptedMessage } from "../symmetric/encrypted-message.js";
 import { KeyDerivationMethod } from "./key-derivation-method.js";
 import type { KeyDerivation } from "./key-derivation.js";
 import { CryptoError } from "../error.js";

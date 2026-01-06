@@ -139,8 +139,9 @@ export class CryptoError extends Error {
     this.errorData = errorData;
 
     // Maintains proper stack trace in V8 environments
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, CryptoError);
+    const ErrorWithStackTrace = Error as { captureStackTrace?: (target: Error, ctor: unknown) => void };
+    if (typeof ErrorWithStackTrace.captureStackTrace === "function") {
+      ErrorWithStackTrace.captureStackTrace(this, CryptoError);
     }
   }
 

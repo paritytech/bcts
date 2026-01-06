@@ -36,9 +36,9 @@ import { PRIVATE_KEYS as TAG_PRIVATE_KEYS } from "@bcts/tags";
 
 import { SigningPrivateKey } from "./signing/signing-private-key.js";
 import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-key.js";
-import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
-import { SymmetricKey } from "./symmetric/symmetric-key.js";
 import { PublicKeys } from "./public-keys.js";
+import type { SymmetricKey } from "./symmetric/symmetric-key.js";
+import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
 import type { Signature } from "./signing/signature.js";
 import type { Signer } from "./signing/signer.js";
 import type { Decrypter } from "./encrypter.js";
