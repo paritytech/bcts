@@ -95,7 +95,12 @@ function parseIanaXml(xmlText: string): IanaTagsResponse {
 
 export default defineCachedEventHandler(
   async () => {
-    const response = await fetch(IANA_CBOR_TAGS_URL);
+    const response = await fetch(IANA_CBOR_TAGS_URL, {
+      headers: {
+        "User-Agent": "BCTS-Registry/1.0 (https://bcts.dev)",
+        Accept: "application/xml, text/xml, */*",
+      },
+    });
     if (!response.ok) {
       throw createError({
         statusCode: response.status,
