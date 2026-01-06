@@ -53,6 +53,7 @@ playwright-report/
 # Extra
 ref/
 packages/**/docs/**
+docs-site
 
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt

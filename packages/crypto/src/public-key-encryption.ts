@@ -45,16 +45,19 @@ export function x25519PublicKeyFromPrivateKey(privateKey: Uint8Array): Uint8Arra
   return x25519.getPublicKey(privateKey);
 }
 
+// Symmetric key size for the derived shared key
+const SYMMETRIC_KEY_SIZE = 32;
+
 /**
- * Compute a shared secret using X25519 key agreement (ECDH).
+ * Compute a shared symmetric key using X25519 key agreement (ECDH).
  *
- * **Security Note**: The resulting shared secret should be used with a KDF
- * (like HKDF) before using it as an encryption key. Never use the raw
- * shared secret directly for encryption.
+ * This function performs X25519 Diffie-Hellman key agreement and then
+ * derives a symmetric key using HKDF-SHA256 with "agreement" as the salt.
+ * This matches the Rust bc-crypto implementation for cross-platform compatibility.
  *
  * @param x25519Private - 32-byte X25519 private key
  * @param x25519Public - 32-byte X25519 public key from the other party
- * @returns 32-byte shared secret
+ * @returns 32-byte derived symmetric key
  * @throws {Error} If private key is not 32 bytes or public key is not 32 bytes
  */
 export function x25519SharedKey(x25519Private: Uint8Array, x25519Public: Uint8Array): Uint8Array {
@@ -64,5 +67,9 @@ export function x25519SharedKey(x25519Private: Uint8Array, x25519Public: Uint8Ar
   if (x25519Public.length !== X25519_PUBLIC_KEY_SIZE) {
     throw new Error(`Public key must be ${X25519_PUBLIC_KEY_SIZE} bytes`);
   }
-  return x25519.getSharedSecret(x25519Private, x25519Public);
+  // Perform raw X25519 Diffie-Hellman
+  const rawSharedSecret = x25519.getSharedSecret(x25519Private, x25519Public);
+  // Derive symmetric key using HKDF with "agreement" salt (matches Rust implementation)
+  const salt = new TextEncoder().encode("agreement");
+  return hkdfHmacSha256(rawSharedSecret, salt, SYMMETRIC_KEY_SIZE);
 }
