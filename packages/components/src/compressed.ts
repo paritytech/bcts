@@ -362,7 +362,7 @@ export class Compressed
       digest = Digest.fromTaggedCbor(elements[3]);
     }
 
-    return Compressed.new(checksum, decompressedSize, compressedData, digest);
+    return Compressed.new(Number(checksum), Number(decompressedSize), compressedData, digest);
   }
 
   /**

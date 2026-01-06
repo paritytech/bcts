@@ -369,7 +369,7 @@ describe("KeyDerivationParams", () => {
       const params = sshAgentParams("test-key-id");
       expect(params.type).toBe("sshagent");
       expect(params.params).toBeInstanceOf(SSHAgentParams);
-      expect(params.params.id()).toBe("test-key-id");
+      expect((params.params as SSHAgentParams).id()).toBe("test-key-id");
     });
 
     it("should create SSH agent params from instance", () => {

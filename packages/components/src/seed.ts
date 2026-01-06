@@ -339,11 +339,17 @@ export class Seed
    * TypeScript convenience method - returns a snapshot of current metadata.
    */
   getMetadata(): SeedMetadata {
-    return {
-      name: this._name.length > 0 ? this._name : undefined,
-      note: this._note.length > 0 ? this._note : undefined,
-      createdAt: this._creationDate,
-    };
+    const metadata: SeedMetadata = {};
+    if (this._name.length > 0) {
+      metadata.name = this._name;
+    }
+    if (this._note.length > 0) {
+      metadata.note = this._note;
+    }
+    if (this._creationDate !== undefined) {
+      metadata.createdAt = this._creationDate;
+    }
+    return metadata;
   }
 
   // ============================================================================

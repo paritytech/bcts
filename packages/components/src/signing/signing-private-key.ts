@@ -485,7 +485,8 @@ export class SigningPrivateKey
     // Create a dummy instance for accessing instance methods
     const dummy = new SigningPrivateKey(
       SignatureScheme.Ed25519,
-      Ed25519PrivateKey.from(new Uint8Array(ED25519_PRIVATE_KEY_SIZE)),
+      undefined, // ecKey
+      Ed25519PrivateKey.from(new Uint8Array(ED25519_PRIVATE_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromTaggedCbor(cborValue);
   }
@@ -505,7 +506,8 @@ export class SigningPrivateKey
     const cborValue = decodeCbor(data);
     const dummy = new SigningPrivateKey(
       SignatureScheme.Ed25519,
-      Ed25519PrivateKey.from(new Uint8Array(ED25519_PRIVATE_KEY_SIZE)),
+      undefined, // ecKey
+      Ed25519PrivateKey.from(new Uint8Array(ED25519_PRIVATE_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromUntaggedCbor(cborValue);
   }

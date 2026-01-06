@@ -457,7 +457,9 @@ export class SigningPublicKey
     // Create a dummy instance for accessing instance methods
     const dummy = new SigningPublicKey(
       SignatureScheme.Ed25519,
-      Ed25519PublicKey.from(new Uint8Array(ED25519_PUBLIC_KEY_SIZE)),
+      undefined, // schnorrKey
+      undefined, // ecdsaKey
+      Ed25519PublicKey.from(new Uint8Array(ED25519_PUBLIC_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromTaggedCbor(cborValue);
   }
@@ -477,7 +479,9 @@ export class SigningPublicKey
     const cborValue = decodeCbor(data);
     const dummy = new SigningPublicKey(
       SignatureScheme.Ed25519,
-      Ed25519PublicKey.from(new Uint8Array(ED25519_PUBLIC_KEY_SIZE)),
+      undefined, // schnorrKey
+      undefined, // ecdsaKey
+      Ed25519PublicKey.from(new Uint8Array(ED25519_PUBLIC_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromUntaggedCbor(cborValue);
   }

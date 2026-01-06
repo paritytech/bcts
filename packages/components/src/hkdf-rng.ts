@@ -210,6 +210,16 @@ export class HKDFRng implements RandomNumberGenerator {
     this.fillBytes(dest);
   }
 
+  /**
+   * Fills the provided buffer with deterministic random bytes.
+   * Alias for fillBytes for interface compatibility.
+   *
+   * @param data - The buffer to fill with random bytes
+   */
+  fillRandomData(data: Uint8Array): void {
+    this.fillBytes(data);
+  }
+
   // ============================================================================
   // Accessors (for testing)
   // ============================================================================

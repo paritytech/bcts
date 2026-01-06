@@ -41,6 +41,7 @@ import {
   GroupSpec as SSKRGroupSpec,
   Spec as SSKRSpec,
 } from "@bcts/sskr";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 // Re-export from sskr package
 export { sskrGenerate, sskrGenerateUsing, sskrCombine, SSKRSecret, SSKRGroupSpec, SSKRSpec };
@@ -347,6 +348,14 @@ export function sskrGenerateShares(spec: SSKRSpec, masterSecret: SSKRSecret): SS
 }
 
 /**
+ * Interface for RNG that only requires fillRandomData method.
+ * This is a subset of the full RandomNumberGenerator interface.
+ */
+export interface SimpleRng {
+  fillRandomData(data: Uint8Array): void;
+}
+
+/**
  * Generates SSKR shares using a custom random number generator.
  *
  * This function matches the Rust `sskr_generate_using` API by returning
@@ -361,9 +370,10 @@ export function sskrGenerateShares(spec: SSKRSpec, masterSecret: SSKRSecret): SS
 export function sskrGenerateSharesUsing(
   spec: SSKRSpec,
   masterSecret: SSKRSecret,
-  rng: { fillRandomData: (data: Uint8Array) => void },
+  rng: SimpleRng,
 ): SSKRShare[][] {
-  const rawGroups = sskrGenerateUsing(spec, masterSecret, rng);
+  // Cast to RandomNumberGenerator - sskrGenerateUsing only uses fillRandomData internally
+  const rawGroups = sskrGenerateUsing(spec, masterSecret, rng as unknown as RandomNumberGenerator);
   return rawGroups.map((group) => group.map((shareData) => SSKRShareCbor.fromData(shareData)));
 }
 
