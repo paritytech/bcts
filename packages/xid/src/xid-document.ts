@@ -25,7 +25,6 @@ import {
   PrivateKeyBase,
   type PrivateKeys,
   type Signer,
-  type Verifier,
 } from "@bcts/components";
 import {
   type ProvenanceMark,
