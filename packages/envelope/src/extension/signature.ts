@@ -412,10 +412,7 @@ if (Envelope?.prototype) {
   /**
    * Returns whether the envelope's subject has valid signatures from all of the given keys.
    */
-  Envelope.prototype.hasSignaturesFrom = function (
-    this: Envelope,
-    verifiers: Verifier[],
-  ): boolean {
+  Envelope.prototype.hasSignaturesFrom = function (this: Envelope, verifiers: Verifier[]): boolean {
     return this.hasSignaturesFromThreshold(verifiers, verifiers.length);
   };
 

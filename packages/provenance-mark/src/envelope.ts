@@ -159,9 +159,7 @@ type EnvelopeExt = Envelope & {
  * @returns The extracted generator
  * @throws ProvenanceMarkError if extraction fails
  */
-export function provenanceMarkGeneratorFromEnvelope(
-  envelope: Envelope,
-): ProvenanceMarkGenerator {
+export function provenanceMarkGeneratorFromEnvelope(envelope: Envelope): ProvenanceMarkGenerator {
   const env = envelope as EnvelopeExt;
 
   // Check type

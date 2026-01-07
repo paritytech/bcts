@@ -317,7 +317,7 @@ export class Parameter {
     variant: ParameterVariant,
     value: number,
     name?: string,
-    paramValue?: Envelope
+    paramValue?: Envelope,
   ) {
     this.#variant = variant;
     this.#value = value;
@@ -599,7 +599,7 @@ class LazyStore<T> {
 
 /// The global shared store of known functions.
 export const GLOBAL_FUNCTIONS = new LazyStore(
-  () => new FunctionsStore([ADD, SUB, MUL, DIV, NEG, LT, LE, GT, GE, EQ, NE, AND, OR, XOR, NOT])
+  () => new FunctionsStore([ADD, SUB, MUL, DIV, NEG, LT, LE, GT, GE, EQ, NE, AND, OR, XOR, NOT]),
 );
 
 /// The global shared store of known parameters.

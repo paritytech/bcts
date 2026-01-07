@@ -135,10 +135,7 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
 
       // Confirm that it was signed by Alice OR Carol (threshold = 1)
       // This should pass because Alice signed it
-      const hasThreshold = envelope.hasSignaturesFromThreshold(
-        [alicePublicKey, carolPublicKey],
-        1,
-      );
+      const hasThreshold = envelope.hasSignaturesFromThreshold([alicePublicKey, carolPublicKey], 1);
       expect(hasThreshold).toBe(true);
 
       // verifySignaturesFromThreshold should not throw
@@ -158,10 +155,7 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
 
       // Confirm that it was NOT signed by Alice AND Carol (threshold = 2)
       // This should fail because only Alice signed it
-      const hasThreshold = envelope.hasSignaturesFromThreshold(
-        [alicePublicKey, carolPublicKey],
-        2,
-      );
+      const hasThreshold = envelope.hasSignaturesFromThreshold([alicePublicKey, carolPublicKey], 2);
       expect(hasThreshold).toBe(false);
 
       // verifySignaturesFromThreshold should throw
@@ -216,9 +210,7 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
       const carolPublicKey = carolSigningKey.publicKey();
 
       // Create envelope and sign with both Alice and Carol
-      const envelope = helloEnvelope()
-        .addSignature(aliceSigningKey)
-        .addSignature(carolSigningKey);
+      const envelope = helloEnvelope().addSignature(aliceSigningKey).addSignature(carolSigningKey);
 
       // Should have 2 signatures
       expect(envelope.signatures().length).toBe(2);
@@ -228,9 +220,7 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
       expect(envelope.hasSignatureFrom(carolPublicKey)).toBe(true);
 
       // Threshold verification with both signers (threshold 2) should pass
-      expect(
-        envelope.hasSignaturesFromThreshold([alicePublicKey, carolPublicKey], 2),
-      ).toBe(true);
+      expect(envelope.hasSignaturesFromThreshold([alicePublicKey, carolPublicKey], 2)).toBe(true);
     });
 
     it("should verify all signatures using verifySignaturesFrom", () => {

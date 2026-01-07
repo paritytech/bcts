@@ -1027,7 +1027,10 @@ export class Envelope implements DigestProvider {
   declare sign: (signer: Signer) => Envelope;
   declare signWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare verify: (verifier: Verifier) => Envelope;
-  declare verifyReturningMetadata: (verifier: Verifier) => { envelope: Envelope; metadata: Envelope };
+  declare verifyReturningMetadata: (verifier: Verifier) => {
+    envelope: Envelope;
+    metadata: Envelope;
+  };
   declare signatures: () => Envelope[];
   declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
   declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;

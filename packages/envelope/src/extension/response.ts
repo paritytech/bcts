@@ -17,12 +17,7 @@
 import { ARID } from "@bcts/components";
 import { RESPONSE as TAG_RESPONSE } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
-import {
-  RESULT,
-  ERROR,
-  OK_VALUE,
-  UNKNOWN_VALUE,
-} from "@bcts/known-values";
+import { RESULT, ERROR, OK_VALUE, UNKNOWN_VALUE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
@@ -30,12 +25,20 @@ import { EnvelopeError } from "../base/error";
 /**
  * Type representing a successful response: (ARID, result envelope)
  */
-interface SuccessResult { ok: true; id: ARID; result: Envelope }
+interface SuccessResult {
+  ok: true;
+  id: ARID;
+  result: Envelope;
+}
 
 /**
  * Type representing a failed response: (optional ARID, error envelope)
  */
-interface FailureResult { ok: false; id: ARID | undefined; error: Envelope }
+interface FailureResult {
+  ok: false;
+  id: ARID | undefined;
+  error: Envelope;
+}
 
 /**
  * Internal result type for Response
@@ -185,9 +188,8 @@ export class Response implements ResponseBehavior {
     if (this.#result.ok) {
       return `id: ${this.#result.id.shortDescription()}, result: ${this.#result.result.formatFlat()}`;
     } else {
-      const idStr = this.#result.id !== undefined
-        ? this.#result.id.shortDescription()
-        : "'Unknown'";
+      const idStr =
+        this.#result.id !== undefined ? this.#result.id.shortDescription() : "'Unknown'";
       return `id: ${idStr}, error: ${this.#result.error.formatFlat()}`;
     }
   }
@@ -289,24 +291,15 @@ export class Response implements ResponseBehavior {
    */
   toEnvelope(): Envelope {
     if (this.#result.ok) {
-      const taggedArid = toTaggedValue(
-        TAG_RESPONSE.value,
-        this.#result.id.untaggedCbor()
-      );
+      const taggedArid = toTaggedValue(TAG_RESPONSE.value, this.#result.id.untaggedCbor());
       return Envelope.newLeaf(taggedArid).addAssertion(RESULT, this.#result.result);
     } else {
       let subject: Envelope;
       if (this.#result.id !== undefined) {
-        const taggedArid = toTaggedValue(
-          TAG_RESPONSE.value,
-          this.#result.id.untaggedCbor()
-        );
+        const taggedArid = toTaggedValue(TAG_RESPONSE.value, this.#result.id.untaggedCbor());
         subject = Envelope.newLeaf(taggedArid);
       } else {
-        const taggedUnknown = toTaggedValue(
-          TAG_RESPONSE.value,
-          UNKNOWN_VALUE.untaggedCbor()
-        );
+        const taggedUnknown = toTaggedValue(TAG_RESPONSE.value, UNKNOWN_VALUE.untaggedCbor());
         subject = Envelope.newLeaf(taggedUnknown);
       }
       return subject.addAssertion(ERROR, this.#result.error);

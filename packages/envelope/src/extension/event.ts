@@ -22,11 +22,7 @@
 import { ARID } from "@bcts/components";
 import { EVENT as TAG_EVENT } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
-import {
-  CONTENT,
-  NOTE,
-  DATE,
-} from "@bcts/known-values";
+import { CONTENT, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
@@ -179,7 +175,7 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
    */
   static fromEnvelope<T extends EnvelopeEncodableValue>(
     envelope: Envelope,
-    contentExtractor: (env: Envelope) => T
+    contentExtractor: (env: Envelope) => T,
   ): Event<T> {
     // Extract content
     const contentEnvelope = envelope.objectForPredicate(CONTENT);

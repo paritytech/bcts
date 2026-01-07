@@ -5,7 +5,12 @@ import { type Cbor } from "@bcts/dcbor";
 import { Envelope } from "@bcts/envelope";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
-import { type ProvenanceMarkResolution, linkLength, resolutionToNumber, resolutionFromCbor } from "./resolution.js";
+import {
+  type ProvenanceMarkResolution,
+  linkLength,
+  resolutionToNumber,
+  resolutionFromCbor,
+} from "./resolution.js";
 import { ProvenanceSeed } from "./seed.js";
 import { RngState } from "./rng-state.js";
 import { sha256 } from "./crypto-utils.js";

@@ -123,8 +123,7 @@ describe("Core Encoding Tests", () => {
     it("should encode and decode nested envelopes as assertion objects", () => {
       // Test nested envelopes where assertions contain other envelopes as objects
       // This is the supported pattern for nesting in the current TypeScript implementation
-      const innerEnvelope = Envelope.new("Inner")
-        .addAssertion("innerKey", "innerValue");
+      const innerEnvelope = Envelope.new("Inner").addAssertion("innerKey", "innerValue");
 
       const outerEnvelope = Envelope.new("Outer")
         .addAssertion("nested", innerEnvelope)

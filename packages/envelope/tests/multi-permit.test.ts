@@ -25,8 +25,7 @@ describe("Multi-Permit", () => {
     //
     // Alice composes a poem.
     //
-    const poemText =
-      "At midnight, the clocks sang lullabies to the wandering teacups.";
+    const poemText = "At midnight, the clocks sang lullabies to the wandering teacups.";
 
     //
     // Alice creates a new envelope and assigns the text as the envelope's
@@ -82,13 +81,11 @@ describe("Multi-Permit", () => {
     // content key with a key derived from her password, and adds it to the
     // envelope as a `'hasSecret'` assertion.
     //
-    const password = new TextEncoder().encode(
-      "unicorns_dance_on_mars_while_eating_pizza"
-    );
+    const password = new TextEncoder().encode("unicorns_dance_on_mars_while_eating_pizza");
     const lockedEnvelope = encryptedEnvelope.addSecret(
       KeyDerivationMethod.Argon2id,
       password,
-      contentKey
+      contentKey,
     );
 
     const lockedFormat = lockedEnvelope.format();
@@ -128,10 +125,7 @@ describe("Multi-Permit", () => {
     //
     const sskrGroup = SSKRGroupSpec.new(2, 3);
     const spec = SSKRSpec.new(1, [sskrGroup]);
-    const shardedEnvelopes = lockedWithRecipients.sskrSplitFlattened(
-      spec,
-      contentKey
-    );
+    const shardedEnvelopes = lockedWithRecipients.sskrSplitFlattened(spec, contentKey);
 
     // Should have 3 sharded envelopes
     expect(shardedEnvelopes.length).toBe(3);
@@ -175,15 +169,13 @@ describe("Multi-Permit", () => {
     //
     // Using Alice's private key.
     //
-    const unlockedWithAliceKey =
-      receivedEnvelope.decryptSubjectToRecipient(aliceKeys);
+    const unlockedWithAliceKey = receivedEnvelope.decryptSubjectToRecipient(aliceKeys);
     expect(unlockedWithAliceKey.subject().asText()).toBe(poemText);
 
     //
     // Using Bob's private key.
     //
-    const unlockedWithBobKey =
-      receivedEnvelope.decryptSubjectToRecipient(bobKeys);
+    const unlockedWithBobKey = receivedEnvelope.decryptSubjectToRecipient(bobKeys);
     expect(unlockedWithBobKey.subject().asText()).toBe(poemText);
 
     //
@@ -222,11 +214,7 @@ describe("Multi-Permit", () => {
 
     it("should unlock with password using HKDF", () => {
       const password = new TextEncoder().encode("my-secret-password");
-      const locked = encryptedEnvelope.addSecret(
-        KeyDerivationMethod.HKDF,
-        password,
-        contentKey
-      );
+      const locked = encryptedEnvelope.addSecret(KeyDerivationMethod.HKDF, password, contentKey);
 
       const unlocked = locked.unlockSubject(password);
       // unlocked is a node envelope (with hasSecret assertion), access subject for text
@@ -238,7 +226,7 @@ describe("Multi-Permit", () => {
       const locked = encryptedEnvelope.addSecret(
         KeyDerivationMethod.Argon2id,
         password,
-        contentKey
+        contentKey,
       );
 
       const unlocked = locked.unlockSubject(password);
@@ -247,11 +235,7 @@ describe("Multi-Permit", () => {
 
     it("should unlock with password using PBKDF2", () => {
       const password = new TextEncoder().encode("pbkdf2-password");
-      const locked = encryptedEnvelope.addSecret(
-        KeyDerivationMethod.PBKDF2,
-        password,
-        contentKey
-      );
+      const locked = encryptedEnvelope.addSecret(KeyDerivationMethod.PBKDF2, password, contentKey);
 
       const unlocked = locked.unlockSubject(password);
       expect(unlocked.subject().asText()).toBe(testContent);
@@ -259,11 +243,7 @@ describe("Multi-Permit", () => {
 
     it("should unlock with password using Scrypt", () => {
       const password = new TextEncoder().encode("scrypt-password");
-      const locked = encryptedEnvelope.addSecret(
-        KeyDerivationMethod.Scrypt,
-        password,
-        contentKey
-      );
+      const locked = encryptedEnvelope.addSecret(KeyDerivationMethod.Scrypt, password, contentKey);
 
       const unlocked = locked.unlockSubject(password);
       expect(unlocked.subject().asText()).toBe(testContent);
@@ -271,10 +251,7 @@ describe("Multi-Permit", () => {
 
     it("should unlock with recipient private key", () => {
       const recipient = PrivateKeyBase.generate();
-      const locked = encryptedEnvelope.addRecipient(
-        recipient.publicKeys(),
-        contentKey
-      );
+      const locked = encryptedEnvelope.addRecipient(recipient.publicKeys(), contentKey);
 
       const unlocked = locked.decryptSubjectToRecipient(recipient);
       // decryptSubjectToRecipient returns the envelope with decrypted subject
@@ -288,9 +265,9 @@ describe("Multi-Permit", () => {
       expect(shares.length).toBe(3);
 
       // Any 2 shares should work
-      const recovered = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin([shares[0], shares[1]]);
+      const recovered = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin(
+        [shares[0], shares[1]],
+      );
 
       // sskrJoin returns the decrypted subject directly
       expect(recovered.asText()).toBe(testContent);
@@ -314,15 +291,9 @@ describe("Multi-Permit", () => {
         .addSecret(KeyDerivationMethod.HKDF, password3, contentKey);
 
       // All passwords should work - unlockSubject returns node envelope, access subject
-      expect(multiSecret.unlockSubject(password1).subject().asText()).toBe(
-        "Multi-secret content"
-      );
-      expect(multiSecret.unlockSubject(password2).subject().asText()).toBe(
-        "Multi-secret content"
-      );
-      expect(multiSecret.unlockSubject(password3).subject().asText()).toBe(
-        "Multi-secret content"
-      );
+      expect(multiSecret.unlockSubject(password1).subject().asText()).toBe("Multi-secret content");
+      expect(multiSecret.unlockSubject(password2).subject().asText()).toBe("Multi-secret content");
+      expect(multiSecret.unlockSubject(password3).subject().asText()).toBe("Multi-secret content");
     });
 
     it("should support multiple recipients", () => {
@@ -343,15 +314,15 @@ describe("Multi-Permit", () => {
       expect(multiRecipient.recipients().length).toBe(3);
 
       // All recipients should be able to decrypt - access subject for text
-      expect(
-        multiRecipient.decryptSubjectToRecipient(alice).subject().asText()
-      ).toBe("Multi-recipient content");
-      expect(
-        multiRecipient.decryptSubjectToRecipient(bob).subject().asText()
-      ).toBe("Multi-recipient content");
-      expect(
-        multiRecipient.decryptSubjectToRecipient(charlie).subject().asText()
-      ).toBe("Multi-recipient content");
+      expect(multiRecipient.decryptSubjectToRecipient(alice).subject().asText()).toBe(
+        "Multi-recipient content",
+      );
+      expect(multiRecipient.decryptSubjectToRecipient(bob).subject().asText()).toBe(
+        "Multi-recipient content",
+      );
+      expect(multiRecipient.decryptSubjectToRecipient(charlie).subject().asText()).toBe(
+        "Multi-recipient content",
+      );
     });
 
     it("should support mixed permit types", () => {
@@ -367,17 +338,10 @@ describe("Multi-Permit", () => {
       const sskrSpec = SSKRSpec.new(1, [SSKRGroupSpec.new(2, 3)]);
 
       // Add password permit
-      const withPassword = encrypted.addSecret(
-        KeyDerivationMethod.Argon2id,
-        password,
-        contentKey
-      );
+      const withPassword = encrypted.addSecret(KeyDerivationMethod.Argon2id, password, contentKey);
 
       // Add recipient permit
-      const withRecipient = withPassword.addRecipient(
-        alice.publicKeys(),
-        contentKey
-      );
+      const withRecipient = withPassword.addRecipient(alice.publicKeys(), contentKey);
 
       // Add SSKR permits
       const shares = withRecipient.sskrSplitFlattened(sskrSpec, contentKey);
@@ -394,9 +358,10 @@ describe("Multi-Permit", () => {
       expect(fromRecipient.subject().asText()).toBe("Mixed permit content");
 
       // SSKR unlock - sskrJoin returns the decrypted subject directly
-      const fromSskr = (
-        Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }
-      ).sskrJoin([shares[1], shares[2]]);
+      const fromSskr = (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin([
+        shares[1],
+        shares[2],
+      ]);
       expect(fromSskr.asText()).toBe("Mixed permit content");
     });
   });
@@ -410,11 +375,7 @@ describe("Multi-Permit", () => {
       const correctPassword = new TextEncoder().encode("correct");
       const wrongPassword = new TextEncoder().encode("wrong");
 
-      const locked = encrypted.addSecret(
-        KeyDerivationMethod.HKDF,
-        correctPassword,
-        contentKey
-      );
+      const locked = encrypted.addSecret(KeyDerivationMethod.HKDF, correctPassword, contentKey);
 
       expect(() => locked.unlockSubject(wrongPassword)).toThrow();
     });
@@ -442,9 +403,7 @@ describe("Multi-Permit", () => {
 
       // Only 1 share is not enough for 2-of-3
       expect(() =>
-        (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin([
-          shares[0],
-        ])
+        (Envelope as unknown as { sskrJoin: (e: Envelope[]) => Envelope }).sskrJoin([shares[0]]),
       ).toThrow();
     });
   });
@@ -464,11 +423,7 @@ describe("Multi-Permit", () => {
       const encrypted = document.encryptSubject(contentKey);
 
       const password = new TextEncoder().encode("contract-password");
-      const locked = encrypted.addSecret(
-        KeyDerivationMethod.HKDF,
-        password,
-        contentKey
-      );
+      const locked = encrypted.addSecret(KeyDerivationMethod.HKDF, password, contentKey);
 
       // Unlock and verify
       const unlocked = locked.unlockSubject(password);
@@ -493,9 +448,7 @@ describe("Multi-Permit", () => {
       // Subject-level encryption preserves the envelope structure
       expect(decrypted.digest().equals(envelope.digest())).toBe(true);
       expect(decrypted.hasType("Document")).toBe(true);
-      expect(decrypted.objectForPredicate("author").extractString()).toBe(
-        "Alice"
-      );
+      expect(decrypted.objectForPredicate("author").extractString()).toBe("Alice");
       expect(decrypted.objectForPredicate("version").extractNumber()).toBe(1);
     });
   });

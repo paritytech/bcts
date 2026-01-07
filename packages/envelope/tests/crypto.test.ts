@@ -6,12 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  Envelope,
-  SymmetricKey,
-  SigningPrivateKey,
-  PrivateKeyBase,
-} from "../src";
+import { Envelope, SymmetricKey, SigningPrivateKey, PrivateKeyBase } from "../src";
 import { KeyDerivationMethod } from "@bcts/components";
 import { IS_A } from "@bcts/known-values";
 
@@ -28,8 +23,7 @@ function helloEnvelope(): Envelope {
 // Test key seeds (matching Rust reference implementation)
 // These seeds can be used to create deterministic keys for reproducible tests
 const ALICE_SEED = new Uint8Array([
-  0x82, 0xf3, 0x2c, 0x85, 0x5d, 0x3d, 0x54, 0x22, 0x56, 0x18, 0x08, 0x10, 0x79,
-  0x7e, 0x00, 0x73,
+  0x82, 0xf3, 0x2c, 0x85, 0x5d, 0x3d, 0x54, 0x22, 0x56, 0x18, 0x08, 0x10, 0x79, 0x7e, 0x00, 0x73,
 ]);
 
 // Create deterministic signing keys from seeds
@@ -56,22 +50,16 @@ function roundTripTest(envelope: Envelope): void {
   const encryptedSubject = plaintextSubject.encryptSubject(key);
 
   // Encrypted envelope should have the same digest (equivalence)
-  expect(encryptedSubject.digest().equals(plaintextSubject.digest())).toBe(
-    true
-  );
+  expect(encryptedSubject.digest().equals(plaintextSubject.digest())).toBe(true);
 
   // Decrypt and verify
   const plaintextSubject2 = encryptedSubject.decryptSubject(key);
 
   // Decrypted envelope should also be equivalent
-  expect(encryptedSubject.digest().equals(plaintextSubject2.digest())).toBe(
-    true
-  );
+  expect(encryptedSubject.digest().equals(plaintextSubject2.digest())).toBe(true);
 
   // Decrypted should be identical to original
-  expect(plaintextSubject.digest().equals(plaintextSubject2.digest())).toBe(
-    true
-  );
+  expect(plaintextSubject.digest().equals(plaintextSubject2.digest())).toBe(true);
 }
 
 // ============================================================================
@@ -171,10 +159,7 @@ describe("Crypto Tests", () => {
       const alicePub = alicePriv.publicKey();
 
       // Alice signs a plaintext message, then encrypts it.
-      const envelope = helloEnvelope()
-        .addSignature(alicePriv)
-        .wrap()
-        .encryptSubject(key);
+      const envelope = helloEnvelope().addSignature(alicePriv).wrap().encryptSubject(key);
 
       const expectedFormat = "ENCRYPTED";
       expect(envelope.format()).toBe(expectedFormat);
@@ -210,15 +195,11 @@ describe("Crypto Tests", () => {
       // encrypted form, which carries a Digest of the plaintext subject,
       // while the `sign` method only adds an Assertion with the signature
       // of the hash as the object of the Assertion.
-      const envelope = helloEnvelope()
-        .encryptSubject(key)
-        .addSignature(alicePriv);
+      const envelope = helloEnvelope().encryptSubject(key).addSignature(alicePriv);
 
       const expectedFormat = `ENCRYPTED [
     "signed": h'`;
-      expect(envelope.format().startsWith(expectedFormat.split("h'")[0])).toBe(
-        true
-      );
+      expect(envelope.format().startsWith(expectedFormat.split("h'")[0])).toBe(true);
 
       // Alice -> Cloud -> Bob
 
@@ -271,9 +252,7 @@ describe("Crypto Tests", () => {
       expect(carolReceivedPlaintext).toBe(PLAINTEXT_HELLO);
 
       // Alice didn't encrypt it to herself, so she can't read it.
-      expect(() =>
-        receivedEnvelope.decryptSubjectToRecipient(alice)
-      ).toThrow();
+      expect(() => receivedEnvelope.decryptSubjectToRecipient(alice)).toThrow();
     });
   });
 
@@ -345,8 +324,7 @@ describe("Crypto Tests", () => {
       expect(envelope.format().includes("hasRecipient")).toBe(true);
       // Signature should NOT be visible in format
       expect(
-        envelope.format().includes("signed") &&
-          !envelope.format().includes("ENCRYPTED [")
+        envelope.format().includes("signed") && !envelope.format().includes("ENCRYPTED ["),
       ).toBe(false);
 
       // Alice -> Cloud -> Bob
@@ -379,9 +357,7 @@ describe("Crypto Tests", () => {
   // Skip: Secret tests require KnownValue encoding which is not yet implemented in TypeScript
   describe.skip("secret (password-based encryption)", () => {
     it("should lock and unlock with HKDF", () => {
-      const bobPassword = new TextEncoder().encode(
-        "correct horse battery staple"
-      );
+      const bobPassword = new TextEncoder().encode("correct horse battery staple");
       const wrongPassword = new TextEncoder().encode("wrong password");
 
       // Alice encrypts a message so that it can only be decrypted by Bob's password.
@@ -405,9 +381,7 @@ describe("Crypto Tests", () => {
     });
 
     it("should support multiple secrets with different derivation methods", () => {
-      const bobPassword = new TextEncoder().encode(
-        "correct horse battery staple"
-      );
+      const bobPassword = new TextEncoder().encode("correct horse battery staple");
       const carolPassword = new TextEncoder().encode("Able was I ere I saw Elba");
       const gracyPassword = new TextEncoder().encode("Madam, in Eden, I'm Adam");
       const wrongPassword = new TextEncoder().encode("wrong password");

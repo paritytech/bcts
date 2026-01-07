@@ -71,7 +71,7 @@ describe("Core Envelope Tests", () => {
       expect(e.format()).toBe("42");
       expect(e.extractNumber()).toBe(42);
       expect(e.digest().hex()).toBe(
-        "7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53"
+        "7f83f7bda2d63959d34767689f06d47576683d378d9eb8d09386c9a020395c53",
       );
     });
 
@@ -93,7 +93,7 @@ describe("Core Envelope Tests", () => {
       expect(e.format()).toBe('"Hello."');
       expect(e.extractString()).toBe(PLAINTEXT_HELLO);
       expect(e.digest().hex()).toBe(
-        "8cc96cdb771176e835114a0f8936690b41cfed0df22d014eedd64edaea945d59"
+        "8cc96cdb771176e835114a0f8936690b41cfed0df22d014eedd64edaea945d59",
       );
     });
   });
@@ -108,7 +108,7 @@ describe("Core Envelope Tests", () => {
       expect(extracted).toBeDefined();
       expect(extracted?.equals(NOTE)).toBe(true);
       expect(e.digest().hex()).toBe(
-        "0fcd6a39d6ed37f2e2efa6a96214596f1b28a5cd42a5a27afc32162aaf821191"
+        "0fcd6a39d6ed37f2e2efa6a96214596f1b28a5cd42a5a27afc32162aaf821191",
       );
     });
 
@@ -127,22 +127,22 @@ describe("Core Envelope Tests", () => {
       const predicate = e.asPredicate();
       expect(predicate).toBeDefined();
       expect(predicate?.digest().hex()).toBe(
-        "db7dd21c5169b4848d2a1bcb0a651c9617cdd90bae29156baaefbb2a8abef5ba"
+        "db7dd21c5169b4848d2a1bcb0a651c9617cdd90bae29156baaefbb2a8abef5ba",
       );
 
       // Check object digest
       const object = e.asObject();
       expect(object).toBeDefined();
       expect(object?.digest().hex()).toBe(
-        "13b741949c37b8e09cc3daa3194c58e4fd6b2f14d4b1d0f035a46d6d5a1d3f11"
+        "13b741949c37b8e09cc3daa3194c58e4fd6b2f14d4b1d0f035a46d6d5a1d3f11",
       );
 
       // Check subject and envelope digest match
       expect(e.subject().digest().hex()).toBe(
-        "78d666eb8f4c0977a0425ab6aa21ea16934a6bc97c6f0c3abaefac951c1714a2"
+        "78d666eb8f4c0977a0425ab6aa21ea16934a6bc97c6f0c3abaefac951c1714a2",
       );
       expect(e.digest().hex()).toBe(
-        "78d666eb8f4c0977a0425ab6aa21ea16934a6bc97c6f0c3abaefac951c1714a2"
+        "78d666eb8f4c0977a0425ab6aa21ea16934a6bc97c6f0c3abaefac951c1714a2",
       );
 
       expect(e.format()).toBe('"knows": "Bob"');
@@ -158,7 +158,7 @@ describe("Core Envelope Tests", () => {
       const e = checkEncoding(singleAssertionEnvelope());
 
       expect(e.digest().hex()).toBe(
-        "8955db5e016affb133df56c11fe6c5c82fa3036263d651286d134c7e56c0e9f2"
+        "8955db5e016affb133df56c11fe6c5c82fa3036263d651286d134c7e56c0e9f2",
       );
 
       const expectedFormat = `"Alice" [
@@ -175,7 +175,7 @@ describe("Core Envelope Tests", () => {
       const e = checkEncoding(doubleAssertionEnvelope());
 
       expect(e.digest().hex()).toBe(
-        "b8d857f6e06a836fbc68ca0ce43e55ceb98eefd949119dab344e11c4ba5a0471"
+        "b8d857f6e06a836fbc68ca0ce43e55ceb98eefd949119dab344e11c4ba5a0471",
       );
 
       // Note: Assertion ordering in format() is determined by digest order,
@@ -195,7 +195,7 @@ describe("Core Envelope Tests", () => {
       const e = checkEncoding(wrappedEnvelope());
 
       expect(e.digest().hex()).toBe(
-        "172a5e51431062e7b13525cbceb8ad8475977444cf28423e21c0d1dcbdfcaf47"
+        "172a5e51431062e7b13525cbceb8ad8475977444cf28423e21c0d1dcbdfcaf47",
       );
 
       const expectedFormat = `{
@@ -210,7 +210,7 @@ describe("Core Envelope Tests", () => {
       const e = checkEncoding(doubleWrappedEnvelope());
 
       expect(e.digest().hex()).toBe(
-        "8b14f3bcd7c05aac8f2162e7047d7ef5d5eab7d82ee3f9dc4846c70bae4d200b"
+        "8b14f3bcd7c05aac8f2162e7047d7ef5d5eab7d82ee3f9dc4846c70bae4d200b",
       );
 
       const expectedFormat = `{
@@ -235,9 +235,7 @@ describe("Core Envelope Tests", () => {
     // the Rust behavior.
     it.skip("should create assertion envelope with its own assertions", () => {
       // Build assertion with its own assertions
-      const a = Envelope.newAssertion(1, 2)
-        .addAssertion(3, 4)
-        .addAssertion(5, 6);
+      const a = Envelope.newAssertion(1, 2).addAssertion(3, 4).addAssertion(5, 6);
 
       // Add to subject - This requires is_subject_assertion to be recursive
       const e = Envelope.new(7).addAssertionEnvelope(a);
@@ -570,9 +568,7 @@ describe("Core Envelope Tests", () => {
     });
 
     it("should round-trip envelope with assertions through CBOR", () => {
-      const original = Envelope.new("Person")
-        .addAssertion("name", "Alice")
-        .addAssertion("age", 30);
+      const original = Envelope.new("Person").addAssertion("name", "Alice").addAssertion("age", 30);
 
       const cbor = original.taggedCbor();
       const restored = Envelope.fromTaggedCbor(cbor);

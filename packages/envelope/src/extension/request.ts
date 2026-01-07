@@ -21,19 +21,11 @@
 import { ARID } from "@bcts/components";
 import { REQUEST as TAG_REQUEST } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
-import {
-  BODY,
-  NOTE,
-  DATE,
-} from "@bcts/known-values";
+import { BODY, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
-import {
-  Expression,
-  Function,
-  type ParameterID,
-} from "./expression";
+import { Expression, Function, type ParameterID } from "./expression";
 
 /**
  * Interface that defines the behavior of a request.
@@ -140,11 +132,12 @@ export class Request implements RequestBehavior {
    * function and then creates a request with that expression.
    */
   static new(func: Function | string | number, id: ARID): Request {
-    const f = typeof func === "string"
-      ? Function.newNamed(func)
-      : typeof func === "number"
-        ? Function.newKnown(func)
-        : func;
+    const f =
+      typeof func === "string"
+        ? Function.newNamed(func)
+        : typeof func === "number"
+          ? Function.newKnown(func)
+          : func;
     return Request.newWithBody(new Expression(f), id);
   }
 

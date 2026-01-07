@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  Envelope,
-  Digest,
-  SymmetricKey,
-  ObscureType,
-} from "../src";
+import { Envelope, Digest, SymmetricKey, ObscureType } from "../src";
 
 /**
  * This tests the transformation of different kinds of "obscured" envelopes
@@ -414,8 +409,7 @@ describe("Digest preservation", () => {
 
 describe("Equivalence after restoration", () => {
   it("should recognize equivalent envelopes with different obscuring", () => {
-    const envelope = Envelope.new("Hello")
-      .addAssertion("key", "value");
+    const envelope = Envelope.new("Hello").addAssertion("key", "value");
 
     const key = SymmetricKey.generate();
 

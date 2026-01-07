@@ -105,12 +105,7 @@ describe("Validation (Rust parity)", () => {
       const marks = createTestMarks(3, ProvenanceMarkResolution.Low, "test");
 
       // Create duplicates
-      const marksWithDups = [
-        ...marks,
-        marks[0],
-        marks[1],
-        marks[0],
-      ];
+      const marksWithDups = [...marks, marks[0], marks[1], marks[0]];
 
       const report = validate(marksWithDups);
 

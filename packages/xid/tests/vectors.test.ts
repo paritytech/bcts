@@ -185,18 +185,12 @@ describe("XID Document Test Vectors", () => {
       expect(xidDocument.provenanceGenerator()).toBeDefined();
 
       // Unsigned envelope should work
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "none" },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "none",
+      });
 
       // Verify and extract
-      const xidDocument2 = XIDDocument.fromEnvelope(
-        envelope,
-        undefined,
-        XIDVerifySignature.None,
-      );
+      const xidDocument2 = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.None);
 
       // Provenance mark should match
       expect(xidDocument.provenance()?.equals(xidDocument2.provenance()!)).toBe(true);
@@ -256,8 +250,8 @@ describe("XID Document Test Vectors", () => {
       // Include for comparison
       const envelopeInclude = xidDocument.toEnvelope(XIDPrivateKeyOptions.Include);
 
-      // Elided should be equivalent to included (same digest)
-      expect(envelopeElide.isEquivalentTo(envelopeInclude)).toBe(true);
+      // Elided should be equivalent to included (same digest) - when implemented
+      expect(envelopeElide.digest().equals(envelopeInclude.digest())).toBe(true);
     });
   });
 
@@ -345,11 +339,9 @@ describe("Signing Options Tests", () => {
       );
 
       // Convert to envelope with no signing
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "none" },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "none",
+      });
 
       // Unsigned envelope should not have signatures
       expect(envelope).toBeDefined();
@@ -367,11 +359,9 @@ describe("Signing Options Tests", () => {
       );
 
       // Convert to envelope with inception signing
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "inception" },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "inception",
+      });
 
       // Verify signature
       const xidDocument2 = XIDDocument.fromEnvelope(
@@ -413,11 +403,10 @@ describe("Signing Options Tests", () => {
       );
 
       // Sign with separate key
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "privateKeyBase", privateKeyBase: signingKeyBase },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "privateKeyBase",
+        privateKeyBase: signingKeyBase,
+      });
 
       // Envelope should be defined
       expect(envelope).toBeDefined();
@@ -481,11 +470,9 @@ describe("Backward Compatibility Tests", () => {
         { type: "none" },
       );
 
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "inception" },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "inception",
+      });
       expect(envelope).toBeDefined();
     });
   });
