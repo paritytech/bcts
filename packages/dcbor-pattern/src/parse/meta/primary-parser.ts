@@ -124,7 +124,8 @@ export const parsePrimary = (lexer: Lexer): Result<Pattern> => {
         });
       } catch {
         return Err({
-          type: "InvalidDigest",
+          type: "InvalidDigestPattern",
+          message: `Invalid digest hex: ${token.value}`,
           span: spanned.span,
         });
       }
@@ -137,7 +138,7 @@ export const parsePrimary = (lexer: Lexer): Result<Pattern> => {
         });
       } catch {
         return Err({
-          type: "InvalidDate",
+          type: "InvalidDateFormat",
           span: spanned.span,
         });
       }

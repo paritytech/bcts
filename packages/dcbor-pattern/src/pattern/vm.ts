@@ -14,7 +14,7 @@ import {
   arrayLength,
   arrayItem,
   mapKeys,
-  mapValue,
+  mapValues,
   tagContent,
 } from "@bcts/dcbor";
 import type { Path } from "../format";
@@ -58,15 +58,8 @@ export const axisChildren = (axis: Axis, cbor: Cbor): Cbor[] => {
     }
     case "MapValue": {
       if (!isMap(cbor)) return [];
-      const keys = mapKeys(cbor);
-      if (keys === undefined || keys === null) return [];
-      const values: Cbor[] = [];
-      for (const key of keys) {
-        const value = mapValue(cbor, key);
-        if (value !== undefined && value !== null) {
-          values.push(value as Cbor);
-        }
-      }
+      const values = mapValues(cbor);
+      if (values === undefined || values === null) return [];
       return values;
     }
     case "TaggedContent": {

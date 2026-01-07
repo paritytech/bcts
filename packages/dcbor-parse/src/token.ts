@@ -261,6 +261,11 @@ export class Lexer {
       this.#position += dateStr.length;
       this.#tokenEnd = this.#position;
 
+      // Validate date components before parsing to match Rust's strict behavior
+      if (!isValidDateString(dateStr)) {
+        return err(PE.invalidDateString(dateStr, this.span()));
+      }
+
       try {
         const date = DCborDate.fromString(dateStr);
         return ok(token.dateLiteral(date));
@@ -566,9 +571,20 @@ function hexToBytes(hex: string): Uint8Array {
 }
 
 /**
- * Converts a base64 string to bytes.
+ * Converts a base64 string to bytes with strict validation.
+ * Rejects base64 strings with invalid padding (matches Rust's base64 crate behavior).
  */
 function base64ToBytes(base64: string): Uint8Array {
+  // Validate base64 padding strictly (Rust's base64 crate requires proper padding)
+  const expectedPadding = (4 - (base64.replace(/=/g, "").length % 4)) % 4;
+  const paddingMatch = /=+$/.exec(base64);
+  const actualPadding = paddingMatch !== null ? paddingMatch[0].length : 0;
+
+  // If there should be padding but there isn't, or padding is wrong length
+  if (expectedPadding !== actualPadding) {
+    throw new Error("Invalid base64 padding");
+  }
+
   // Use built-in atob for base64 decoding
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -576,4 +592,50 @@ function base64ToBytes(base64: string): Uint8Array {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
+}
+
+/**
+ * Validates a date string has valid month/day values.
+ * JavaScript Date is lenient and accepts invalid dates like 2023-02-30,
+ * but Rust's Date::from_string rejects them.
+ */
+function isValidDateString(dateStr: string): boolean {
+  // Extract date components
+  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
+  if (dateMatch === null) return false;
+
+  const year = parseInt(dateMatch[1], 10);
+  const month = parseInt(dateMatch[2], 10);
+  const day = parseInt(dateMatch[3], 10);
+
+  // Validate month (1-12)
+  if (month < 1 || month > 12) return false;
+
+  // Validate day (1-N where N depends on month)
+  if (day < 1) return false;
+
+  // Days in each month (non-leap year)
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  // Adjust for leap year
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  if (isLeapYear && month === 2) {
+    if (day > 29) return false;
+  } else {
+    if (day > daysInMonth[month - 1]) return false;
+  }
+
+  // If there's a time component, validate it
+  const timeMatch = /T(\d{2}):(\d{2}):(\d{2})/.exec(dateStr);
+  if (timeMatch !== null) {
+    const hour = parseInt(timeMatch[1], 10);
+    const minute = parseInt(timeMatch[2], 10);
+    const second = parseInt(timeMatch[3], 10);
+
+    if (hour < 0 || hour > 23) return false;
+    if (minute < 0 || minute > 59) return false;
+    if (second < 0 || second > 59) return false;
+  }
+
+  return true;
 }

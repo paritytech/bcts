@@ -239,4 +239,50 @@ describe("XID", () => {
       expect(xid.toString()).toBe(`XID(${TEST_HEX})`);
     });
   });
+
+  describe("bytewords and bytemoji identifiers", () => {
+    // Uses TEST_HEX from top of file: de2853684ae55803...
+    // First 4 bytes: de 28 53 68 -> from bc-components-rust/src/id/xid.rs test
+
+    it("should return bytewords identifier without prefix", () => {
+      const xid = XID.fromHex(TEST_HEX);
+      const identifier = xid.bytewordsIdentifier(false);
+
+      // First 4 bytes: de 28 53 68 -> uppercase bytewords
+      // Matches Rust test: xid.bytewords_identifier(true) == "🅧 URGE DICE GURU IRIS"
+      expect(identifier).toBe("URGE DICE GURU IRIS");
+    });
+
+    it("should return bytewords identifier with prefix", () => {
+      const xid = XID.fromHex(TEST_HEX);
+      const identifier = xid.bytewordsIdentifier(true);
+
+      // Matches Rust test: xid.bytewords_identifier(true) == "🅧 URGE DICE GURU IRIS"
+      expect(identifier).toBe("🅧 URGE DICE GURU IRIS");
+    });
+
+    it("should return bytemoji identifier without prefix", () => {
+      const xid = XID.fromHex(TEST_HEX);
+      const identifier = xid.bytemojisIdentifier(false);
+
+      // First 4 bytes: de 28 53 68 -> bytemojis
+      // Matches Rust test: xid.bytemoji_identifier(true) == "🅧 🐻 😻 🍞 💐"
+      expect(identifier).toBe("🐻 😻 🍞 💐");
+    });
+
+    it("should return bytemoji identifier with prefix", () => {
+      const xid = XID.fromHex(TEST_HEX);
+      const identifier = xid.bytemojisIdentifier(true);
+
+      // Matches Rust test: xid.bytemoji_identifier(true) == "🅧 🐻 😻 🍞 💐"
+      expect(identifier).toBe("🅧 🐻 😻 🍞 💐");
+    });
+
+    it("should default to no prefix", () => {
+      const xid = XID.fromHex(TEST_HEX);
+
+      expect(xid.bytewordsIdentifier()).toBe("URGE DICE GURU IRIS");
+      expect(xid.bytemojisIdentifier()).toBe("🐻 😻 🍞 💐");
+    });
+  });
 });

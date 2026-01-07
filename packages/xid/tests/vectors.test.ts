@@ -138,8 +138,8 @@ describe("XID Document Test Vectors", () => {
     });
   });
 
-  describe.skip("Signed XID Document", () => {
-    // Skipped: requires signing APIs not yet compatible with envelope PrivateKeyBase
+  describe("Signed XID Document", () => {
+    // Testing signing and verification
     it("should sign document with inception key and verify", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
@@ -285,8 +285,8 @@ describe("XID Document Test Vectors", () => {
     });
   });
 
-  describe.skip("Service with References", () => {
-    // Skipped: service references have consistency check issues
+  describe("Service with References", () => {
+    // Fixed: service reference consistency check now works correctly
     it("should create service with key and delegate references", () => {
       const [aliceBase, bobBase] = makeFakePrivateKeyBases(2);
 
@@ -348,8 +348,8 @@ describe("Signing Options Tests", () => {
     });
   });
 
-  describe.skip("SigningOptions.Inception", () => {
-    // Skipped: requires signing APIs not yet compatible
+  describe("SigningOptions.Inception", () => {
+    // Testing if signing APIs work with components' PrivateKeys
     it("should sign with inception key", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
@@ -392,8 +392,8 @@ describe("Signing Options Tests", () => {
     });
   });
 
-  describe.skip("SigningOptions.PrivateKeyBase", () => {
-    // Skipped: requires signing APIs not yet compatible
+  describe("SigningOptions.PrivateKeyBase", () => {
+    // Testing signing with PrivateKeyBase
     it("should sign with provided private key", () => {
       const [docKeyBase, signingKeyBase] = makeFakePrivateKeyBases(2);
 
@@ -413,8 +413,8 @@ describe("Signing Options Tests", () => {
     });
   });
 
-  describe.skip("Signing with private key options", () => {
-    // Skipped: requires signing APIs not yet compatible
+  describe("Signing with private key options", () => {
+    // Testing signing with private key options
     it("should sign and include private keys", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
@@ -460,8 +460,8 @@ describe("Backward Compatibility Tests", () => {
     });
   });
 
-  describe.skip("to_signed_envelope", () => {
-    // Skipped: requires signing APIs not yet compatible
+  describe("to_signed_envelope", () => {
+    // Testing backward compatible toSignedEnvelope
     it("should be equivalent to toEnvelope with sign", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
@@ -546,5 +546,234 @@ describe("XID Document Envelope Encoding", () => {
     // Verify the digest exists
     const digest = envelope.digest();
     expect(digest).toBeDefined();
+  });
+});
+
+describe("XID CBOR Hex Verification", () => {
+  // These tests verify CBOR encoding correctness for any XID.
+  // Note: TypeScript RNG produces different output than Rust RNG, so we verify
+  // structural correctness rather than exact byte-for-byte match.
+
+  it("should produce valid XID hex (32 bytes = 64 hex chars)", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+
+    // XID should be 32 bytes = 64 hex characters
+    const xidHex = xid.toHex();
+    expect(xidHex.length).toBe(64);
+    expect(xidHex).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("should produce correct XID CBOR structure (tag 40024 + 32 bytes)", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+    const xidHex = xid.toHex();
+
+    // Get the tagged CBOR data
+    const cborData = xid.taggedCborData();
+
+    // Convert to hex
+    const cborHex = Array.from(cborData)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // CBOR structure: d99c58 (tag 40024) + 5820 (bytes 32) + XID bytes
+    // Total length: 3 (tag) + 2 (bytes header) + 32 (XID) = 37 bytes = 74 hex chars
+    expect(cborHex.length).toBe(74);
+    expect(cborHex.startsWith("d99c585820")).toBe(true); // tag(40024) + bytes(32)
+    expect(cborHex.endsWith(xidHex)).toBe(true); // ends with the XID bytes
+  });
+
+  it("should produce correct CBOR diagnostic notation", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+    const xidHex = xid.toHex();
+
+    // Get tagged CBOR and diagnostic
+    const taggedCbor = xid.taggedCbor();
+    const diagnostic = taggedCbor.toDiagnostic();
+
+    // Should contain tag 40024 and the XID bytes
+    expect(diagnostic).toContain("40024");
+    expect(diagnostic.toLowerCase()).toContain(xidHex.toLowerCase());
+  });
+
+  it("should produce valid UR string starting with ur:xid/", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+    const urString = xid.urString();
+
+    // Should be a valid UR
+    expect(urString).toMatch(/^ur:xid\/hdcx/);
+
+    // Should roundtrip
+    const xid2 = XID.fromURString(urString);
+    expect(xid.equals(xid2)).toBe(true);
+  });
+
+  it("should produce correct short description (first 4 bytes)", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+    const xidHex = xid.toHex();
+
+    // Short description should be first 8 hex chars (4 bytes)
+    expect(xid.shortDescription()).toBe(xidHex.substring(0, 8));
+    expect(xid.shortDescription().length).toBe(8);
+  });
+
+  it("should produce valid bytewords identifier", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+
+    // Bytewords identifier should be 4 uppercase words (first 4 bytes encoded)
+    const withPrefix = xid.bytewordsIdentifier(true);
+    const withoutPrefix = xid.bytewordsIdentifier(false);
+
+    expect(withPrefix).toMatch(/^🅧 [A-Z]+ [A-Z]+ [A-Z]+ [A-Z]+$/);
+    expect(withoutPrefix).toMatch(/^[A-Z]+ [A-Z]+ [A-Z]+ [A-Z]+$/);
+    expect(withPrefix).toBe(`🅧 ${withoutPrefix}`);
+  });
+
+  it("should produce valid bytemoji identifier", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+
+    // Bytemoji identifier should have 4 emojis (first 4 bytes encoded)
+    const withPrefix = xid.bytemojisIdentifier(true);
+    const withoutPrefix = xid.bytemojisIdentifier(false);
+
+    // Should start with prefix when requested
+    expect(withPrefix.startsWith("🅧 ")).toBe(true);
+    expect(withPrefix.slice(2).trim()).toBe(withoutPrefix);
+  });
+
+  it("should produce correct toString format", () => {
+    const privateKeyBase = makeFakePrivateKeyBase();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+
+    const xidDocument = XIDDocument.new(
+      { type: "publicKeys", publicKeys: publicKeys },
+      { type: "none" },
+    );
+
+    const xid = xidDocument.xid();
+    const xidHex = xid.toHex();
+
+    // Format: XID(<64 hex chars>)
+    expect(xid.toString()).toBe(`XID(${xidHex})`);
+  });
+});
+
+describe("XID Known Test Vector (Rust Parity)", () => {
+  // Test with known XID value to verify exact output matching
+  // This uses XID.fromHex() to bypass RNG differences
+
+  const TEST_XID_HEX = "71274df133169a0e2d2ffb11cbc7917732acafa31989f685cca6cb69d473b93c";
+
+  it("should produce correct CBOR bytes for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+
+    const cborData = xid.taggedCborData();
+    const cborHex = Array.from(cborData)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    // Expected CBOR: d99c58 (tag 40024) + 5820 (bytes 32) + XID bytes
+    const expectedCborHex = `d99c585820${TEST_XID_HEX}`;
+    expect(cborHex).toBe(expectedCborHex);
+  });
+
+  it("should produce correct UR string for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+    const urString = xid.urString();
+
+    // Expected UR string from Rust test
+    const EXPECTED_UR =
+      "ur:xid/hdcxjsdigtwneocmnybadpdlzobysbstmekteypspeotcfldynlpsfolsbintyjkrhfnvsbyrdfw";
+    expect(urString).toBe(EXPECTED_UR);
+  });
+
+  it("should produce correct short description for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+    expect(xid.shortDescription()).toBe("71274df1");
+  });
+
+  it("should produce correct bytewords identifier for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+
+    // From Rust: xid.bytewords_identifier(true) == "🅧 JUGS DELI GIFT WHEN"
+    expect(xid.bytewordsIdentifier(true)).toBe("🅧 JUGS DELI GIFT WHEN");
+    expect(xid.bytewordsIdentifier(false)).toBe("JUGS DELI GIFT WHEN");
+  });
+
+  it("should produce correct bytemoji identifier for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+
+    // From Rust: xid.bytemoji_identifier(true) == "🅧 🌊 😹 🌽 🐞"
+    expect(xid.bytemojisIdentifier(true)).toBe("🅧 🌊 😹 🌽 🐞");
+    expect(xid.bytemojisIdentifier(false)).toBe("🌊 😹 🌽 🐞");
+  });
+
+  it("should produce correct toString for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+    expect(xid.toString()).toBe(`XID(${TEST_XID_HEX})`);
+  });
+
+  it("should produce correct CBOR diagnostic notation for known XID", () => {
+    const xid = XID.fromHex(TEST_XID_HEX);
+    const diagnostic = xid.taggedCbor().toDiagnostic();
+
+    // From Rust: 40024(h'71274df133169a0e2d2ffb11cbc7917732acafa31989f685cca6cb69d473b93c')
+    expect(diagnostic).toContain("40024");
+    expect(diagnostic.toLowerCase()).toContain(TEST_XID_HEX.toLowerCase());
   });
 });

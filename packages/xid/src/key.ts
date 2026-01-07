@@ -15,10 +15,10 @@ import type { EnvelopeEncodableValue } from "@bcts/envelope";
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
 import {
   Salt,
-  Reference,
+  type Reference,
   PublicKeys,
   PrivateKeys,
-  PrivateKeyBase,
+  type PrivateKeyBase,
   type Verifier,
   type Signature,
 } from "@bcts/components";
