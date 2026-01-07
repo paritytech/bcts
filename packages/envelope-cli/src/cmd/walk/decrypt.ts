@@ -2,10 +2,11 @@
  * Walk decrypt command - 1:1 port of cmd/walk/decrypt.rs
  *
  * Decrypt nodes using provided keys.
+ *
+ * NOTE: Walk decrypt is not yet implemented in the TypeScript version.
  */
 
 import type { Envelope } from "@bcts/envelope";
-import { SymmetricKey } from "@bcts/components";
 
 /**
  * Command arguments for the decrypt command.
@@ -18,8 +19,11 @@ export interface CommandArgs {
 /**
  * Execute decrypt with envelope.
  */
-export function execWithEnvelope(args: CommandArgs, envelope: Envelope): string {
-  const symmetricKeys = args.keys.map((urString) => SymmetricKey.fromURString(urString));
-  const result = envelope.walkDecrypt(symmetricKeys);
-  return result.urString();
+export function execWithEnvelope(_args: CommandArgs, _envelope: Envelope): string {
+  // walkDecrypt is not yet implemented in @bcts/envelope
+  // The Rust version walks the tree and decrypts all encrypted nodes
+  throw new Error(
+    "Walk decrypt is not yet implemented in the TypeScript CLI. " +
+      "Use the 'decrypt' command for single envelope decryption.",
+  );
 }

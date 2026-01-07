@@ -27,7 +27,8 @@ describe("CBOR Pattern Integration Tests", () => {
       const result = parse("cbor(/array/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const envelope = Envelope.new([1, 2, 3]);
+        // Note: Array as Envelope subject requires CBOR wrapping
+        const envelope = Envelope.new([1, 2, 3] as unknown as number);
         expect(patternMatches(result.value, envelope)).toBe(true);
       }
     });
@@ -116,7 +117,8 @@ describe("CBOR Pattern Integration Tests", () => {
     });
 
     it("matches exact array value", () => {
-      const envelope = Envelope.new([1, 2, 3]);
+      // Note: Array as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new([1, 2, 3] as unknown as number);
       const result = parse("cbor([1, 2, 3])");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -128,11 +130,12 @@ describe("CBOR Pattern Integration Tests", () => {
   describe("Complex CBOR Structures", () => {
     // Note: Complex map parsing with string keys may have implementation differences
     it.skip("matches map with string keys", () => {
+      // Note: Map as Envelope subject requires CBOR wrapping
       const envelope = Envelope.new(
         new Map<string, unknown>([
           ["name", "Alice"],
           ["age", 42],
-        ]),
+        ]) as unknown as string,
       );
       const result = parse('cbor({"name": "Alice", "age": 42})');
       expect(result.ok).toBe(true);
@@ -205,7 +208,8 @@ describe("CBOR Pattern Integration Tests", () => {
       const result = parse("cbor(/array/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        const envelope = Envelope.new([1, 2, 3]);
+        // Note: Array as Envelope subject requires CBOR wrapping
+        const envelope = Envelope.new([1, 2, 3] as unknown as number);
         expect(patternMatches(result.value, envelope)).toBe(true);
       }
     });

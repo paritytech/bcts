@@ -38,3 +38,4 @@ export {
 
 // Export the run function for programmatic use
 export { run } from "./run.js";
+export type { RunOptions, RunResult, Command } from "./run.js";

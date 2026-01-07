@@ -17,13 +17,21 @@ export * from "./extension";
 // Import registration functions and call them to ensure proper initialization order
 import { registerEncryptExtension } from "./extension/encrypt";
 import { registerCompressExtension } from "./extension/compress";
+import { registerSecretExtension } from "./extension/secret";
+import { registerSskrExtension } from "./extension/sskr";
 registerEncryptExtension();
 registerCompressExtension();
+registerSecretExtension();
+registerSskrExtension();
 
 // Re-export everything from the format module
 // Import for side effects (registers prototype extensions like treeFormat)
 import "./format";
-export type * from "./format";
+export * from "./format";
+
+// Import seal module for side effects (registers prototype extensions)
+import "./seal";
+export { registerSealExtension } from "./seal";
 
 // Re-export everything from the utils module
 export * from "./utils";

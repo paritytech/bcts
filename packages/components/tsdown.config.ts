@@ -23,6 +23,7 @@ export default defineConfig({
       "@noble/post-quantum/ml-dsa.js": "noblePostQuantumMldsa",
       "@noble/post-quantum/ml-kem.js": "noblePostQuantumMlkem",
       "@scure/sr25519": "scureSr25519",
+      pako: "pako",
     },
   },
 });

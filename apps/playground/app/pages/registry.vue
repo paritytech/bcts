@@ -366,12 +366,12 @@ const ianaStats = computed(() => ({
                   <td class="px-4 py-3">
                     <div class="flex flex-col gap-0.5">
                       <span
-                        v-for="(ref, idx) in tag.references.slice(0, 2)"
+                        v-for="(reference, idx) in tag.references.slice(0, 2)"
                         :key="idx"
                         class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]"
-                        :title="ref"
+                        :title="reference"
                       >
-                        {{ ref }}
+                        {{ reference }}
                       </span>
                       <span v-if="tag.references.length > 2" class="text-xs text-gray-400">
                         +{{ tag.references.length - 2 }} more

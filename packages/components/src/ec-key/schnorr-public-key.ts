@@ -26,8 +26,9 @@
 import { SCHNORR_PUBLIC_KEY_SIZE, schnorrVerify } from "@bcts/crypto";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
+import type { ECKeyBase } from "./ec-key-base.js";
 
-export class SchnorrPublicKey {
+export class SchnorrPublicKey implements ECKeyBase {
   static readonly KEY_SIZE = SCHNORR_PUBLIC_KEY_SIZE;
 
   private readonly _data: Uint8Array;

@@ -6,13 +6,7 @@
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import {
-  PrivateKeyBase,
-  PublicKeys,
-  SigningPrivateKey,
-  SigningPublicKey,
-  type Verifier,
-} from "@bcts/components";
+import { PublicKeys, SigningPublicKey, type Verifier } from "@bcts/components";
 
 /**
  * Command arguments for the verify command.
@@ -52,55 +46,29 @@ export class VerifyCommand implements Exec {
       throw new Error("at least one verifier must be provided");
     }
 
-    const privateKeyBases: PrivateKeyBase[] = [];
-    const publicKeysVec: PublicKeys[] = [];
-    const signingPrivateKeys: SigningPrivateKey[] = [];
-    const signingPublicKeys: SigningPublicKey[] = [];
+    const verifiers: Verifier[] = [];
 
     for (const v of this.args.verifiers) {
-      // Try parsing as different key types
-      try {
-        const key = PrivateKeyBase.fromURString(v);
-        privateKeyBases.push(key);
-        continue;
-      } catch {
-        // Not a PrivateKeyBase
-      }
-
+      // Try parsing as PublicKeys (most common for CLI)
       try {
         const key = PublicKeys.fromURString(v);
-        publicKeysVec.push(key);
+        verifiers.push(key);
         continue;
       } catch {
         // Not a PublicKeys
       }
 
-      try {
-        const key = SigningPrivateKey.fromURString(v);
-        signingPrivateKeys.push(key);
-        continue;
-      } catch {
-        // Not a SigningPrivateKey
-      }
-
+      // Try parsing as SigningPublicKey
       try {
         const key = SigningPublicKey.fromURString(v);
-        signingPublicKeys.push(key);
+        verifiers.push(key);
         continue;
       } catch {
         // Not a SigningPublicKey
       }
 
-      throw new Error(`invalid verifier: ${v}`);
+      throw new Error(`invalid verifier: ${v}. Must be ur:crypto-pubkeys or ur:signing-public-key`);
     }
-
-    // Build verifiers array
-    const verifiers: Verifier[] = [
-      ...privateKeyBases,
-      ...publicKeysVec,
-      ...signingPrivateKeys,
-      ...signingPublicKeys,
-    ];
 
     // Verify signatures
     envelope.verifySignaturesFromThreshold(verifiers, this.args.threshold);

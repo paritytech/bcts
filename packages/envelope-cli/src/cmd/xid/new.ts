@@ -4,7 +4,7 @@
  * Create a new XID document from an inception key.
  */
 
-import { XIDDocument, XIDInceptionKeyOptions } from "@bcts/xid";
+import { XIDDocument, type XIDInceptionKeyOptions } from "@bcts/xid";
 import { PrivateKeyBase, PrivateKeys, PublicKeys } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 
@@ -84,26 +84,44 @@ export class NewCommand implements Exec {
 
     // Try parsing as different key types
     let xidDocument: XIDDocument;
+    let keyOptions: XIDInceptionKeyOptions | undefined;
 
+    // Try parsing as PrivateKeyBase
     try {
       const privateKeyBase = PrivateKeyBase.fromURString(this.args.keys);
-      xidDocument = XIDDocument.new(XIDInceptionKeyOptions.privateKeyBase(privateKeyBase));
+      keyOptions = { type: "privateKeyBase", privateKeyBase };
     } catch {
+      // Not a PrivateKeyBase
+    }
+
+    // Try parsing as PrivateKeys
+    if (!keyOptions) {
       try {
         const privateKeys = PrivateKeys.fromURString(this.args.keys);
         const publicKeys = privateKeys.publicKeys();
-        xidDocument = XIDDocument.new(
-          XIDInceptionKeyOptions.publicAndPrivateKeys(publicKeys, privateKeys),
-        );
+        // Note: The TypeScript XIDInceptionKeyOptions doesn't have a
+        // publicAndPrivateKeys variant - use publicKeys only
+        keyOptions = { type: "publicKeys", publicKeys };
       } catch {
-        try {
-          const publicKeys = PublicKeys.fromURString(this.args.keys);
-          xidDocument = XIDDocument.new(XIDInceptionKeyOptions.publicKeys(publicKeys));
-        } catch {
-          throw new Error("Invalid inception key format");
-        }
+        // Not a PrivateKeys
       }
     }
+
+    // Try parsing as PublicKeys
+    if (!keyOptions) {
+      try {
+        const publicKeys = PublicKeys.fromURString(this.args.keys);
+        keyOptions = { type: "publicKeys", publicKeys };
+      } catch {
+        // Not a PublicKeys
+      }
+    }
+
+    if (!keyOptions) {
+      throw new Error("Invalid inception key format");
+    }
+
+    xidDocument = XIDDocument.new(keyOptions);
 
     // Update key with nickname if provided
     if (this.args.nickname) {

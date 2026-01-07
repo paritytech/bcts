@@ -2,11 +2,14 @@
  * Import command - 1:1 port of cmd/import.rs
  *
  * Import the given object to UR form.
+ *
+ * NOTE: SSH key import is not yet implemented in the TypeScript version.
+ * This requires OpenSSH key format parsing which is complex and depends on
+ * bcrypt_pbkdf for encrypted keys.
  */
 
-import { SigningPrivateKey, SigningPublicKey, Signature } from "@bcts/components";
 import type { ExecAsync } from "../exec.js";
-import { readArgument, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
+import { readArgument, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
 
@@ -38,42 +41,18 @@ export class ImportCommand implements ExecAsync {
   constructor(private args: CommandArgs) {}
 
   async exec(): Promise<string> {
-    const object = readArgument(this.args.object);
+    // Validate that an object was provided
+    readArgument(this.args.object);
 
-    // Try SSH private key
-    try {
-      const signingPrivateKey = SigningPrivateKey.fromOpenssh(object);
-      if (signingPrivateKey.isEncrypted()) {
-        const password = await readPassword(
-          "Key decryption password: ",
-          this.args.password,
-          this.args.askpass,
-        );
-        return signingPrivateKey.decrypt(password).urString();
-      }
-      return signingPrivateKey.urString();
-    } catch {
-      // Not an SSH private key
-    }
-
-    // Try SSH public key
-    try {
-      const signingPublicKey = SigningPublicKey.fromOpenssh(object);
-      return signingPublicKey.urString();
-    } catch {
-      // Not an SSH public key
-    }
-
-    // Try SSH signature
-    try {
-      const signature = Signature.fromSshPem(object);
-      return signature.urString();
-    } catch {
-      // Not an SSH signature
-    }
-
+    // SSH key import is not yet implemented
+    // This requires:
+    // - SigningPrivateKey.fromOpenssh() - Parse OpenSSH private key format
+    // - SigningPublicKey.fromOpenssh() - Parse OpenSSH public key format
+    // - Signature.fromSshPem() - Parse SSH signature PEM format
+    // - Encrypted key support requires bcrypt_pbkdf
     throw new Error(
-      "Invalid object for import. Supported types are SSH private key, public key, and signature.",
+      "SSH key import is not yet implemented in the TypeScript CLI. " +
+        "This feature requires OpenSSH key format parsing support in @bcts/components.",
     );
   }
 }

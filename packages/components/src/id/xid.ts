@@ -44,9 +44,17 @@ import {
   tagsForValues,
 } from "@bcts/dcbor";
 import { XID as TAG_XID } from "@bcts/tags";
-import { UR, type UREncodable } from "@bcts/uniform-resources";
+import {
+  UR,
+  type UREncodable,
+  encodeBytewordsIdentifier,
+  encodeBytemojisIdentifier,
+} from "@bcts/uniform-resources";
 import { CryptoError } from "../error.js";
 import { bytesToHex, toBase64 } from "../utils.js";
+
+/** XID prefix for bytewords/bytemoji identifiers */
+const XID_PREFIX = "🅧";
 
 const XID_SIZE = 32;
 
@@ -177,6 +185,28 @@ export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREnc
    */
   shortReference(): string {
     return this.shortDescription();
+  }
+
+  /**
+   * Get the first four bytes of the XID as upper-case ByteWords.
+   *
+   * @param prefix - If true, prepends the XID prefix "🅧 "
+   * @returns Space-separated uppercase bytewords, e.g., "🅧 URGE DICE GURU IRIS"
+   */
+  bytewordsIdentifier(prefix = false): string {
+    const words = encodeBytewordsIdentifier(this._data.slice(0, 4)).toUpperCase();
+    return prefix ? `${XID_PREFIX} ${words}` : words;
+  }
+
+  /**
+   * Get the first four bytes of the XID as Bytemoji.
+   *
+   * @param prefix - If true, prepends the XID prefix "🅧 "
+   * @returns Space-separated emojis, e.g., "🅧 🐻 😻 🍞 💐"
+   */
+  bytemojisIdentifier(prefix = false): string {
+    const emojis = encodeBytemojisIdentifier(this._data.slice(0, 4));
+    return prefix ? `${XID_PREFIX} ${emojis}` : emojis;
   }
 
   /**

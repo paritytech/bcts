@@ -42,7 +42,7 @@ export class SSKRError extends Error {
       case SSKRErrorType.DuplicateMemberIndex:
         return "When combining shares, the provided shares contained a duplicate member index";
       case SSKRErrorType.GroupSpecInvalid:
-        return "Invalid group specification";
+        return "Invalid group specification.";
       case SSKRErrorType.GroupCountInvalid:
         return "When creating a split spec, the group count is invalid";
       case SSKRErrorType.GroupThresholdInvalid:

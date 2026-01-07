@@ -13,7 +13,7 @@ import {
   SYMMETRIC_NONCE_SIZE,
   SYMMETRIC_AUTH_SIZE,
 } from "@bcts/crypto";
-import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
+import { SecureRandomNumberGenerator, rngRandomData, type RandomNumberGenerator } from "@bcts/rand";
 
 /// Extension for public-key encryption to specific recipients.
 ///
@@ -107,6 +107,11 @@ export class PrivateKeyBase {
   /// Generates a new random X25519 key pair
   static generate(): PrivateKeyBase {
     const rng = new SecureRandomNumberGenerator();
+    return PrivateKeyBase.generateUsing(rng);
+  }
+
+  /// Generates a new X25519 key pair using the provided RNG
+  static generateUsing(rng: RandomNumberGenerator): PrivateKeyBase {
     const privateKey = x25519NewPrivateKeyUsing(rng);
     const publicKey = x25519PublicKeyFromPrivateKey(privateKey);
     return new PrivateKeyBase(privateKey, publicKey);
@@ -294,7 +299,7 @@ if (Envelope?.prototype) {
     recipientPublicKey: PublicKeyBase,
   ): Envelope {
     // Generate a random content key
-    const contentKey = SymmetricKey.generate();
+    const contentKey = SymmetricKey.new();
 
     // Encrypt the subject with the content key
     const encrypted = this.encryptSubject(contentKey);
@@ -313,7 +318,7 @@ if (Envelope?.prototype) {
     }
 
     // Generate a random content key
-    const contentKey = SymmetricKey.generate();
+    const contentKey = SymmetricKey.new();
 
     // Encrypt the subject with the content key
     let result = this.encryptSubject(contentKey);

@@ -2,9 +2,15 @@
 
 import { toBase64, fromBase64, bytesToHex } from "./utils.js";
 import { type Cbor } from "@bcts/dcbor";
+import { Envelope } from "@bcts/envelope";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
-import { type ProvenanceMarkResolution, linkLength } from "./resolution.js";
+import {
+  type ProvenanceMarkResolution,
+  linkLength,
+  resolutionToNumber,
+  resolutionFromCbor,
+} from "./resolution.js";
 import { ProvenanceSeed } from "./seed.js";
 import { RngState } from "./rng-state.js";
 import { sha256 } from "./crypto-utils.js";
@@ -177,6 +183,130 @@ export class ProvenanceMarkGenerator {
     const chainId = fromBase64(json["chainID"] as string);
     const nextSeq = json["nextSeq"] as number;
     const rngState = RngState.fromBytes(fromBase64(json["rngState"] as string));
+    return ProvenanceMarkGenerator.new(res, seed, chainId, nextSeq, rngState);
+  }
+
+  // ============================================================================
+  // Envelope Support (EnvelopeEncodable)
+  // ============================================================================
+
+  /**
+   * Convert this generator to a Gordian Envelope.
+   *
+   * The envelope contains structured assertions for all generator fields:
+   * - isA: "provenance-generator"
+   * - res: The resolution
+   * - seed: The seed
+   * - next-seq: The next sequence number
+   * - rng-state: The RNG state
+   *
+   * Note: Use provenanceMarkGeneratorToEnvelope() for a standalone function alternative.
+   */
+  intoEnvelope(): Envelope {
+    // Create envelope with chain ID as subject
+    let envelope = Envelope.new(this._chainId);
+
+    // Add type assertion
+    envelope = envelope.addAssertion("isA", "provenance-generator");
+
+    // Add resolution
+    envelope = envelope.addAssertion("res", resolutionToNumber(this._res));
+
+    // Add seed
+    envelope = envelope.addAssertion("seed", this._seed.toBytes());
+
+    // Add next sequence number
+    envelope = envelope.addAssertion("next-seq", this._nextSeq);
+
+    // Add RNG state
+    envelope = envelope.addAssertion("rng-state", this._rngState.toBytes());
+
+    return envelope;
+  }
+
+  /**
+   * Extract a ProvenanceMarkGenerator from a Gordian Envelope.
+   *
+   * @param envelope - The envelope to extract from
+   * @returns The extracted generator
+   * @throws ProvenanceMarkError if extraction fails
+   */
+  static fromEnvelope(envelope: Envelope): ProvenanceMarkGenerator {
+    type EnvelopeExt = Envelope & {
+      asByteString(): Uint8Array | undefined;
+      hasType(t: string): boolean;
+      assertionsWithPredicate(p: string): Envelope[];
+      subject(): Envelope;
+    };
+
+    const env = envelope as EnvelopeExt;
+
+    // Check type
+    if (!env.hasType("provenance-generator")) {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: "Envelope is not a provenance-generator",
+      });
+    }
+
+    // Extract chain ID from subject
+    const subject = env.subject() as EnvelopeExt;
+    const chainId = subject.asByteString();
+    if (chainId === undefined) {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: "Could not extract chain ID",
+      });
+    }
+
+    // Helper to extract assertion object value
+    const extractAssertion = (predicate: string): { cbor: Cbor; bytes: Uint8Array | undefined } => {
+      const assertions = env.assertionsWithPredicate(predicate);
+      if (assertions.length === 0) {
+        throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+          message: `Missing ${predicate} assertion`,
+        });
+      }
+      const assertionCase = assertions[0].case();
+      if (assertionCase.type !== "assertion") {
+        throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+          message: `Invalid ${predicate} assertion`,
+        });
+      }
+      const obj = assertionCase.assertion.object() as EnvelopeExt;
+      const objCase = obj.case();
+      if (objCase.type === "leaf") {
+        return { cbor: objCase.cbor, bytes: obj.asByteString() };
+      }
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: `Invalid ${predicate} value`,
+      });
+    };
+
+    // Extract resolution
+    const resValue = extractAssertion("res");
+    const res = resolutionFromCbor(resValue.cbor);
+
+    // Extract seed
+    const seedValue = extractAssertion("seed");
+    if (seedValue.bytes === undefined) {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: "Invalid seed data",
+      });
+    }
+    const seed = ProvenanceSeed.fromBytes(seedValue.bytes);
+
+    // Extract next-seq
+    const seqValue = extractAssertion("next-seq");
+    const nextSeq = Number(seqValue.cbor);
+
+    // Extract rng-state
+    const rngValue = extractAssertion("rng-state");
+    if (rngValue.bytes === undefined) {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: "Invalid rng-state data",
+      });
+    }
+    const rngState = RngState.fromBytes(rngValue.bytes);
+
     return ProvenanceMarkGenerator.new(res, seed, chainId, nextSeq, rngState);
   }
 }

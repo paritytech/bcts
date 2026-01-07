@@ -18,8 +18,6 @@ import {
   traverse,
   anyNumber,
   anyText,
-  number,
-  text,
   numberGreaterThan,
   numberLessThan,
   anySubject,
@@ -125,7 +123,7 @@ describe("Meta Pattern Tests", () => {
 
       expect(paths.length).toBeGreaterThan(0);
       expect(captures.has("myNumber")).toBe(true);
-      expect(captures.get("myNumber")!.length).toBeGreaterThan(0);
+      expect(captures.get("myNumber")?.length).toBeGreaterThan(0);
     });
 
     it.skip("does not capture when pattern does not match", () => {
@@ -156,7 +154,8 @@ describe("Meta Pattern Tests", () => {
 
   describe("Traverse Pattern", () => {
     it("traverses through pattern sequence", () => {
-      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob");
+      // Create test envelope for pattern context
+      Envelope.new("Alice").addAssertion("knows", "Bob");
 
       // Note: Traverse functionality depends on VM implementation
       const traversePat = traverse([anySubject(), anyAssertion()]);

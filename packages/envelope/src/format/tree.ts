@@ -1,6 +1,33 @@
 import { Envelope } from "../base/envelope";
 import { type EdgeType, edgeLabel } from "../base/walk";
 
+// ============================================================================
+// DigestDisplayFormat - Enum for digest display formatting
+// ============================================================================
+
+/**
+ * Specifies the format for displaying envelope digests in tree output.
+ *
+ * Ported from bc-envelope-rust/src/format/tree/format/digest.rs
+ */
+export enum DigestDisplayFormat {
+  /**
+   * Short format: first 7 hex characters of the digest.
+   * This is the default format.
+   */
+  Short = "short",
+
+  /**
+   * Full format: complete 64 hex character digest.
+   */
+  Full = "full",
+
+  /**
+   * UR format: digest encoded as a UR string.
+   */
+  UR = "ur",
+}
+
 /// Tree formatting for Gordian Envelopes.
 ///
 /// This module provides functionality for creating textual tree
@@ -22,7 +49,7 @@ export interface TreeFormatOptions {
   /// Set of digest strings to highlight in the tree
   highlightDigests?: Set<string>;
   /// Format for displaying digests: "short" (7 hex chars), "full" (64 hex chars), or "ur" (UR string)
-  digestDisplay?: "short" | "full" | "ur";
+  digestDisplay?: DigestDisplayFormat | "short" | "full" | "ur";
 }
 
 /// Represents an element in the tree representation

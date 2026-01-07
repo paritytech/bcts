@@ -9,11 +9,31 @@ import { readEnvelope } from "../utils.js";
 import { bytesToHex } from "../data-types.js";
 import { Envelope } from "@bcts/envelope";
 import { ARID, Digest, URI, UUID } from "@bcts/components";
-import { CborDate, isTagged, tagValue, tagContent, cborData } from "@bcts/dcbor";
+import {
+  type Cbor,
+  CborDate,
+  isTagged,
+  tagValue,
+  tagContent,
+  cborData,
+  expectBoolean,
+  expectNumber,
+  expectText,
+  expectBytes,
+} from "@bcts/dcbor";
 import { KnownValue } from "@bcts/known-values";
 import { UR } from "@bcts/uniform-resources";
 import { XID } from "@bcts/xid";
 import { getGlobalTagsStore, ENVELOPE } from "@bcts/tags";
+
+// Helper functions to extract types from CBOR
+const extractARID = (cbor: Cbor): ARID => ARID.fromTaggedCbor(cbor);
+const extractDigest = (cbor: Cbor): Digest => Digest.fromTaggedCbor(cbor);
+const extractURI = (cbor: Cbor): URI => URI.fromTaggedCbor(cbor);
+const extractUUID = (cbor: Cbor): UUID => UUID.fromTaggedCbor(cbor);
+const extractCborDate = (cbor: Cbor): CborDate => CborDate.fromTaggedCbor(cbor);
+const extractXID = (cbor: Cbor): XID => XID.fromTaggedCbor(cbor);
+const extractKnownValue = (cbor: Cbor): KnownValue => KnownValue.fromTaggedCbor(cbor);
 
 /**
  * Subject types that can be extracted.
@@ -90,37 +110,37 @@ export class ExtractCommand implements Exec {
       case SubjectType.Predicate:
         return this.extractPredicate(envelope);
       case SubjectType.Arid:
-        return envelope.extractSubject(ARID).urString();
+        return envelope.extractSubject(extractARID).urString();
       case SubjectType.AridHex:
-        return envelope.extractSubject(ARID).hex();
+        return envelope.extractSubject(extractARID).hex();
       case SubjectType.Bool:
-        return envelope.extractSubject(Boolean).toString();
+        return envelope.extractSubject((cbor) => expectBoolean(cbor)).toString();
       case SubjectType.Cbor:
         return this.extractCborString(envelope);
       case SubjectType.Data:
-        return bytesToHex(envelope.subject().expectLeaf().expectByteString());
+        return bytesToHex(expectBytes(envelope.subject().expectLeaf() as Cbor));
       case SubjectType.Date:
-        return envelope.extractSubject(CborDate).toString();
+        return envelope.extractSubject(extractCborDate).toString();
       case SubjectType.Digest:
-        return envelope.extractSubject(Digest).urString();
+        return envelope.extractSubject(extractDigest).urString();
       case SubjectType.Envelope:
         return envelope.subject().urString();
       case SubjectType.Known:
         return this.extractKnownValueString(envelope);
       case SubjectType.Number:
-        return envelope.extractSubject(Number).toString();
+        return envelope.extractSubject((cbor) => expectNumber(cbor)).toString();
       case SubjectType.String:
-        return envelope.extractSubject(String);
+        return envelope.extractSubject((cbor) => expectText(cbor));
       case SubjectType.Ur:
         return this.extractUr(envelope);
       case SubjectType.Uri:
-        return envelope.extractSubject(URI).toString();
+        return envelope.extractSubject(extractURI).toString();
       case SubjectType.Uuid:
-        return envelope.extractSubject(UUID).toString();
+        return envelope.extractSubject(extractUUID).toString();
       case SubjectType.Wrapped:
         return envelope.unwrap().urString();
       case SubjectType.Xid:
-        return envelope.extractSubject(XID).urString();
+        return envelope.extractSubject(extractXID).urString();
     }
   }
 
@@ -169,6 +189,10 @@ export class ExtractCommand implements Exec {
       const tag = tagValue(leaf);
       const untaggedCbor = tagContent(leaf);
 
+      if (tag === undefined || untaggedCbor === undefined) {
+        throw new Error("Invalid tagged value");
+      }
+
       // Look up the tag name
       const tagsStore = getGlobalTagsStore();
       const knownTag = tagsStore.tagForValue(tag);
@@ -205,7 +229,7 @@ export class ExtractCommand implements Exec {
 
   private extractKnownValueString(envelope: Envelope): string {
     // Verify it's a known value
-    envelope.extractSubject(KnownValue);
+    envelope.extractSubject(extractKnownValue);
     return envelope.subject().format();
   }
 
@@ -218,7 +242,7 @@ export class ExtractCommand implements Exec {
     }
 
     if (subject.isWrapped()) {
-      return bytesToHex(cborData(envelope.unwrap().toCbor()));
+      return bytesToHex(cborData(envelope.unwrap().toCbor() as Cbor));
     }
 
     const knownValue = subject.asKnownValue();

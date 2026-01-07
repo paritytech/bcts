@@ -2,6 +2,7 @@
 import { Envelope } from "./envelope";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";
 import { EnvelopeError } from "./error";
+import { POSITION } from "@bcts/known-values";
 
 /// Provides methods for querying envelope structure and extracting data.
 ///
@@ -241,4 +242,96 @@ Envelope.prototype.elementsCount = function (this: Envelope): number {
   }
 
   return count;
+};
+
+// ============================================================================
+// Subject State Queries
+// ============================================================================
+
+/// Implementation of isSubjectEncrypted()
+Envelope.prototype.isSubjectEncrypted = function (this: Envelope): boolean {
+  const c = this.case();
+  if (c.type === "encrypted") {
+    return true;
+  }
+  if (c.type === "node") {
+    return c.subject.isSubjectEncrypted();
+  }
+  return false;
+};
+
+/// Implementation of isSubjectCompressed()
+Envelope.prototype.isSubjectCompressed = function (this: Envelope): boolean {
+  const c = this.case();
+  if (c.type === "compressed") {
+    return true;
+  }
+  if (c.type === "node") {
+    return c.subject.isSubjectCompressed();
+  }
+  return false;
+};
+
+/// Implementation of isSubjectElided()
+Envelope.prototype.isSubjectElided = function (this: Envelope): boolean {
+  const c = this.case();
+  if (c.type === "elided") {
+    return true;
+  }
+  if (c.type === "node") {
+    return c.subject.isSubjectElided();
+  }
+  return false;
+};
+
+// ============================================================================
+// Position Management
+// ============================================================================
+
+/// Implementation of setPosition()
+Envelope.prototype.setPosition = function (this: Envelope, position: number): Envelope {
+  // Find all POSITION assertions
+  const positionAssertions = this.assertionsWithPredicate(POSITION);
+
+  // If there is more than one POSITION assertion, throw an error
+  if (positionAssertions.length > 1) {
+    throw EnvelopeError.invalidFormat();
+  }
+
+  // If there is a single POSITION assertion, remove it and add the new position
+  // Otherwise, just add the new position to this envelope
+  const baseEnvelope =
+    positionAssertions.length === 1 ? this.removeAssertion(positionAssertions[0]) : this;
+
+  // Add a new POSITION assertion with the given position
+  return baseEnvelope.addAssertion(POSITION, position);
+};
+
+/// Implementation of position()
+Envelope.prototype.position = function (this: Envelope): number {
+  // Find the POSITION assertion in the envelope
+  const positionEnvelope = this.objectForPredicate(POSITION);
+
+  // Extract the position value
+  const positionValue = positionEnvelope.extractNumber();
+  return positionValue;
+};
+
+/// Implementation of removePosition()
+Envelope.prototype.removePosition = function (this: Envelope): Envelope {
+  // Find all POSITION assertions
+  const positionAssertions = this.assertionsWithPredicate(POSITION);
+
+  // If there is more than one POSITION assertion, throw an error
+  if (positionAssertions.length > 1) {
+    throw EnvelopeError.invalidFormat();
+  }
+
+  // If there is a single POSITION assertion, remove it
+  if (positionAssertions.length === 1) {
+    return this.removeAssertion(positionAssertions[0]);
+  }
+
+  // No POSITION assertion, return unchanged
+  return this;
 };

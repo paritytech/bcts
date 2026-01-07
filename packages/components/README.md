@@ -12,3 +12,14 @@ Also includes a library of CBOR tags and UR types for use with these types.
 
 This TypeScript implementation is based on [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) **v0.30.0** ([commit](https://github.com/BlockchainCommons/bc-components-rust/tree/f3d0081db048da942f316aa4cb5128af8921edd8)).
 
+### Limitations: SSH Agent Integration
+
+The following features require platform-specific implementations and are not yet functional:
+
+- SSH agent lock/unlock operations
+- SSH signature schemes
+
+These features will throw a `CryptoError` with kind `SshAgent` or `Ssh` when attempted. Use alternative methods:
+- For key derivation: Use `HKDF`, `PBKDF2`, `Scrypt`, or `Argon2id` instead of `SSHAgent`
+- For signing: Use `Ed25519`, `Schnorr`, `Ecdsa`, or `Sr25519` schemes instead of SSH schemes
+

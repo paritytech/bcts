@@ -2,6 +2,11 @@
  * Export command - 1:1 port of cmd/export.rs
  *
  * Export a UR to its native format.
+ *
+ * NOTE: SSH export functionality is partially implemented.
+ * Some SSH features require additional methods in @bcts/components:
+ * - Encrypted SSH private key export (toOpensshEncrypted)
+ * - SSH signature PEM export
  */
 
 import { SigningPrivateKey, SigningPublicKey, PublicKeys, Signature } from "@bcts/components";
@@ -46,22 +51,28 @@ export class ExportCommand implements ExecAsync {
     // Try SSH signing private key
     try {
       const signingPrivateKey = SigningPrivateKey.fromURString(object);
-      const sshPrivateKey = signingPrivateKey.toSsh();
-      if (!sshPrivateKey) {
+
+      // Check if this is an SSH-compatible key type (Ed25519)
+      if (signingPrivateKey.keyType() !== "Ed25519") {
         throw new Error("UR is not an SSH private key.");
       }
 
       if (this.args.encrypt) {
-        const password = await readPassword(
-          "Key encryption password: ",
-          this.args.password,
-          this.args.askpass,
-        );
-        return sshPrivateKey.toOpensshEncrypted(password);
+        // Read the password (for future use when encrypted export is implemented)
+        await readPassword("Key encryption password: ", this.args.password, this.args.askpass);
+        // TODO: Implement encrypted SSH private key export
+        // This requires bcrypt_pbkdf which is not yet available in @bcts/crypto
+        throw new Error("Encrypted SSH private key export is not yet implemented.");
       }
-      return sshPrivateKey.toOpenssh();
+
+      // toSsh() returns the OpenSSH format string directly
+      return signingPrivateKey.toSsh();
     } catch (e) {
-      if ((e as Error).message === "UR is not an SSH private key.") {
+      const msg = (e as Error).message;
+      if (
+        msg === "UR is not an SSH private key." ||
+        msg === "Encrypted SSH private key export is not yet implemented."
+      ) {
         throw e;
       }
       // Not a SigningPrivateKey, try next
@@ -70,11 +81,14 @@ export class ExportCommand implements ExecAsync {
     // Try SSH signing public key
     try {
       const signingPublicKey = SigningPublicKey.fromURString(object);
-      const sshPublicKey = signingPublicKey.toSsh();
-      if (!sshPublicKey) {
+
+      // Check if this is an SSH-compatible key type (Ed25519)
+      if (signingPublicKey.keyType() !== "Ed25519") {
         throw new Error("UR is not an SSH public key.");
       }
-      return sshPublicKey.toOpenssh();
+
+      // toSsh() returns the OpenSSH format string directly
+      return signingPublicKey.toSsh();
     } catch (e) {
       if ((e as Error).message === "UR is not an SSH public key.") {
         throw e;
@@ -85,11 +99,15 @@ export class ExportCommand implements ExecAsync {
     // Try PublicKeys with SSH public key
     try {
       const publicKeys = PublicKeys.fromURString(object);
-      const sshPublicKey = publicKeys.signingPublicKey().toSsh();
-      if (!sshPublicKey) {
+      const signingPublicKey = publicKeys.signingPublicKey();
+
+      // Check if this is an SSH-compatible key type (Ed25519)
+      if (signingPublicKey.keyType() !== "Ed25519") {
         throw new Error("UR is not a PublicKeys with an SSH public key.");
       }
-      return sshPublicKey.toOpenssh();
+
+      // toSsh() returns the OpenSSH format string directly
+      return signingPublicKey.toSsh();
     } catch (e) {
       if ((e as Error).message === "UR is not a PublicKeys with an SSH public key.") {
         throw e;
@@ -99,14 +117,17 @@ export class ExportCommand implements ExecAsync {
 
     // Try SSH signature
     try {
-      const signature = Signature.fromURString(object);
-      const sshSignature = signature.toSsh();
-      if (!sshSignature) {
-        throw new Error("UR is not an SSH signature.");
-      }
-      return sshSignature.toPem();
+      // Parse the signature to validate it (result used for future SSH signature export)
+      Signature.fromURString(object);
+      // TODO: Implement SSH signature PEM export
+      // This requires additional SSH signature format support
+      throw new Error("SSH signature export is not yet implemented.");
     } catch (e) {
-      if ((e as Error).message === "UR is not an SSH signature.") {
+      const msg = (e as Error).message;
+      if (
+        msg === "UR is not an SSH signature." ||
+        msg === "SSH signature export is not yet implemented."
+      ) {
         throw e;
       }
       // Not a Signature

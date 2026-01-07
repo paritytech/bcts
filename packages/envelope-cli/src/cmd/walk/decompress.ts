@@ -2,6 +2,8 @@
  * Walk decompress command - 1:1 port of cmd/walk/decompress.rs
  *
  * Decompress nodes.
+ *
+ * NOTE: Walk decompress is not yet implemented in the TypeScript version.
  */
 
 import type { Envelope } from "@bcts/envelope";
@@ -17,9 +19,13 @@ export interface CommandArgs {}
  */
 export function execWithEnvelopeAndTarget(
   _args: CommandArgs,
-  envelope: Envelope,
-  target: Set<Digest> | undefined,
+  _envelope: Envelope,
+  _target: Set<Digest> | undefined,
 ): string {
-  const result = envelope.walkDecompress(target);
-  return result.urString();
+  // walkDecompress is not yet implemented in @bcts/envelope
+  // The Rust version walks the tree and decompresses all compressed nodes
+  throw new Error(
+    "Walk decompress is not yet implemented in the TypeScript CLI. " +
+      "Use the 'decompress' command for single envelope decompression.",
+  );
 }

@@ -4,12 +4,12 @@
  * Generate private keys.
  * Derives private keys from a seed, private key base, or generates them randomly.
  * The input can be a ur:seed, ur:envelope, or ur:crypto-prvkey-base.
+ *
+ * NOTE: Only Ed25519 signing scheme is currently supported in the TypeScript version.
+ * Schnorr, ECDSA, and SSH key schemes require additional implementation in @bcts/components.
  */
 
-import { Envelope } from "@bcts/envelope";
-import { PrivateKeyBase, Seed, PrivateKeys, EncapsulationPrivateKey } from "@bcts/components";
-import { NAME, NOTE, DATE, SEED_TYPE } from "@bcts/known-values";
-import { CborDate } from "@bcts/dcbor";
+import { PrivateKeyBase, type PrivateKeys } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 
 /**
@@ -49,47 +49,30 @@ export interface CommandArgs {
  */
 export function defaultArgs(): Partial<CommandArgs> {
   return {
-    signing: SigningScheme.Schnorr,
+    signing: SigningScheme.Ed25519,
     encryption: EncryptionScheme.X25519,
   };
 }
 
 /**
- * Parse input as PrivateKeyBase, Seed, or Envelope containing Seed.
+ * Parse input as PrivateKeyBase.
  */
 function parseInput(input: string): PrivateKeyBase {
-  // Try parsing as PrivateKeyBase first
+  // Try parsing as PrivateKeyBase
   try {
     return PrivateKeyBase.fromURString(input);
   } catch {
     // Not a PrivateKeyBase
   }
 
-  // Try parsing as Seed
-  try {
-    const seed = Seed.fromURString(input);
-    return PrivateKeyBase.newWithProvider(seed);
-  } catch {
-    // Not a Seed
-  }
-
-  // Try parsing as Envelope containing a Seed
-  return PrivateKeyBase.newWithProvider(seedFromEnvelope(input));
-}
-
-/**
- * Extract Seed from an Envelope.
- */
-function seedFromEnvelope(input: string): Seed {
-  const envelope = Envelope.fromUrString(input);
-  envelope.checkTypeValue(SEED_TYPE);
-
-  const data = envelope.subject().expectLeaf().expectByteString();
-  const name = envelope.extractOptionalObjectForPredicate<string>(NAME) ?? "";
-  const note = envelope.extractOptionalObjectForPredicate<string>(NOTE) ?? "";
-  const creationDate = envelope.extractOptionalObjectForPredicate<CborDate>(DATE);
-
-  return Seed.newOpt(data, name || undefined, note || undefined, creationDate);
+  // Note: Seed derivation is not yet implemented
+  // The Rust version supports:
+  // - ur:seed input with PrivateKeyBase.newWithProvider(seed)
+  // - ur:envelope containing a seed
+  throw new Error(
+    "Only ur:crypto-prvkey-base input is currently supported. " +
+      "Seed derivation is not yet implemented in the TypeScript version.",
+  );
 }
 
 /**
@@ -103,30 +86,28 @@ export class PrvKeysCommand implements Exec {
 
     let privateKeys: PrivateKeys;
     switch (this.args.signing) {
-      case SigningScheme.Schnorr:
-        privateKeys = privateKeyBase.schnorrPrivateKeys();
-        break;
-      case SigningScheme.Ecdsa:
-        privateKeys = privateKeyBase.ecdsaPrivateKeys();
-        break;
       case SigningScheme.Ed25519:
-        privateKeys = PrivateKeys.withKeys(
-          privateKeyBase.ed25519SigningPrivateKey(),
-          EncapsulationPrivateKey.x25519(privateKeyBase.x25519PrivateKey()),
+        // Ed25519 with X25519 encapsulation - the only fully supported scheme
+        privateKeys = privateKeyBase.ed25519PrivateKeys();
+        break;
+
+      case SigningScheme.Schnorr:
+      case SigningScheme.Ecdsa:
+        // Not yet implemented - requires schnorrPrivateKeys()/ecdsaPrivateKeys() on PrivateKeyBase
+        throw new Error(
+          `${this.args.signing} signing scheme is not yet implemented in the TypeScript version. ` +
+            "Use --signing ed25519 instead.",
         );
-        break;
+
       case SigningScheme.SshEd25519:
-        privateKeys = privateKeyBase.sshPrivateKeys("ed25519", "");
-        break;
       case SigningScheme.SshDsa:
-        privateKeys = privateKeyBase.sshPrivateKeys("dsa", "");
-        break;
       case SigningScheme.SshEcdsaP256:
-        privateKeys = privateKeyBase.sshPrivateKeys("ecdsa-p256", "");
-        break;
       case SigningScheme.SshEcdsaP384:
-        privateKeys = privateKeyBase.sshPrivateKeys("ecdsa-p384", "");
-        break;
+        // SSH key generation not yet implemented
+        throw new Error(
+          `SSH ${this.args.signing} key generation is not yet implemented in the TypeScript version. ` +
+            "Use --signing ed25519 instead.",
+        );
     }
 
     return privateKeys.urString();

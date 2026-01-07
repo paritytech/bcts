@@ -1,22 +1,18 @@
 /**
- * SSKR Integration - CBOR/UR wrappers for SSKR shares
+ * SSKR Integration - CBOR wrappers for SSKR shares
  *
- * This module provides CBOR and UR serialization for SSKR (Sharded Secret Key
+ * This module provides CBOR serialization for SSKR (Sharded Secret Key
  * Reconstruction) shares. It wraps the core SSKR functionality from
- * @bcts/sskr with CBOR tags and UR encoding.
+ * @bcts/sskr with CBOR tags.
  *
  * # CBOR Serialization
  *
- * SSKRShareCbor is serialized with tag 40309:
+ * SSKRShare is serialized with tag 40309:
  * ```
  * #6.40309(h'<share-bytes>')
  * ```
  *
  * Legacy tag 309 is also supported for reading.
- *
- * # UR Serialization
- *
- * UR type: `sskr`
  *
  * Ported from bc-components-rust/src/sskr_mod.rs
  */
@@ -34,7 +30,6 @@ import {
   tagsForValues,
   tagValue,
 } from "@bcts/dcbor";
-import { UR, type UREncodable } from "@bcts/uniform-resources";
 import { SSKR_SHARE as TAG_SSKR_SHARE, SSKR_SHARE_V1 as TAG_SSKR_SHARE_V1 } from "@bcts/tags";
 
 import { bytesToHex, hexToBytes } from "./utils.js";
@@ -46,6 +41,7 @@ import {
   GroupSpec as SSKRGroupSpec,
   Spec as SSKRSpec,
 } from "@bcts/sskr";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 // Re-export from sskr package
 export { sskrGenerate, sskrGenerateUsing, sskrCombine, SSKRSecret, SSKRGroupSpec, SSKRSpec };
@@ -63,9 +59,7 @@ const METADATA_SIZE_BYTES = 5;
  * - Member index (1 byte): reserved (4 bits, must be 0) + member_index (4 bits)
  * - Share value (variable length)
  */
-export class SSKRShareCbor
-  implements CborTaggedEncodable, CborTaggedDecodable<SSKRShareCbor>, UREncodable
-{
+export class SSKRShareCbor implements CborTaggedEncodable, CborTaggedDecodable<SSKRShareCbor> {
   private readonly _data: Uint8Array;
 
   private constructor(data: Uint8Array) {
@@ -211,10 +205,11 @@ export class SSKRShareCbor
   // ============================================================================
 
   /**
-   * Returns the CBOR tags associated with SSKRShareCbor.
+   * Returns the CBOR tags associated with SSKRShare.
+   * Includes both current tag (40309) and legacy tag (309) for compatibility.
    */
   cborTags(): Tag[] {
-    return tagsForValues([TAG_SSKR_SHARE.value]);
+    return tagsForValues([TAG_SSKR_SHARE.value, TAG_SSKR_SHARE_V1.value]);
   }
 
   /**
@@ -292,75 +287,118 @@ export class SSKRShareCbor
     const dummy = new SSKRShareCbor(new Uint8Array(METADATA_SIZE_BYTES + 16));
     return dummy.fromUntaggedCbor(cborValue);
   }
-
-  // ============================================================================
-  // UR Serialization (UREncodable)
-  // ============================================================================
-
-  /**
-   * Returns the UR representation.
-   */
-  ur(): UR {
-    const name = TAG_SSKR_SHARE.name;
-    if (name === undefined) {
-      throw new Error("SSKR_SHARE tag name is undefined");
-    }
-    return UR.new(name, this.untaggedCbor());
-  }
-
-  /**
-   * Returns the UR string representation.
-   */
-  urString(): string {
-    return this.ur().string();
-  }
-
-  /**
-   * Creates an SSKRShareCbor from a UR.
-   */
-  static fromUR(ur: UR): SSKRShareCbor {
-    // Accept both current and legacy UR types
-    if (ur.urTypeStr() !== TAG_SSKR_SHARE.name && ur.urTypeStr() !== TAG_SSKR_SHARE_V1.name) {
-      throw new Error(
-        `Expected UR type ${TAG_SSKR_SHARE.name} or ${TAG_SSKR_SHARE_V1.name}, got ${ur.urTypeStr()}`,
-      );
-    }
-    const dummy = new SSKRShareCbor(new Uint8Array(METADATA_SIZE_BYTES + 16));
-    return dummy.fromUntaggedCbor(ur.cbor());
-  }
-
-  /**
-   * Creates an SSKRShareCbor from a UR string.
-   */
-  static fromURString(urString: string): SSKRShareCbor {
-    const ur = UR.fromURString(urString);
-    return SSKRShareCbor.fromUR(ur);
-  }
 }
 
 // ============================================================================
-// Helper Functions for generating/combining shares with CBOR wrappers
+// Type Alias for Rust Parity
 // ============================================================================
 
 /**
- * Generate SSKR shares with CBOR wrappers.
+ * SSKRShare - Alias for SSKRShareCbor to match Rust API naming.
  *
- * @param spec - The SSKR specification
- * @param secret - The secret to split
- * @returns Groups of SSKRShareCbor instances
+ * In Rust, this type is called `SSKRShare`. The TypeScript implementation
+ * uses `SSKRShareCbor` to distinguish it from raw share data, but we provide
+ * this alias for API parity with bc-components-rust.
  */
-export function generateSSKRSharesCbor(spec: SSKRSpec, secret: SSKRSecret): SSKRShareCbor[][] {
-  const rawGroups = sskrGenerate(spec, secret);
+export type SSKRShare = SSKRShareCbor;
+
+/**
+ * Create an SSKRShare from raw data.
+ * This is a convenience function that matches the Rust constructor pattern.
+ */
+// eslint-disable-next-line no-redeclare -- Intentional: TypeScript allows type/value with same name
+export const SSKRShare = {
+  fromData: (data: Uint8Array): SSKRShareCbor => SSKRShareCbor.fromData(data),
+  fromHex: (hex: string): SSKRShareCbor => SSKRShareCbor.fromHex(hex),
+  fromTaggedCbor: (cborValue: Cbor): SSKRShareCbor => SSKRShareCbor.fromTaggedCbor(cborValue),
+  fromTaggedCborData: (data: Uint8Array): SSKRShareCbor => SSKRShareCbor.fromTaggedCborData(data),
+  fromUntaggedCborData: (data: Uint8Array): SSKRShareCbor =>
+    SSKRShareCbor.fromUntaggedCborData(data),
+};
+
+// ============================================================================
+// Wrapper Functions (Rust API Parity)
+// ============================================================================
+
+/**
+ * Generates SSKR shares for the given spec and secret.
+ *
+ * This function matches the Rust `sskr_generate` API by returning wrapped
+ * SSKRShare objects instead of raw byte arrays.
+ *
+ * @param spec - The SSKRSpec instance defining group/member thresholds
+ * @param masterSecret - The SSKRSecret to be split into shares
+ * @returns Nested array of SSKRShare instances (groups × members)
+ *
+ * @example
+ * ```typescript
+ * import { SSKRSecret, SSKRSpec, SSKRGroupSpec, sskrGenerateShares } from '@bcts/components';
+ *
+ * const secret = SSKRSecret.new(new Uint8Array(16).fill(0x42));
+ * const group = SSKRGroupSpec.new(2, 3); // 2 of 3
+ * const spec = SSKRSpec.new(1, [group]); // 1 group required
+ *
+ * const shares = sskrGenerateShares(spec, secret);
+ * // shares[0] contains 3 SSKRShare instances
+ * ```
+ */
+export function sskrGenerateShares(spec: SSKRSpec, masterSecret: SSKRSecret): SSKRShare[][] {
+  const rawGroups = sskrGenerate(spec, masterSecret);
   return rawGroups.map((group) => group.map((shareData) => SSKRShareCbor.fromData(shareData)));
 }
 
 /**
- * Combine SSKR shares from CBOR wrappers.
- *
- * @param shares - The shares to combine
- * @returns The recovered secret
+ * Interface for RNG that only requires fillRandomData method.
+ * This is a subset of the full RandomNumberGenerator interface.
  */
-export function combineSSKRSharesCbor(shares: SSKRShareCbor[]): SSKRSecret {
+export interface SimpleRng {
+  fillRandomData(data: Uint8Array): void;
+}
+
+/**
+ * Generates SSKR shares using a custom random number generator.
+ *
+ * This function matches the Rust `sskr_generate_using` API by returning
+ * wrapped SSKRShare objects and allowing a custom RNG for deterministic
+ * testing.
+ *
+ * @param spec - The SSKRSpec instance defining group/member thresholds
+ * @param masterSecret - The SSKRSecret to be split into shares
+ * @param rng - Random number generator (must have fillRandomData method)
+ * @returns Nested array of SSKRShare instances (groups × members)
+ */
+export function sskrGenerateSharesUsing(
+  spec: SSKRSpec,
+  masterSecret: SSKRSecret,
+  rng: SimpleRng,
+): SSKRShare[][] {
+  // Cast to RandomNumberGenerator - sskrGenerateUsing only uses fillRandomData internally
+  const rawGroups = sskrGenerateUsing(spec, masterSecret, rng as unknown as RandomNumberGenerator);
+  return rawGroups.map((group) => group.map((shareData) => SSKRShareCbor.fromData(shareData)));
+}
+
+/**
+ * Combines SSKR shares to reconstruct the original secret.
+ *
+ * This function matches the Rust `sskr_combine` API by accepting
+ * wrapped SSKRShare objects.
+ *
+ * @param shares - Array of SSKRShare instances to combine
+ * @returns The reconstructed SSKRSecret
+ * @throws Error if shares cannot be combined (insufficient shares, mismatched IDs, etc.)
+ *
+ * @example
+ * ```typescript
+ * import { sskrGenerateShares, sskrCombineShares } from '@bcts/components';
+ *
+ * // Generate shares
+ * const shares = sskrGenerateShares(spec, secret);
+ *
+ * // Combine 2 shares from the first group
+ * const recoveredSecret = sskrCombineShares([shares[0][0], shares[0][1]]);
+ * ```
+ */
+export function sskrCombineShares(shares: SSKRShare[]): SSKRSecret {
   const rawShares = shares.map((share) => share.data());
   return sskrCombine(rawShares);
 }

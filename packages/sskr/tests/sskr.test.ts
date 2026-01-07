@@ -1,7 +1,11 @@
 // Tests ported from bc-sskr-rust/src/lib.rs
 
 import type { RandomNumberGenerator } from "@bcts/rand";
-import { rngNextInClosedRange as _rngNextInClosedRange } from "@bcts/rand";
+import {
+  rngNextInClosedRange,
+  rngNextInClosedRangeI32,
+  makeFakeRandomNumberGenerator,
+} from "@bcts/rand";
 import {
   Secret,
   GroupSpec,
@@ -10,10 +14,10 @@ import {
   sskrGenerateUsing,
   sskrCombine,
   METADATA_SIZE_BYTES,
-  MIN_SECRET_LEN as _MIN_SECRET_LEN,
-  MAX_SECRET_LEN as _MAX_SECRET_LEN,
-  MAX_GROUPS_COUNT as _MAX_GROUPS_COUNT,
-  MAX_SHARE_COUNT as _MAX_SHARE_COUNT,
+  MIN_SECRET_LEN,
+  MAX_SECRET_LEN,
+  MAX_GROUPS_COUNT,
+  MAX_SHARE_COUNT,
   SSKRError,
 } from "../src/index.js";
 
@@ -292,6 +296,151 @@ describe("SSKR", () => {
       expect(() => GroupSpec.parse("invalid")).toThrow(SSKRError);
       expect(() => GroupSpec.parse("2-3")).toThrow(SSKRError);
       expect(() => GroupSpec.parse("2-from-3")).toThrow(SSKRError);
+    });
+  });
+
+  describe("shuffle", () => {
+    /**
+     * Fisher-Yates shuffle implementation.
+     * Matches the Rust implementation in bc-sskr-rust tests.
+     * Uses 64-bit arithmetic (bigint) to match Rust's usize.
+     */
+    function fisherYatesShuffle<T>(slice: T[], rng: RandomNumberGenerator): void {
+      let i = slice.length;
+      while (i > 1) {
+        i -= 1;
+        const j = Number(rngNextInClosedRange(rng, 0n, BigInt(i)));
+        [slice[i], slice[j]] = [slice[j], slice[i]];
+      }
+    }
+
+    it("should match Rust shuffle output with same seed", () => {
+      const rng = makeFakeRandomNumberGenerator();
+      const v: number[] = [];
+      for (let i = 0; i < 100; i++) {
+        v.push(i);
+      }
+
+      fisherYatesShuffle(v, rng);
+
+      expect(v.length).toBe(100);
+      expect(v).toEqual([
+        79, 70, 40, 53, 25, 30, 31, 88, 10, 1, 45, 54, 81, 58, 55, 59, 69, 78, 65, 47, 75, 61, 0,
+        72, 20, 9, 80, 13, 73, 11, 60, 56, 19, 42, 33, 12, 36, 38, 6, 35, 68, 77, 50, 18, 97, 49,
+        98, 85, 89, 91, 15, 71, 99, 67, 84, 23, 64, 14, 57, 48, 62, 29, 28, 94, 44, 8, 66, 34, 43,
+        21, 63, 16, 92, 95, 27, 51, 26, 86, 22, 41, 93, 82, 7, 87, 74, 37, 46, 3, 96, 24, 90, 39,
+        32, 17, 76, 4, 83, 2, 52, 5,
+      ]);
+    });
+  });
+
+  describe("fuzz test", () => {
+    /**
+     * Fisher-Yates shuffle implementation for fuzz testing.
+     * Uses 64-bit arithmetic (bigint) to match Rust's usize.
+     */
+    function fisherYatesShuffle<T>(slice: T[], rng: RandomNumberGenerator): void {
+      let i = slice.length;
+      while (i > 1) {
+        i -= 1;
+        const j = Number(rngNextInClosedRange(rng, 0n, BigInt(i)));
+        [slice[i], slice[j]] = [slice[j], slice[i]];
+      }
+    }
+
+    /**
+     * Helper class for organizing recovery specifications.
+     * Matches RecoverSpec in Rust tests.
+     */
+    class RecoverSpec {
+      readonly secret: Secret;
+      readonly spec: Spec;
+      readonly shares: Uint8Array[][];
+      readonly recoveredGroupIndexes: number[];
+      readonly recoveredMemberIndexes: number[][];
+      readonly recoveredShares: Uint8Array[];
+
+      constructor(secret: Secret, spec: Spec, shares: Uint8Array[][], rng: RandomNumberGenerator) {
+        this.secret = secret;
+        this.spec = spec;
+        this.shares = shares;
+
+        // Shuffle and select group indexes
+        const groupIndexes: number[] = [];
+        for (let i = 0; i < spec.groupCount(); i++) {
+          groupIndexes.push(i);
+        }
+        fisherYatesShuffle(groupIndexes, rng);
+        this.recoveredGroupIndexes = groupIndexes.slice(0, spec.groupThreshold());
+
+        // Select member indexes for each recovered group
+        this.recoveredMemberIndexes = [];
+        for (const groupIndex of this.recoveredGroupIndexes) {
+          const group = spec.groups()[groupIndex];
+          const memberIndexes: number[] = [];
+          for (let i = 0; i < group.memberCount(); i++) {
+            memberIndexes.push(i);
+          }
+          fisherYatesShuffle(memberIndexes, rng);
+          this.recoveredMemberIndexes.push(memberIndexes.slice(0, group.memberThreshold()));
+        }
+
+        // Collect recovered shares
+        this.recoveredShares = [];
+        for (let i = 0; i < this.recoveredGroupIndexes.length; i++) {
+          const groupShares = shares[this.recoveredGroupIndexes[i]];
+          for (const memberIndex of this.recoveredMemberIndexes[i]) {
+            this.recoveredShares.push(groupShares[memberIndex]);
+          }
+        }
+        fisherYatesShuffle(this.recoveredShares, rng);
+      }
+
+      recover(): boolean {
+        try {
+          const recoveredSecret = sskrCombine(this.recoveredShares);
+          return recoveredSecret.equals(this.secret);
+        } catch {
+          return false;
+        }
+      }
+    }
+
+    /**
+     * Single fuzz test iteration.
+     * Matches one_fuzz_test in Rust tests.
+     */
+    function oneFuzzTest(rng: RandomNumberGenerator): void {
+      // Generate random secret length (even, between MIN and MAX)
+      const secretLen = rngNextInClosedRangeI32(rng, MIN_SECRET_LEN, MAX_SECRET_LEN) & ~1;
+      const secret = Secret.new(rng.randomData(secretLen));
+
+      // Generate random group specifications
+      const groupCount = rngNextInClosedRangeI32(rng, 1, MAX_GROUPS_COUNT);
+      const groupSpecs: GroupSpec[] = [];
+      for (let i = 0; i < groupCount; i++) {
+        const memberCount = rngNextInClosedRangeI32(rng, 1, MAX_SHARE_COUNT);
+        const memberThreshold = rngNextInClosedRangeI32(rng, 1, memberCount);
+        groupSpecs.push(GroupSpec.new(memberThreshold, memberCount));
+      }
+
+      const groupThreshold = rngNextInClosedRangeI32(rng, 1, groupCount);
+      const spec = Spec.new(groupThreshold, groupSpecs);
+      const shares = sskrGenerateUsing(spec, secret, rng);
+
+      const recoverSpec = new RecoverSpec(secret, spec, shares, rng);
+      const success = recoverSpec.recover();
+
+      if (!success) {
+        throw new Error("Fuzz test failed to recover secret");
+      }
+    }
+
+    it("should pass 100 random split/recover iterations", () => {
+      const rng = makeFakeRandomNumberGenerator();
+      for (let i = 0; i < 100; i++) {
+        oneFuzzTest(rng);
+      }
     });
   });
 });

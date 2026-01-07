@@ -25,7 +25,7 @@ export type DigestPattern =
   | { readonly variant: "BinaryRegex"; readonly pattern: RegExp };
 
 /** CBOR tag for digest (BCR-2021-002) */
-const DIGEST_TAG = 40001n;
+const DIGEST_TAG = 40001;
 
 /** Expected size of a SHA-256 digest */
 const DIGEST_SIZE = 32;
@@ -70,7 +70,8 @@ const extractDigestBytes = (haystack: Cbor): Uint8Array | undefined => {
     return undefined;
   }
   const tag = tagValue(haystack);
-  if (tag !== DIGEST_TAG) {
+  // Compare with Number() to handle both number and bigint types
+  if (tag === undefined || Number(tag) !== DIGEST_TAG) {
     return undefined;
   }
   const content = tagContent(haystack);

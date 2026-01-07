@@ -11,7 +11,6 @@ import { XID, XIDDocument } from "@bcts/xid";
 import * as readline from "readline";
 import { execSync, spawnSync } from "child_process";
 import * as fs from "fs";
-import * as path from "path";
 
 /** Help text for askpass option */
 export const ASKPASS_HELP = "Prompt for the password using an external program.";
@@ -86,7 +85,7 @@ export async function readPassword(
  */
 function resolveAskpass(): string | undefined {
   // Explicit environment overrides take precedence.
-  const envAskpass = process.env.SSH_ASKPASS || process.env.ASKPASS;
+  const envAskpass = process.env["SSH_ASKPASS"] || process.env["ASKPASS"];
   if (envAskpass) {
     return envAskpass;
   }
@@ -204,7 +203,8 @@ export function readStdinSync(): string {
 
   try {
     let bytesRead = 0;
-    const fd = fs.openSync(0, "r"); // stdin
+    // Use stdin file descriptor directly (0 is stdin)
+    const fd = 0;
 
     while (true) {
       try {
@@ -215,8 +215,6 @@ export function readStdinSync(): string {
         break;
       }
     }
-
-    fs.closeSync(fd);
   } catch {
     // Fallback: stdin might not be readable
   }
@@ -242,7 +240,8 @@ export function readStdinBytes(): Uint8Array {
   const chunks: Buffer[] = [];
 
   try {
-    const fd = fs.openSync(0, "r"); // stdin
+    // Use stdin file descriptor directly (0 is stdin)
+    const fd = 0;
 
     while (true) {
       try {
@@ -253,8 +252,6 @@ export function readStdinBytes(): Uint8Array {
         break;
       }
     }
-
-    fs.closeSync(fd);
   } catch {
     // Fallback: stdin might not be readable
   }
@@ -269,7 +266,7 @@ export function readStdinBytes(): Uint8Array {
 export function envelopeFromUr(ur: UR): Envelope {
   // Try as envelope first
   try {
-    return Envelope.fromUr(ur);
+    return Envelope.fromUR(ur);
   } catch {
     // Ignore
   }
@@ -284,8 +281,8 @@ export function envelopeFromUr(ur: UR): Envelope {
   // Try as XID
   if (ur.urTypeStr() === "xid") {
     try {
-      const xid = XID.fromUntaggedCbor(ur.cbor());
-      const doc = XIDDocument.from(xid);
+      const xid = XID.fromTaggedCbor(ur.cbor());
+      const doc = XIDDocument.fromXid(xid);
       return doc.toEnvelope();
     } catch {
       // Ignore
@@ -335,9 +332,9 @@ export function parseDigestFromUr(target: string): Digest {
 
   switch (ur.urTypeStr()) {
     case "digest":
-      return Digest.fromUr(ur);
+      return Digest.fromUR(ur);
     case "envelope": {
-      const envelope = Envelope.fromUr(ur);
+      const envelope = Envelope.fromUR(ur);
       return envelope.digest();
     }
     default:

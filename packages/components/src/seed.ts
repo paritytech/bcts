@@ -56,8 +56,7 @@ import { SEED as TAG_SEED, SEED_V1 as TAG_SEED_V1 } from "@bcts/tags";
 import { UR, type UREncodable } from "@bcts/uniform-resources";
 import { CryptoError } from "./error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "./utils.js";
-
-const MIN_SEED_SIZE = 16;
+import type { PrivateKeyDataProvider } from "./private-key-data-provider.js";
 
 export interface SeedMetadata {
   name?: string;
@@ -65,155 +64,330 @@ export interface SeedMetadata {
   createdAt?: Date;
 }
 
-export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, UREncodable {
-  // Defensive copy: internal data is never exposed directly to prevent external mutation
-  private readonly data: Uint8Array;
-  private metadata: SeedMetadata | undefined;
+export class Seed
+  implements CborTaggedEncodable, CborTaggedDecodable<Seed>, UREncodable, PrivateKeyDataProvider
+{
+  /**
+   * Minimum seed length in bytes (matches Rust MIN_SEED_LENGTH).
+   */
+  static readonly MIN_SEED_LENGTH = 16;
 
-  private constructor(data: Uint8Array, metadata?: SeedMetadata) {
-    if (data.length < MIN_SEED_SIZE) {
-      throw CryptoError.invalidSize(MIN_SEED_SIZE, data.length);
+  // Defensive copy: internal data is never exposed directly to prevent external mutation
+  private readonly _data: Uint8Array;
+  private _name: string;
+  private _note: string;
+  private _creationDate: Date | undefined;
+
+  private constructor(data: Uint8Array, name?: string, note?: string, creationDate?: Date) {
+    if (data.length < Seed.MIN_SEED_LENGTH) {
+      throw CryptoError.dataTooShort("seed", Seed.MIN_SEED_LENGTH, data.length);
     }
     // Defensive copy on construction to ensure immutability of internal state
-    this.data = new Uint8Array(data);
-    this.metadata = metadata;
+    this._data = new Uint8Array(data);
+    this._name = name ?? "";
+    this._note = note ?? "";
+    this._creationDate = creationDate;
+  }
+
+  // ============================================================================
+  // Static Factory Methods (Rust API Parity)
+  // ============================================================================
+
+  /**
+   * Create a new random seed with default length (16 bytes).
+   *
+   * Rust equivalent: `Seed::new()`
+   */
+  static new(): Seed {
+    return Seed.newWithLen(Seed.MIN_SEED_LENGTH);
   }
 
   /**
-   * Create a Seed from raw bytes.
+   * Create a new random seed with a specified length.
+   *
+   * Rust equivalent: `Seed::new_with_len(count)`
+   *
+   * @param count - Number of bytes (must be >= 16)
+   * @throws CryptoError if count < 16
+   */
+  static newWithLen(count: number): Seed {
+    const rng = new SecureRandomNumberGenerator();
+    return Seed.newWithLenUsing(count, rng);
+  }
+
+  /**
+   * Create a new random seed with a specified length using provided RNG.
+   *
+   * Rust equivalent: `Seed::new_with_len_using(count, rng)`
+   *
+   * @param count - Number of bytes (must be >= 16)
+   * @param rng - Random number generator
+   * @throws CryptoError if count < 16
+   */
+  static newWithLenUsing(count: number, rng: { randomData: (size: number) => Uint8Array }): Seed {
+    const data = rng.randomData(count);
+    return Seed.newOpt(data, undefined, undefined, undefined);
+  }
+
+  /**
+   * Create a new seed from data and optional metadata.
+   *
+   * Rust equivalent: `Seed::new_opt(data, name, note, creation_date)`
+   *
+   * @param data - Seed bytes (must be >= 16 bytes)
+   * @param name - Optional name for the seed
+   * @param note - Optional note for the seed
+   * @param creationDate - Optional creation date
+   * @throws CryptoError if data < 16 bytes
+   */
+  static newOpt(
+    data: Uint8Array,
+    name: string | undefined,
+    note: string | undefined,
+    creationDate: Date | undefined,
+  ): Seed {
+    return new Seed(data, name, note, creationDate);
+  }
+
+  // ============================================================================
+  // Static Factory Methods (TypeScript Convenience)
+  // ============================================================================
+
+  /**
+   * Create a Seed from raw bytes with optional metadata.
    *
    * Note: The input data is copied to prevent external mutation of the seed's internal state.
+   *
+   * @param data - Seed bytes (must be >= 16 bytes)
+   * @param metadata - Optional metadata object
    */
   static from(data: Uint8Array, metadata?: SeedMetadata): Seed {
-    return new Seed(new Uint8Array(data), metadata);
+    return new Seed(new Uint8Array(data), metadata?.name, metadata?.note, metadata?.createdAt);
   }
 
   /**
-   * Create a Seed from hex string
+   * Create a Seed from hex string with optional metadata.
+   *
+   * @param hex - Hex string representing seed bytes
+   * @param metadata - Optional metadata object
    */
   static fromHex(hex: string, metadata?: SeedMetadata): Seed {
-    return new Seed(hexToBytes(hex), metadata);
+    return Seed.from(hexToBytes(hex), metadata);
   }
 
   /**
-   * Generate a random seed with specified size
+   * Generate a random seed with specified size (default 32 bytes).
+   *
+   * Convenience method that wraps `newWithLen()`.
+   *
+   * @param size - Number of bytes (must be >= 16, default 32)
+   * @param metadata - Optional metadata object
    */
   static random(size = 32, metadata?: SeedMetadata): Seed {
-    if (size < MIN_SEED_SIZE) {
-      throw CryptoError.invalidSize(MIN_SEED_SIZE, size);
-    }
-    const rng = new SecureRandomNumberGenerator();
-    return new Seed(rng.randomData(size), metadata);
+    const seed = Seed.newWithLen(size);
+    if (metadata?.name !== undefined) seed.setName(metadata.name);
+    if (metadata?.note !== undefined) seed.setNote(metadata.note);
+    if (metadata?.createdAt !== undefined) seed.setCreationDate(metadata.createdAt);
+    return seed;
   }
 
   /**
-   * Generate a random seed using provided RNG
+   * Generate a random seed using provided RNG.
+   *
+   * Convenience method that wraps `newWithLenUsing()`.
+   *
+   * @param rng - Random number generator
+   * @param size - Number of bytes (must be >= 16, default 32)
+   * @param metadata - Optional metadata object
    */
-  static randomUsing(rng: SecureRandomNumberGenerator, size = 32, metadata?: SeedMetadata): Seed {
-    if (size < MIN_SEED_SIZE) {
-      throw CryptoError.invalidSize(MIN_SEED_SIZE, size);
-    }
-    return new Seed(rng.randomData(size), metadata);
+  static randomUsing(
+    rng: { randomData: (size: number) => Uint8Array },
+    size = 32,
+    metadata?: SeedMetadata,
+  ): Seed {
+    const seed = Seed.newWithLenUsing(size, rng);
+    if (metadata?.name !== undefined) seed.setName(metadata.name);
+    if (metadata?.note !== undefined) seed.setNote(metadata.note);
+    if (metadata?.createdAt !== undefined) seed.setCreationDate(metadata.createdAt);
+    return seed;
+  }
+
+  // ============================================================================
+  // Instance Methods - Data Access (Rust API Parity)
+  // ============================================================================
+
+  /**
+   * Return the data of the seed as a reference to the internal bytes.
+   *
+   * Rust equivalent: `seed.as_bytes()`
+   *
+   * Note: Returns a reference to internal data. For a copy, use `toData()`.
+   */
+  asBytes(): Uint8Array {
+    return this._data;
   }
 
   /**
-   * Get the raw seed bytes.
+   * Get the raw seed bytes (copy).
    *
    * Note: Returns a copy to prevent external mutation of the seed's internal state.
    */
   toData(): Uint8Array {
-    return new Uint8Array(this.data);
+    return new Uint8Array(this._data);
   }
 
   /**
-   * Get hex string representation
+   * Get hex string representation.
    */
   toHex(): string {
-    return bytesToHex(this.data);
+    return bytesToHex(this._data);
   }
 
   /**
-   * Get base64 representation
+   * Get base64 representation.
    */
   toBase64(): string {
-    return toBase64(this.data);
+    return toBase64(this._data);
   }
 
   /**
-   * Get seed size in bytes
+   * Get seed size in bytes.
    */
   size(): number {
-    return this.data.length;
+    return this._data.length;
   }
 
+  // ============================================================================
+  // Instance Methods - Metadata Access (Rust API Parity)
+  // ============================================================================
+
   /**
-   * Get name
+   * Return the name of the seed.
+   *
+   * Rust equivalent: `seed.name()` - returns empty string if not set.
    */
-  name(): string | undefined {
-    return this.metadata?.name;
+  name(): string {
+    return this._name;
   }
 
   /**
-   * Set name
+   * Set the name of the seed.
+   *
+   * Rust equivalent: `seed.set_name(name)`
    */
   setName(name: string): void {
-    this.metadata ??= {};
-    this.metadata.name = name;
+    this._name = name;
   }
 
   /**
-   * Get note
+   * Return the note of the seed.
+   *
+   * Rust equivalent: `seed.note()` - returns empty string if not set.
    */
-  note(): string | undefined {
-    return this.metadata?.note;
+  note(): string {
+    return this._note;
   }
 
   /**
-   * Set note
+   * Set the note of the seed.
+   *
+   * Rust equivalent: `seed.set_note(note)`
    */
   setNote(note: string): void {
-    this.metadata ??= {};
-    this.metadata.note = note;
+    this._note = note;
   }
 
   /**
-   * Get creation date
+   * Return the creation date of the seed.
+   *
+   * Rust equivalent: `seed.creation_date()`
+   */
+  creationDate(): Date | undefined {
+    return this._creationDate;
+  }
+
+  /**
+   * Set the creation date of the seed.
+   *
+   * Rust equivalent: `seed.set_creation_date(date)`
+   */
+  setCreationDate(creationDate: Date | undefined): void {
+    this._creationDate = creationDate;
+  }
+
+  /**
+   * Return the creation date of the seed (alias for creationDate).
+   *
+   * @deprecated Use `creationDate()` for Rust API parity.
    */
   createdAt(): Date | undefined {
-    return this.metadata?.createdAt;
+    return this.creationDate();
   }
 
   /**
-   * Set creation date
+   * Set the creation date of the seed (alias for setCreationDate).
+   *
+   * @deprecated Use `setCreationDate()` for Rust API parity.
    */
   setCreatedAt(date: Date): void {
-    this.metadata ??= {};
-    this.metadata.createdAt = date;
+    this.setCreationDate(date);
   }
 
   /**
-   * Get metadata
+   * Get metadata as an object.
+   *
+   * TypeScript convenience method - returns a snapshot of current metadata.
    */
-  getMetadata(): SeedMetadata | undefined {
-    return this.metadata !== undefined ? { ...this.metadata } : undefined;
+  getMetadata(): SeedMetadata {
+    const metadata: SeedMetadata = {};
+    if (this._name.length > 0) {
+      metadata.name = this._name;
+    }
+    if (this._note.length > 0) {
+      metadata.note = this._note;
+    }
+    if (this._creationDate !== undefined) {
+      metadata.createdAt = this._creationDate;
+    }
+    return metadata;
   }
 
+  // ============================================================================
+  // Instance Methods - Comparison and Display
+  // ============================================================================
+
   /**
-   * Compare with another Seed
+   * Compare with another Seed.
    */
   equals(other: Seed): boolean {
-    if (this.data.length !== other.data.length) return false;
-    for (let i = 0; i < this.data.length; i++) {
-      if (this.data[i] !== other.data[i]) return false;
+    if (this._data.length !== other._data.length) return false;
+    for (let i = 0; i < this._data.length; i++) {
+      if (this._data[i] !== other._data[i]) return false;
     }
     return true;
   }
 
   /**
-   * Get string representation
+   * Get string representation.
    */
   toString(): string {
     return `Seed(${this.toHex().substring(0, 16)}..., ${this.size()} bytes)`;
+  }
+
+  // ============================================================================
+  // PrivateKeyDataProvider Implementation
+  // ============================================================================
+
+  /**
+   * Returns unique data from which cryptographic keys can be derived.
+   *
+   * This implementation returns a copy of the seed data, which can be used
+   * as entropy for deriving private keys in various cryptographic schemes.
+   *
+   * @returns A Uint8Array containing the seed data
+   */
+  privateKeyData(): Uint8Array {
+    return this.toData();
   }
 
   // ============================================================================
@@ -238,16 +412,16 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    */
   untaggedCbor(): Cbor {
     const map = CborMap.new();
-    map.insert(1, toByteString(this.data));
-    if (this.metadata?.createdAt !== undefined) {
-      const cborDate = CborDate.fromDatetime(this.metadata.createdAt);
+    map.insert(1, toByteString(this._data));
+    if (this._creationDate !== undefined) {
+      const cborDate = CborDate.fromDatetime(this._creationDate);
       map.insert(2, cborDate.taggedCbor());
     }
-    if (this.metadata?.name !== undefined && this.metadata.name.length > 0) {
-      map.insert(3, this.metadata.name);
+    if (this._name.length > 0) {
+      map.insert(3, this._name);
     }
-    if (this.metadata?.note !== undefined && this.metadata.note.length > 0) {
-      map.insert(4, this.metadata.note);
+    if (this._note.length > 0) {
+      map.insert(4, this._note);
     }
     return cbor(map);
   }
@@ -285,12 +459,12 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
 
     // Key 2: creation date (optional)
     // For tagged values (like dates), the extract returns the tagged Cbor object
-    let createdAt: Date | undefined;
+    let creationDate: Date | undefined;
     const dateValue = map.get<number, Cbor>(2);
     if (dateValue !== undefined) {
       // The date is stored as a tagged CBOR value (tag 1)
       const cborDate = CborDate.fromTaggedCbor(cbor(dateValue));
-      createdAt = cborDate.datetime();
+      creationDate = cborDate.datetime();
     }
 
     // Key 3: name (optional)
@@ -299,15 +473,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
     // Key 4: note (optional)
     const note = map.get<number, string>(4);
 
-    let metadata: SeedMetadata | undefined;
-    if (name !== undefined || note !== undefined || createdAt !== undefined) {
-      metadata = {};
-      if (name !== undefined) metadata.name = name;
-      if (note !== undefined) metadata.note = note;
-      if (createdAt !== undefined) metadata.createdAt = createdAt;
-    }
-
-    return Seed.from(new Uint8Array(data), metadata);
+    return Seed.newOpt(new Uint8Array(data), name, note, creationDate);
   }
 
   /**
@@ -322,26 +488,26 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
   /**
    * Static method to decode from tagged CBOR.
    */
-  static fromTaggedCbor(cbor: Cbor): Seed {
-    const instance = Seed.random(MIN_SEED_SIZE);
-    return instance.fromTaggedCbor(cbor);
+  static fromTaggedCbor(cborValue: Cbor): Seed {
+    const instance = Seed.new();
+    return instance.fromTaggedCbor(cborValue);
   }
 
   /**
    * Static method to decode from tagged CBOR binary data.
    */
   static fromTaggedCborData(data: Uint8Array): Seed {
-    const cbor = decodeCbor(data);
-    return Seed.fromTaggedCbor(cbor);
+    const cborValue = decodeCbor(data);
+    return Seed.fromTaggedCbor(cborValue);
   }
 
   /**
    * Static method to decode from untagged CBOR binary data.
    */
   static fromUntaggedCborData(data: Uint8Array): Seed {
-    const cbor = decodeCbor(data);
-    const instance = Seed.random(MIN_SEED_SIZE);
-    return instance.fromUntaggedCbor(cbor);
+    const cborValue = decodeCbor(data);
+    const instance = Seed.new();
+    return instance.fromUntaggedCbor(cborValue);
   }
 
   // ============================================================================
@@ -368,7 +534,7 @@ export class Seed implements CborTaggedEncodable, CborTaggedDecodable<Seed>, URE
    */
   static fromUR(ur: UR): Seed {
     ur.checkType("seed");
-    const instance = Seed.random(MIN_SEED_SIZE);
+    const instance = Seed.new();
     return instance.fromUntaggedCbor(ur.cbor());
   }
 

@@ -6,14 +6,7 @@
  * Ported from bc-xid-rust/src/xid_document.rs
  */
 
-import {
-  Envelope,
-  PrivateKeyBase,
-  type PublicKeyBase,
-  type EnvelopeEncodable,
-  type Signer,
-  type EnvelopeEncodableValue,
-} from "@bcts/envelope";
+import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
 import {
   KEY,
   DELEGATE,
@@ -25,7 +18,14 @@ import {
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
-import { Reference, XID } from "@bcts/components";
+import {
+  Reference,
+  XID,
+  type PublicKeys,
+  PrivateKeyBase,
+  type PrivateKeys,
+  type Signer,
+} from "@bcts/components";
 import {
   type ProvenanceMark,
   ProvenanceMarkGenerator,
@@ -38,7 +38,6 @@ import { Delegate, registerXIDDocumentClass } from "./delegate";
 import { Service } from "./service";
 import { Provenance, XIDGeneratorOptions, type XIDGeneratorOptionsValue } from "./provenance";
 import { XIDError } from "./error";
-
 // Raw values for predicate matching
 const KEY_RAW = KEY.value();
 const DELEGATE_RAW = DELEGATE.value();
@@ -51,8 +50,9 @@ const DEREFERENCE_VIA_RAW = DEREFERENCE_VIA.value();
  */
 export type XIDInceptionKeyOptions =
   | { type: "default" }
-  | { type: "publicKeyBase"; publicKeyBase: PublicKeyBase }
-  | { type: "privateKeyBase"; privateKeyBase: PrivateKeyBase };
+  | { type: "publicKeys"; publicKeys: PublicKeys }
+  | { type: "privateKeyBase"; privateKeyBase: PrivateKeyBase }
+  | { type: "privateKeys"; privateKeys: PrivateKeys; publicKeys: PublicKeys };
 
 /**
  * Options for creating the genesis mark.
@@ -80,7 +80,8 @@ export type XIDGenesisMarkOptions =
 export type XIDSigningOptions =
   | { type: "none" }
   | { type: "inception" }
-  | { type: "privateKeyBase"; privateKeyBase: PrivateKeyBase };
+  | { type: "privateKeyBase"; privateKeyBase: PrivateKeyBase }
+  | { type: "privateKeys"; privateKeys: PrivateKeys };
 
 /**
  * Options for verifying the signature on an envelope when loading.
@@ -134,7 +135,9 @@ export class XIDDocument implements EnvelopeEncodable {
     const inceptionKey = XIDDocument.inceptionKeyForOptions(keyOptions);
     const provenance = XIDDocument.genesisMarkWithOptions(markOptions);
 
-    const xid = XID.from(hashPublicKey(inceptionKey.publicKeyBase()));
+    // Use the reference from PublicKeys (which uses tagged CBOR hash)
+    // XID is created from the digest data of the reference
+    const xid = XID.from(inceptionKey.publicKeys().reference().getDigest().toData());
     const doc = new XIDDocument(xid, new Set(), new Map(), new Map(), new Map(), provenance);
 
     doc.addKey(inceptionKey);
@@ -144,13 +147,15 @@ export class XIDDocument implements EnvelopeEncodable {
   private static inceptionKeyForOptions(options: XIDInceptionKeyOptions): Key {
     switch (options.type) {
       case "default": {
-        const privateKeyBase = PrivateKeyBase.generate();
+        const privateKeyBase = PrivateKeyBase.new();
         return Key.newWithPrivateKeyBase(privateKeyBase);
       }
-      case "publicKeyBase":
-        return Key.newAllowAll(options.publicKeyBase);
+      case "publicKeys":
+        return Key.newAllowAll(options.publicKeys);
       case "privateKeyBase":
         return Key.newWithPrivateKeyBase(options.privateKeyBase);
+      case "privateKeys":
+        return Key.newWithPrivateKeys(options.privateKeys, options.publicKeys);
     }
   }
 
@@ -229,10 +234,10 @@ export class XIDDocument implements EnvelopeEncodable {
   }
 
   /**
-   * Find a key by its public key base.
+   * Find a key by its public keys.
    */
-  findKeyByPublicKeyBase(publicKeyBase: PublicKeyBase): Key | undefined {
-    const hashKey = publicKeyBase.hex();
+  findKeyByPublicKeys(publicKeys: PublicKeys): Key | undefined {
+    const hashKey = publicKeys.reference().toHex();
     return this._keys.get(hashKey);
   }
 
@@ -251,8 +256,8 @@ export class XIDDocument implements EnvelopeEncodable {
   /**
    * Take and remove a key.
    */
-  takeKey(publicKeyBase: PublicKeyBase): Key | undefined {
-    const hashKey = publicKeyBase.hex();
+  takeKey(publicKeys: PublicKeys): Key | undefined {
+    const hashKey = publicKeys.reference().toHex();
     const key = this._keys.get(hashKey);
     if (key !== undefined) {
       this._keys.delete(hashKey);
@@ -263,22 +268,23 @@ export class XIDDocument implements EnvelopeEncodable {
   /**
    * Remove a key.
    */
-  removeKey(publicKeyBase: PublicKeyBase): void {
-    if (this.servicesReferenceKey(publicKeyBase)) {
+  removeKey(publicKeys: PublicKeys): void {
+    if (this.servicesReferenceKey(publicKeys)) {
       throw XIDError.stillReferenced("key");
     }
-    const hashKey = publicKeyBase.hex();
+    const hashKey = publicKeys.reference().toHex();
     if (!this._keys.delete(hashKey)) {
       throw XIDError.notFound("key");
     }
   }
 
   /**
-   * Check if the given public key is the inception signing key.
+   * Check if the given public keys is the inception signing key.
    */
-  isInceptionKey(publicKeyBase: PublicKeyBase): boolean {
-    const xidData = hashPublicKey(publicKeyBase);
-    return bytesEqual(xidData, this._xid.toData());
+  isInceptionKey(publicKeys: PublicKeys): boolean {
+    // The XID is derived from the reference of the inception PublicKeys
+    const xidReference = publicKeys.reference();
+    return bytesEqual(xidReference.getDigest().toData(), this._xid.toData());
   }
 
   /**
@@ -286,7 +292,7 @@ export class XIDDocument implements EnvelopeEncodable {
    */
   inceptionKey(): Key | undefined {
     for (const key of this._keys.values()) {
-      if (this.isInceptionKey(key.publicKeyBase())) {
+      if (this.isInceptionKey(key.publicKeys())) {
         return key;
       }
     }
@@ -294,10 +300,10 @@ export class XIDDocument implements EnvelopeEncodable {
   }
 
   /**
-   * Get the inception private key base, if available.
+   * Get the inception private keys, if available.
    */
-  inceptionPrivateKeyBase(): PrivateKeyBase | undefined {
-    return this.inceptionKey()?.privateKeyBase();
+  inceptionPrivateKeys(): PrivateKeys | undefined {
+    return this.inceptionKey()?.privateKeys();
   }
 
   /**
@@ -448,16 +454,16 @@ export class XIDDocument implements EnvelopeEncodable {
     }
 
     for (const keyRef of service.keyReferences()) {
-      const refBytes = hexToBytes(keyRef);
-      const ref = Reference.hash(refBytes);
+      // keyRef is already a hex representation of a Reference, don't hash again
+      const ref = Reference.fromHex(keyRef);
       if (this.findKeyByReference(ref) === undefined) {
         throw XIDError.unknownKeyReference(keyRef, service.uri());
       }
     }
 
     for (const delegateRef of service.delegateReferences()) {
-      const refBytes = hexToBytes(delegateRef);
-      const ref = Reference.hash(refBytes);
+      // delegateRef is already a hex representation of a Reference, don't hash again
+      const ref = Reference.fromHex(delegateRef);
       if (this.findDelegateByReference(ref) === undefined) {
         throw XIDError.unknownDelegateReference(delegateRef, service.uri());
       }
@@ -471,8 +477,8 @@ export class XIDDocument implements EnvelopeEncodable {
   /**
    * Check if any service references the given key.
    */
-  servicesReferenceKey(publicKeyBase: PublicKeyBase): boolean {
-    const keyRef = Reference.hash(publicKeyBase.data()).toHex();
+  servicesReferenceKey(publicKeys: PublicKeys): boolean {
+    const keyRef = publicKeys.reference().toHex();
     for (const service of this._services.values()) {
       if (service.keyReferences().has(keyRef)) {
         return true;
@@ -627,27 +633,33 @@ export class XIDDocument implements EnvelopeEncodable {
       );
     }
 
-    // Apply signing
+    // Apply signing (uses sign() which wraps the envelope first)
+    // PrivateKeys implements Signer from @bcts/components, which is compatible with envelope's sign()
     switch (signingOptions.type) {
       case "inception": {
         const inceptionKey = this.inceptionKey();
         if (inceptionKey === undefined) {
           throw XIDError.missingInceptionKey();
         }
-        const privateKeyBase = inceptionKey.privateKeyBase();
-        if (privateKeyBase === undefined) {
+        const privateKeys = inceptionKey.privateKeys();
+        if (privateKeys === undefined) {
           throw XIDError.missingInceptionKey();
         }
-        envelope = (envelope as unknown as { addSignature(s: Signer): Envelope }).addSignature(
-          privateKeyBase as unknown as Signer,
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
+        break;
+      }
+      case "privateKeyBase": {
+        // Derive PrivateKeys from PrivateKeyBase and use for signing
+        const privateKeys = signingOptions.privateKeyBase.ed25519PrivateKeys();
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
+        break;
+      }
+      case "privateKeys": {
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(
+          signingOptions.privateKeys,
         );
         break;
       }
-      case "privateKeyBase":
-        envelope = (envelope as unknown as { addSignature(s: Signer): Envelope }).addSignature(
-          signingOptions.privateKeyBase as unknown as Signer,
-        );
-        break;
       case "none":
       default:
         break;
@@ -693,13 +705,13 @@ export class XIDDocument implements EnvelopeEncodable {
           throw XIDError.missingInceptionKey();
         }
 
-        // Verify signature
-        if (!envelopeExt.hasSignatureFrom(inceptionKey.publicKeyBase() as unknown as Verifier)) {
+        // Verify signature using the PublicKeys (implements Verifier from @bcts/components)
+        if (!envelopeExt.hasSignatureFrom(inceptionKey.publicKeys())) {
           throw XIDError.signatureVerificationFailed();
         }
 
         // Verify XID matches inception key
-        if (!doc.isInceptionKey(inceptionKey.publicKeyBase())) {
+        if (!doc.isInceptionKey(inceptionKey.publicKeys())) {
           throw XIDError.invalidXid();
         }
 
@@ -791,7 +803,7 @@ export class XIDDocument implements EnvelopeEncodable {
     const envelope = this.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
       type: "none",
     });
-    return (envelope as unknown as { addSignature(s: Signer): Envelope }).addSignature(signingKey);
+    return (envelope as unknown as { sign(s: Signer): Envelope }).sign(signingKey);
   }
 
   /**
@@ -834,29 +846,11 @@ export class XIDDocument implements EnvelopeEncodable {
 // Register XIDDocument class with Delegate to resolve circular dependency
 registerXIDDocumentClass(XIDDocument);
 
-// Helper interface for Verifier
-interface Verifier {
-  verify(data: Uint8Array, signature: { data(): Uint8Array }): boolean;
-}
-
 // Helper functions
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return bytes;
-}
-
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false;
   }
   return true;
-}
-
-function hashPublicKey(publicKeyBase: PublicKeyBase): Uint8Array {
-  // SHA-256 hash of public key to get XID
-  return Reference.hash(publicKeyBase.data()).getDigest().toData();
 }

@@ -55,8 +55,6 @@ export type Error =
   | { readonly type: "InvalidDigestPattern"; readonly message: string; readonly span: Span }
   | { readonly type: "UnterminatedDigestQuoted"; readonly span: Span }
   | { readonly type: "UnterminatedDateQuoted"; readonly span: Span }
-  | { readonly type: "InvalidDigest"; readonly span: Span }
-  | { readonly type: "InvalidDate"; readonly span: Span }
   | { readonly type: "Unknown" };
 
 /**
@@ -164,10 +162,6 @@ export const errorToString = (error: Error): string => {
       return `Unterminated digest quoted pattern at ${error.span.start}..${error.span.end}`;
     case "UnterminatedDateQuoted":
       return `Unterminated date quoted pattern at ${error.span.start}..${error.span.end}`;
-    case "InvalidDigest":
-      return `Invalid digest at ${error.span.start}..${error.span.end}`;
-    case "InvalidDate":
-      return `Invalid date at ${error.span.start}..${error.span.end}`;
     case "Unknown":
       return "Unknown error";
   }
@@ -298,16 +292,6 @@ export const adjustSpan = (error: Error, offset: number): Error => {
     case "UnterminatedDateQuoted":
       return {
         type: "UnterminatedDateQuoted",
-        span: span(offset + error.span.start, offset + error.span.end),
-      };
-    case "InvalidDigest":
-      return {
-        type: "InvalidDigest",
-        span: span(offset + error.span.start, offset + error.span.end),
-      };
-    case "InvalidDate":
-      return {
-        type: "InvalidDate",
         span: span(offset + error.span.start, offset + error.span.end),
       };
     // For errors without spans, return them as-is

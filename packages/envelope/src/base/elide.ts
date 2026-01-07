@@ -102,6 +102,15 @@ Envelope.prototype.elideRemovingSetWithAction = function (
   return elideSetWithAction(this, target, false, action);
 };
 
+/// Implementation of elideSetWithAction (for revealing mode)
+Envelope.prototype.elideSetWithAction = function (
+  this: Envelope,
+  target: Set<Digest>,
+  action: ObscureAction,
+): Envelope {
+  return elideSetWithAction(this, target, true, action);
+};
+
 /// Implementation of elideRemovingSet
 Envelope.prototype.elideRemovingSet = function (this: Envelope, target: Set<Digest>): Envelope {
   return elideSetWithAction(this, target, false, elideAction());

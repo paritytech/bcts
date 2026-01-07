@@ -200,7 +200,7 @@ function main(): void {
   console.log("  Creating a new encrypted envelope with manual recipient management:");
 
   // Generate a content key
-  const contentKey = SymmetricKey.generate();
+  const contentKey = SymmetricKey.new();
   console.log(
     `  Generated content key: ${Buffer.from(contentKey.data()).toString("hex").slice(0, 16)}...`,
   );

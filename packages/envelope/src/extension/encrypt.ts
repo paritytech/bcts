@@ -5,10 +5,23 @@ import { cborData, decodeCbor } from "@bcts/dcbor";
 import {
   aeadChaCha20Poly1305EncryptWithAad,
   aeadChaCha20Poly1305DecryptWithAad,
-  SYMMETRIC_KEY_SIZE,
   SYMMETRIC_NONCE_SIZE,
 } from "@bcts/crypto";
-import { SecureRandomNumberGenerator, rngRandomData, type RandomNumberGenerator } from "@bcts/rand";
+import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
+
+/**
+ * Re-export SymmetricKey from @bcts/components for type compatibility.
+ *
+ * The @bcts/components SymmetricKey class is the canonical implementation with:
+ * - Full CBOR support (tagged/untagged)
+ * - UR support
+ * - Complete factory methods
+ *
+ * This re-export ensures type compatibility between @bcts/envelope
+ * and @bcts/components when used together.
+ */
+export { SymmetricKey } from "@bcts/components";
+import type { SymmetricKey } from "@bcts/components";
 
 /// Extension for encrypting and decrypting envelopes using symmetric encryption.
 ///
@@ -20,109 +33,48 @@ import { SecureRandomNumberGenerator, rngRandomData, type RandomNumberGenerator 
 /// The encryption process preserves the envelope's digest tree structure, which
 /// means signatures, proofs, and other cryptographic artifacts remain valid
 /// even when parts of the envelope are encrypted.
-///
-/// @example
-/// ```typescript
-/// // Create an envelope
-/// const envelope = Envelope.new("Hello world");
-///
-/// // Generate a symmetric key for encryption
-/// const key = SymmetricKey.generate();
-///
-/// // Encrypt the envelope's subject
-/// const encrypted = envelope.encryptSubject(key);
-///
-/// // The encrypted envelope has the same digest as the original
-/// console.log(envelope.digest().equals(encrypted.digest())); // true
-///
-/// // The subject is now encrypted
-/// console.log(encrypted.subject().isEncrypted()); // true
-///
-/// // Decrypt the envelope
-/// const decrypted = encrypted.decryptSubject(key);
-///
-/// // The decrypted envelope is equivalent to the original
-/// console.log(envelope.digest().equals(decrypted.digest())); // true
-/// ```
 
-/// Helper function to create a secure RNG
-function createSecureRng(): RandomNumberGenerator {
-  return new SecureRandomNumberGenerator();
+/**
+ * Encrypts plaintext with a symmetric key using the given digest as AAD.
+ * This is an envelope-specific helper function that returns an envelope EncryptedMessage.
+ */
+function encryptWithDigest(
+  key: SymmetricKey,
+  plaintext: Uint8Array,
+  digest: Digest,
+): EncryptedMessage {
+  const rng = new SecureRandomNumberGenerator();
+  const nonce = rngRandomData(rng, SYMMETRIC_NONCE_SIZE);
+  const aad = digest.data();
+  const [ciphertext, authTag] = aeadChaCha20Poly1305EncryptWithAad(
+    plaintext,
+    key.data(),
+    nonce,
+    aad,
+  );
+  return new EncryptedMessage(ciphertext, nonce, authTag, digest);
 }
 
-/// Represents a symmetric encryption key (256-bit)
-/// Matches bc-components-rust/src/symmetric/symmetric_key.rs
-export class SymmetricKey {
-  readonly #key: Uint8Array;
-
-  constructor(key: Uint8Array) {
-    if (key.length !== SYMMETRIC_KEY_SIZE) {
-      throw new Error(`Symmetric key must be ${SYMMETRIC_KEY_SIZE} bytes`);
-    }
-    this.#key = key;
+/**
+ * Decrypts an envelope EncryptedMessage with a symmetric key.
+ * This is an envelope-specific helper function.
+ */
+function decryptWithDigest(key: SymmetricKey, message: EncryptedMessage): Uint8Array {
+  const digest = message.aadDigest();
+  if (digest === undefined) {
+    throw EnvelopeError.general("Missing digest in encrypted message");
   }
-
-  /// Generates a new random symmetric key
-  static generate(): SymmetricKey {
-    const rng = createSecureRng();
-    const key = rngRandomData(rng, SYMMETRIC_KEY_SIZE);
-    return new SymmetricKey(key);
-  }
-
-  /// Creates a symmetric key from existing bytes
-  static from(key: Uint8Array): SymmetricKey {
-    return new SymmetricKey(key);
-  }
-
-  /// Returns the raw key bytes
-  data(): Uint8Array {
-    return this.#key;
-  }
-
-  /// Encrypts data with associated digest (AAD)
-  /// Uses IETF ChaCha20-Poly1305 with 12-byte nonce
-  encrypt(plaintext: Uint8Array, digest: Digest): EncryptedMessage {
-    const rng = createSecureRng();
-
-    // Generate a random nonce (12 bytes for IETF ChaCha20-Poly1305)
-    const nonce = rngRandomData(rng, SYMMETRIC_NONCE_SIZE);
-
-    // Use digest as additional authenticated data (AAD)
-    const aad = digest.data();
-
-    // Encrypt using IETF ChaCha20-Poly1305
-    const [ciphertext, authTag] = aeadChaCha20Poly1305EncryptWithAad(
-      plaintext,
-      this.#key,
-      nonce,
+  const aad = digest.data();
+  try {
+    return aeadChaCha20Poly1305DecryptWithAad(
+      message.ciphertext(),
+      key.data(),
+      message.nonce(),
       aad,
+      message.authTag(),
     );
-
-    return new EncryptedMessage(ciphertext, nonce, authTag, digest);
-  }
-
-  /// Decrypts an encrypted message
-  decrypt(message: EncryptedMessage): Uint8Array {
-    const digest = message.aadDigest();
-    if (digest === undefined) {
-      throw EnvelopeError.general("Missing digest in encrypted message");
-    }
-
-    const aad = digest.data();
-
-    try {
-      const plaintext = aeadChaCha20Poly1305DecryptWithAad(
-        message.ciphertext(),
-        this.#key,
-        message.nonce(),
-        aad,
-        message.authTag(),
-      );
-
-      return plaintext;
-    } catch (_error) {
-      throw EnvelopeError.general("Decryption failed: invalid key or corrupted data");
-    }
+  } catch (_error) {
+    throw EnvelopeError.general("Decryption failed: invalid key or corrupted data");
   }
 }
 
@@ -208,7 +160,7 @@ export function registerEncryptExtension(): void {
       const subjectDigest = c.subject.digest();
 
       // Encrypt the subject
-      const encryptedMessage = key.encrypt(encodedCbor, subjectDigest);
+      const encryptedMessage = encryptWithDigest(key, encodedCbor, subjectDigest);
 
       // Create encrypted envelope
       const encryptedSubject = Envelope.fromCase({
@@ -225,7 +177,7 @@ export function registerEncryptExtension(): void {
     const encodedCbor = cborData(cbor);
     const digest = this.digest();
 
-    const encryptedMessage = key.encrypt(encodedCbor, digest);
+    const encryptedMessage = encryptWithDigest(key, encodedCbor, digest);
 
     return Envelope.fromCase({
       type: "encrypted",
@@ -249,7 +201,7 @@ export function registerEncryptExtension(): void {
     }
 
     // Decrypt the subject
-    const decryptedData = key.decrypt(message);
+    const decryptedData = decryptWithDigest(key, message);
 
     // Parse back to envelope
     const cbor = decodeCbor(decryptedData);

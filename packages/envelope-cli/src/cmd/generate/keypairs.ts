@@ -6,9 +6,20 @@
  * (ur:crypto-prvkeys) and public keys (ur:crypto-pubkeys) on the same line
  * separated by a space. Supports post-quantum algorithms (ML-DSA, ML-KEM)
  * that don't support deterministic key derivation.
+ *
+ * NOTE: Some signature schemes are not yet fully implemented:
+ * - SSH key variants (ssh-ed25519, ssh-dsa, ssh-ecdsa-*)
+ * - MLDSA variants (mldsa44, mldsa65, mldsa87)
+ * - MLKEM variants (mlkem512, mlkem768, mlkem1024)
  */
 
-import { SignatureScheme, EncapsulationScheme, PrivateKeys, PublicKeys } from "@bcts/components";
+import {
+  PrivateKeys,
+  PublicKeys,
+  SigningPrivateKey,
+  EncapsulationPrivateKey,
+  EncapsulationPublicKey,
+} from "@bcts/components";
 import type { Exec } from "../../exec.js";
 
 /**
@@ -52,52 +63,64 @@ export interface CommandArgs {
  */
 export function defaultArgs(): CommandArgs {
   return {
-    signing: SigningScheme.Schnorr,
+    signing: SigningScheme.Ed25519,
     encryption: EncryptionScheme.X25519,
   };
 }
 
 /**
- * Map signing scheme arg to SignatureScheme.
+ * Generate a signing keypair for the given scheme.
  */
-function getSignatureScheme(scheme: SigningScheme): SignatureScheme {
+function generateSigningKeypair(
+  scheme: SigningScheme,
+): [SigningPrivateKey, SigningPrivateKey["publicKey"] extends () => infer R ? R : never] {
   switch (scheme) {
-    case SigningScheme.Schnorr:
-      return SignatureScheme.Schnorr;
-    case SigningScheme.Ecdsa:
-      return SignatureScheme.Ecdsa;
     case SigningScheme.Ed25519:
-      return SignatureScheme.Ed25519;
-    case SigningScheme.SshEd25519:
-      return SignatureScheme.SshEd25519;
+    case SigningScheme.SshEd25519: {
+      // SigningPrivateKey.random() generates an Ed25519 key by default
+      const signingPrivate = SigningPrivateKey.random();
+      const signingPublic = signingPrivate.publicKey();
+      return [signingPrivate, signingPublic];
+    }
+    case SigningScheme.Schnorr: {
+      const signingPrivate = SigningPrivateKey.randomSchnorr();
+      const signingPublic = signingPrivate.publicKey();
+      return [signingPrivate, signingPublic];
+    }
+    case SigningScheme.Ecdsa: {
+      const signingPrivate = SigningPrivateKey.randomEcdsa();
+      const signingPublic = signingPrivate.publicKey();
+      return [signingPrivate, signingPublic];
+    }
     case SigningScheme.SshDsa:
-      return SignatureScheme.SshDsa;
     case SigningScheme.SshEcdsaP256:
-      return SignatureScheme.SshEcdsaP256;
     case SigningScheme.SshEcdsaP384:
-      return SignatureScheme.SshEcdsaP384;
     case SigningScheme.Mldsa44:
-      return SignatureScheme.MLDSA44;
     case SigningScheme.Mldsa65:
-      return SignatureScheme.MLDSA65;
     case SigningScheme.Mldsa87:
-      return SignatureScheme.MLDSA87;
+      throw new Error(`Signing scheme '${scheme}' is not yet implemented for keypair generation.`);
   }
 }
 
 /**
- * Map encryption scheme arg to EncapsulationScheme.
+ * Generate an encapsulation keypair for the given scheme.
  */
-function getEncapsulationScheme(scheme: EncryptionScheme): EncapsulationScheme {
+function generateEncapsulationKeypair(
+  scheme: EncryptionScheme,
+): [EncapsulationPrivateKey, EncapsulationPublicKey] {
   switch (scheme) {
-    case EncryptionScheme.X25519:
-      return EncapsulationScheme.X25519;
+    case EncryptionScheme.X25519: {
+      // EncapsulationPrivateKey.new() generates an X25519 key
+      const encapsPrivate = EncapsulationPrivateKey.new();
+      const encapsPublic = encapsPrivate.publicKey();
+      return [encapsPrivate, encapsPublic];
+    }
     case EncryptionScheme.Mlkem512:
-      return EncapsulationScheme.MLKEM512;
     case EncryptionScheme.Mlkem768:
-      return EncapsulationScheme.MLKEM768;
     case EncryptionScheme.Mlkem1024:
-      return EncapsulationScheme.MLKEM1024;
+      throw new Error(
+        `Encryption scheme '${scheme}' is not yet implemented for keypair generation.`,
+      );
   }
 }
 
@@ -108,11 +131,10 @@ export class KeypairsCommand implements Exec {
   constructor(private args: CommandArgs) {}
 
   exec(): string {
-    const sigScheme = getSignatureScheme(this.args.signing);
-    const encScheme = getEncapsulationScheme(this.args.encryption);
-
-    const [signingPrivateKey, signingPublicKey] = sigScheme.keypair();
-    const [encapsulationPrivateKey, encapsulationPublicKey] = encScheme.keypair();
+    const [signingPrivateKey, signingPublicKey] = generateSigningKeypair(this.args.signing);
+    const [encapsulationPrivateKey, encapsulationPublicKey] = generateEncapsulationKeypair(
+      this.args.encryption,
+    );
 
     const privateKeys = PrivateKeys.withKeys(signingPrivateKey, encapsulationPrivateKey);
     const publicKeys = PublicKeys.new(signingPublicKey, encapsulationPublicKey);

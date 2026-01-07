@@ -10,6 +10,7 @@
  */
 
 import type { Signature } from "./signature.js";
+import type { SigningOptions } from "./signature-scheme.js";
 
 /**
  * A trait for types capable of creating digital signatures.
@@ -20,7 +21,24 @@ import type { Signature } from "./signature.js";
  */
 export interface Signer {
   /**
+   * Signs a message with optional signing options.
+   *
+   * Different signature schemes may use the options differently:
+   * - Schnorr: Can accept a custom random number generator
+   * - SSH: Requires namespace and hash algorithm (not yet implemented)
+   * - Other schemes: Options are ignored
+   *
+   * @param message - The message to sign
+   * @param options - Optional signing options
+   * @returns The digital signature
+   * @throws If signing fails
+   */
+  signWithOptions(message: Uint8Array, options?: SigningOptions): Signature;
+
+  /**
    * Signs a message using default options.
+   *
+   * This is a convenience method that calls `signWithOptions` with no options.
    *
    * @param message - The message to sign
    * @returns The digital signature

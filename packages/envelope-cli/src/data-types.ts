@@ -5,7 +5,7 @@
  */
 
 import { Envelope } from "@bcts/envelope";
-import { type Cbor, cbor, CborDate, decodeCbor, createTaggedCbor } from "@bcts/dcbor";
+import { type Cbor, CborDate, decodeCbor, toTaggedValue } from "@bcts/dcbor";
 import { ARID, Digest, URI, UUID } from "@bcts/components";
 import { UR } from "@bcts/uniform-resources";
 import { KnownValue, KNOWN_VALUES } from "@bcts/known-values";
@@ -131,7 +131,7 @@ function parseBoolean(s: string): Envelope {
 function parseCbor(s: string): Envelope {
   const bytes = hexToBytes(s);
   const cborValue = decodeCbor(bytes);
-  return Envelope.new(cborValue);
+  return Envelope.fromTaggedCbor(cborValue);
 }
 
 /**
@@ -139,7 +139,7 @@ function parseCbor(s: string): Envelope {
  */
 function parseData(s: string): Envelope {
   const bytes = hexToBytes(s);
-  return Envelope.new(cbor(bytes));
+  return Envelope.new(bytes);
 }
 
 /**
@@ -220,19 +220,19 @@ function parseString(s: string): Envelope {
 function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
   const ur = UR.fromURString(s);
   if (ur.urTypeStr() === "envelope") {
-    const envelope = Envelope.fromUr(ur);
+    const envelope = Envelope.fromUR(ur);
     return envelope.wrap();
   }
 
   // Look up the CBOR tag for this UR type
   const tagsStore = getGlobalTagsStore();
   const tag = tagsStore.tagForName(ur.urTypeStr());
-  const tagValue = tag?.value ?? cborTagValue;
+  const resolvedTagValue = tag?.value ?? cborTagValue;
 
-  if (tagValue !== undefined) {
+  if (resolvedTagValue !== undefined) {
     const urCbor = ur.cbor();
-    const taggedCbor = createTaggedCbor(tagValue, urCbor);
-    return Envelope.new(taggedCbor);
+    const tagged = toTaggedValue(resolvedTagValue, urCbor);
+    return Envelope.fromTaggedCbor(tagged);
   }
 
   throw new Error(`Unknown UR type: ${ur.urTypeStr()}`);
@@ -242,7 +242,7 @@ function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
  * Parse a URI from a string.
  */
 function parseUri(s: string): Envelope {
-  const uri = new URI(s);
+  const uri = URI.new(s);
   return Envelope.new(uri);
 }
 
@@ -276,11 +276,11 @@ export function parseUrToCbor(s: string, cborTagValue?: number | bigint): Cbor {
   // Look up the CBOR tag for this UR type
   const tagsStore = getGlobalTagsStore();
   const tag = tagsStore.tagForName(ur.urTypeStr());
-  const tagValue = tag?.value ?? cborTagValue;
+  const resolvedTagValue = tag?.value ?? cborTagValue;
 
-  if (tagValue !== undefined) {
+  if (resolvedTagValue !== undefined) {
     const urCbor = ur.cbor();
-    return createTaggedCbor(tagValue, urCbor);
+    return toTaggedValue(resolvedTagValue, urCbor);
   }
 
   throw new Error(

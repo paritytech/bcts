@@ -50,6 +50,7 @@ import {
   keyDerivationParamsFromCbor,
   lockWithParams,
   isPasswordBased,
+  isSshAgent,
 } from "./key-derivation-params.js";
 
 /**
@@ -118,8 +119,10 @@ export class EncryptedKey
       case KeyDerivationMethod.Argon2id:
         params = argon2idParams();
         break;
-      default:
-        throw new Error(`Unknown key derivation method: ${String(method)}`);
+      case KeyDerivationMethod.SSHAgent:
+        throw new Error(
+          "SSH Agent key derivation cannot be used with lock() - use lockOpt() with sshAgentParams() instead",
+        );
     }
 
     return EncryptedKey.lockOpt(params, secret, contentKey);
@@ -158,6 +161,17 @@ export class EncryptedKey
   }
 
   /**
+   * Check if this uses SSH Agent for key derivation.
+   *
+   * Note: SSH Agent key derivation is not yet functional in TypeScript.
+   * This method is useful for detecting envelopes locked by other
+   * implementations (e.g., Rust).
+   */
+  isSshAgent(): boolean {
+    return isSshAgent(this._params);
+  }
+
+  /**
    * Unlock (decrypt) the content key.
    *
    * @param secret - The secret (password or key material) used to lock
@@ -184,6 +198,8 @@ export class EncryptedKey
       case "scrypt":
         return params.params.unlock(this._encryptedMessage, secret);
       case "argon2id":
+        return params.params.unlock(this._encryptedMessage, secret);
+      case "sshagent":
         return params.params.unlock(this._encryptedMessage, secret);
     }
   }

@@ -3,23 +3,23 @@
  * Ported from bc-xid-rust/tests/key.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
+import { PrivateKeyBase } from "@bcts/components";
 import { Key, Privilege, XIDPrivateKeyOptions } from "../src";
 
 describe("Key", () => {
   describe("Basic key operations", () => {
-    it("should create key from public key base", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
-      const publicKeyBase = privateKeyBase.publicKeys();
+    it("should create key from public keys", () => {
+      const privateKeyBase = PrivateKeyBase.new();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
-      const key = Key.new(publicKeyBase);
-      expect(key.publicKeyBase().hex()).toBe(publicKeyBase.hex());
-      expect(key.privateKeyBase()).toBeUndefined();
+      const key = Key.new(publicKeys);
+      expect(key.publicKeys().equals(publicKeys)).toBe(true);
+      expect(key.privateKeys()).toBeUndefined();
     });
 
     it("should create key with endpoints, nickname, and permissions", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
-      const publicKeys = privateKeyBase.publicKeys();
+      const privateKeyBase = PrivateKeyBase.new();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
       const resolver1 = "https://resolver.example.com";
       const resolver2 = "btc:9d2203b1c72eddc072b566c4a16ed8757fcba95a3be6f270e17a128e41554b33";
@@ -44,18 +44,18 @@ describe("Key", () => {
 
   describe("Private key handling", () => {
     it("should create key with private key base", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const keyIncludingPrivate = Key.newWithPrivateKeyBase(privateKeyBase);
       expect(keyIncludingPrivate.hasPrivateKeys()).toBe(true);
-      expect(keyIncludingPrivate.privateKeyBase()).toBeDefined();
+      expect(keyIncludingPrivate.privateKeys()).toBeDefined();
     });
 
     it("should omit private key by default", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const keyIncludingPrivate = Key.newWithPrivateKeyBase(privateKeyBase);
-      const keyOmittingPrivate = Key.newAllowAll(privateKeyBase.publicKeys());
+      const keyOmittingPrivate = Key.newAllowAll(privateKeyBase.ed25519PublicKeys());
 
       // Default envelope omits private key
       const envelopeOmitting = keyIncludingPrivate.intoEnvelope();
@@ -65,7 +65,7 @@ describe("Key", () => {
     });
 
     it("should include private key when specified", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const keyIncludingPrivate = Key.newWithPrivateKeyBase(privateKeyBase);
 
@@ -77,10 +77,10 @@ describe("Key", () => {
     });
 
     it("should elide private key when specified", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const keyIncludingPrivate = Key.newWithPrivateKeyBase(privateKeyBase);
-      const keyOmittingPrivate = Key.newAllowAll(privateKeyBase.publicKeys());
+      const keyOmittingPrivate = Key.newAllowAll(privateKeyBase.ed25519PublicKeys());
 
       // Elide private key
       const envelopeEliding = keyIncludingPrivate.intoEnvelopeOpt(XIDPrivateKeyOptions.Elide);
@@ -97,7 +97,7 @@ describe("Key", () => {
   describe.skip("Encrypted private key", () => {
     // Skipped: encryptSubject API requires different key type
     it("should encrypt and decrypt private key with password", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("correct_horse_battery_staple");
 
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
@@ -110,31 +110,31 @@ describe("Key", () => {
 
       // Extract without password - should succeed but private key is None
       const keyNoPassword = Key.tryFromEnvelope(envelopeEncrypted);
-      expect(keyNoPassword.privateKeyBase()).toBeUndefined();
-      expect(keyNoPassword.publicKeyBase().hex()).toBe(privateKeyBase.publicKeys().hex());
+      expect(keyNoPassword.privateKeys()).toBeUndefined();
+      expect(keyNoPassword.publicKeys().equals(privateKeyBase.ed25519PublicKeys())).toBe(true);
 
       // Extract with wrong password - should succeed but private key is None
       const wrongPassword = new TextEncoder().encode("wrong_password");
       const keyWrongPassword = Key.tryFromEnvelope(envelopeEncrypted, wrongPassword);
-      expect(keyWrongPassword.privateKeyBase()).toBeUndefined();
+      expect(keyWrongPassword.privateKeys()).toBeUndefined();
 
       // Extract with correct password - should succeed with private key
       const keyDecrypted = Key.tryFromEnvelope(envelopeEncrypted, password);
-      expect(keyDecrypted.privateKeyBase()).toBeDefined();
+      expect(keyDecrypted.privateKeys()).toBeDefined();
       expect(keyDecrypted.equals(key)).toBe(true);
     });
   });
 
   describe("Private key storage modes", () => {
     it("should handle all storage modes correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
 
       // Mode 1: Omit (default)
       const envelopeOmit = key.intoEnvelope();
       const keyOmit = Key.tryFromEnvelope(envelopeOmit);
-      expect(keyOmit.privateKeyBase()).toBeUndefined();
+      expect(keyOmit.privateKeys()).toBeUndefined();
 
       // Mode 2: Include
       const envelopeInclude = key.intoEnvelopeOpt(XIDPrivateKeyOptions.Include);
@@ -144,7 +144,7 @@ describe("Key", () => {
       // Mode 3: Elide
       const envelopeElide = key.intoEnvelopeOpt(XIDPrivateKeyOptions.Elide);
       const keyElide = Key.tryFromEnvelope(envelopeElide);
-      expect(keyElide.privateKeyBase()).toBeUndefined();
+      expect(keyElide.privateKeys()).toBeUndefined();
       // Skip isEquivalentTo - API not available
       // expect(envelopeElide.isEquivalentTo(envelopeInclude)).toBe(true);
 
@@ -155,7 +155,7 @@ describe("Key", () => {
       //   password,
       // });
       // const keyNoPassword = Key.tryFromEnvelope(envelopeEncrypt);
-      // expect(keyNoPassword.privateKeyBase()).toBeUndefined();
+      // expect(keyNoPassword.privateKeys()).toBeUndefined();
       // const keyWithPassword = Key.tryFromEnvelope(envelopeEncrypt, password);
       // expect(keyWithPassword.equals(key)).toBe(true);
     });
@@ -163,22 +163,22 @@ describe("Key", () => {
 
   describe("Key equality and hashing", () => {
     it("should correctly compare keys", () => {
-      const privateKeyBase1 = PrivateKeyBase.generate();
-      const privateKeyBase2 = PrivateKeyBase.generate();
+      const privateKeyBase1 = PrivateKeyBase.new();
+      const privateKeyBase2 = PrivateKeyBase.new();
 
-      const key1 = Key.new(privateKeyBase1.publicKeys());
-      const key1Clone = Key.new(privateKeyBase1.publicKeys());
-      const key2 = Key.new(privateKeyBase2.publicKeys());
+      const key1 = Key.new(privateKeyBase1.ed25519PublicKeys());
+      const key1Clone = Key.new(privateKeyBase1.ed25519PublicKeys());
+      const key2 = Key.new(privateKeyBase2.ed25519PublicKeys());
 
       expect(key1.equals(key1Clone)).toBe(true);
       expect(key1.equals(key2)).toBe(false);
     });
 
     it("should produce consistent hash keys", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
-      const key1 = Key.new(privateKeyBase.publicKeys());
-      const key2 = Key.new(privateKeyBase.publicKeys());
+      const key1 = Key.new(privateKeyBase.ed25519PublicKeys());
+      const key2 = Key.new(privateKeyBase.ed25519PublicKeys());
 
       expect(key1.hashKey()).toBe(key2.hashKey());
     });
@@ -186,7 +186,7 @@ describe("Key", () => {
 
   describe("Key cloning", () => {
     it("should clone key correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
       key.setNickname("Test Key");

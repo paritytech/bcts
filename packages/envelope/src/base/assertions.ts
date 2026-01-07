@@ -151,3 +151,6 @@ Envelope.prototype.assertions = function (this: Envelope): Envelope[] {
   }
   return [];
 };
+
+// Note: addAssertionSalted, addAssertionEnvelopeSalted, and addOptionalAssertionEnvelopeSalted
+// are implemented in extension/salt.ts to keep all salt-related functionality together.

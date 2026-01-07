@@ -16,18 +16,15 @@ import { CborDate } from "@bcts/dcbor";
 import {
   parse,
   search,
-  anyAssertion,
   assertionWithPredicate,
   assertionWithObject,
   anyText,
   anyNumber,
   text,
   or,
-  and,
   notMatching,
   obscured,
   elided,
-  digestPrefix,
   patternMatches,
   patternPaths,
 } from "../src";
@@ -35,40 +32,27 @@ import {
 // Create a simplified credential for testing
 // This mirrors the structure of credential_tests.rs but without crypto
 function createTestCredential(): Envelope {
-  return Envelope.new("CertificateID-123456")
-    .addAssertion("isA", "Certificate of Completion")
-    .addAssertion("issuer", "Example Electrical Engineering Board")
-    .addAssertion("controller", "Example Electrical Engineering Board")
-    .addAssertion("firstName", "James")
-    .addAssertion("lastName", "Maxwell")
-    .addAssertion("issueDate", CborDate.fromDatetime(new Date("2020-01-01")))
-    .addAssertion("expirationDate", CborDate.fromDatetime(new Date("2028-01-01")))
-    .addAssertion("photo", "This is James Maxwell's photo.")
-    .addAssertion("certificateNumber", "123-456-789")
-    .addAssertion("subject", "RF and Microwave Engineering")
-    .addAssertion("continuingEducationUnits", 1)
-    .addAssertion("professionalDevelopmentHours", 15)
-    .addAssertion("topics", ["Subject 1", "Subject 2"]);
+  return (
+    Envelope.new("CertificateID-123456")
+      .addAssertion("isA", "Certificate of Completion")
+      .addAssertion("issuer", "Example Electrical Engineering Board")
+      .addAssertion("controller", "Example Electrical Engineering Board")
+      .addAssertion("firstName", "James")
+      .addAssertion("lastName", "Maxwell")
+      .addAssertion("issueDate", CborDate.fromDatetime(new Date("2020-01-01")))
+      .addAssertion("expirationDate", CborDate.fromDatetime(new Date("2028-01-01")))
+      .addAssertion("photo", "This is James Maxwell's photo.")
+      .addAssertion("certificateNumber", "123-456-789")
+      .addAssertion("subject", "RF and Microwave Engineering")
+      .addAssertion("continuingEducationUnits", 1)
+      .addAssertion("professionalDevelopmentHours", 15)
+      // Note: Array as assertion value requires CBOR wrapping
+      .addAssertion("topics", ["Subject 1", "Subject 2"] as unknown as string)
+  );
 }
 
-// Create a credential with elided (redacted) assertions
-function createRedactedCredential(): Envelope {
-  const credential = createTestCredential();
-  // Elide certain assertions by eliding the whole envelope
-  // In production, specific assertions would be selectively elided
-  // For testing, we'll create a simpler structure with elided elements
-  const publicInfo = Envelope.new("CertificateID-123456")
-    .addAssertion("isA", "Certificate of Completion")
-    .addAssertion("firstName", "James")
-    .addAssertion("lastName", "Maxwell")
-    .addAssertion("subject", "RF and Microwave Engineering")
-    .addAssertion("expirationDate", CborDate.fromDatetime(new Date("2028-01-01")))
-    .addAssertion("issuer", "Example Electrical Engineering Board");
-
-  // Add some elided assertions to simulate redaction
-  // Note: In production, these would be actual elided envelopes
-  return publicInfo;
-}
+// NOTE: _createRedactedCredential function was removed as it was unused.
+// The function was a placeholder for future elided credential tests.
 
 describe("Credential Pattern Tests", () => {
   describe("Test Credential Structure", () => {

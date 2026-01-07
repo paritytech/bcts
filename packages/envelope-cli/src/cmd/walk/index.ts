@@ -4,7 +4,6 @@
  * Walk an envelope's nodes.
  */
 
-import type { Envelope } from "@bcts/envelope";
 import { Digest } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";

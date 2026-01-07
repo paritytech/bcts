@@ -250,7 +250,7 @@ export interface CborMethods {
    * @param initialState - Initial state for the visitor
    * @param visitor - Visitor function called for each element
    */
-  walk<State>(initialState: State, visitor: Visitor<State>): State;
+  walk<State>(initialState: State, visitor: Visitor<State>): void;
   /**
    * Validate that value has one of the expected tags.
    * @param expectedTags - Array of expected tag values
@@ -774,8 +774,8 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
     },
 
     // Advanced operations
-    walk<State>(this: Cbor, initialState: State, visitor: Visitor<State>): State {
-      return walk(this, initialState, visitor);
+    walk<State>(this: Cbor, initialState: State, visitor: Visitor<State>): void {
+      walk(this, initialState, visitor);
     },
     validateTag(this: Cbor, expectedTags: Tag[]): Tag {
       if (this.type !== MajorType.Tagged) {

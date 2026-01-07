@@ -62,34 +62,34 @@ export class InfoCommand implements Exec {
 
     switch (urType) {
       case "seed": {
-        Seed.fromUr(ur);
+        Seed.fromUR(ur);
         add("Description", "Cryptographic Seed");
         break;
       }
       case "prvkeys": {
-        PrivateKeyBase.fromUr(ur);
+        PrivateKeyBase.fromUR(ur);
         add("Description", "Private Key Base");
         break;
       }
       case "pubkeys": {
-        PublicKeys.fromUr(ur);
+        PublicKeys.fromUR(ur);
         add("Description", "Public Keys");
         break;
       }
       case "signing-private-key": {
-        const signingPrivateKey = SigningPrivateKey.fromUr(ur);
+        const signingPrivateKey = SigningPrivateKey.fromUR(ur);
         const keyType = signingPrivateKey.keyType();
         add("Description", `${keyType} Signing Private Key`);
         break;
       }
       case "signing-public-key": {
-        const signingPublicKey = SigningPublicKey.fromUr(ur);
+        const signingPublicKey = SigningPublicKey.fromUR(ur);
         const keyType = signingPublicKey.keyType();
         add("Description", `${keyType} Signing Public Key`);
         break;
       }
       case "signature": {
-        const signature = Signature.fromUr(ur);
+        const signature = Signature.fromUR(ur);
         const sigType = signature.signatureType();
         add("Description", `${sigType} Signature`);
         break;

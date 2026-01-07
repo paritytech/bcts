@@ -53,8 +53,5 @@ export { Secret } from "./secret.js";
 // Specifications
 export { GroupSpec, Spec } from "./spec.js";
 
-// Share
-export { SSKRShare } from "./share.js";
-
 // Encoding/Decoding
 export { sskrGenerate, sskrGenerateUsing, sskrCombine } from "./encoding.js";

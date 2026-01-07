@@ -90,7 +90,8 @@ describe("Seed", () => {
     it("should get and set name", () => {
       const seed = Seed.random(16);
 
-      expect(seed.name()).toBeUndefined();
+      // Rust API: name() returns empty string when not set
+      expect(seed.name()).toBe("");
 
       seed.setName("My Seed");
       expect(seed.name()).toBe("My Seed");
@@ -99,7 +100,8 @@ describe("Seed", () => {
     it("should get and set note", () => {
       const seed = Seed.random(16);
 
-      expect(seed.note()).toBeUndefined();
+      // Rust API: note() returns empty string when not set
+      expect(seed.note()).toBe("");
 
       seed.setNote("My Note");
       expect(seed.note()).toBe("My Note");
@@ -227,8 +229,9 @@ describe("Seed", () => {
 
       expect(restored.equals(seed)).toBe(true);
       expect(restored.name()).toBe("Test Seed");
-      expect(restored.note()).toBeUndefined();
-      expect(restored.createdAt()).toBeUndefined();
+      // Rust API: note() returns empty string when not set
+      expect(restored.note()).toBe("");
+      expect(restored.creationDate()).toBeUndefined();
     });
   });
 
@@ -275,6 +278,93 @@ describe("Seed", () => {
       const invalidUr = "ur:not_seed/invalid";
 
       expect(() => Seed.fromURString(invalidUr)).toThrow();
+    });
+  });
+
+  describe("Rust API parity", () => {
+    it("should have MIN_SEED_LENGTH constant", () => {
+      expect(Seed.MIN_SEED_LENGTH).toBe(16);
+    });
+
+    it("should create seed with Seed.new()", () => {
+      const seed = Seed.new();
+      expect(seed.size()).toBe(16); // Default size
+    });
+
+    it("should create seed with Seed.newWithLen()", () => {
+      const seed = Seed.newWithLen(32);
+      expect(seed.size()).toBe(32);
+    });
+
+    it("should throw on newWithLen with size < 16", () => {
+      expect(() => Seed.newWithLen(8)).toThrow();
+    });
+
+    it("should create seed with Seed.newWithLenUsing()", () => {
+      // Simple deterministic RNG for testing
+      let counter = 0;
+      const rng = {
+        randomData: (size: number) => {
+          const data = new Uint8Array(size);
+          for (let i = 0; i < size; i++) {
+            data[i] = counter++;
+          }
+          return data;
+        },
+      };
+
+      const seed = Seed.newWithLenUsing(16, rng);
+      expect(seed.size()).toBe(16);
+      expect(seed.asBytes()[0]).toBe(0);
+      expect(seed.asBytes()[15]).toBe(15);
+    });
+
+    it("should create seed with Seed.newOpt()", () => {
+      const data = new Uint8Array(16).fill(0xab);
+      const date = new Date("2023-06-15T10:30:00Z");
+
+      const seed = Seed.newOpt(data, "Test Name", "Test Note", date);
+
+      expect(seed.name()).toBe("Test Name");
+      expect(seed.note()).toBe("Test Note");
+      expect(seed.creationDate()?.toISOString()).toBe("2023-06-15T10:30:00.000Z");
+    });
+
+    it("should create seed with newOpt and undefined metadata", () => {
+      const data = new Uint8Array(16).fill(0xab);
+      const seed = Seed.newOpt(data, undefined, undefined, undefined);
+
+      expect(seed.name()).toBe("");
+      expect(seed.note()).toBe("");
+      expect(seed.creationDate()).toBeUndefined();
+    });
+
+    it("should return bytes with asBytes()", () => {
+      const seed = Seed.new();
+      const bytes = seed.asBytes();
+
+      expect(bytes).toBeInstanceOf(Uint8Array);
+      expect(bytes.length).toBe(16);
+      // asBytes returns reference to internal data
+      expect(bytes).toBe(seed.asBytes());
+    });
+
+    it("should have creationDate() as alias for createdAt()", () => {
+      const date = new Date("2023-06-15T10:30:00Z");
+      const seed = Seed.newOpt(new Uint8Array(16).fill(0), undefined, undefined, date);
+
+      expect(seed.creationDate()).toBe(seed.createdAt());
+    });
+
+    it("should have setCreationDate() as alias for setCreatedAt()", () => {
+      const seed = Seed.new();
+      const date = new Date("2023-06-15T10:30:00Z");
+
+      seed.setCreationDate(date);
+      expect(seed.creationDate()?.toISOString()).toBe("2023-06-15T10:30:00.000Z");
+
+      seed.setCreationDate(undefined);
+      expect(seed.creationDate()).toBeUndefined();
     });
   });
 });

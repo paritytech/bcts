@@ -4,7 +4,7 @@ describe("Encryption Extension", () => {
   describe("Basic encryption", () => {
     it("should encrypt subject and preserve digest", () => {
       const envelope = Envelope.new("Secret message");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
 
@@ -16,7 +16,7 @@ describe("Encryption Extension", () => {
   describe("Decryption", () => {
     it("should decrypt to original content", () => {
       const envelope = Envelope.new("Secret message");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       const decrypted = encrypted.decryptSubject(key);
@@ -32,7 +32,7 @@ describe("Encryption Extension", () => {
       const envelope = Envelope.new("Alice")
         .addAssertion("email", "alice@example.com")
         .addAssertion("age", 30);
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encrypt(key);
 
@@ -43,7 +43,7 @@ describe("Encryption Extension", () => {
       const envelope = Envelope.new("Alice")
         .addAssertion("email", "alice@example.com")
         .addAssertion("age", 30);
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encrypt(key);
       const decrypted = encrypted.decrypt(key);
@@ -56,8 +56,8 @@ describe("Encryption Extension", () => {
   describe("Error handling", () => {
     it("should fail decryption with wrong key", () => {
       const envelope = Envelope.new("Secret message");
-      const key = SymmetricKey.generate();
-      const wrongKey = SymmetricKey.generate();
+      const key = SymmetricKey.new();
+      const wrongKey = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
 
@@ -66,7 +66,7 @@ describe("Encryption Extension", () => {
 
     it("should fail double encryption", () => {
       const envelope = Envelope.new("Secret message");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
 
@@ -79,7 +79,7 @@ describe("Encryption Extension", () => {
       const envelope = Envelope.new("Alice")
         .addAssertion("email", "alice@example.com")
         .addAssertion("age", 30);
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
 
@@ -95,7 +95,7 @@ describe("Encryption Extension", () => {
   describe("Key serialization", () => {
     it("should restore key from bytes", () => {
       const envelope = Envelope.new("Secret message");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
 
@@ -111,7 +111,7 @@ describe("Encryption Extension", () => {
     it("should handle large content", () => {
       const largeContent = "Lorem ipsum dolor sit amet. ".repeat(100);
       const envelope = Envelope.new(largeContent);
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       const decrypted = encrypted.decryptSubject(key);
@@ -123,7 +123,7 @@ describe("Encryption Extension", () => {
   describe("Nested envelopes", () => {
     it("should encrypt nested envelopes", () => {
       const nested = Envelope.new("Outer").addAssertion("inner", Envelope.new("Inner secret"));
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = nested.encryptSubject(key);
       const decrypted = encrypted.decryptSubject(key);

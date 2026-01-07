@@ -17,6 +17,7 @@ import { HKDFParams } from "./hkdf-params.js";
 import { PBKDF2Params } from "./pbkdf2-params.js";
 import { ScryptParams } from "./scrypt-params.js";
 import { Argon2idParams } from "./argon2id-params.js";
+import { SSHAgentParams } from "./ssh-agent-params.js";
 
 /**
  * Union type representing key derivation parameters.
@@ -28,7 +29,8 @@ export type KeyDerivationParams =
   | { type: "hkdf"; params: HKDFParams }
   | { type: "pbkdf2"; params: PBKDF2Params }
   | { type: "scrypt"; params: ScryptParams }
-  | { type: "argon2id"; params: Argon2idParams };
+  | { type: "argon2id"; params: Argon2idParams }
+  | { type: "sshagent"; params: SSHAgentParams };
 
 /**
  * Create HKDF derivation parameters.
@@ -59,6 +61,18 @@ export function argon2idParams(params?: Argon2idParams): KeyDerivationParams {
 }
 
 /**
+ * Create SSH agent derivation parameters.
+ *
+ * @param idOrParams - Either an SSH key identity string or SSHAgentParams instance
+ */
+export function sshAgentParams(idOrParams: string | SSHAgentParams): KeyDerivationParams {
+  if (typeof idOrParams === "string") {
+    return { type: "sshagent", params: SSHAgentParams.new(idOrParams) };
+  }
+  return { type: "sshagent", params: idOrParams };
+}
+
+/**
  * Create default key derivation parameters (Argon2id).
  */
 export function defaultKeyDerivationParams(): KeyDerivationParams {
@@ -78,6 +92,8 @@ export function keyDerivationParamsMethod(kdp: KeyDerivationParams): KeyDerivati
       return KeyDerivationMethod.Scrypt;
     case "argon2id":
       return KeyDerivationMethod.Argon2id;
+    case "sshagent":
+      return KeyDerivationMethod.SSHAgent;
   }
 }
 
@@ -88,6 +104,17 @@ export function keyDerivationParamsMethod(kdp: KeyDerivationParams): KeyDerivati
  */
 export function isPasswordBased(kdp: KeyDerivationParams): boolean {
   return kdp.type === "pbkdf2" || kdp.type === "scrypt" || kdp.type === "argon2id";
+}
+
+/**
+ * Check if the parameters use SSH Agent for key derivation.
+ *
+ * Note: SSH Agent key derivation is not yet functional in TypeScript.
+ * This function is useful for detecting envelopes locked by other
+ * implementations (e.g., Rust).
+ */
+export function isSshAgent(kdp: KeyDerivationParams): boolean {
+  return kdp.type === "sshagent";
 }
 
 /**
@@ -107,6 +134,8 @@ export function lockWithParams(
       return kdp.params.lock(contentKey, secret);
     case "argon2id":
       return kdp.params.lock(contentKey, secret);
+    case "sshagent":
+      return kdp.params.lock(contentKey, secret);
   }
 }
 
@@ -122,6 +151,8 @@ export function keyDerivationParamsToCbor(kdp: KeyDerivationParams): Cbor {
     case "scrypt":
       return kdp.params.toCbor();
     case "argon2id":
+      return kdp.params.toCbor();
+    case "sshagent":
       return kdp.params.toCbor();
   }
 }
@@ -145,6 +176,8 @@ export function keyDerivationParamsToString(kdp: KeyDerivationParams): string {
     case "scrypt":
       return kdp.params.toString();
     case "argon2id":
+      return kdp.params.toString();
+    case "sshagent":
       return kdp.params.toString();
   }
 }
@@ -174,5 +207,7 @@ export function keyDerivationParamsFromCbor(cborValue: Cbor): KeyDerivationParam
       return { type: "scrypt", params: ScryptParams.fromCbor(cborValue) };
     case KeyDerivationMethod.Argon2id:
       return { type: "argon2id", params: Argon2idParams.fromCbor(cborValue) };
+    case KeyDerivationMethod.SSHAgent:
+      return { type: "sshagent", params: SSHAgentParams.fromCbor(cborValue) };
   }
 }

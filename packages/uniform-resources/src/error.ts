@@ -78,6 +78,17 @@ export class CBORError extends URError {
   }
 }
 
+/**
+ * Error type for UR decoder errors.
+ * Matches Rust's Error::UR(String) variant.
+ */
+export class URDecodeError extends URError {
+  constructor(message: string) {
+    super(`UR decoder error (${message})`);
+    this.name = "URDecodeError";
+  }
+}
+
 export type Result<T> = T | Error;
 
 /**

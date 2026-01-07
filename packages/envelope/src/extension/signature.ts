@@ -12,16 +12,29 @@
  */
 
 import { Envelope } from "../base/envelope";
+import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
-import {
-  ecdsaSign,
-  ecdsaVerify,
-  ecdsaPublicKeyFromPrivateKey,
-  ECDSA_PRIVATE_KEY_SIZE,
-  ECDSA_PUBLIC_KEY_SIZE,
-  ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE,
-} from "@bcts/crypto";
-import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
+
+/**
+ * Re-export signing types from @bcts/components for type compatibility.
+ *
+ * The @bcts/components signing types are the canonical implementations with:
+ * - Multiple signature schemes (Ed25519, Schnorr, ECDSA, SR25519, MLDSA)
+ * - Full CBOR support (tagged/untagged)
+ * - UR support
+ * - SSH format support
+ *
+ * This re-export ensures type compatibility between @bcts/envelope
+ * and @bcts/components when used together.
+ */
+export {
+  Signature,
+  SigningPrivateKey,
+  SigningPublicKey,
+  type Signer,
+  type Verifier,
+} from "@bcts/components";
+import { Signature, type Signer, type Verifier } from "@bcts/components";
 
 /**
  * Known value for the 'signed' predicate.
@@ -42,185 +55,24 @@ export const VERIFIED_BY = "verifiedBy";
 export const NOTE = "note";
 
 /**
- * Represents a cryptographic signature.
- */
-export class Signature {
-  readonly #data: Uint8Array;
-
-  constructor(data: Uint8Array) {
-    this.#data = data;
-  }
-
-  /**
-   * Returns the raw signature bytes.
-   */
-  data(): Uint8Array {
-    return this.#data;
-  }
-
-  /**
-   * Returns the hex-encoded signature.
-   */
-  hex(): string {
-    return Array.from(this.#data)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
-  /**
-   * Creates a Signature from hex string.
-   */
-  static fromHex(hex: string): Signature {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new Signature(bytes);
-  }
-}
-
-/**
- * Interface for types that can sign data.
- */
-export interface Signer {
-  /**
-   * Signs the provided data and returns a Signature.
-   */
-  sign(data: Uint8Array): Signature;
-}
-
-/**
- * Interface for types that can verify signatures.
- */
-export interface Verifier {
-  /**
-   * Verifies a signature against the provided data.
-   * Returns true if the signature is valid.
-   */
-  verify(data: Uint8Array, signature: Signature): boolean;
-}
-
-/**
- * ECDSA signing key using secp256k1 curve.
- * Uses @bcts/crypto functions.
- */
-export class SigningPrivateKey implements Signer {
-  readonly #privateKey: Uint8Array;
-
-  constructor(privateKey: Uint8Array) {
-    if (privateKey.length !== ECDSA_PRIVATE_KEY_SIZE) {
-      throw new Error(`Private key must be ${ECDSA_PRIVATE_KEY_SIZE} bytes`);
-    }
-    this.#privateKey = privateKey;
-  }
-
-  /**
-   * Generates a new random private key.
-   */
-  static generate(): SigningPrivateKey {
-    const rng = new SecureRandomNumberGenerator();
-    const privateKey = rngRandomData(rng, ECDSA_PRIVATE_KEY_SIZE);
-    return new SigningPrivateKey(privateKey);
-  }
-
-  /**
-   * Creates a private key from hex string.
-   */
-  static fromHex(hex: string): SigningPrivateKey {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new SigningPrivateKey(bytes);
-  }
-
-  /**
-   * Returns the corresponding public key.
-   */
-  publicKey(): SigningPublicKey {
-    const publicKey = ecdsaPublicKeyFromPrivateKey(this.#privateKey);
-    return new SigningPublicKey(publicKey);
-  }
-
-  /**
-   * Signs data and returns a Signature.
-   */
-  sign(data: Uint8Array): Signature {
-    const signatureBytes = ecdsaSign(this.#privateKey, data);
-    return new Signature(signatureBytes);
-  }
-
-  /**
-   * Returns the raw private key bytes.
-   */
-  data(): Uint8Array {
-    return this.#privateKey;
-  }
-}
-
-/**
- * ECDSA public key for signature verification using secp256k1 curve.
- * Uses @bcts/crypto functions.
- */
-export class SigningPublicKey implements Verifier {
-  readonly #publicKey: Uint8Array;
-
-  constructor(publicKey: Uint8Array) {
-    if (
-      publicKey.length !== ECDSA_PUBLIC_KEY_SIZE &&
-      publicKey.length !== ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE
-    ) {
-      throw new Error(
-        `Public key must be ${ECDSA_PUBLIC_KEY_SIZE} bytes (compressed) or ${ECDSA_UNCOMPRESSED_PUBLIC_KEY_SIZE} bytes (uncompressed)`,
-      );
-    }
-    this.#publicKey = publicKey;
-  }
-
-  /**
-   * Creates a public key from hex string.
-   */
-  static fromHex(hex: string): SigningPublicKey {
-    const bytes = new Uint8Array(hex.length / 2);
-    for (let i = 0; i < hex.length; i += 2) {
-      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-    }
-    return new SigningPublicKey(bytes);
-  }
-
-  /**
-   * Verifies a signature against the provided data.
-   */
-  verify(data: Uint8Array, signature: Signature): boolean {
-    try {
-      return ecdsaVerify(this.#publicKey, signature.data(), data);
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Returns the raw public key bytes.
-   */
-  data(): Uint8Array {
-    return this.#publicKey;
-  }
-
-  /**
-   * Returns the hex-encoded public key.
-   */
-  hex(): string {
-    return Array.from(this.#publicKey)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-  }
-}
-
-/**
  * Metadata that can be attached to a signature.
  */
 export class SignatureMetadata {
   readonly #assertions: [string, unknown][] = [];
+
+  /**
+   * Creates a new SignatureMetadata instance.
+   * Use the static `new()` method for fluent API style.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private constructor() {}
+
+  /**
+   * Creates a new empty SignatureMetadata.
+   */
+  static new(): SignatureMetadata {
+    return new SignatureMetadata();
+  }
 
   /**
    * Adds an assertion to the metadata.
@@ -233,166 +85,245 @@ export class SignatureMetadata {
   }
 
   /**
-   * Returns all assertions in the metadata.
+   * Returns all assertions in this metadata.
    */
-  assertions(): [string, unknown][] {
+  assertions(): readonly [string, unknown][] {
     return this.#assertions;
   }
+}
 
-  /**
-   * Returns true if this metadata has any assertions.
-   */
-  hasAssertions(): boolean {
-    return this.#assertions.length > 0;
+// ============================================================================
+// Note: Type declarations for signature methods are in ../base/envelope.ts
+// to ensure they are included in bundled type definitions.
+// ============================================================================
+
+// ============================================================================
+// Envelope Extension Methods for Signatures
+// ============================================================================
+
+/// Implementation of addSignature() with optional metadata
+Envelope.prototype.addSignatureWithMetadata = function (
+  this: Envelope,
+  signer: Signer,
+  metadata?: SignatureMetadata,
+): Envelope {
+  const digest = this.subject().digest();
+  const signature = signer.sign(digest.data());
+
+  // Create the signature envelope
+  let signatureEnvelope = Envelope.new(signature);
+
+  // Add verifier info if available
+  if ("publicKey" in signer && typeof signer.publicKey === "function") {
+    const verifier = (signer.publicKey as () => Verifier)();
+    signatureEnvelope = signatureEnvelope.addAssertion(
+      VERIFIED_BY,
+      verifier as unknown as EnvelopeEncodableValue,
+    );
   }
-}
 
-// Implementation
-// eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
-if (Envelope?.prototype) {
-  Envelope.prototype.addSignature = function (this: Envelope, signer: Signer): Envelope {
-    return this.addSignatureWithMetadata(signer, undefined);
-  };
-
-  Envelope.prototype.addSignatureWithMetadata = function (
-    this: Envelope,
-    signer: Signer,
-    metadata?: SignatureMetadata,
-  ): Envelope {
-    const digest = this.subject().digest();
-    const signature = signer.sign(digest.data());
-    let signatureEnvelope = Envelope.new(signature.data());
-
-    if (metadata?.hasAssertions() === true) {
-      // Add metadata assertions to the signature
-      for (const [predicate, object] of metadata.assertions()) {
-        signatureEnvelope = signatureEnvelope.addAssertion(
-          predicate,
-          object as string | number | boolean,
-        );
-      }
-
-      // Wrap the signature with metadata
-      signatureEnvelope = signatureEnvelope.wrap();
-
-      // Sign the wrapped envelope
-      const outerSignature = signer.sign(signatureEnvelope.digest().data());
-      signatureEnvelope = signatureEnvelope.addAssertion(SIGNED, outerSignature.data());
+  // Add metadata assertions if provided
+  if (metadata !== undefined) {
+    for (const [predicate, object] of metadata.assertions()) {
+      signatureEnvelope = signatureEnvelope.addAssertion(
+        predicate,
+        object as EnvelopeEncodableValue,
+      );
     }
+  }
 
-    return this.addAssertion(SIGNED, signatureEnvelope);
-  };
+  return this.addAssertion(SIGNED, signatureEnvelope);
+};
 
-  Envelope.prototype.addSignatures = function (this: Envelope, signers: Signer[]): Envelope {
-    return signers.reduce((envelope, signer) => envelope.addSignature(signer), this);
-  };
+/// Implementation of addSignature() without metadata
+Envelope.prototype.addSignature = function (this: Envelope, signer: Signer): Envelope {
+  return this.addSignatureWithMetadata(signer, undefined);
+};
 
-  Envelope.prototype.hasSignatureFrom = function (this: Envelope, verifier: Verifier): boolean {
-    const subjectDigest = this.subject().digest();
-    const signatures = this.signatures();
+/// Implementation of addSignatureOpt() - with optional signer options
+Envelope.prototype.addSignatureOpt = function (
+  this: Envelope,
+  signer: Signer,
+  _options?: unknown,
+  metadata?: SignatureMetadata,
+): Envelope {
+  // For now, options are ignored - full implementation would handle SigningOptions
+  return this.addSignatureWithMetadata(signer, metadata);
+};
 
-    for (const sigEnvelope of signatures) {
-      const c = sigEnvelope.case();
+/// Implementation of addSignatures() - add multiple signatures
+Envelope.prototype.addSignatures = function (this: Envelope, signers: Signer[]): Envelope {
+  return signers.reduce<Envelope>((envelope, signer) => envelope.addSignature(signer), this);
+};
 
-      if (c.type === "leaf") {
-        // Simple signature - verify directly
-        try {
-          const sigData = sigEnvelope.asByteString();
-          if (sigData !== undefined) {
-            const signature = new Signature(sigData);
-            if (verifier.verify(subjectDigest.data(), signature)) {
-              return true;
-            }
-          }
-        } catch {
-          continue;
-        }
-      } else if (c.type === "node") {
-        // Signature with metadata - it's a node with 'signed' assertion
-        // The structure is: { wrapped_signature [signed: outer_signature] }
-        // Check if this node has a 'signed' assertion
-        const outerSigs = sigEnvelope.assertions().filter((a) => {
-          const aC = a.case();
-          if (aC.type === "assertion") {
-            const pred = aC.assertion.predicate();
-            try {
-              return pred.asText() === SIGNED;
-            } catch {
-              return false;
-            }
-          }
-          return false;
-        });
+/// Implementation of addSignaturesWithMetadata()
+Envelope.prototype.addSignaturesWithMetadata = function (
+  this: Envelope,
+  signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
+): Envelope {
+  return signersWithMetadata.reduce<Envelope>(
+    (envelope, { signer, metadata }) => envelope.addSignatureWithMetadata(signer, metadata),
+    this,
+  );
+};
 
-        for (const outerSig of outerSigs) {
-          const outerSigCase = outerSig.case();
-          if (outerSigCase.type === "assertion") {
-            const outerSigObj = outerSigCase.assertion.object();
-            try {
-              const outerSigData = outerSigObj.asByteString();
-              if (outerSigData !== undefined) {
-                const outerSignature = new Signature(outerSigData);
+/// Implementation of hasSignatureFrom() - check if signed by specific verifier
+Envelope.prototype.hasSignatureFrom = function (this: Envelope, verifier: Verifier): boolean {
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
 
-                // The subject of this node should be a wrapped envelope
-                const nodeSubject = c.subject;
-                const nodeSubjectCase = nodeSubject.case();
+  for (const assertion of signedAssertions) {
+    try {
+      const signatureEnvelope = assertion.tryObject();
+      // The signature envelope may have assertions (like verifiedBy), so get subject first
+      const signatureCbor = signatureEnvelope.subject().tryLeaf();
 
-                // Verify outer signature against the wrapped envelope
-                if (
-                  nodeSubjectCase.type === "wrapped" &&
-                  verifier.verify(nodeSubject.digest().data(), outerSignature)
-                ) {
-                  // Now verify inner signature
-                  const wrapped = nodeSubjectCase.envelope;
-                  const innerSig = wrapped.subject();
-                  const innerSigData = innerSig.asByteString();
-                  if (innerSigData !== undefined) {
-                    const innerSignature = new Signature(innerSigData);
-                    if (verifier.verify(subjectDigest.data(), innerSignature)) {
-                      return true;
-                    }
-                  }
-                }
-              }
-            } catch {
-              continue;
-            }
-          }
-        }
+      // Decode the signature from tagged CBOR
+      const signature = Signature.fromTaggedCbor(signatureCbor);
+
+      // Get the digest that was signed
+      const digest = this.subject().digest();
+
+      // Check if this signature is valid for the verifier
+      if (verifier.verify(signature, digest.data())) {
+        return true;
       }
+    } catch {
+      // Not a valid signature assertion, continue
+      continue;
     }
+  }
 
-    return false;
-  };
+  return false;
+};
 
-  Envelope.prototype.verifySignatureFrom = function (this: Envelope, verifier: Verifier): Envelope {
+/// Implementation of hasSignaturesFrom() - check if signed by all verifiers
+Envelope.prototype.hasSignaturesFrom = function (this: Envelope, verifiers: Verifier[]): boolean {
+  return verifiers.every((verifier) => this.hasSignatureFrom(verifier));
+};
+
+/// Implementation of hasSignaturesFromThreshold()
+Envelope.prototype.hasSignaturesFromThreshold = function (
+  this: Envelope,
+  verifiers: Verifier[],
+  threshold: number,
+): boolean {
+  let count = 0;
+  for (const verifier of verifiers) {
     if (this.hasSignatureFrom(verifier)) {
-      return this;
+      count++;
+      if (count >= threshold) {
+        return true;
+      }
     }
-    throw EnvelopeError.general("No valid signature found from the given verifier");
-  };
+  }
+  return false;
+};
 
-  Envelope.prototype.signatures = function (this: Envelope): Envelope[] {
-    const assertions = this.assertions();
-    return assertions
-      .filter((a) => {
-        const c = a.case();
-        if (c.type === "assertion") {
-          const pred = c.assertion.predicate();
+/// Implementation of sign() - wrap and sign without metadata
+Envelope.prototype.sign = function (this: Envelope, signer: Signer): Envelope {
+  return this.wrap().addSignature(signer);
+};
+
+/// Implementation of signWithMetadata() - wrap and sign with metadata
+Envelope.prototype.signWithMetadata = function (
+  this: Envelope,
+  signer: Signer,
+  metadata?: SignatureMetadata,
+): Envelope {
+  return this.wrap().addSignatureWithMetadata(signer, metadata);
+};
+
+/// Implementation of verify() - verify signature and unwrap
+Envelope.prototype.verify = function (this: Envelope, verifier: Verifier): Envelope {
+  if (!this.hasSignatureFrom(verifier)) {
+    throw EnvelopeError.general("Signature verification failed");
+  }
+  return this.unwrap();
+};
+
+/// Implementation of verifyReturningMetadata()
+Envelope.prototype.verifyReturningMetadata = function (
+  this: Envelope,
+  verifier: Verifier,
+): { envelope: Envelope; metadata?: SignatureMetadata } {
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
+
+  for (const assertion of signedAssertions) {
+    try {
+      const signatureEnvelope = assertion.tryObject();
+      // The signature envelope may have assertions (like verifiedBy), so get subject first
+      const signatureCbor = signatureEnvelope.subject().tryLeaf();
+      const signature = Signature.fromTaggedCbor(signatureCbor);
+      const digest = this.subject().digest();
+
+      if (verifier.verify(signature, digest.data())) {
+        // Extract metadata from the signature envelope
+        const metadata = new (SignatureMetadata as unknown as new () => SignatureMetadata)();
+        for (const metaAssertion of signatureEnvelope.assertions()) {
           try {
-            return pred.asText() === SIGNED;
+            const pred = metaAssertion.tryPredicate();
+            const obj = metaAssertion.tryObject();
+            const predValue = pred.tryLeaf() as unknown as string;
+            const objValue = obj.tryLeaf();
+            if (predValue !== VERIFIED_BY) {
+              (
+                metadata as unknown as {
+                  withAssertion: (p: string, o: unknown) => SignatureMetadata;
+                }
+              ).withAssertion(predValue, objValue);
+            }
           } catch {
-            return false;
+            // Skip non-leaf assertions
           }
         }
-        return false;
-      })
-      .map((a) => {
-        const c = a.case();
-        if (c.type === "assertion") {
-          return c.assertion.object();
-        }
-        throw EnvelopeError.general("Invalid signature assertion");
-      });
-  };
-}
+
+        return {
+          envelope: this.unwrap(),
+          metadata: metadata,
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  throw EnvelopeError.general("Signature verification failed");
+};
+
+/// Implementation of signatures() - get all signature assertions
+Envelope.prototype.signatures = function (this: Envelope): Envelope[] {
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
+  return signedAssertions.map((assertion) => assertion.tryObject());
+};
+
+/// Implementation of verifySignatureFrom() - verify and return this envelope
+Envelope.prototype.verifySignatureFrom = function (this: Envelope, verifier: Verifier): Envelope {
+  if (!this.hasSignatureFrom(verifier)) {
+    throw EnvelopeError.general("Signature verification failed");
+  }
+  return this;
+};
+
+/// Implementation of verifySignaturesFrom() - verify signatures from all verifiers
+Envelope.prototype.verifySignaturesFrom = function (
+  this: Envelope,
+  verifiers: Verifier[],
+): Envelope {
+  if (!this.hasSignaturesFrom(verifiers)) {
+    throw EnvelopeError.general("Signature verification failed");
+  }
+  return this;
+};
+
+/// Implementation of verifySignaturesFromThreshold() - verify threshold signatures
+Envelope.prototype.verifySignaturesFromThreshold = function (
+  this: Envelope,
+  verifiers: Verifier[],
+  threshold?: number,
+): Envelope {
+  const t = threshold ?? verifiers.length;
+  if (!this.hasSignaturesFromThreshold(verifiers, t)) {
+    throw EnvelopeError.general("Signature verification failed - threshold not met");
+  }
+  return this;
+};

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/switch-exhaustiveness-check -- MLKEM not yet implemented */
 /**
  * Encapsulation public key for key encapsulation mechanisms
  *
@@ -38,6 +39,8 @@ import { type SymmetricKey } from "../symmetric/symmetric-key.js";
 import { EncapsulationScheme } from "./encapsulation-scheme.js";
 import { EncapsulationCiphertext } from "./encapsulation-ciphertext.js";
 import { bytesToHex } from "../utils.js";
+import { Reference, type ReferenceProvider } from "../reference.js";
+import { Digest } from "../digest.js";
 
 /**
  * Represents a public key for key encapsulation.
@@ -45,7 +48,11 @@ import { bytesToHex } from "../utils.js";
  * Use this to encapsulate a shared secret for a recipient.
  */
 export class EncapsulationPublicKey
-  implements CborTaggedEncodable, CborTaggedDecodable<EncapsulationPublicKey>, UREncodable
+  implements
+    ReferenceProvider,
+    CborTaggedEncodable,
+    CborTaggedDecodable<EncapsulationPublicKey>,
+    UREncodable
 {
   private readonly _scheme: EncapsulationScheme;
   private readonly _x25519PublicKey: X25519PublicKey | undefined;
@@ -174,6 +181,21 @@ export class EncapsulationPublicKey
       default:
         return `EncapsulationPublicKey(${String(this._scheme)})`;
     }
+  }
+
+  // ============================================================================
+  // ReferenceProvider Interface
+  // ============================================================================
+
+  /**
+   * Returns a unique reference to this EncapsulationPublicKey instance.
+   *
+   * The reference is derived from the SHA-256 hash of the tagged CBOR
+   * representation, providing a unique, content-addressable identifier.
+   */
+  reference(): Reference {
+    const digest = Digest.fromImage(this.taggedCborData());
+    return Reference.from(digest);
   }
 
   // ============================================================================

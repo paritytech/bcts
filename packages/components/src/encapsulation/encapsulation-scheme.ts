@@ -27,10 +27,20 @@ export enum EncapsulationScheme {
    */
   X25519 = "x25519",
 
-  // Future: ML-KEM post-quantum schemes
-  // MLKEM512 = "mlkem512",
-  // MLKEM768 = "mlkem768",
-  // MLKEM1024 = "mlkem1024",
+  /**
+   * ML-KEM-512 post-quantum key encapsulation (NIST security level 1).
+   */
+  MLKEM512 = "mlkem512",
+
+  /**
+   * ML-KEM-768 post-quantum key encapsulation (NIST security level 3).
+   */
+  MLKEM768 = "mlkem768",
+
+  /**
+   * ML-KEM-1024 post-quantum key encapsulation (NIST security level 5).
+   */
+  MLKEM1024 = "mlkem1024",
 }
 
 /**
@@ -52,8 +62,10 @@ export function createEncapsulationKeypair(
   switch (scheme) {
     case EncapsulationScheme.X25519:
       return EncapsulationPrivateKey.keypair();
-    default:
-      throw new Error(`Unsupported encapsulation scheme: ${String(scheme)}`);
+    case EncapsulationScheme.MLKEM512:
+    case EncapsulationScheme.MLKEM768:
+    case EncapsulationScheme.MLKEM1024:
+      throw new Error(`MLKEM encapsulation scheme not yet implemented: ${String(scheme)}`);
   }
 }
 
@@ -73,7 +85,9 @@ export function createEncapsulationKeypairUsing(
   switch (scheme) {
     case EncapsulationScheme.X25519:
       return EncapsulationPrivateKey.keypairUsing(rng);
-    default:
+    case EncapsulationScheme.MLKEM512:
+    case EncapsulationScheme.MLKEM768:
+    case EncapsulationScheme.MLKEM1024:
       throw new Error(
         `Deterministic keypair generation not supported for scheme: ${String(scheme)}`,
       );

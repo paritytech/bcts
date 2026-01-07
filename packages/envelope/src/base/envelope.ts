@@ -29,6 +29,7 @@ import type {
   PrivateKeyBase,
   Signer,
   Verifier,
+  Signature,
   SignatureMetadata,
 } from "../extension";
 
@@ -196,6 +197,11 @@ export class Envelope implements DigestProvider {
     // Convert the subject to an envelope
     if (subject instanceof Envelope) {
       return subject;
+    }
+
+    // Handle KnownValue specially to create knownValue envelopes
+    if (subject instanceof KnownValue) {
+      return Envelope.newWithKnownValue(subject);
     }
 
     // Handle primitives and create leaf envelopes
@@ -607,7 +613,7 @@ export class Envelope implements DigestProvider {
           if (arr.length === 2 && digestBytes === undefined) {
             throw EnvelopeError.cbor("digest must be byte string");
           }
-          const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
+          const digest = digestBytes !== undefined ? Digest.fromData(digestBytes) : undefined;
 
           // Import Compressed class at runtime to avoid circular dependency
 
@@ -636,7 +642,7 @@ export class Envelope implements DigestProvider {
           if (arr.length === 4 && digestBytes === undefined) {
             throw EnvelopeError.cbor("aad digest must be byte string");
           }
-          const digest = digestBytes !== undefined ? new Digest(digestBytes) : undefined;
+          const digest = digestBytes !== undefined ? Digest.fromData(digestBytes) : undefined;
 
           const message = new EncryptedMessage(ciphertext, nonce, authTag, digest);
           return Envelope.fromCase({ type: "encrypted", message });
@@ -652,7 +658,7 @@ export class Envelope implements DigestProvider {
       if (bytes.length !== 32) {
         throw EnvelopeError.cbor("elided digest must be 32 bytes");
       }
-      return Envelope.newElided(new Digest(bytes));
+      return Envelope.newElided(Digest.fromData(bytes));
     }
 
     // Check if it's an array (node)
@@ -825,6 +831,7 @@ export class Envelope implements DigestProvider {
   declare removeAssertion: (target: Envelope) => Envelope;
   declare replaceAssertion: (assertion: Envelope, newAssertion: Envelope) => Envelope;
   declare replaceSubject: (subject: Envelope) => Envelope;
+  // addAssertionEnvelopeSalted and addAssertionSalted are declared via module augmentation in salt.ts
 
   // From elide.ts
   declare elide: () => Envelope;
@@ -869,6 +876,30 @@ export class Envelope implements DigestProvider {
   declare extractBytes: () => Uint8Array;
   declare extractNull: () => null;
 
+  // Generic typed extraction methods from envelope-decodable.ts
+  declare extractSubject: <T>(decoder: (cbor: Cbor) => T) => T;
+  declare tryObjectForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T;
+  declare tryOptionalObjectForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T | undefined;
+  declare extractObjectForPredicateWithDefault: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+    defaultValue: T,
+  ) => T;
+  declare extractObjectsForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T[];
+  declare tryObjectsForPredicate: <T>(
+    predicate: EnvelopeEncodableValue,
+    decoder: (cbor: Cbor) => T,
+  ) => T[];
+
   // From queries.ts
   declare isFalse: () => boolean;
   declare isTrue: () => boolean;
@@ -884,6 +915,11 @@ export class Envelope implements DigestProvider {
   declare asMap: () => CborMap | undefined;
   declare asText: () => string | undefined;
   declare asLeaf: () => Cbor | undefined;
+  declare asKnownValue: () => KnownValue | undefined;
+  declare tryKnownValue: () => KnownValue;
+  declare isKnownValue: () => boolean;
+  declare isSubjectUnit: () => boolean;
+  declare checkSubjectUnit: () => Envelope;
   declare hasAssertions: () => boolean;
   declare asAssertion: () => Envelope | undefined;
   declare tryAssertion: () => Envelope;
@@ -908,9 +944,29 @@ export class Envelope implements DigestProvider {
   declare optionalObjectForPredicate: (predicate: EnvelopeEncodableValue) => Envelope | undefined;
   declare objectsForPredicate: (predicate: EnvelopeEncodableValue) => Envelope[];
   declare elementsCount: () => number;
+  declare isSubjectEncrypted: () => boolean;
+  declare isSubjectCompressed: () => boolean;
+  declare isSubjectElided: () => boolean;
+  declare setPosition: (position: number) => Envelope;
+  declare position: () => number;
+  declare removePosition: () => Envelope;
 
   // From walk.ts
   declare walk: <State>(hideNodes: boolean, state: State, visit: Visitor<State>) => void;
+
+  // Digest-related methods
+  declare digests: (levelLimit: number) => Set<Digest>;
+  declare shallowDigests: () => Set<Digest>;
+  declare deepDigests: () => Set<Digest>;
+
+  // Alias methods for Rust API compatibility
+  declare object: () => Envelope;
+  declare predicate: () => Envelope;
+
+  // Additional elision method
+  declare elideSetWithAction: (target: Set<Digest>, action: ObscureAction) => Envelope;
+
+  // UR (Uniform Resource) support methods are declared via module augmentation in ur.ts
 
   // From wrap.ts
   declare wrap: () => Envelope;
@@ -928,6 +984,8 @@ export class Envelope implements DigestProvider {
   declare attachmentConformsTo: () => string | undefined;
   declare attachments: () => Envelope[];
   declare attachmentsWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope[];
+  declare attachmentWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope;
+  declare validateAttachment: () => void;
 
   // From compress.ts
   declare compress: () => Envelope;
@@ -958,19 +1016,46 @@ export class Envelope implements DigestProvider {
   declare encryptToRecipients: (recipients: PublicKeyBase[]) => Envelope;
   declare recipients: () => SealedMessage[];
 
+  // From seal.ts - encryptToRecipient, seal, unseal declared in seal.ts module augmentation
+
   // From salt.ts
   declare addSalt: () => Envelope;
   declare addSaltWithLength: (count: number) => Envelope;
+  declare addSaltWithLen: (count: number) => Envelope;
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
   declare addSaltInRange: (min: number, max: number) => Envelope;
 
   // From signature.ts
   declare addSignature: (signer: Signer) => Envelope;
   declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
+  declare addSignatureOpt: (
+    signer: Signer,
+    options?: unknown,
+    metadata?: SignatureMetadata,
+  ) => Envelope;
   declare addSignatures: (signers: Signer[]) => Envelope;
+  declare addSignaturesWithMetadata: (
+    signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
+  ) => Envelope;
   declare hasSignatureFrom: (verifier: Verifier) => boolean;
+  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
+  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold: number) => boolean;
+  declare hasSignatureFromReturningMetadata: (verifier: Verifier) => Envelope | undefined;
   declare verifySignatureFrom: (verifier: Verifier) => Envelope;
+  declare verifySignaturesFrom: (verifiers: Verifier[]) => Envelope;
+  declare verifySignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => Envelope;
+  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare sign: (signer: Signer) => Envelope;
+  declare signWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
+  declare verify: (verifier: Verifier) => Envelope;
+  declare verifyReturningMetadata: (verifier: Verifier) => {
+    envelope: Envelope;
+    metadata?: SignatureMetadata;
+  };
   declare signatures: () => Envelope[];
+  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
+  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
+  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
 
   // From types.ts
   declare addType: (object: EnvelopeEncodableValue) => Envelope;
@@ -985,4 +1070,16 @@ export class Envelope implements DigestProvider {
     vendor: string,
     conformsTo?: string,
   ) => Envelope;
+
+  // Static methods from leaf.ts
+  declare static unit: () => Envelope;
+
+  // Format methods are declared via module augmentation in format/notation.ts
+  // Mermaid format methods are declared via module augmentation in format/mermaid.ts
+  // Secret methods are declared via module augmentation in secret.ts
+
+  // CBOR methods
+  declare toCbor: () => unknown;
+  declare expectLeaf: () => unknown;
+  declare checkTypeValue: (type: unknown) => void;
 }

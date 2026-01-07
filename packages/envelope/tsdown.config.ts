@@ -16,6 +16,7 @@ export default defineConfig({
       "@bcts/dcbor": "bctsDcbor",
       "@bcts/known-values": "bctsKnownValues",
       "@bcts/rand": "bctsRand",
+      "@bcts/tags": "bctsTags",
       "@bcts/uniform-resources": "bctsUniformResources",
       pako: "pako",
     },

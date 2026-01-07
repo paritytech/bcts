@@ -54,9 +54,10 @@ import { CryptoError } from "../error.js";
 import { ECPublicKey } from "./ec-public-key.js";
 import { SchnorrPublicKey } from "./schnorr-public-key.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
+import type { ECKey } from "./ec-key-base.js";
 
 export class ECPrivateKey
-  implements CborTaggedEncodable, CborTaggedDecodable<ECPrivateKey>, UREncodable
+  implements ECKey, CborTaggedEncodable, CborTaggedDecodable<ECPrivateKey>, UREncodable
 {
   static readonly KEY_SIZE = ECDSA_PRIVATE_KEY_SIZE;
 

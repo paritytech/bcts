@@ -68,7 +68,7 @@ import {
   decodeCbor,
   MajorType,
 } from "@bcts/dcbor";
-import { KNOWN_VALUE } from "@bcts/components";
+import { KNOWN_VALUE, Digest, type DigestProvider } from "@bcts/components";
 
 /**
  * The numeric value for the CBOR tag used for Known Values.
@@ -88,7 +88,9 @@ export const KNOWN_VALUE_TAG: Tag = KNOWN_VALUE;
  */
 export type KnownValueInput = number | bigint;
 
-export class KnownValue implements CborTaggedEncodable, CborTaggedDecodable<KnownValue> {
+export class KnownValue
+  implements CborTaggedEncodable, CborTaggedDecodable<KnownValue>, DigestProvider
+{
   private readonly _value: bigint;
   private readonly _assignedName: string | undefined;
 
@@ -221,6 +223,32 @@ export class KnownValue implements CborTaggedEncodable, CborTaggedDecodable<Know
   hashCode(): number {
     // Convert bigint to a 32-bit hash
     return Number(this._value & BigInt(0xffffffff));
+  }
+
+  // ===========================================================================
+  // DigestProvider Implementation
+  // ===========================================================================
+
+  /**
+   * Returns the cryptographic digest of this KnownValue.
+   *
+   * The digest is computed from the tagged CBOR encoding of the value,
+   * providing a unique content-addressable identifier.
+   *
+   * This is used for Envelope integration where KnownValues are hashed
+   * for tree construction.
+   *
+   * @returns A Digest of the tagged CBOR encoding
+   *
+   * @example
+   * ```typescript
+   * const kv = new KnownValue(1, "isA");
+   * const digest = kv.digest();
+   * console.log(digest.hex()); // SHA-256 hash of the CBOR encoding
+   * ```
+   */
+  digest(): Digest {
+    return Digest.fromImage(this.toCborData());
   }
 
   /**

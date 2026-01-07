@@ -7,13 +7,21 @@
  * Ported from bc-xid-rust/src/key.rs
  */
 
-import { Envelope, PrivateKeyBase, PublicKeyBase, type EnvelopeEncodable } from "@bcts/envelope";
+import { Envelope, type EnvelopeEncodable } from "@bcts/envelope";
 import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT, type KnownValue } from "@bcts/known-values";
 import type { EnvelopeEncodableValue } from "@bcts/envelope";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
-import { Salt, Reference } from "@bcts/components";
+import {
+  Salt,
+  type Reference,
+  PublicKeys,
+  PrivateKeys,
+  type PrivateKeyBase,
+  type Verifier,
+  type Signature,
+} from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { type Privilege } from "./privilege";
 import { type HasNickname } from "./name";
@@ -54,28 +62,28 @@ export type XIDPrivateKeyOptionsValue =
  * Private key data that can be either decrypted or encrypted.
  */
 export type PrivateKeyData =
-  | { type: "decrypted"; privateKeyBase: PrivateKeyBase }
+  | { type: "decrypted"; privateKeys: PrivateKeys }
   | { type: "encrypted"; envelope: Envelope };
 
 /**
  * Represents a key in an XID document.
  */
-export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
-  private readonly _publicKeyBase: PublicKeyBase;
-  private readonly _privateKeys: { data: PrivateKeyData; salt: Salt } | undefined;
+export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Verifier {
+  private readonly _publicKeys: PublicKeys;
+  private readonly _privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;
   private _nickname: string;
   private readonly _endpoints: Set<string>;
   private readonly _permissions: Permissions;
 
   private constructor(
-    publicKeyBase: PublicKeyBase,
-    privateKeys?: { data: PrivateKeyData; salt: Salt },
+    publicKeys: PublicKeys,
+    privateKeyData?: { data: PrivateKeyData; salt: Salt },
     nickname = "",
     endpoints = new Set<string>(),
     permissions = Permissions.new(),
   ) {
-    this._publicKeyBase = publicKeyBase;
-    this._privateKeys = privateKeys;
+    this._publicKeys = publicKeys;
+    this._privateKeyData = privateKeyData;
     this._nickname = nickname;
     this._endpoints = endpoints;
     this._permissions = permissions;
@@ -84,25 +92,25 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
   /**
    * Create a new Key with only public keys.
    */
-  static new(publicKeyBase: PublicKeyBase): Key {
-    return new Key(publicKeyBase);
+  static new(publicKeys: PublicKeys): Key {
+    return new Key(publicKeys);
   }
 
   /**
    * Create a new Key with public keys and allow-all permissions.
    */
-  static newAllowAll(publicKeyBase: PublicKeyBase): Key {
-    return new Key(publicKeyBase, undefined, "", new Set(), Permissions.newAllowAll());
+  static newAllowAll(publicKeys: PublicKeys): Key {
+    return new Key(publicKeys, undefined, "", new Set(), Permissions.newAllowAll());
   }
 
   /**
-   * Create a new Key with private key base.
+   * Create a new Key with private keys.
    */
-  static newWithPrivateKeyBase(privateKeyBase: PrivateKeyBase): Key {
+  static newWithPrivateKeys(privateKeys: PrivateKeys, publicKeys: PublicKeys): Key {
     const salt = Salt.random(32);
     return new Key(
-      privateKeyBase.publicKeys(),
-      { data: { type: "decrypted", privateKeyBase }, salt },
+      publicKeys,
+      { data: { type: "decrypted", privateKeys }, salt },
       "",
       new Set(),
       Permissions.newAllowAll(),
@@ -110,19 +118,28 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
   }
 
   /**
-   * Get the public key base.
+   * Create a new Key with private key base (derives keys from it).
    */
-  publicKeyBase(): PublicKeyBase {
-    return this._publicKeyBase;
+  static newWithPrivateKeyBase(privateKeyBase: PrivateKeyBase): Key {
+    const privateKeys = privateKeyBase.ed25519PrivateKeys();
+    const publicKeys = privateKeyBase.ed25519PublicKeys();
+    return Key.newWithPrivateKeys(privateKeys, publicKeys);
   }
 
   /**
-   * Get the private key base, if available and decrypted.
+   * Get the public keys.
    */
-  privateKeyBase(): PrivateKeyBase | undefined {
-    if (this._privateKeys === undefined) return undefined;
-    if (this._privateKeys.data.type === "decrypted") {
-      return this._privateKeys.data.privateKeyBase;
+  publicKeys(): PublicKeys {
+    return this._publicKeys;
+  }
+
+  /**
+   * Get the private keys, if available and decrypted.
+   */
+  privateKeys(): PrivateKeys | undefined {
+    if (this._privateKeyData === undefined) return undefined;
+    if (this._privateKeyData.data.type === "decrypted") {
+      return this._privateKeyData.data.privateKeys;
     }
     return undefined;
   }
@@ -131,28 +148,39 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
    * Check if this key has decrypted private keys.
    */
   hasPrivateKeys(): boolean {
-    return this._privateKeys?.data.type === "decrypted";
+    return this._privateKeyData?.data.type === "decrypted";
   }
 
   /**
    * Check if this key has encrypted private keys.
    */
   hasEncryptedPrivateKeys(): boolean {
-    return this._privateKeys?.data.type === "encrypted";
+    return this._privateKeyData?.data.type === "encrypted";
   }
 
   /**
    * Get the salt used for private key decorrelation.
    */
   privateKeySalt(): Salt | undefined {
-    return this._privateKeys?.salt;
+    return this._privateKeyData?.salt;
   }
 
   /**
-   * Get the reference for this key (based on public key).
+   * Get the reference for this key (based on public keys tagged CBOR).
    */
   reference(): Reference {
-    return Reference.hash(this._publicKeyBase.data());
+    return this._publicKeys.reference();
+  }
+
+  // ============================================================================
+  // Verifier Interface
+  // ============================================================================
+
+  /**
+   * Verify a signature against a message.
+   */
+  verify(signature: Signature, message: Uint8Array): boolean {
+    return this._publicKeys.verify(signature, message);
   }
 
   /**
@@ -207,11 +235,12 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
   intoEnvelopeOpt(
     privateKeyOptions: XIDPrivateKeyOptionsValue = XIDPrivateKeyOptions.Omit,
   ): Envelope {
-    let envelope = Envelope.new(this._publicKeyBase.data());
+    // Use tagged CBOR representation of PublicKeys as subject
+    let envelope = Envelope.new(this._publicKeys.taggedCborData());
 
     // Handle private keys
-    if (this._privateKeys !== undefined) {
-      const { data, salt } = this._privateKeys;
+    if (this._privateKeyData !== undefined) {
+      const { data, salt } = this._privateKeyData;
 
       if (data.type === "encrypted") {
         // Always preserve encrypted keys
@@ -224,14 +253,15 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
 
         switch (option) {
           case XIDPrivateKeyOptions.Include: {
-            envelope = envelope.addAssertion(kv(PRIVATE_KEY), data.privateKeyBase.data());
+            // Store PrivateKeys as tagged CBOR
+            envelope = envelope.addAssertion(kv(PRIVATE_KEY), data.privateKeys.taggedCborData());
             envelope = envelope.addAssertion(kv(SALT), salt.toData());
             break;
           }
           case XIDPrivateKeyOptions.Elide: {
             const baseAssertion = Envelope.newAssertion(
               kv(PRIVATE_KEY),
-              data.privateKeyBase.data(),
+              data.privateKeys.taggedCborData(),
             );
             const elidedAssertion = (baseAssertion as unknown as { elide(): Envelope }).elide();
             envelope = envelope.addAssertionEnvelope(elidedAssertion);
@@ -240,7 +270,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
           }
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
-              const privateKeysEnvelope = Envelope.new(data.privateKeyBase.data());
+              const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
               const encrypted = (
                 privateKeysEnvelope as unknown as { encryptSubject(p: Uint8Array): Envelope }
               ).encryptSubject(privateKeyOptions.password);
@@ -290,18 +320,18 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
     };
     const env = envelope as EnvelopeExt;
 
-    // Extract public key base from subject
+    // Extract PublicKeys from subject (stored as tagged CBOR)
     // The envelope may be a node (with assertions) or a leaf
     const envCase = env.case();
     const subject = envCase.type === "node" ? env.subject() : env;
-    const publicKeyData = (subject as EnvelopeExt).asByteString();
-    if (publicKeyData === undefined) {
-      throw XIDError.component(new Error("Could not extract public key from envelope"));
+    const publicKeysData = (subject as EnvelopeExt).asByteString();
+    if (publicKeysData === undefined) {
+      throw XIDError.component(new Error("Could not extract public keys from envelope"));
     }
-    const publicKeyBase = new PublicKeyBase(publicKeyData);
+    const publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
 
     // Extract optional private key
-    let privateKeys: { data: PrivateKeyData; salt: Salt } | undefined;
+    let privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;
 
     // Extract salt from top level (if present)
     let salt: Salt = Salt.random(32);
@@ -334,33 +364,34 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
               const decrypted = privateKeyObject.decryptSubject(password) as EnvelopeExt;
               const decryptedData = decrypted.asByteString();
               if (decryptedData !== undefined) {
-                const privateKeyBase = PrivateKeyBase.fromBytes(decryptedData, publicKeyData);
-                privateKeys = {
-                  data: { type: "decrypted", privateKeyBase },
+                // Parse PrivateKeys from tagged CBOR
+                const privateKeys = PrivateKeys.fromTaggedCborData(decryptedData);
+                privateKeyData = {
+                  data: { type: "decrypted", privateKeys },
                   salt,
                 };
               }
             } catch {
               // Wrong password - store as encrypted
-              privateKeys = {
+              privateKeyData = {
                 data: { type: "encrypted", envelope: privateKeyObject },
                 salt,
               };
             }
           } else {
             // No password - store as encrypted
-            privateKeys = {
+            privateKeyData = {
               data: { type: "encrypted", envelope: privateKeyObject },
               salt,
             };
           }
         } else {
-          // Plain text private key
-          const privateKeyData = privateKeyObject.asByteString();
-          if (privateKeyData !== undefined) {
-            const privateKeyBase = PrivateKeyBase.fromBytes(privateKeyData, publicKeyData);
-            privateKeys = {
-              data: { type: "decrypted", privateKeyBase },
+          // Plain text private key - stored as tagged CBOR
+          const privateKeysBytes = privateKeyObject.asByteString();
+          if (privateKeysBytes !== undefined) {
+            const privateKeys = PrivateKeys.fromTaggedCborData(privateKeysBytes);
+            privateKeyData = {
+              data: { type: "decrypted", privateKeys },
               salt,
             };
           }
@@ -397,21 +428,21 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
     // Extract permissions
     const permissions = Permissions.tryFromEnvelope(envelope);
 
-    return new Key(publicKeyBase, privateKeys, nickname, endpoints, permissions);
+    return new Key(publicKeys, privateKeyData, nickname, endpoints, permissions);
   }
 
   /**
    * Check equality with another Key.
    */
   equals(other: Key): boolean {
-    return this._publicKeyBase.hex() === other._publicKeyBase.hex();
+    return this._publicKeys.equals(other._publicKeys);
   }
 
   /**
    * Get a hash key for use in Sets/Maps.
    */
   hashKey(): string {
-    return this._publicKeyBase.hex();
+    return this._publicKeys.reference().toHex();
   }
 
   /**
@@ -419,9 +450,9 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable {
    */
   clone(): Key {
     return new Key(
-      this._publicKeyBase,
-      this._privateKeys !== undefined
-        ? { data: this._privateKeys.data, salt: this._privateKeys.salt }
+      this._publicKeys,
+      this._privateKeyData !== undefined
+        ? { data: this._privateKeyData.data, salt: this._privateKeyData.salt }
         : undefined,
       this._nickname,
       new Set(this._endpoints),

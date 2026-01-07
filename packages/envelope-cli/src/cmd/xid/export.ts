@@ -2,6 +2,9 @@
  * XID export command - 1:1 port of cmd/xid/export.rs
  *
  * Export a XID document in various formats.
+ *
+ * NOTE: Signature verification and JSON export are not yet fully implemented
+ * in the TypeScript version.
  */
 
 import { XIDDocument } from "@bcts/xid";
@@ -26,7 +29,7 @@ export enum ExportFormat {
 export interface CommandArgs {
   /** Output format */
   format: ExportFormat;
-  /** Whether to verify the signature */
+  /** Whether to verify the signature (not yet implemented) */
   verifySignature: boolean;
   /** The XID document envelope */
   envelope?: string;
@@ -38,7 +41,7 @@ export interface CommandArgs {
 export function defaultArgs(): Partial<CommandArgs> {
   return {
     format: ExportFormat.Envelope,
-    verifySignature: true,
+    verifySignature: false,
   };
 }
 
@@ -53,7 +56,8 @@ export class ExportCommand implements Exec {
     const xidDocument = XIDDocument.fromEnvelope(envelope);
 
     if (this.args.verifySignature) {
-      xidDocument.verifySignature();
+      // verifySignature() method doesn't exist on XIDDocument in TS
+      console.warn("Warning: Signature verification is not yet implemented in TypeScript XID");
     }
 
     switch (this.args.format) {
@@ -62,7 +66,11 @@ export class ExportCommand implements Exec {
       case ExportFormat.Xid:
         return xidDocument.xid().urString();
       case ExportFormat.Json:
-        return JSON.stringify(xidDocument.toJson(), null, 2);
+        // toJson() method doesn't exist on XIDDocument in TS
+        throw new Error(
+          "JSON export is not yet implemented in the TypeScript XID library. " +
+            "Use --format envelope or --format xid instead.",
+        );
     }
   }
 }

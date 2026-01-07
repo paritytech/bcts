@@ -5,8 +5,31 @@
  */
 
 // Error handling
-export { CryptoError, isError } from "./error.js";
-export type { Result } from "./error.js";
+export { ErrorKind, CryptoError, isError, isCryptoError, isCryptoErrorKind } from "./error.js";
+export type {
+  Result,
+  ErrorData,
+  InvalidSizeData,
+  InvalidDataData,
+  DataTooShortData,
+} from "./error.js";
+
+// PrivateKeyDataProvider interface
+export type { PrivateKeyDataProvider } from "./private-key-data-provider.js";
+export { isPrivateKeyDataProvider } from "./private-key-data-provider.js";
+
+// Encrypter/Decrypter interfaces
+export type { Encrypter, Decrypter } from "./encrypter.js";
+export { isEncrypter, isDecrypter } from "./encrypter.js";
+
+// JSON wrapper
+export { JSON } from "./json.js";
+
+// Compressed data
+export { Compressed } from "./compressed.js";
+
+// HKDF-based RNG
+export { HKDFRng } from "./hkdf-rng.js";
 
 // Utility functions
 export { bytesToHex, hexToBytes, toBase64, fromBase64, bytesEqual } from "./utils.js";
@@ -23,8 +46,8 @@ export { Seed } from "./seed.js";
 export type { SeedMetadata } from "./seed.js";
 
 // References
-export { Reference } from "./reference.js";
-export type { ReferenceEncodingFormat } from "./reference.js";
+export { Reference, isReferenceProvider } from "./reference.js";
+export type { ReferenceEncodingFormat, ReferenceProvider } from "./reference.js";
 
 // Identifier types (from id/ module)
 export { ARID, UUID, XID, URI } from "./id/index.js";
@@ -47,7 +70,11 @@ export {
 } from "./sr25519/index.js";
 
 // EC keys - secp256k1 (from ec-key/ module)
+export type { ECKeyBase, ECKey, ECPublicKeyBase } from "./ec-key/index.js";
 export {
+  isECKeyBase,
+  isECKey,
+  isECPublicKeyBase,
   ECPrivateKey,
   ECPublicKey,
   ECUncompressedPublicKey,
@@ -69,6 +96,9 @@ export {
   createKeypair,
   createKeypairUsing,
   defaultSignatureScheme,
+  isSshScheme,
+  isMldsaScheme,
+  type SigningOptions,
 } from "./signing/signature-scheme.js";
 
 // Key encapsulation (from encapsulation/ module)
@@ -111,26 +141,34 @@ export {
   defaultKeyDerivationParams,
   keyDerivationParamsMethod,
   isPasswordBased,
+  isSshAgent,
   lockWithParams,
   keyDerivationParamsToCbor,
   keyDerivationParamsToCborData,
   keyDerivationParamsToString,
   keyDerivationParamsFromCbor,
   EncryptedKey,
+  SSHAgentParams,
+  sshAgentParams,
 } from "./encrypted-key/index.js";
 export type { KeyDerivation, KeyDerivationParams } from "./encrypted-key/index.js";
 
 // Key management containers
 export { PrivateKeyBase } from "./private-key-base.js";
 export { PrivateKeys } from "./private-keys.js";
+export type { PrivateKeysProvider } from "./private-keys.js";
 export { PublicKeys } from "./public-keys.js";
+export type { PublicKeysProvider } from "./public-keys.js";
 
 // SSKR integration with CBOR/UR serialization
 export {
-  SSKRShareCbor,
-  generateSSKRSharesCbor,
-  combineSSKRSharesCbor,
-  // Re-exports from @bcts/sskr for convenience
+  // Primary API (matches Rust bc-components naming)
+  SSKRShare,
+  SSKRShareCbor, // Implementation class (SSKRShare is the preferred name)
+  sskrGenerateShares,
+  sskrGenerateSharesUsing,
+  sskrCombineShares,
+  // Re-exports from @bcts/sskr for raw byte operations
   sskrGenerate,
   sskrGenerateUsing,
   sskrCombine,
@@ -138,6 +176,7 @@ export {
   SSKRGroupSpec,
   SSKRSpec,
 } from "./sskr.js";
+export type { SimpleRng } from "./sskr.js";
 
 // Post-quantum cryptography - ML-DSA (from mldsa/ module)
 export {

@@ -7,6 +7,17 @@
 import type { ExecAsync } from "../exec.js";
 import { readEnvelope, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
 import { SymmetricKey, PublicKeys, KeyDerivationMethod } from "@bcts/components";
+import { PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
+
+/**
+ * Convert a PublicKeys to envelope's PublicKeyBase.
+ * Extracts the X25519 encapsulation key and creates envelope-compatible type.
+ */
+function publicKeysToEnvelopeKey(pk: PublicKeys): EnvelopePublicKeyBase {
+  const encKey = pk.encapsulationPublicKey();
+  const publicData = encKey.x25519PublicKey().data();
+  return new EnvelopePublicKeyBase(publicData);
+}
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
 
@@ -90,7 +101,8 @@ export class EncryptCommand implements ExecAsync {
     // Convert recipients to PublicKeys and add them
     for (const recipientUr of this.args.recipients) {
       const recipient = PublicKeys.fromURString(recipientUr);
-      encryptedEnvelope = encryptedEnvelope.addRecipient(recipient, contentKey);
+      const envelopeKey = publicKeysToEnvelopeKey(recipient);
+      encryptedEnvelope = encryptedEnvelope.addRecipient(envelopeKey, contentKey);
     }
 
     // If there is a password, add it

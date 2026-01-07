@@ -28,7 +28,7 @@ interface IanaTagsResponse {
 function parseIanaXml(xmlText: string): IanaTagsResponse {
   // Extract last updated
   const updatedMatch = xmlText.match(/<registry[^>]*>[\s\S]*?<updated>([^<]+)<\/updated>/);
-  const lastUpdated = updatedMatch ? updatedMatch[1] : null;
+  const lastUpdated = updatedMatch?.[1] ?? null;
 
   // Find the tags registry section
   const tagsRegistryMatch = xmlText.match(/<registry id="tags"[^>]*>([\s\S]*?)<\/registry>/);
@@ -37,6 +37,9 @@ function parseIanaXml(xmlText: string): IanaTagsResponse {
   }
 
   const tagsRegistryContent = tagsRegistryMatch[1];
+  if (!tagsRegistryContent) {
+    throw new Error("Tags registry content is empty");
+  }
 
   // Extract all record elements
   const recordRegex =
@@ -45,18 +48,20 @@ function parseIanaXml(xmlText: string): IanaTagsResponse {
 
   let match;
   while ((match = recordRegex.exec(tagsRegistryContent)) !== null) {
-    const recordDate = match[1];
-    const recordUpdated = match[2];
+    const recordDate = match[1]; // undefined if not present
+    const recordUpdated = match[2]; // undefined if not present
     const recordContent = match[3];
+
+    if (!recordContent) continue;
 
     // Extract fields from record
     const valueMatch = recordContent.match(/<value>([^<]*)<\/value>/);
     const descriptionMatch = recordContent.match(/<description>([^<]*)<\/description>/);
     const semanticsMatch = recordContent.match(/<semantics>([^<]*)<\/semantics>/);
 
-    const value = valueMatch ? valueMatch[1] : "";
-    const description = descriptionMatch ? descriptionMatch[1] : "";
-    const semantics = semanticsMatch ? semanticsMatch[1] : "";
+    const value = valueMatch?.[1] ?? "";
+    const description = descriptionMatch?.[1] ?? "";
+    const semantics = semanticsMatch?.[1] ?? "";
 
     // Extract references
     const references: string[] = [];
@@ -65,6 +70,8 @@ function parseIanaXml(xmlText: string): IanaTagsResponse {
     while ((xrefMatch = xrefRegex.exec(recordContent)) !== null) {
       const type = xrefMatch[1];
       const data = xrefMatch[2];
+
+      if (!type || !data) continue;
 
       if (type === "rfc") {
         references.push(`RFC ${data.replace("rfc", "").toUpperCase()}`);

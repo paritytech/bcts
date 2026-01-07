@@ -35,7 +35,6 @@ import {
   // Matching functions
   patternMatches,
   patternPaths,
-  type Pattern,
 } from "../src";
 
 describe("Structure Pattern Construction Tests", () => {

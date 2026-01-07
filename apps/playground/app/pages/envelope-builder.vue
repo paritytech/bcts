@@ -203,8 +203,8 @@ function createRecipient(name: string): RecipientKey {
 
 // Phase 3: Helper to create signing key
 function createSigningKey(name: string): SigningKey {
-  const privateKey = SigningPrivateKey.generate()
-  const publicKeyHex = privateKey.publicKey().hex()
+  const privateKey = SigningPrivateKey.random()
+  const publicKeyHex = privateKey.publicKey().toString()
   return {
     id: generateId(),
     name,
@@ -215,7 +215,7 @@ function createSigningKey(name: string): SigningKey {
 
 // Phase 3: Helper to create encryption key
 function createEncryptionKey(name: string): EncryptionKey {
-  const key = SymmetricKey.generate()
+  const key = SymmetricKey.new()
   // Generate a display-only hex identifier (SymmetricKey doesn't expose .hex())
   const keyHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
     .map(b => b.toString(16).padStart(2, '0')).join('')
@@ -228,8 +228,8 @@ function createEncryptionKey(name: string): EncryptionKey {
 }
 
 onMounted(() => {
-  demoSigningKey.value = SigningPrivateKey.generate()
-  demoEncryptionKey.value = SymmetricKey.generate()
+  demoSigningKey.value = SigningPrivateKey.random()
+  demoEncryptionKey.value = SymmetricKey.new()
   // Initialize with demo recipients
   recipients.value = [
     createRecipient('Alice'),

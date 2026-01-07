@@ -38,8 +38,26 @@ import { PUBLIC_KEYS as TAG_PUBLIC_KEYS } from "@bcts/tags";
 
 import { SigningPublicKey } from "./signing/signing-public-key.js";
 import { EncapsulationPublicKey } from "./encapsulation/encapsulation-public-key.js";
+import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
+import type { SymmetricKey } from "./symmetric/symmetric-key.js";
 import type { Signature } from "./signing/signature.js";
 import type { Verifier } from "./signing/signer.js";
+import type { Encrypter } from "./encrypter.js";
+import { Reference, type ReferenceProvider } from "./reference.js";
+import { Digest } from "./digest.js";
+
+/**
+ * Trait for types that provide access to a PublicKeys container.
+ *
+ * This is useful for types that wrap or contain public keys and need
+ * to provide access to the underlying key material.
+ */
+export interface PublicKeysProvider {
+  /**
+   * Returns the PublicKeys container.
+   */
+  publicKeys(): PublicKeys;
+}
 
 /**
  * PublicKeys - Container for a signing public key and an encapsulation public key.
@@ -48,7 +66,13 @@ import type { Verifier } from "./signing/signer.js";
  * signature verification and encryption operations.
  */
 export class PublicKeys
-  implements Verifier, CborTaggedEncodable, CborTaggedDecodable<PublicKeys>, UREncodable
+  implements
+    Verifier,
+    Encrypter,
+    ReferenceProvider,
+    CborTaggedEncodable,
+    CborTaggedDecodable<PublicKeys>,
+    UREncodable
 {
   private readonly _signingPublicKey: SigningPublicKey;
   private readonly _encapsulationPublicKey: EncapsulationPublicKey;
@@ -107,6 +131,37 @@ export class PublicKeys
   }
 
   // ============================================================================
+  // Encrypter Interface
+  // ============================================================================
+
+  /**
+   * Encapsulate a new shared secret using the encapsulation public key.
+   *
+   * This implements the Encrypter interface, allowing PublicKeys to be used
+   * in encryption contexts where a shared secret needs to be generated.
+   *
+   * @returns A tuple of [SymmetricKey, EncapsulationCiphertext]
+   */
+  encapsulateNewSharedSecret(): [SymmetricKey, EncapsulationCiphertext] {
+    return this._encapsulationPublicKey.encapsulateNewSharedSecret();
+  }
+
+  // ============================================================================
+  // ReferenceProvider Interface
+  // ============================================================================
+
+  /**
+   * Returns a unique reference to this PublicKeys instance.
+   *
+   * The reference is derived from the SHA-256 hash of the tagged CBOR
+   * representation, providing a unique, content-addressable identifier.
+   */
+  reference(): Reference {
+    const digest = Digest.fromImage(this.taggedCborData());
+    return Reference.from(digest);
+  }
+
+  // ============================================================================
   // Equality and String Representation
   // ============================================================================
 
@@ -122,9 +177,11 @@ export class PublicKeys
 
   /**
    * Get string representation.
+   *
+   * Format matches Rust: `PublicKeys(<short_reference>)`
    */
   toString(): string {
-    return `PublicKeys(${String(this._signingPublicKey)}, ${String(this._encapsulationPublicKey)})`;
+    return `PublicKeys(${this.reference().shortReference("hex")})`;
   }
 
   // ============================================================================

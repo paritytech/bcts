@@ -7,6 +7,9 @@
  * Ported from bc-xid-rust
  */
 
+// Re-export XID from components for convenience
+export { XID } from "@bcts/components";
+
 // Error handling
 export { XIDError, XIDErrorCode, type XIDResult } from "./error";
 

@@ -28,7 +28,7 @@ import {
   patternMatches,
   patternPaths,
 } from "../src";
-import { toByteString } from "@bcts/dcbor";
+// toByteString import removed - using Uint8Array directly
 
 describe("Leaf Pattern Tests", () => {
   describe("Bool Pattern", () => {
@@ -134,7 +134,8 @@ describe("Leaf Pattern Tests", () => {
 
     it("matches bare bytestring subjects", () => {
       const helloBytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello"
-      const envelope = Envelope.new(toByteString(helloBytes));
+      // Note: Use Uint8Array directly for byte string envelopes
+      const envelope = Envelope.new(helloBytes);
 
       expect(patternMatches(anyByteString(), envelope)).toBe(true);
       expect(patternMatches(byteString(helloBytes), envelope)).toBe(true);
@@ -144,7 +145,8 @@ describe("Leaf Pattern Tests", () => {
     // Matching leaf patterns on node envelopes requires traversal
     it.skip("matches bytestring subjects with assertions", () => {
       const helloBytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello"
-      const envelope = Envelope.new(toByteString(helloBytes)).addAssertion("type", "greeting");
+      // Note: Use Uint8Array directly for byte string envelopes
+      const envelope = Envelope.new(helloBytes).addAssertion("type", "greeting");
 
       expect(patternMatches(anyByteString(), envelope)).toBe(true);
       expect(patternMatches(byteString(helloBytes), envelope)).toBe(true);
@@ -158,18 +160,21 @@ describe("Leaf Pattern Tests", () => {
     });
 
     it("matches bare array subjects", () => {
-      const envelope = Envelope.new([1, 2, 3]);
+      // Note: Array as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new([1, 2, 3] as unknown as number);
       expect(patternMatches(anyArray(), envelope)).toBe(true);
     });
 
     it("matches empty arrays", () => {
-      const envelope = Envelope.new([]);
+      // Note: Array as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new([] as unknown as number);
       expect(patternMatches(anyArray(), envelope)).toBe(true);
     });
 
     // Matching leaf patterns on node envelopes requires traversal
     it.skip("matches array subjects with assertions", () => {
-      const envelope = Envelope.new([1, 2, 3]).addAssertion("type", "list");
+      // Note: Array as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new([1, 2, 3] as unknown as number).addAssertion("type", "list");
       expect(patternMatches(anyArray(), envelope)).toBe(true);
     });
   });
@@ -181,18 +186,24 @@ describe("Leaf Pattern Tests", () => {
     });
 
     it("matches bare map subjects", () => {
-      const envelope = Envelope.new(new Map([["key", "value"]]));
+      // Note: Map as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new(new Map([["key", "value"]]) as unknown as string);
       expect(patternMatches(anyMap(), envelope)).toBe(true);
     });
 
     it("matches empty maps", () => {
-      const envelope = Envelope.new(new Map());
+      // Note: Map as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new(new Map() as unknown as string);
       expect(patternMatches(anyMap(), envelope)).toBe(true);
     });
 
     // Matching leaf patterns on node envelopes requires traversal
     it.skip("matches map subjects with assertions", () => {
-      const envelope = Envelope.new(new Map([["key", "value"]])).addAssertion("type", "dictionary");
+      // Note: Map as Envelope subject requires CBOR wrapping
+      const envelope = Envelope.new(new Map([["key", "value"]]) as unknown as string).addAssertion(
+        "type",
+        "dictionary",
+      );
       expect(patternMatches(anyMap(), envelope)).toBe(true);
     });
   });

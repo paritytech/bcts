@@ -69,6 +69,7 @@
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
+    "@bcts/rand": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
     "@typescript-eslint/eslint-plugin": "^8.50.1",

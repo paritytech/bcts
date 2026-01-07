@@ -11,24 +11,20 @@
 
 import { describe, it, expect } from "vitest";
 import { Envelope } from "@bcts/envelope";
-import { Quantifier, Reluctance } from "@bcts/dcbor-pattern";
+import { Reluctance } from "@bcts/dcbor-pattern";
 import {
   parse,
   traverse,
   repeat,
   anyAssertion,
   anyObject,
-  anySubject,
   anyCbor,
   unwrapEnvelope,
   wrapped,
-  anyNumber,
   text,
   number,
-  assertionWithObject,
   patternMatches,
   patternPaths,
-  formatPaths,
   type Pattern,
 } from "../src";
 
@@ -44,9 +40,12 @@ function wrapN(envelope: Envelope, n: number): Envelope {
 // Helper function to fold a string into nested envelope structure
 function fold(str: string): Envelope {
   const chars = str.split("");
-  let reversed = chars.map((c, i) => ({ index: i, char: c })).reverse();
+  const reversed = chars.map((c, i) => ({ index: i, char: c })).reverse();
 
-  const first = reversed.shift()!;
+  const first = reversed.shift();
+  if (first === undefined) {
+    throw new Error("Cannot fold empty string");
+  }
   let env = Envelope.newAssertion(first.index, first.char);
 
   for (const { index, char } of reversed) {
@@ -64,20 +63,21 @@ function unfold(envelope: Envelope): string {
   let current: Envelope | undefined = envelope;
 
   while (current !== undefined) {
-    if (current.isAssertion) {
-      const object = current.object;
+    if (current.isAssertion()) {
+      const object = current.tryObject();
       if (object) {
-        const subject = object.subject;
-        if (typeof subject === "string") {
-          result += subject;
+        const subject = object.subject();
+        const subjValue = subject.tryLeaf();
+        if (typeof subjValue === "string") {
+          result += subjValue;
         }
-        const assertions = object.assertions;
+        const assertions = object.assertions();
         current = assertions.length > 0 ? assertions[0] : undefined;
       } else {
         current = undefined;
       }
     } else {
-      const assertions = current.assertions;
+      const assertions = current.assertions();
       current = assertions.length > 0 ? assertions[0] : undefined;
     }
   }
@@ -156,7 +156,8 @@ describe("Repeat Pattern Tests", () => {
   describe("Simple Repeat Matching", () => {
     // These tests verify basic pattern construction and matching
     it("matches wrapped envelope with zero or more unwraps", () => {
-      const envelope = wrapN(Envelope.new(42), 2);
+      // Create test envelope (wrapped twice)
+      wrapN(Envelope.new(42), 2);
       // The envelope is wrapped twice, so unwrap* should match at the top level
       const pattern = repeat(unwrapEnvelope(), 0, undefined, Reluctance.Greedy);
       // Note: actual path traversal requires VM, but pattern should construct
@@ -164,7 +165,8 @@ describe("Repeat Pattern Tests", () => {
     });
 
     it("matches simple envelope with quantified assertion", () => {
-      const envelope = Envelope.new("Alice").addAssertion("knows", "Bob");
+      // Create test envelope for pattern context
+      Envelope.new("Alice").addAssertion("knows", "Bob");
       const pattern = repeat(anyAssertion(), 0, undefined, Reluctance.Greedy);
       expect(pattern.type).toBe("Meta");
     });

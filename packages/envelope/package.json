@@ -89,6 +89,8 @@
     "@bcts/dcbor": "workspace:*",
     "@bcts/known-values": "workspace:*",
     "@bcts/rand": "workspace:*",
+    "@bcts/sskr": "workspace:*",
+    "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "pako": "^2.1.0"
   }

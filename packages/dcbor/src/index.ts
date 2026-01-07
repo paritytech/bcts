@@ -52,6 +52,7 @@ export {
   TagsStore,
   type TagsStoreTrait,
   type CborSummarizer,
+  type SummarizerResult,
   getGlobalTagsStore,
 } from "./tags-store";
 export * from "./tags";
@@ -72,15 +73,10 @@ export {
   type EdgeTypeVariant,
   type WalkElement,
   type Visitor,
+  walk,
   asSingle,
   asKeyValue,
   edgeLabel,
-  // Helper functions
-  countElements,
-  collectAtLevel,
-  findFirst,
-  collectAllText,
-  maxDepth,
 } from "./walk";
 
 // Codable interfaces

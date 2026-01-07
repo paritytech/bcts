@@ -19,10 +19,12 @@ import {
   PBKDF2Params,
   ScryptParams,
   Argon2idParams,
+  SSHAgentParams,
   hkdfParams,
   pbkdf2Params,
   scryptParams,
   argon2idParams,
+  sshAgentParams,
   keyDerivationParamsMethod,
   isPasswordBased,
   keyDerivationParamsToString,
@@ -77,6 +79,7 @@ describe("KeyDerivationMethod", () => {
       expect(KeyDerivationMethod.PBKDF2).toBe(1);
       expect(KeyDerivationMethod.Scrypt).toBe(2);
       expect(KeyDerivationMethod.Argon2id).toBe(3);
+      expect(KeyDerivationMethod.SSHAgent).toBe(4);
     });
   });
 
@@ -92,6 +95,7 @@ describe("KeyDerivationMethod", () => {
       expect(keyDerivationMethodIndex(KeyDerivationMethod.PBKDF2)).toBe(1);
       expect(keyDerivationMethodIndex(KeyDerivationMethod.Scrypt)).toBe(2);
       expect(keyDerivationMethodIndex(KeyDerivationMethod.Argon2id)).toBe(3);
+      expect(keyDerivationMethodIndex(KeyDerivationMethod.SSHAgent)).toBe(4);
     });
 
     it("should convert from index correctly", () => {
@@ -99,6 +103,7 @@ describe("KeyDerivationMethod", () => {
       expect(keyDerivationMethodFromIndex(1)).toBe(KeyDerivationMethod.PBKDF2);
       expect(keyDerivationMethodFromIndex(2)).toBe(KeyDerivationMethod.Scrypt);
       expect(keyDerivationMethodFromIndex(3)).toBe(KeyDerivationMethod.Argon2id);
+      expect(keyDerivationMethodFromIndex(4)).toBe(KeyDerivationMethod.SSHAgent);
     });
 
     it("should return undefined on invalid index", () => {
@@ -112,6 +117,7 @@ describe("KeyDerivationMethod", () => {
       expect(keyDerivationMethodToString(KeyDerivationMethod.PBKDF2)).toBe("PBKDF2");
       expect(keyDerivationMethodToString(KeyDerivationMethod.Scrypt)).toBe("Scrypt");
       expect(keyDerivationMethodToString(KeyDerivationMethod.Argon2id)).toBe("Argon2id");
+      expect(keyDerivationMethodToString(KeyDerivationMethod.SSHAgent)).toBe("SSHAgent");
     });
   });
 });
@@ -272,6 +278,67 @@ describe("Argon2idParams", () => {
   });
 });
 
+describe("SSHAgentParams", () => {
+  describe("creation", () => {
+    it("should create with default salt and ID", () => {
+      const params = SSHAgentParams.new("test-key-id");
+      expect(params.salt()).toBeDefined();
+      expect(params.id()).toBe("test-key-id");
+      expect(params.index()).toBe(4);
+    });
+
+    it("should create with custom salt and ID", () => {
+      const salt = Salt.newWithLen(16);
+      const params = SSHAgentParams.newOpt(salt, "custom-key");
+      expect(params.salt().equals(salt)).toBe(true);
+      expect(params.id()).toBe("custom-key");
+    });
+  });
+
+  describe("toString", () => {
+    it("should return correct string", () => {
+      const params = SSHAgentParams.new("my-ssh-key");
+      expect(params.toString()).toBe('SSHAgent(id: "my-ssh-key")');
+    });
+  });
+
+  describe("equality", () => {
+    it("should be equal with same salt and id", () => {
+      const salt = Salt.newWithLen(16);
+      const params1 = SSHAgentParams.newOpt(salt, "key-id");
+      const params2 = SSHAgentParams.newOpt(salt, "key-id");
+      expect(params1.equals(params2)).toBe(true);
+    });
+
+    it("should not be equal with different id", () => {
+      const salt = Salt.newWithLen(16);
+      const params1 = SSHAgentParams.newOpt(salt, "key-id-1");
+      const params2 = SSHAgentParams.newOpt(salt, "key-id-2");
+      expect(params1.equals(params2)).toBe(false);
+    });
+  });
+
+  describe("CBOR serialization", () => {
+    it("should roundtrip through CBOR", () => {
+      const params = SSHAgentParams.new("test-key");
+      const cborValue = params.toCbor();
+      const restored = SSHAgentParams.fromCbor(cborValue);
+      expect(restored.equals(params)).toBe(true);
+      expect(restored.id()).toBe("test-key");
+    });
+  });
+
+  describe("lock/unlock (not implemented)", () => {
+    it("should throw error on lock attempt", () => {
+      const params = SSHAgentParams.new("test-key");
+      const contentKey = SymmetricKey.new();
+      const secret = new Uint8Array(32);
+
+      expect(() => params.lock(contentKey, secret)).toThrow("SSH agent");
+    });
+  });
+});
+
 describe("KeyDerivationParams", () => {
   describe("factory functions", () => {
     it("should create HKDF params", () => {
@@ -297,6 +364,20 @@ describe("KeyDerivationParams", () => {
       expect(params.type).toBe("argon2id");
       expect(params.params).toBeInstanceOf(Argon2idParams);
     });
+
+    it("should create SSH agent params from string", () => {
+      const params = sshAgentParams("test-key-id");
+      expect(params.type).toBe("sshagent");
+      expect(params.params).toBeInstanceOf(SSHAgentParams);
+      expect((params.params as SSHAgentParams).id()).toBe("test-key-id");
+    });
+
+    it("should create SSH agent params from instance", () => {
+      const sshParams = SSHAgentParams.new("my-key");
+      const params = sshAgentParams(sshParams);
+      expect(params.type).toBe("sshagent");
+      expect(params.params).toBe(sshParams);
+    });
   });
 
   describe("method detection", () => {
@@ -318,6 +399,11 @@ describe("KeyDerivationParams", () => {
     it("should detect Argon2id method", () => {
       const params = argon2idParams();
       expect(keyDerivationParamsMethod(params)).toBe(KeyDerivationMethod.Argon2id);
+    });
+
+    it("should detect SSHAgent method", () => {
+      const params = sshAgentParams("test-key");
+      expect(keyDerivationParamsMethod(params)).toBe(KeyDerivationMethod.SSHAgent);
     });
   });
 

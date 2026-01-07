@@ -5,10 +5,12 @@
  */
 
 import {
-  Pattern,
+  parse,
   formatPathsOpt,
-  FormatPathsOpts,
-  PathElementFormat,
+  type FormatPathsOpts,
+  type PathElementFormat,
+  formatError,
+  patternPathsWithCaptures,
 } from "@bcts/envelope-pattern";
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
@@ -57,25 +59,24 @@ export class PatternCommand implements Exec {
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
 
-    const parseResult = Pattern.parse(this.args.pattern);
+    const parseResult = parse(this.args.pattern);
     if (!parseResult.ok) {
-      const error = parseResult.error;
-      throw new Error(`Failed to parse pattern: ${error.message}`);
+      throw new Error(`Failed to parse pattern: ${formatError(parseResult.error)}`);
     }
 
     const pattern = parseResult.value;
-    const { paths } = pattern.pathsWithCaptures(envelope);
+    const [paths] = patternPathsWithCaptures(pattern, envelope);
 
     // Build format options from command line arguments
     let elementFormat: PathElementFormat;
     if (this.args.envelopes) {
-      elementFormat = { type: "envelopeUr" };
+      elementFormat = { type: "EnvelopeUR" };
     } else if (this.args.digests) {
-      elementFormat = { type: "digestUr" };
-    } else if (this.args.summary) {
-      elementFormat = { type: "summary", maxLength: this.args.maxLength };
+      elementFormat = { type: "DigestUR" };
+    } else if (this.args.summary && this.args.maxLength !== undefined) {
+      elementFormat = { type: "Summary", maxLength: this.args.maxLength };
     } else {
-      elementFormat = { type: "summary" };
+      elementFormat = { type: "Summary" };
     }
 
     const formatOptions: FormatPathsOpts = {

@@ -5,16 +5,39 @@
  */
 
 import type { ExecAsync } from "../exec.js";
-import { readEnvelope, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
+import { readEnvelope, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
 import { PrivateKeyBase, PrivateKeys } from "@bcts/components";
+import { PrivateKeyBase as EnvelopePrivateKeyBase } from "@bcts/envelope";
 import {
   symmetricKeyFromURString,
   envelopeIsLockedWithPassword,
-  envelopeUnlockSubject,
   envelopeIsLockedWithSshAgent,
 } from "../placeholders.js";
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
+
+/**
+ * Convert a PrivateKeys to envelope's PrivateKeyBase.
+ * Extracts the X25519 encapsulation key and creates envelope-compatible type.
+ */
+function privateKeysToEnvelopeKey(pk: PrivateKeys): EnvelopePrivateKeyBase {
+  const encKey = pk.encapsulationPrivateKey();
+  const x25519Key = encKey.x25519PrivateKey();
+  const privateData = x25519Key.data();
+  const publicData = x25519Key.publicKey().data();
+  return EnvelopePrivateKeyBase.fromBytes(privateData, publicData);
+}
+
+/**
+ * Convert a components PrivateKeyBase to envelope's PrivateKeyBase.
+ * Derives the X25519 key and creates envelope-compatible type.
+ */
+function privateKeyBaseToEnvelopeKey(pkb: PrivateKeyBase): EnvelopePrivateKeyBase {
+  const x25519Key = pkb.x25519PrivateKey();
+  const privateData = x25519Key.data();
+  const publicData = x25519Key.publicKey().data();
+  return EnvelopePrivateKeyBase.fromBytes(privateData, publicData);
+}
 
 /**
  * Command arguments for the decrypt command.
@@ -69,12 +92,14 @@ export class DecryptCommand implements ExecAsync {
       // Try to parse as PrivateKeys first, then PrivateKeyBase
       try {
         const recipient = PrivateKeys.fromURString(this.args.recipient);
-        const decrypted = envelope.decryptSubjectToRecipient(recipient);
+        const envelopeKey = privateKeysToEnvelopeKey(recipient);
+        const decrypted = envelope.decryptSubjectToRecipient(envelopeKey);
         return decrypted.urString();
       } catch {
         try {
           const recipient = PrivateKeyBase.fromURString(this.args.recipient);
-          const decrypted = envelope.decryptSubjectToRecipient(recipient);
+          const envelopeKey = privateKeyBaseToEnvelopeKey(recipient);
+          const decrypted = envelope.decryptSubjectToRecipient(envelopeKey);
           return decrypted.urString();
         } catch {
           throw new Error(

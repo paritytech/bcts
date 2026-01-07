@@ -37,29 +37,95 @@ export { PublicKeyBase, PrivateKeyBase, SealedMessage, HAS_RECIPIENT } from "./r
 
 // Expression support
 export {
+  // Classes
   Function,
   Parameter,
   Expression,
+  FunctionsStore,
+  ParametersStore,
+  // Constants and IDs
   FUNCTION_IDS,
   PARAMETER_IDS,
   CBOR_TAG_FUNCTION,
   CBOR_TAG_PARAMETER,
   CBOR_TAG_PLACEHOLDER,
   CBOR_TAG_REPLACEMENT,
+  // Well-known function constants
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  NEG,
+  LT,
+  LE,
+  GT,
+  GE,
+  EQ,
+  NE,
+  AND,
+  OR,
+  XOR,
+  NOT,
+  // Raw value constants for functions
+  ADD_VALUE,
+  SUB_VALUE,
+  MUL_VALUE,
+  DIV_VALUE,
+  NEG_VALUE,
+  LT_VALUE,
+  LE_VALUE,
+  GT_VALUE,
+  GE_VALUE,
+  EQ_VALUE,
+  NE_VALUE,
+  AND_VALUE,
+  OR_VALUE,
+  XOR_VALUE,
+  NOT_VALUE,
+  // Well-known parameter constants
+  BLANK,
+  LHS,
+  RHS,
+  // Raw value constants for parameters
+  BLANK_VALUE,
+  LHS_VALUE,
+  RHS_VALUE,
+  // Global stores
+  GLOBAL_FUNCTIONS,
+  GLOBAL_PARAMETERS,
+  // Helper functions
   add,
   sub,
   mul,
   div,
   neg,
   lt,
+  le,
   gt,
+  ge,
   eq,
+  ne,
   and,
   or,
+  xor,
   not,
+  // Types
   type FunctionID,
   type ParameterID,
+  // Lazy initialization helper
+  LazyStore,
 } from "./expression";
+
+// Secret support (password-based locking)
+export { registerSecretExtension } from "./secret";
+
+// SSKR support (Sharded Secret Key Reconstruction)
+export { registerSskrExtension } from "./sskr";
+
+// Request/Response/Event support (distributed function calls)
+export { Request, type RequestBehavior } from "./request";
+export { Response, type ResponseBehavior } from "./response";
+export { Event, type EventBehavior } from "./event";
 
 // Import side-effect modules to register prototype extensions
 import "./types";
@@ -70,3 +136,5 @@ import "./signature";
 import "./attachment";
 import "./recipient";
 import "./proof";
+import "./secret";
+import "./sskr";
