@@ -43,7 +43,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Export command implementation.
  */
 export class ExportCommand implements ExecAsync {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   async exec(): Promise<string> {
     const object = readArgument(this.args.urString);

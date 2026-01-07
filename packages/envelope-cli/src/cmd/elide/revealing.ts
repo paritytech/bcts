@@ -29,7 +29,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Revealing command implementation.
  */
 export class RevealingCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

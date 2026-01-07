@@ -30,7 +30,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Seed command implementation.
  */
 export class SeedCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     let seed: Seed;

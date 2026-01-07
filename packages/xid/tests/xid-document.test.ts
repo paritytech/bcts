@@ -58,7 +58,7 @@ describe("XIDDocument", () => {
 
       const inceptionKey = xidDocument.inceptionKey();
       expect(inceptionKey).toBeDefined();
-      expect(inceptionKey!.hasPrivateKeys()).toBe(true);
+      expect(inceptionKey?.hasPrivateKeys()).toBe(true);
     });
 
     it("should create minimal XID document from XID only", () => {
@@ -135,11 +135,12 @@ describe("XIDDocument", () => {
 
       const foundKey = xidDocument.findKeyByPublicKeys(privateKeyBase.ed25519PublicKeys());
       expect(foundKey).toBeDefined();
+      if (foundKey === undefined) throw new Error("Expected foundKey");
 
-      const reference = foundKey!.reference();
+      const reference = foundKey.reference();
       const foundByRef = xidDocument.findKeyByReference(reference);
       expect(foundByRef).toBeDefined();
-      expect(foundByRef!.equals(foundKey!)).toBe(true);
+      expect(foundByRef?.equals(foundKey)).toBe(true);
     });
 
     it("should remove inception key", () => {
@@ -218,7 +219,8 @@ describe("XIDDocument", () => {
         },
         { type: "none" },
       );
-      const aliceKey = aliceXidDocument.inceptionKey()!;
+      const aliceKey = aliceXidDocument.inceptionKey();
+      if (aliceKey === undefined) throw new Error("Expected aliceKey");
 
       // Create Bob as delegate
       const bobPrivateKeyBase = PrivateKeyBase.new();
@@ -255,7 +257,8 @@ describe("XIDDocument", () => {
         { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
-      const key = xidDocument.inceptionKey()!;
+      const key = xidDocument.inceptionKey();
+      if (key === undefined) throw new Error("Expected inception key");
 
       // Create service referencing the key
       const service = Service.new("https://example.com");
@@ -312,7 +315,7 @@ describe("XIDDocument", () => {
 
       const inceptionKey = xidDocument2.inceptionKey();
       expect(inceptionKey).toBeDefined();
-      expect(inceptionKey!.hasPrivateKeys()).toBe(false);
+      expect(inceptionKey?.hasPrivateKeys()).toBe(false);
     });
 
     it("should include private key when specified", () => {
@@ -328,7 +331,7 @@ describe("XIDDocument", () => {
 
       const inceptionKey = xidDocument2.inceptionKey();
       expect(inceptionKey).toBeDefined();
-      expect(inceptionKey!.hasPrivateKeys()).toBe(true);
+      expect(inceptionKey?.hasPrivateKeys()).toBe(true);
       expect(xidDocument.equals(xidDocument2)).toBe(true);
     });
 
@@ -348,7 +351,7 @@ describe("XIDDocument", () => {
 
       // But restored document should not have private key
       const xidDocument2 = XIDDocument.fromEnvelope(envelopeElide);
-      expect(xidDocument2.inceptionKey()!.hasPrivateKeys()).toBe(false);
+      expect(xidDocument2.inceptionKey()?.hasPrivateKeys()).toBe(false);
     });
 
     it("should encrypt private key when specified", () => {
@@ -367,7 +370,7 @@ describe("XIDDocument", () => {
 
       // Without password, no private key
       const xidDocNoPassword = XIDDocument.fromEnvelope(envelope);
-      expect(xidDocNoPassword.inceptionKey()!.hasPrivateKeys()).toBe(false);
+      expect(xidDocNoPassword.inceptionKey()?.hasPrivateKeys()).toBe(false);
 
       // With password, private key restored
       const xidDocWithPassword = XIDDocument.fromEnvelope(
@@ -375,7 +378,7 @@ describe("XIDDocument", () => {
         password,
         XIDVerifySignature.None,
       );
-      expect(xidDocWithPassword.inceptionKey()!.hasPrivateKeys()).toBe(true);
+      expect(xidDocWithPassword.inceptionKey()?.hasPrivateKeys()).toBe(true);
       expect(xidDocument.equals(xidDocWithPassword)).toBe(true);
     });
   });
@@ -591,7 +594,7 @@ describe("XIDDocument", () => {
       // Mode 3: Omitted
       const envelopeOmit = doc2.toEnvelope();
       const doc3 = XIDDocument.fromEnvelope(envelopeOmit);
-      expect(doc3.inceptionKey()!.hasPrivateKeys()).toBe(false);
+      expect(doc3.inceptionKey()?.hasPrivateKeys()).toBe(false);
 
       // Back to plaintext from encrypted
       const envelopePlaintext2 = doc2.toEnvelope(XIDPrivateKeyOptions.Include);
@@ -626,7 +629,7 @@ describe("XIDDocument", () => {
       // Should have inception key with private keys
       const inceptionKey = xidDocument.inceptionKey();
       expect(inceptionKey).toBeDefined();
-      expect(inceptionKey!.hasPrivateKeys()).toBe(true);
+      expect(inceptionKey?.hasPrivateKeys()).toBe(true);
     });
   });
 
@@ -678,7 +681,7 @@ describe("XIDDocument", () => {
       // Verify document has inception key with private keys
       const inceptionKey = xidDocument.inceptionKey();
       expect(inceptionKey).toBeDefined();
-      expect(inceptionKey!.hasPrivateKeys()).toBe(true);
+      expect(inceptionKey?.hasPrivateKeys()).toBe(true);
 
       // Verify XID is defined
       expect(xidDocument.xid()).toBeDefined();
@@ -702,7 +705,7 @@ describe("XIDDocument", () => {
       );
 
       expect(xidDocument.inceptionKey()).toBeDefined();
-      expect(xidDocument.inceptionKey()!.hasPrivateKeys()).toBe(true);
+      expect(xidDocument.inceptionKey()?.hasPrivateKeys()).toBe(true);
     });
 
     it("should create XID document with ML-DSA87 signing key", () => {
@@ -718,7 +721,7 @@ describe("XIDDocument", () => {
       );
 
       expect(xidDocument.inceptionKey()).toBeDefined();
-      expect(xidDocument.inceptionKey()!.hasPrivateKeys()).toBe(true);
+      expect(xidDocument.inceptionKey()?.hasPrivateKeys()).toBe(true);
     });
 
     it.skip("should sign XID document with ML-DSA key", () => {

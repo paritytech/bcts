@@ -24,7 +24,7 @@ export interface CommandArgs {
  * Create command implementation.
  */
 export class CreateCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const payload = readEnvelope(this.args.payload);

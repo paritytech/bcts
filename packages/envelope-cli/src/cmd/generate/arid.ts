@@ -28,7 +28,7 @@ export function defaultArgs(): CommandArgs {
  * ARID command implementation.
  */
 export class AridCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const arid = ARID.new();

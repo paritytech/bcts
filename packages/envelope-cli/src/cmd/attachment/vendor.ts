@@ -19,7 +19,7 @@ export interface CommandArgs {
  * Vendor command implementation.
  */
 export class VendorCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const attachment = readEnvelope(this.args.attachment);

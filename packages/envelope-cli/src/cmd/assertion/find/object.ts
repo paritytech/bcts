@@ -26,7 +26,7 @@ export interface CommandArgs {
  * Find object command implementation.
  */
 export class FindObjectCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
@@ -39,7 +39,7 @@ export class FindObjectCommand implements Exec {
     const result = assertions
       .filter((a) => {
         const obj = a.object();
-        return obj !== undefined && obj.digest().equals(object.digest());
+        return obj?.digest().equals(object.digest()) ?? false;
       })
       .map((a) => a.urString())
       .join("\n");

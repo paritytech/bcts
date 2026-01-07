@@ -21,7 +21,7 @@ export interface CommandArgs {
  * Join command implementation.
  */
 export class JoinCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     let shares = [...this.args.shares];

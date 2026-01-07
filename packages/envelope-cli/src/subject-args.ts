@@ -4,7 +4,7 @@
  * Handles subject arguments with stdin support.
  */
 
-import { DataType } from "./data-types.js";
+import { type DataType } from "./data-types.js";
 import { readStdinLine } from "./utils.js";
 
 /**

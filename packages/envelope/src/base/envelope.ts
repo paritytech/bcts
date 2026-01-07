@@ -32,6 +32,12 @@ import type {
   Signature,
   SignatureMetadata,
 } from "../extension";
+import type { UR } from "@bcts/uniform-resources";
+import type { TreeFormatOptions } from "../format/tree";
+import type { EnvelopeFormatOpts } from "../format/notation";
+import type { MermaidFormatOpts } from "../format/mermaid";
+import type { FormatContext } from "../format/format-context";
+import type { KeyDerivationMethod } from "@bcts/components";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
@@ -775,11 +781,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @param options - Optional formatting options
   /// @returns A tree-formatted string
-  declare treeFormat: (options?: {
-    hideNodes?: boolean;
-    highlightDigests?: Set<string>;
-    digestDisplay?: "short" | "full" | "ur";
-  }) => string;
+  declare treeFormat: (options?: TreeFormatOptions) => string;
 
   /// Returns a short identifier for this envelope based on its digest.
   ///
@@ -831,7 +833,17 @@ export class Envelope implements DigestProvider {
   declare removeAssertion: (target: Envelope) => Envelope;
   declare replaceAssertion: (assertion: Envelope, newAssertion: Envelope) => Envelope;
   declare replaceSubject: (subject: Envelope) => Envelope;
-  // addAssertionEnvelopeSalted and addAssertionSalted are declared via module augmentation in salt.ts
+  // From salt.ts - assertion methods with optional salting
+  declare addAssertionSalted: (
+    predicate: EnvelopeEncodableValue,
+    object: EnvelopeEncodableValue,
+    salted: boolean,
+  ) => Envelope;
+  declare addAssertionEnvelopeSalted: (assertionEnvelope: Envelope, salted: boolean) => Envelope;
+  declare addOptionalAssertionEnvelopeSalted: (
+    assertionEnvelope: Envelope | undefined,
+    salted: boolean,
+  ) => Envelope;
 
   // From elide.ts
   declare elide: () => Envelope;
@@ -966,7 +978,13 @@ export class Envelope implements DigestProvider {
   // Additional elision method
   declare elideSetWithAction: (target: Set<Digest>, action: ObscureAction) => Envelope;
 
-  // UR (Uniform Resource) support methods are declared via module augmentation in ur.ts
+  // From ur.ts - UR (Uniform Resource) support
+  declare urString: () => string;
+  declare ur: () => UR;
+  declare taggedCborData: () => Uint8Array;
+  declare static fromUrString: (urString: string) => Envelope;
+  declare static fromURString: (urString: string) => Envelope;
+  declare static fromUR: (ur: UR) => Envelope;
 
   // From wrap.ts
   declare wrap: () => Envelope;
@@ -1074,9 +1092,30 @@ export class Envelope implements DigestProvider {
   // Static methods from leaf.ts
   declare static unit: () => Envelope;
 
-  // Format methods are declared via module augmentation in format/notation.ts
-  // Mermaid format methods are declared via module augmentation in format/mermaid.ts
-  // Secret methods are declared via module augmentation in secret.ts
+  // From format/notation.ts
+  declare format: () => string;
+  declare formatOpt: (opts: EnvelopeFormatOpts) => string;
+  declare formatFlat: () => string;
+
+  // From format/mermaid.ts
+  declare mermaidFormat: () => string;
+  declare mermaidFormatOpt: (opts: MermaidFormatOpts) => string;
+
+  // From format/envelope-summary.ts
+  declare summaryWithContext: (maxLength: number, context: FormatContext) => string;
+
+  // From secret.ts
+  declare lockSubject: (method: KeyDerivationMethod, secret: Uint8Array) => Envelope;
+  declare unlockSubject: (secret: Uint8Array) => Envelope;
+  declare isLockedWithPassword: () => boolean;
+  declare isLockedWithSshAgent: () => boolean;
+  declare addSecret: (
+    method: KeyDerivationMethod,
+    secret: Uint8Array,
+    contentKey: SymmetricKey,
+  ) => Envelope;
+  declare lock: (method: KeyDerivationMethod, secret: Uint8Array) => Envelope;
+  declare unlock: (secret: Uint8Array) => Envelope;
 
   // CBOR methods
   declare toCbor: () => unknown;

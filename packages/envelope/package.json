@@ -52,7 +52,7 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "docs": "typedoc",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
     "envelope",

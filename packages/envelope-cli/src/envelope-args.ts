@@ -4,7 +4,7 @@
  * Handles envelope input from command line or stdin.
  */
 
-import { Envelope } from "@bcts/envelope";
+import { type Envelope } from "@bcts/envelope";
 import { readEnvelope } from "./utils.js";
 
 /**

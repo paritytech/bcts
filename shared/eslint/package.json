@@ -5,7 +5,8 @@
   "private": true,
   "main": "./library.mjs",
   "exports": {
-    ".": "./library.mjs"
+    ".": "./library.mjs",
+    "./cli": "./cli.mjs"
   },
   "dependencies": {
     "@eslint/js": "^9.39.2",

@@ -10,12 +10,13 @@ import type { Exec } from "../../exec.js";
 /**
  * Command arguments for the nonce command.
  */
-export interface CommandArgs {}
+export type CommandArgs = Record<string, never>;
 
 /**
  * Nonce command implementation.
  */
 export class NonceCommand implements Exec {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor(_args: CommandArgs) {}
 
   exec(): string {

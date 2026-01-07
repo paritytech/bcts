@@ -4,7 +4,7 @@
  * Common arguments and logic for elide commands.
  */
 
-import { Envelope, type ObscureAction } from "@bcts/envelope";
+import { type Envelope, type ObscureAction } from "@bcts/envelope";
 import { SymmetricKey, type Digest } from "@bcts/components";
 import { parseDigests } from "../../utils.js";
 

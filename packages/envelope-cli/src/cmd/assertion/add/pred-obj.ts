@@ -31,7 +31,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Add pred-obj command implementation.
  */
 export class AddPredObjCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

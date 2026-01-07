@@ -7,7 +7,7 @@
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
 import { bytesToHex } from "../data-types.js";
-import { Envelope } from "@bcts/envelope";
+import { type Envelope } from "@bcts/envelope";
 import { ARID, Digest, URI, UUID } from "@bcts/components";
 import {
   type Cbor,
@@ -97,7 +97,7 @@ export interface CommandArgs {
  * Extract command implementation.
  */
 export class ExtractCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

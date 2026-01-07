@@ -11,13 +11,13 @@ import { readSubjectValue, type SubjectArgsLike } from "../../subject-args.js";
 /**
  * Command arguments for the type command.
  */
-export interface CommandArgs extends SubjectArgsLike {}
+export type CommandArgs = SubjectArgsLike;
 
 /**
  * Type command implementation.
  */
 export class TypeCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const subjectValue = readSubjectValue(this.args);

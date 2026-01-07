@@ -38,8 +38,9 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Import command implementation.
  */
 export class ImportCommand implements ExecAsync {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async exec(): Promise<string> {
     // Validate that an object was provided
     readArgument(this.args.object);

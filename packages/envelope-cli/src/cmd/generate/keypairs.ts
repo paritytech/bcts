@@ -18,7 +18,7 @@ import {
   PublicKeys,
   SigningPrivateKey,
   EncapsulationPrivateKey,
-  EncapsulationPublicKey,
+  type EncapsulationPublicKey,
 } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 
@@ -128,7 +128,7 @@ function generateEncapsulationKeypair(
  * Keypairs command implementation.
  */
 export class KeypairsCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const [signingPrivateKey, signingPublicKey] = generateSigningKeypair(this.args.signing);

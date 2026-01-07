@@ -29,12 +29,12 @@ export interface CommandArgs {
  * Info command implementation.
  */
 export class InfoCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const result: string[] = [];
 
-    const add = (field: string, value: string) => {
+    const add = (field: string, value: string): void => {
       result.push(`${field}: ${value}`);
     };
 

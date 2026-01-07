@@ -49,7 +49,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Export command implementation.
  */
 export class ExportCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

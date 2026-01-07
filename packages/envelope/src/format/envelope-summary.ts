@@ -116,14 +116,6 @@ export const cborEnvelopeSummary = (
 // Envelope Summary Method Extension
 // ============================================================================
 
-// Extend Envelope prototype with summary method that uses FormatContext
-declare module "../base/envelope" {
-  interface Envelope {
-    /// Returns a short summary of the envelope's content with a maximum length.
-    summaryWithContext(maxLength: number, context: FormatContext): string;
-  }
-}
-
 /// Implementation of summaryWithContext
 Envelope.prototype.summaryWithContext = function (
   this: Envelope,

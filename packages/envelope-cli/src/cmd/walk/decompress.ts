@@ -12,7 +12,7 @@ import type { Digest } from "@bcts/components";
 /**
  * Command arguments for the decompress command.
  */
-export interface CommandArgs {}
+export type CommandArgs = Record<string, never>;
 
 /**
  * Execute decompress with envelope and target.

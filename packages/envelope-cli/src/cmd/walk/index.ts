@@ -80,7 +80,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Walk command implementation.
  */
 export class WalkCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
