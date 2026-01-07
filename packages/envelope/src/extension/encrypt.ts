@@ -21,7 +21,7 @@ import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
  * and @bcts/components when used together.
  */
 export { SymmetricKey } from "@bcts/components";
-import { SymmetricKey } from "@bcts/components";
+import type { SymmetricKey } from "@bcts/components";
 
 /// Extension for encrypting and decrypting envelopes using symmetric encryption.
 ///
@@ -38,7 +38,11 @@ import { SymmetricKey } from "@bcts/components";
  * Encrypts plaintext with a symmetric key using the given digest as AAD.
  * This is an envelope-specific helper function that returns an envelope EncryptedMessage.
  */
-function encryptWithDigest(key: SymmetricKey, plaintext: Uint8Array, digest: Digest): EncryptedMessage {
+function encryptWithDigest(
+  key: SymmetricKey,
+  plaintext: Uint8Array,
+  digest: Digest,
+): EncryptedMessage {
   const rng = new SecureRandomNumberGenerator();
   const nonce = rngRandomData(rng, SYMMETRIC_NONCE_SIZE);
   const aad = digest.data();

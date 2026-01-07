@@ -30,7 +30,6 @@ declare module "./envelope" {
     taggedCborData(): Uint8Array;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Envelope {
     /// Creates an envelope from a UR string.
     ///
@@ -52,7 +51,9 @@ declare module "./envelope" {
 
 /// Implementation of urString
 Envelope.prototype.urString = function (this: Envelope): string {
-  return this.ur().string();
+  // Use explicit return type to avoid circular type resolution issues
+  const ur = UR.new("envelope", this.taggedCbor());
+  return ur.string();
 };
 
 /// Implementation of ur

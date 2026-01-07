@@ -9,7 +9,18 @@ import { readEnvelope } from "../utils.js";
 import { bytesToHex } from "../data-types.js";
 import { Envelope } from "@bcts/envelope";
 import { ARID, Digest, URI, UUID } from "@bcts/components";
-import { type Cbor, CborDate, isTagged, tagValue, tagContent, cborData, expectBoolean, expectNumber, expectText, expectBytes } from "@bcts/dcbor";
+import {
+  type Cbor,
+  CborDate,
+  isTagged,
+  tagValue,
+  tagContent,
+  cborData,
+  expectBoolean,
+  expectNumber,
+  expectText,
+  expectBytes,
+} from "@bcts/dcbor";
 import { KnownValue } from "@bcts/known-values";
 import { UR } from "@bcts/uniform-resources";
 import { XID } from "@bcts/xid";

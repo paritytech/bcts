@@ -54,6 +54,7 @@ import type { Signature } from "./signature.js";
 import type { Verifier } from "./signer.js";
 import { Reference, type ReferenceProvider } from "../reference.js";
 import { Digest } from "../digest.js";
+import { UR } from "@bcts/uniform-resources";
 
 /**
  * A public key used for verifying digital signatures.
@@ -688,8 +689,7 @@ export class SigningPublicKey
   /**
    * Returns the UR representation of the signing public key.
    */
-  ur(): import("@bcts/uniform-resources").UR {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+  ur(): UR {
     return UR.new(SigningPublicKey.UR_TYPE, this.taggedCbor());
   }
 
@@ -703,7 +703,7 @@ export class SigningPublicKey
   /**
    * Creates a SigningPublicKey from a UR.
    */
-  static fromUR(ur: import("@bcts/uniform-resources").UR): SigningPublicKey {
+  static fromUR(ur: UR): SigningPublicKey {
     ur.checkType(SigningPublicKey.UR_TYPE);
     return SigningPublicKey.fromTaggedCbor(ur.cbor());
   }
@@ -712,7 +712,6 @@ export class SigningPublicKey
    * Creates a SigningPublicKey from a UR string.
    */
   static fromURString(urString: string): SigningPublicKey {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
     const ur = UR.fromURString(urString);
     return SigningPublicKey.fromUR(ur);
   }
@@ -736,7 +735,7 @@ export class SigningPublicKey
     if (this._type !== SignatureScheme.Ed25519) {
       throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
     }
-    if (!this._ed25519Key) {
+    if (this._ed25519Key === undefined) {
       throw new Error("Ed25519 key not initialized");
     }
 
@@ -744,10 +743,11 @@ export class SigningPublicKey
     // The data is: 4-byte length of "ssh-ed25519" + "ssh-ed25519" + 4-byte length of key + key bytes
     const algorithm = "ssh-ed25519";
     const algorithmBytes = new TextEncoder().encode(algorithm);
-    const keyBytes = this._ed25519Key.data();
+    const keyBytes = this._ed25519Key.toData();
+    const keyLen = keyBytes.length;
 
     // Build the blob: [4-byte length][algorithm][4-byte length][key]
-    const totalLength = 4 + algorithmBytes.length + 4 + keyBytes.length;
+    const totalLength = 4 + algorithmBytes.length + 4 + keyLen;
     const blob = new Uint8Array(totalLength);
     let offset = 0;
 
@@ -762,10 +762,10 @@ export class SigningPublicKey
     offset += algorithmBytes.length;
 
     // Write key length (big-endian)
-    blob[offset++] = (keyBytes.length >> 24) & 0xff;
-    blob[offset++] = (keyBytes.length >> 16) & 0xff;
-    blob[offset++] = (keyBytes.length >> 8) & 0xff;
-    blob[offset++] = keyBytes.length & 0xff;
+    blob[offset++] = (keyLen >> 24) & 0xff;
+    blob[offset++] = (keyLen >> 16) & 0xff;
+    blob[offset++] = (keyLen >> 8) & 0xff;
+    blob[offset++] = keyLen & 0xff;
 
     // Write key
     blob.set(keyBytes, offset);
@@ -785,6 +785,6 @@ export class SigningPublicKey
     }
 
     const result = `${algorithm} ${base64}`;
-    return comment ? `${result} ${comment}` : result;
+    return comment !== undefined && comment !== "" ? `${result} ${comment}` : result;
   }
 }

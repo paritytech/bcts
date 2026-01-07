@@ -663,8 +663,7 @@ describe("XIDDocument", () => {
       const [signingPrivateKey, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA44);
 
       // Create X25519 encapsulation keypair (ML-KEM not yet implemented)
-      const [encapsulationPrivateKey, encapsulationPublicKey] =
-        EncapsulationPrivateKey.keypair();
+      const [encapsulationPrivateKey, encapsulationPublicKey] = EncapsulationPrivateKey.keypair();
 
       // Create PrivateKeys and PublicKeys containers
       const privateKeys = PrivateKeys.withKeys(signingPrivateKey, encapsulationPrivateKey);
@@ -692,8 +691,7 @@ describe("XIDDocument", () => {
 
     it("should create XID document with ML-DSA65 signing key", () => {
       const [signingPrivateKey, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA65);
-      const [encapsulationPrivateKey, encapsulationPublicKey] =
-        EncapsulationPrivateKey.keypair();
+      const [encapsulationPrivateKey, encapsulationPublicKey] = EncapsulationPrivateKey.keypair();
 
       const privateKeys = PrivateKeys.withKeys(signingPrivateKey, encapsulationPrivateKey);
       const publicKeys = PublicKeys.new(signingPublicKey, encapsulationPublicKey);
@@ -709,8 +707,7 @@ describe("XIDDocument", () => {
 
     it("should create XID document with ML-DSA87 signing key", () => {
       const [signingPrivateKey, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA87);
-      const [encapsulationPrivateKey, encapsulationPublicKey] =
-        EncapsulationPrivateKey.keypair();
+      const [encapsulationPrivateKey, encapsulationPublicKey] = EncapsulationPrivateKey.keypair();
 
       const privateKeys = PrivateKeys.withKeys(signingPrivateKey, encapsulationPrivateKey);
       const publicKeys = PublicKeys.new(signingPublicKey, encapsulationPublicKey);
@@ -729,8 +726,7 @@ describe("XIDDocument", () => {
       // The signing operation works but verification fails - may need envelope adapter updates
       // Create PQ keys
       const [signingPrivateKey, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA44);
-      const [encapsulationPrivateKey, encapsulationPublicKey] =
-        EncapsulationPrivateKey.keypair();
+      const [encapsulationPrivateKey, encapsulationPublicKey] = EncapsulationPrivateKey.keypair();
 
       const privateKeys = PrivateKeys.withKeys(signingPrivateKey, encapsulationPrivateKey);
       const publicKeys = PublicKeys.new(signingPublicKey, encapsulationPublicKey);
@@ -766,9 +762,8 @@ describe("XIDDocument", () => {
       );
 
       // Create PQ keys and add as second key
-      const [signingPrivateKey, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA44);
-      const [encapsulationPrivateKey, encapsulationPublicKey] =
-        EncapsulationPrivateKey.keypair();
+      const [, signingPublicKey] = createMldsaSigningKeys(MLDSALevel.MLDSA44);
+      const [, encapsulationPublicKey] = EncapsulationPrivateKey.keypair();
 
       const publicKeys = PublicKeys.new(signingPublicKey, encapsulationPublicKey);
       const key2 = Key.newAllowAll(publicKeys);

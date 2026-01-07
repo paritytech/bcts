@@ -12,6 +12,7 @@
  */
 
 import { Envelope } from "../base/envelope";
+import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -33,12 +34,7 @@ export {
   type Signer,
   type Verifier,
 } from "@bcts/components";
-import {
-  Signature,
-  SigningPrivateKey,
-  type Signer,
-  type Verifier,
-} from "@bcts/components";
+import type { Signature, Signer, Verifier } from "@bcts/components";
 
 /**
  * Known value for the 'signed' predicate.
@@ -68,6 +64,7 @@ export class SignatureMetadata {
    * Creates a new SignatureMetadata instance.
    * Use the static `new()` method for fluent API style.
    */
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() {}
 
   /**
@@ -90,7 +87,7 @@ export class SignatureMetadata {
   /**
    * Returns all assertions in this metadata.
    */
-  assertions(): ReadonlyArray<[string, unknown]> {
+  assertions(): readonly [string, unknown][] {
     return this.#assertions;
   }
 }
@@ -113,14 +110,20 @@ Envelope.prototype.addSignatureWithMetadata = function (
 
   // Add verifier info if available
   if ("publicKey" in signer && typeof signer.publicKey === "function") {
-    const verifier = signer.publicKey();
-    signatureEnvelope = signatureEnvelope.addAssertion(VERIFIED_BY, verifier);
+    const verifier = (signer.publicKey as () => Verifier)();
+    signatureEnvelope = signatureEnvelope.addAssertion(
+      VERIFIED_BY,
+      verifier as unknown as EnvelopeEncodableValue,
+    );
   }
 
   // Add metadata assertions if provided
-  if (metadata) {
+  if (metadata !== undefined) {
     for (const [predicate, object] of metadata.assertions()) {
-      signatureEnvelope = signatureEnvelope.addAssertion(predicate, object);
+      signatureEnvelope = signatureEnvelope.addAssertion(
+        predicate,
+        object as EnvelopeEncodableValue,
+      );
     }
   }
 
@@ -145,11 +148,7 @@ Envelope.prototype.addSignatureOpt = function (
 
 /// Implementation of addSignatures() - add multiple signatures
 Envelope.prototype.addSignatures = function (this: Envelope, signers: Signer[]): Envelope {
-  let result: Envelope = this;
-  for (const signer of signers) {
-    result = result.addSignature(signer);
-  }
-  return result;
+  return signers.reduce<Envelope>((envelope, signer) => envelope.addSignature(signer), this);
 };
 
 /// Implementation of addSignaturesWithMetadata()
@@ -157,20 +156,20 @@ Envelope.prototype.addSignaturesWithMetadata = function (
   this: Envelope,
   signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
 ): Envelope {
-  return signersWithMetadata.reduce(
+  return signersWithMetadata.reduce<Envelope>(
     (envelope, { signer, metadata }) => envelope.addSignatureWithMetadata(signer, metadata),
-    this as Envelope,
+    this,
   );
 };
 
 /// Implementation of hasSignatureFrom() - check if signed by specific verifier
 Envelope.prototype.hasSignatureFrom = function (this: Envelope, verifier: Verifier): boolean {
-  const signedAssertions = this.assertionsForPredicate(SIGNED);
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
 
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signature = signatureEnvelope.tryLeaf() as Signature;
+      const signature = signatureEnvelope.tryLeaf() as unknown as Signature;
 
       // Get the digest that was signed
       const digest = this.subject().digest();
@@ -233,30 +232,32 @@ Envelope.prototype.verifyReturningMetadata = function (
   this: Envelope,
   verifier: Verifier,
 ): { envelope: Envelope; metadata?: SignatureMetadata } {
-  const signedAssertions = this.assertionsForPredicate(SIGNED);
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
 
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signature = signatureEnvelope.tryLeaf() as Signature;
+      const signature = signatureEnvelope.tryLeaf() as unknown as Signature;
       const digest = this.subject().digest();
 
       if (verifier.verify(signature, digest.data())) {
         // Extract metadata from the signature envelope
         const metadata = new (SignatureMetadata as unknown as new () => SignatureMetadata)();
         for (const metaAssertion of signatureEnvelope.assertions()) {
-          const pred = metaAssertion.tryPredicate();
-          const obj = metaAssertion.tryObject();
-          if (pred && obj) {
-            try {
-              const predValue = pred.tryLeaf() as string;
-              const objValue = obj.tryLeaf();
-              if (predValue !== VERIFIED_BY) {
-                (metadata as unknown as { withAssertion: (p: string, o: unknown) => SignatureMetadata }).withAssertion(predValue, objValue);
-              }
-            } catch {
-              // Skip non-leaf assertions
+          try {
+            const pred = metaAssertion.tryPredicate();
+            const obj = metaAssertion.tryObject();
+            const predValue = pred.tryLeaf() as unknown as string;
+            const objValue = obj.tryLeaf();
+            if (predValue !== VERIFIED_BY) {
+              (
+                metadata as unknown as {
+                  withAssertion: (p: string, o: unknown) => SignatureMetadata;
+                }
+              ).withAssertion(predValue, objValue);
             }
+          } catch {
+            // Skip non-leaf assertions
           }
         }
 

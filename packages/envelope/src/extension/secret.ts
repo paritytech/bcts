@@ -97,7 +97,7 @@ Envelope.prototype.lockSubject = function (
   secret: Uint8Array,
 ): Envelope {
   // Generate a new content key using local SymmetricKey
-  const contentKey = SymmetricKey.generate();
+  const contentKey = SymmetricKey.new();
 
   // Convert to components SymmetricKey for EncryptedKey.lock
   const componentsKey = ComponentsSymmetricKey.fromData(contentKey.data());

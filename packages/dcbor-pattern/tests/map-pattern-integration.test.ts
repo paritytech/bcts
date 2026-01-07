@@ -12,14 +12,7 @@ import {
   formatPathsStr,
   display,
 } from "./common";
-import {
-  any,
-  anyText,
-  anyNumber,
-  anyBool,
-  text,
-  number,
-} from "../src";
+import { any, anyText, anyNumber, anyBool, text, number } from "../src";
 import {
   mapPatternAny,
   mapPatternWithLength,
@@ -182,14 +175,7 @@ describe("map pattern integration tests", () => {
     it("should preserve pattern format through parse/display", () => {
       const patterns = ["map", "{{0}}", "{{1}}", "{{5}}", "{{2,8}}", "{{3,}}"];
       // Note: TypeScript Interval.rangeNotation() doesn't include a space in ranges
-      const expectedDisplays = [
-        "map",
-        "{{0}}",
-        "{{1}}",
-        "{{5}}",
-        "{{2,8}}",
-        "{{3,}}",
-      ];
+      const expectedDisplays = ["map", "{{0}}", "{{1}}", "{{5}}", "{{2,8}}", "{{3,}}"];
 
       for (let i = 0; i < patterns.length; i++) {
         const pattern = parse(patterns[i]);

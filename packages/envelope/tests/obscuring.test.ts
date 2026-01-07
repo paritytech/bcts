@@ -19,7 +19,7 @@ describe("Obscuring", () => {
       expect(envelope.isObscured()).toBe(false);
 
       // Encrypted envelopes are obscured
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(key);
       expect(encrypted.isObscured()).toBe(true);
 
@@ -42,7 +42,7 @@ describe("Obscuring", () => {
       // what's intended. If you want to double-encrypt then wrap the
       // encrypted envelope first, which will change its digest.
       const envelope = Envelope.new("Hello");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       expect(() => encrypted.encryptSubject(key)).toThrow();
@@ -53,7 +53,7 @@ describe("Obscuring", () => {
       //
       // Elided envelopes have no data to encrypt.
       const envelope = Envelope.new("Hello");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
       const elided = envelope.elide();
 
       expect(() => elided.encryptSubject(key)).toThrow();
@@ -62,7 +62,7 @@ describe("Obscuring", () => {
     it("should allow encrypting a compressed envelope", () => {
       // OK to encrypt a compressed envelope.
       const envelope = Envelope.new("Hello");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const compressed = envelope.compress();
       const encryptedCompressed = compressed.encryptSubject(key);
@@ -74,7 +74,7 @@ describe("Obscuring", () => {
     it("should allow eliding an encrypted envelope", () => {
       // OK to elide an encrypted envelope.
       const envelope = Envelope.new("Hello");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       const elidedEncrypted = encrypted.elide();
@@ -108,7 +108,7 @@ describe("Obscuring", () => {
       // Encrypted envelopes cannot become smaller because encrypted data looks
       // random, and random data is not compressible.
       const envelope = Envelope.new("Hello");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       expect(() => encrypted.compress()).toThrow();
@@ -265,9 +265,9 @@ describe("Walk Unelide", () => {
 // When implemented, this test should pass.
 describe.skip("Walk Decrypt (requires elideRemovingSetWithAction encrypt)", () => {
   it("should decrypt multiple encrypted parts with different keys", () => {
-    const key1 = SymmetricKey.generate();
-    const key2 = SymmetricKey.generate();
-    const _key3 = SymmetricKey.generate();
+    const key1 = SymmetricKey.new();
+    const key2 = SymmetricKey.new();
+    // key3 would be used when the test is fully implemented
 
     const envelope = Envelope.new("Alice")
       .addAssertion("knows", "Bob")
@@ -348,7 +348,7 @@ describe.skip("Walk Decompress (requires elideRemovingSetWithAction compress)", 
 // When implemented, this test should pass.
 describe.skip("Mixed Obscuration Operations (requires elideRemovingSetWithAction encrypt/compress)", () => {
   it("should handle mixed elision, encryption, and compression", () => {
-    const key = SymmetricKey.generate();
+    const key = SymmetricKey.new();
 
     const envelope = Envelope.new("Alice")
       .addAssertion("knows", "Bob")
@@ -391,7 +391,7 @@ describe("Digest preservation", () => {
   it("should preserve digest through all obscuring operations", () => {
     const envelope = Envelope.new("Test message");
     const originalDigest = envelope.digest();
-    const key = SymmetricKey.generate();
+    const key = SymmetricKey.new();
 
     // Encryption preserves digest
     const encrypted = envelope.encryptSubject(key);
@@ -411,7 +411,7 @@ describe("Equivalence after restoration", () => {
   it("should recognize equivalent envelopes with different obscuring", () => {
     const envelope = Envelope.new("Hello").addAssertion("key", "value");
 
-    const key = SymmetricKey.generate();
+    const key = SymmetricKey.new();
 
     // Encrypt and decrypt should give equivalent envelope
     const encrypted = envelope.encryptSubject(key);

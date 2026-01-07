@@ -44,6 +44,7 @@ import { bytesToHex, hexToBytes } from "../utils.js";
 import { SignatureScheme, isMldsaScheme } from "./signature-scheme.js";
 import { MLDSASignature } from "../mldsa/mldsa-signature.js";
 import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { UR } from "@bcts/uniform-resources";
 
 /**
  * A digital signature created with various signature algorithms.
@@ -525,8 +526,7 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   /**
    * Returns the UR representation of the signature.
    */
-  ur(): import("@bcts/uniform-resources").UR {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+  ur(): UR {
     return UR.new(Signature.UR_TYPE, this.taggedCbor());
   }
 
@@ -540,7 +540,7 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   /**
    * Creates a Signature from a UR.
    */
-  static fromUR(ur: import("@bcts/uniform-resources").UR): Signature {
+  static fromUR(ur: UR): Signature {
     ur.checkType(Signature.UR_TYPE);
     return Signature.fromTaggedCbor(ur.cbor());
   }
@@ -549,7 +549,6 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    * Creates a Signature from a UR string.
    */
   static fromURString(urString: string): Signature {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
     const ur = UR.fromURString(urString);
     return Signature.fromUR(ur);
   }

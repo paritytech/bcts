@@ -36,7 +36,10 @@ describe("array detailed tests", () => {
     const expectedElement = `@item
     42
 42`;
-    assertActualExpected(formatPathsWithCapturesStr(elementPaths, elementCaptures), expectedElement);
+    assertActualExpected(
+      formatPathsWithCapturesStr(elementPaths, elementCaptures),
+      expectedElement,
+    );
 
     // Test what happens when we call paths() on the inner pattern with the array
     const patternPaths = getPaths(innerPattern, cborData);

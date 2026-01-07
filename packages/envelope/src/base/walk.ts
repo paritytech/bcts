@@ -1,5 +1,6 @@
 import { Envelope } from "./envelope";
-import { Digest } from "./digest";
+import type { Digest } from "./digest";
+import type { EnvelopeEncodableValue } from "./envelope-encodable";
 
 /// Functions for traversing and manipulating the envelope hierarchy.
 ///
@@ -283,5 +284,5 @@ Envelope.prototype.expectLeaf = function (this: Envelope): unknown {
 
 /// Implementation of checkTypeValue() - validates the envelope has a specific type
 Envelope.prototype.checkTypeValue = function (this: Envelope, type: unknown): void {
-  this.checkType(type as import("./envelope-encodable").EnvelopeEncodableValue);
+  this.checkType(type as EnvelopeEncodableValue);
 };

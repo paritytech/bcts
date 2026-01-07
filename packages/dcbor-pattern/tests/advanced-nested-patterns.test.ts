@@ -4,13 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { cbor, toTaggedValue } from "@bcts/dcbor";
-import {
-  parse,
-  matches,
-  getPaths,
-  formatPathsStr,
-  assertActualExpected,
-} from "./common";
+import { parse, matches, getPaths, formatPathsStr, assertActualExpected } from "./common";
 
 describe("advanced nested patterns", () => {
   it("test_simple_nested_tagged_array", () => {
@@ -227,7 +221,9 @@ describe("advanced nested patterns", () => {
 
   it("test_complex_combined_patterns", () => {
     // Combining multiple advanced patterns
-    const pattern = parse(`tagged(500, [{"type": "user"}, {"id": number}, ({"name": text} | {"email": text})*])`);
+    const pattern = parse(
+      `tagged(500, [{"type": "user"}, {"id": number}, ({"name": text} | {"email": text})*])`,
+    );
 
     // Minimum valid structure
     const case1 = toTaggedValue(500, [{ type: "user" }, { id: 123 }]);
@@ -237,11 +233,7 @@ describe("advanced nested patterns", () => {
     assertActualExpected(formatPathsStr(paths1), expected1);
 
     // With optional name map
-    const case2 = toTaggedValue(500, [
-      { type: "user" },
-      { id: 123 },
-      { name: "John" },
-    ]);
+    const case2 = toTaggedValue(500, [{ type: "user" }, { id: 123 }, { name: "John" }]);
     expect(matches(pattern, case2)).toBe(true);
     const paths2 = getPaths(pattern, case2);
     const expected2 = `500([{"type": "user"}, {"id": 123}, {"name": "John"}])`;

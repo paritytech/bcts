@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/switch-exhaustiveness-check -- MLKEM not yet implemented */
 /**
  * Encapsulation public key for key encapsulation mechanisms
  *

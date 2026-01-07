@@ -59,11 +59,7 @@ export class ExportCommand implements ExecAsync {
 
       if (this.args.encrypt) {
         // Read the password (for future use when encrypted export is implemented)
-        await readPassword(
-          "Key encryption password: ",
-          this.args.password,
-          this.args.askpass,
-        );
+        await readPassword("Key encryption password: ", this.args.password, this.args.askpass);
         // TODO: Implement encrypted SSH private key export
         // This requires bcrypt_pbkdf which is not yet available in @bcts/crypto
         throw new Error("Encrypted SSH private key export is not yet implemented.");

@@ -42,7 +42,7 @@ describe("Multi-Permit", () => {
     //
     // Alice signs the envelope with her private key.
     //
-    const aliceSigningKey = SigningPrivateKey.generate();
+    const aliceSigningKey = SigningPrivateKey.random();
     const alicePublicKey = aliceSigningKey.publicKey();
     const signedEnvelope = originalEnvelope.addSignature(aliceSigningKey);
 
@@ -66,7 +66,7 @@ describe("Multi-Permit", () => {
     // Note: We use encryptSubject() here as the TypeScript SSKR implementation
     // works with subject-level encryption. The assertions remain visible.
     //
-    const contentKey = SymmetricKey.generate();
+    const contentKey = SymmetricKey.new();
     const encryptedEnvelope = signedEnvelope.encryptSubject(contentKey);
 
     // The envelope shows ENCRYPTED for the subject but assertions are preserved
@@ -201,7 +201,7 @@ describe("Multi-Permit", () => {
     let encryptedEnvelope: Envelope;
 
     beforeEach(() => {
-      contentKey = SymmetricKey.generate();
+      contentKey = SymmetricKey.new();
       envelope = Envelope.new(testContent);
       // Use encryptSubject for subject-only encryption (compatible with SSKR)
       encryptedEnvelope = envelope.encryptSubject(contentKey);
@@ -277,7 +277,7 @@ describe("Multi-Permit", () => {
   describe("Multiple permits on same envelope", () => {
     it("should support multiple password-based secrets", () => {
       const envelope = Envelope.new("Multi-secret content");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       // Use encryptSubject for subject-only encryption
       const encrypted = envelope.encryptSubject(contentKey);
 
@@ -298,7 +298,7 @@ describe("Multi-Permit", () => {
 
     it("should support multiple recipients", () => {
       const envelope = Envelope.new("Multi-recipient content");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       // Use encryptSubject for subject-only encryption
       const encrypted = envelope.encryptSubject(contentKey);
 
@@ -328,7 +328,7 @@ describe("Multi-Permit", () => {
     it("should support mixed permit types", () => {
       // For SSKR compatibility, use a simple envelope with encryptSubject
       const envelope = Envelope.new("Mixed permit content");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       // Use encryptSubject for subject-only encryption (compatible with SSKR)
       const encrypted = envelope.encryptSubject(contentKey);
 
@@ -369,7 +369,7 @@ describe("Multi-Permit", () => {
   describe("Error cases", () => {
     it("should fail with wrong password", () => {
       const envelope = Envelope.new("Secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const correctPassword = new TextEncoder().encode("correct");
@@ -382,7 +382,7 @@ describe("Multi-Permit", () => {
 
     it("should fail with wrong recipient key", () => {
       const envelope = Envelope.new("Secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const alice = PrivateKeyBase.generate();
@@ -395,7 +395,7 @@ describe("Multi-Permit", () => {
 
     it("should fail with insufficient SSKR shares", () => {
       const envelope = Envelope.new("Secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const spec = SSKRSpec.new(1, [SSKRGroupSpec.new(2, 3)]);
@@ -410,7 +410,7 @@ describe("Multi-Permit", () => {
 
   describe("Signed and encrypted workflow", () => {
     it("should verify signature after decryption", () => {
-      const signingKey = SigningPrivateKey.generate();
+      const signingKey = SigningPrivateKey.random();
       const publicKey = signingKey.publicKey();
 
       const document = Envelope.new("Legal contract")
@@ -418,7 +418,7 @@ describe("Multi-Permit", () => {
         .addAssertion("date", "2025-01-01")
         .addSignature(signingKey);
 
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       // Use encryptSubject to encrypt only the subject, preserving assertions
       const encrypted = document.encryptSubject(contentKey);
 
@@ -440,7 +440,7 @@ describe("Multi-Permit", () => {
         .addAssertion("created", "2025-01-01")
         .addAssertion("version", 1);
 
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       // Use encryptSubject to encrypt only the subject
       const encrypted = envelope.encryptSubject(contentKey);
       const decrypted = encrypted.decryptSubject(contentKey);

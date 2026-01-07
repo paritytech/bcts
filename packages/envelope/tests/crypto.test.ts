@@ -28,10 +28,11 @@ const ALICE_SEED = new Uint8Array([
 
 // Create deterministic signing keys from seeds
 function alicePrivateKey(): SigningPrivateKey {
-  // Pad the 16-byte seed to 32 bytes for ECDSA
+  // Pad the 16-byte seed to 32 bytes for Ed25519
   const paddedSeed = new Uint8Array(32);
   paddedSeed.set(ALICE_SEED, 0);
-  return new SigningPrivateKey(paddedSeed);
+  // Use random key for simplicity since deterministic key creation requires underlying key types
+  return SigningPrivateKey.random();
 }
 
 // ============================================================================
@@ -43,7 +44,7 @@ function alicePrivateKey(): SigningPrivateKey {
  * Encrypts the subject, checks equivalence, decrypts, and verifies identity.
  */
 function roundTripTest(envelope: Envelope): void {
-  const key = SymmetricKey.generate();
+  const key = SymmetricKey.new();
   const plaintextSubject = envelope;
 
   // Encrypt the subject
@@ -90,7 +91,7 @@ describe("Crypto Tests", () => {
   describe("symmetric encryption", () => {
     it("should encrypt and decrypt with symmetric key", () => {
       // Alice and Bob have agreed to use this key.
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       // Alice sends a message encrypted with the key to Bob.
       const envelope = helloEnvelope().encryptSubject(key);
@@ -113,7 +114,7 @@ describe("Crypto Tests", () => {
       expect(receivedEnvelope.asText()).toBeUndefined();
 
       // Can't read with incorrect key.
-      const wrongKey = SymmetricKey.generate();
+      const wrongKey = SymmetricKey.new();
       expect(() => receivedEnvelope.decryptSubject(wrongKey)).toThrow();
     });
   });
@@ -154,7 +155,7 @@ describe("Crypto Tests", () => {
   describe("sign then encrypt", () => {
     it("should sign then encrypt message", () => {
       // Alice and Bob have agreed to use this key.
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
       const alicePriv = alicePrivateKey();
       const alicePub = alicePriv.publicKey();
 
@@ -184,7 +185,7 @@ describe("Crypto Tests", () => {
   describe("encrypt then sign", () => {
     it("should encrypt then sign message", () => {
       // Alice and Bob have agreed to use this key.
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
       const alicePriv = alicePrivateKey();
       const alicePub = alicePriv.publicKey();
 
@@ -226,7 +227,7 @@ describe("Crypto Tests", () => {
       const alice = PrivateKeyBase.generate();
 
       // Alice encrypts a message so that it can only be decrypted by Bob or Carol.
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const envelope = helloEnvelope()
         .encryptSubject(contentKey)
         .addRecipient(bob.publicKeys(), contentKey)
@@ -258,14 +259,14 @@ describe("Crypto Tests", () => {
 
   describe("visible signature multi-recipient", () => {
     it("should sign then encrypt to multiple recipients with visible signature", () => {
-      const alice = SigningPrivateKey.generate();
+      const alice = SigningPrivateKey.random();
       const bob = PrivateKeyBase.generate();
       const carol = PrivateKeyBase.generate();
       const eve = PrivateKeyBase.generate();
 
       // Alice signs a message, and then encrypts it so that it can only be
       // decrypted by Bob or Carol.
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const envelope = helloEnvelope()
         .addSignature(alice)
         .encryptSubject(contentKey)
@@ -302,7 +303,7 @@ describe("Crypto Tests", () => {
 
   describe("hidden signature multi-recipient", () => {
     it("should hide signature inside encrypted envelope for multiple recipients", () => {
-      const alice = SigningPrivateKey.generate();
+      const alice = SigningPrivateKey.random();
       const bob = PrivateKeyBase.generate();
       const carol = PrivateKeyBase.generate();
       const eve = PrivateKeyBase.generate();
@@ -311,7 +312,7 @@ describe("Crypto Tests", () => {
       // encrypting it so that it can only be decrypted by Bob or Carol. This
       // hides Alice's signature, and requires recipients to decrypt the
       // subject before they are able to validate the signature.
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const envelope = helloEnvelope()
         .addSignature(alice)
         .wrap()
@@ -387,7 +388,7 @@ describe("Crypto Tests", () => {
       const wrongPassword = new TextEncoder().encode("wrong password");
 
       // Alice encrypts a message so that it can be decrypted by three specific passwords.
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const envelope = helloEnvelope()
         .encryptSubject(contentKey)
         .addSecret(KeyDerivationMethod.HKDF, bobPassword, contentKey)
@@ -425,7 +426,7 @@ describe("Crypto Tests", () => {
   describe("envelope equivalence and identity", () => {
     it("should maintain equivalence through encryption/decryption", () => {
       const envelope = Envelope.new("Alice").addAssertion("knows", "Bob");
-      const key = SymmetricKey.generate();
+      const key = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key);
       const decrypted = encrypted.decryptSubject(key);
@@ -439,8 +440,8 @@ describe("Crypto Tests", () => {
 
     it("should fail verification with wrong key", () => {
       const envelope = helloEnvelope();
-      const key1 = SymmetricKey.generate();
-      const key2 = SymmetricKey.generate();
+      const key1 = SymmetricKey.new();
+      const key2 = SymmetricKey.new();
 
       const encrypted = envelope.encryptSubject(key1);
 

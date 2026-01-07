@@ -11,7 +11,10 @@ describe("order preservation tests", () => {
     const pattern = parse("[@item(number)]");
 
     // Run the same pattern multiple times to check for deterministic ordering
-    const allResults: [ReturnType<typeof getPathsWithCaptures>[0], ReturnType<typeof getPathsWithCaptures>[1]][] = [];
+    const allResults: [
+      ReturnType<typeof getPathsWithCaptures>[0],
+      ReturnType<typeof getPathsWithCaptures>[1],
+    ][] = [];
 
     for (let i = 0; i < 10; i++) {
       const [paths, captures] = getPathsWithCaptures(pattern, cborData);
@@ -40,7 +43,10 @@ describe("order preservation tests", () => {
     const pattern = parse("[@num(number)]");
 
     // Run multiple times to check deterministic ordering
-    const allResults: [ReturnType<typeof getPathsWithCaptures>[0], ReturnType<typeof getPathsWithCaptures>[1]][] = [];
+    const allResults: [
+      ReturnType<typeof getPathsWithCaptures>[0],
+      ReturnType<typeof getPathsWithCaptures>[1],
+    ][] = [];
 
     for (let i = 0; i < 10; i++) {
       const [paths, captures] = getPathsWithCaptures(pattern, cborData);

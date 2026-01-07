@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parse, type EnvelopePatternError } from "../src";
+import { parse } from "../src";
 
 describe("Error Tests", () => {
   describe("Unrecognized Token Error", () => {

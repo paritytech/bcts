@@ -60,8 +60,7 @@ function testEncapsulationScheme(scheme: EncapsulationScheme): void {
   // Generate keypair for the given scheme
   const [privateKey, publicKey] = createEncapsulationKeypair(scheme);
 
-  // Create plaintext (unused but shows what would be encrypted)
-  const _plaintext = new TextEncoder().encode("Hello.");
+  // Plaintext would be encrypted with the shared secret in a real scenario
 
   // Encapsulate a shared secret
   const [sharedSecret, ciphertext] = publicKey.encapsulateNewSharedSecret();

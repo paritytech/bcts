@@ -24,9 +24,7 @@ describe("verify canonical format", () => {
 
     if (orWithSpaces.ok && orNoSpaces.ok) {
       // Both should produce the same canonical format
-      expect(patternDisplay(orNoSpaces.value)).toBe(
-        patternDisplay(orWithSpaces.value)
-      );
+      expect(patternDisplay(orNoSpaces.value)).toBe(patternDisplay(orWithSpaces.value));
 
       // Verify canonical format has spaces
       expect(patternDisplay(orWithSpaces.value)).toBe("bool | text | number");
@@ -34,9 +32,7 @@ describe("verify canonical format", () => {
 
     if (andWithSpaces.ok && andNoSpaces.ok) {
       // Both should produce the same canonical format
-      expect(patternDisplay(andNoSpaces.value)).toBe(
-        patternDisplay(andWithSpaces.value)
-      );
+      expect(patternDisplay(andNoSpaces.value)).toBe(patternDisplay(andWithSpaces.value));
 
       // Verify canonical format has spaces
       expect(patternDisplay(andWithSpaces.value)).toBe("bool & text & number");

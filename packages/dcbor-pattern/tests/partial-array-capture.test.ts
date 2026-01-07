@@ -3,12 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  cbor,
-  parse,
-  getPathsWithCaptures,
-  formatPathsWithCapturesStr,
-} from "./common";
+import { cbor, parse, getPathsWithCaptures, formatPathsWithCapturesStr } from "./common";
 
 describe("partial array capture tests", () => {
   it("test_debug_array_pattern_directly", () => {
@@ -24,10 +19,7 @@ describe("partial array capture tests", () => {
       // Note: In TypeScript, we use the higher-level API
       // The direct paths methods would be accessed through the pattern functions
       const [pathsWithCaps, captures] = getPathsWithCaptures(pattern, cborData);
-      console.log(
-        "Direct ArrayPattern::paths_with_captures result:",
-        pathsWithCaps
-      );
+      console.log("Direct ArrayPattern::paths_with_captures result:", pathsWithCaps);
       console.log("Direct ArrayPattern captures:", captures);
     }
 

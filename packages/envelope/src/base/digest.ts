@@ -59,3 +59,18 @@ export function digestFromNumber(num: number): Digest {
   view.setFloat64(0, num, false); // big-endian
   return Digest.fromImage(new Uint8Array(buffer));
 }
+
+// Extend Digest with short() method for compatibility with bc-envelope-rust
+declare module "@bcts/components" {
+  interface Digest {
+    /// Returns a short 7-character hex representation of the digest.
+    /// This matches the Rust bc-envelope behavior.
+    short(): string;
+  }
+}
+
+// Add short() method to Digest prototype
+Digest.prototype.short = function (this: Digest): string {
+  // Return first 7 hex characters (matches Rust behavior)
+  return this.hex().slice(0, 7);
+};

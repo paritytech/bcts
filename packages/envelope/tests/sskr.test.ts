@@ -12,7 +12,7 @@ describe("SSKR Extension", () => {
   describe("sskrSplit()", () => {
     it("should split envelope into shares", () => {
       const envelope = Envelope.new("Secret data");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
 
       // Encrypt first
       const encrypted = envelope.encryptSubject(contentKey);
@@ -32,7 +32,7 @@ describe("SSKR Extension", () => {
 
     it("should create unique shares", () => {
       const envelope = Envelope.new("Secret data");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplit(simpleSpec, contentKey);
@@ -45,7 +45,7 @@ describe("SSKR Extension", () => {
 
     it("should handle multi-group spec", () => {
       const envelope = Envelope.new("Multi-group secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplit(multiGroupSpec, contentKey);
@@ -61,7 +61,7 @@ describe("SSKR Extension", () => {
   describe("sskrSplitFlattened()", () => {
     it("should return flat array of all shares", () => {
       const envelope = Envelope.new("Secret data");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -72,7 +72,7 @@ describe("SSKR Extension", () => {
 
     it("should flatten multi-group shares", () => {
       const envelope = Envelope.new("Secret data");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(multiGroupSpec, contentKey);
@@ -85,7 +85,7 @@ describe("SSKR Extension", () => {
   describe("Envelope.sskrJoin()", () => {
     it("should reconstruct with threshold shares", () => {
       const original = Envelope.new("Secret to recover");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       // Split into shares
@@ -104,7 +104,7 @@ describe("SSKR Extension", () => {
 
     it("should fail with insufficient shares", () => {
       const original = Envelope.new("Secret to recover");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -126,7 +126,7 @@ describe("SSKR Extension", () => {
 
     it("should work with any threshold combination", () => {
       const original = Envelope.new("Testing all combinations");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -148,7 +148,7 @@ describe("SSKR Extension", () => {
 
     it("should work with all 3 shares", () => {
       const original = Envelope.new("Full recovery");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -165,7 +165,7 @@ describe("SSKR Extension", () => {
   describe("Multi-group recovery", () => {
     it("should recover with shares from one group", () => {
       const original = Envelope.new("Multi-group secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplit(multiGroupSpec, contentKey);
@@ -182,7 +182,7 @@ describe("SSKR Extension", () => {
 
     it("should recover with shares from second group", () => {
       const original = Envelope.new("Multi-group secret");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplit(multiGroupSpec, contentKey);
@@ -202,7 +202,7 @@ describe("SSKR Extension", () => {
     it("should handle envelope with assertions", () => {
       const original = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -218,7 +218,7 @@ describe("SSKR Extension", () => {
       const binaryData = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
       const original = Envelope.new(binaryData);
 
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const shares = encrypted.sskrSplitFlattened(simpleSpec, contentKey);
@@ -243,7 +243,7 @@ describe("SSKR Extension", () => {
 
     it("should produce deterministic shares with same RNG seed", () => {
       const envelope = Envelope.new("Deterministic test");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       // Use same seed for both RNGs
@@ -267,7 +267,7 @@ describe("SSKR Extension", () => {
 
     it("should produce different shares with different RNG seeds", () => {
       const envelope = Envelope.new("Different seeds test");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = envelope.encryptSubject(contentKey);
 
       const seed1 = makeSeed(100);
@@ -287,7 +287,7 @@ describe("SSKR Extension", () => {
 
     it("should still allow recovery from deterministic shares", () => {
       const original = Envelope.new("Recoverable deterministic");
-      const contentKey = SymmetricKey.generate();
+      const contentKey = SymmetricKey.new();
       const encrypted = original.encryptSubject(contentKey);
 
       const seed = makeSeed(99);

@@ -71,7 +71,9 @@ export function defaultArgs(): CommandArgs {
 /**
  * Generate a signing keypair for the given scheme.
  */
-function generateSigningKeypair(scheme: SigningScheme): [SigningPrivateKey, SigningPrivateKey["publicKey"] extends () => infer R ? R : never] {
+function generateSigningKeypair(
+  scheme: SigningScheme,
+): [SigningPrivateKey, SigningPrivateKey["publicKey"] extends () => infer R ? R : never] {
   switch (scheme) {
     case SigningScheme.Ed25519:
     case SigningScheme.SshEd25519: {
@@ -116,7 +118,9 @@ function generateEncapsulationKeypair(
     case EncryptionScheme.Mlkem512:
     case EncryptionScheme.Mlkem768:
     case EncryptionScheme.Mlkem1024:
-      throw new Error(`Encryption scheme '${scheme}' is not yet implemented for keypair generation.`);
+      throw new Error(
+        `Encryption scheme '${scheme}' is not yet implemented for keypair generation.`,
+      );
   }
 }
 

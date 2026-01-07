@@ -54,6 +54,7 @@ import { SigningPublicKey } from "./signing-public-key.js";
 import type { Signer, Verifier } from "./signer.js";
 import { Reference, type ReferenceProvider } from "../reference.js";
 import { Digest } from "../digest.js";
+import { UR } from "@bcts/uniform-resources";
 
 /**
  * A private key used for creating digital signatures.
@@ -721,8 +722,7 @@ export class SigningPrivateKey
   /**
    * Returns the UR representation of the signing private key.
    */
-  ur(): import("@bcts/uniform-resources").UR {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+  ur(): UR {
     return UR.new(SigningPrivateKey.UR_TYPE, this.taggedCbor());
   }
 
@@ -736,7 +736,7 @@ export class SigningPrivateKey
   /**
    * Creates a SigningPrivateKey from a UR.
    */
-  static fromUR(ur: import("@bcts/uniform-resources").UR): SigningPrivateKey {
+  static fromUR(ur: UR): SigningPrivateKey {
     ur.checkType(SigningPrivateKey.UR_TYPE);
     return SigningPrivateKey.fromTaggedCbor(ur.cbor());
   }
@@ -745,7 +745,6 @@ export class SigningPrivateKey
    * Creates a SigningPrivateKey from a UR string.
    */
   static fromURString(urString: string): SigningPrivateKey {
-    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
     const ur = UR.fromURString(urString);
     return SigningPrivateKey.fromUR(ur);
   }
@@ -769,14 +768,15 @@ export class SigningPrivateKey
     if (this._type !== SignatureScheme.Ed25519) {
       throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
     }
-    if (!this._ed25519Key) {
+    if (this._ed25519Key === undefined) {
       throw new Error("Ed25519 key not initialized");
     }
 
     // OpenSSH private key format for Ed25519
+
     const publicKey = this._ed25519Key.publicKey();
-    const privateKeyBytes = this._ed25519Key.data();
-    const publicKeyBytes = publicKey.data();
+    const privateKeyBytes = this._ed25519Key.toData();
+    const publicKeyBytes = publicKey.toData();
 
     // For OpenSSH Ed25519, the "private key" is actually the 64-byte concatenation of:
     // - 32-byte seed (the actual private key)
@@ -796,7 +796,7 @@ export class SigningPrivateKey
 
     // This is a simplified implementation - in practice you'd need bcrypt_pbkdf
     // and proper key wrapping. For now, return a placeholder format.
-    const actualComment = comment || "";
+    const actualComment = comment ?? "";
     return `-----BEGIN OPENSSH PRIVATE KEY-----
 Placeholder for ${algorithm} private key export (${actualComment})
 This requires bcrypt_pbkdf implementation for proper encryption.

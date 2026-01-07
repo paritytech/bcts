@@ -48,7 +48,7 @@ describe("SSH Signature Tests", () => {
      */
     it("should sign and verify plaintext message", () => {
       // Generate signing keys (equivalent to Rust's alice_ssh_private_key)
-      const aliceSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
       const alicePublicKey = aliceSigningKey.publicKey();
 
       // Alice sends a signed plaintext message to Bob
@@ -79,8 +79,8 @@ describe("SSH Signature Tests", () => {
 
     it("should reject signature from wrong key", () => {
       // Get Alice's and Carol's signing keys
-      const aliceSigningKey = SigningPrivateKey.generate();
-      const carolSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
+      const carolSigningKey = SigningPrivateKey.random();
       const carolPublicKey = carolSigningKey.publicKey();
 
       // Alice signs a message
@@ -96,10 +96,10 @@ describe("SSH Signature Tests", () => {
 
     it("should verify threshold signatures (Alice OR Carol)", () => {
       // Get Alice's and Carol's keys
-      const aliceSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
       const alicePublicKey = aliceSigningKey.publicKey();
 
-      const carolSigningKey = SigningPrivateKey.generate();
+      const carolSigningKey = SigningPrivateKey.random();
       const carolPublicKey = carolSigningKey.publicKey();
 
       // Alice signs a message
@@ -117,10 +117,10 @@ describe("SSH Signature Tests", () => {
 
     it("should fail threshold verification requiring both signatures", () => {
       // Get Alice's and Carol's keys
-      const aliceSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
       const alicePublicKey = aliceSigningKey.publicKey();
 
-      const carolSigningKey = SigningPrivateKey.generate();
+      const carolSigningKey = SigningPrivateKey.random();
       const carolPublicKey = carolSigningKey.publicKey();
 
       // Alice signs a message (not Carol)
@@ -140,10 +140,10 @@ describe("SSH Signature Tests", () => {
   describe("Multiple Signatures", () => {
     it("should verify when both Alice AND Carol sign", () => {
       // Get Alice's and Carol's keys
-      const aliceSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
       const alicePublicKey = aliceSigningKey.publicKey();
 
-      const carolSigningKey = SigningPrivateKey.generate();
+      const carolSigningKey = SigningPrivateKey.random();
       const carolPublicKey = carolSigningKey.publicKey();
 
       // Both Alice and Carol sign
@@ -166,9 +166,9 @@ describe("SSH Signature Tests", () => {
     });
 
     it("should support addSignatures with array of signers", () => {
-      const alice = SigningPrivateKey.generate();
-      const bob = SigningPrivateKey.generate();
-      const carol = SigningPrivateKey.generate();
+      const alice = SigningPrivateKey.random();
+      const bob = SigningPrivateKey.random();
+      const carol = SigningPrivateKey.random();
 
       // Use addSignatures with array (matching Rust multi-signer pattern)
       const envelope = helloEnvelope().addSignatures([alice, bob, carol]);
@@ -183,7 +183,7 @@ describe("SSH Signature Tests", () => {
   describe("CBOR Round-trip", () => {
     it("should preserve signature through CBOR encoding/decoding", () => {
       // Get Alice's signing key
-      const aliceSigningKey = SigningPrivateKey.generate();
+      const aliceSigningKey = SigningPrivateKey.random();
       const alicePublicKey = aliceSigningKey.publicKey();
 
       // Alice signs a message

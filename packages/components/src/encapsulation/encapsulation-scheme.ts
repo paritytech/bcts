@@ -62,8 +62,10 @@ export function createEncapsulationKeypair(
   switch (scheme) {
     case EncapsulationScheme.X25519:
       return EncapsulationPrivateKey.keypair();
-    default:
-      throw new Error(`Unsupported encapsulation scheme: ${String(scheme)}`);
+    case EncapsulationScheme.MLKEM512:
+    case EncapsulationScheme.MLKEM768:
+    case EncapsulationScheme.MLKEM1024:
+      throw new Error(`MLKEM encapsulation scheme not yet implemented: ${String(scheme)}`);
   }
 }
 
@@ -83,7 +85,9 @@ export function createEncapsulationKeypairUsing(
   switch (scheme) {
     case EncapsulationScheme.X25519:
       return EncapsulationPrivateKey.keypairUsing(rng);
-    default:
+    case EncapsulationScheme.MLKEM512:
+    case EncapsulationScheme.MLKEM768:
+    case EncapsulationScheme.MLKEM1024:
       throw new Error(
         `Deterministic keypair generation not supported for scheme: ${String(scheme)}`,
       );

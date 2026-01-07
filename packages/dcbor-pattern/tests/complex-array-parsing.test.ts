@@ -28,7 +28,10 @@ describe("complex array parsing", () => {
       for (const [value, description, expectedMatch] of testCases) {
         const cborValue = cbor(value);
         const result = matches(pattern, cborValue);
-        expect(result, `Pattern matching for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`).toBe(expectedMatch);
+        expect(
+          result,
+          `Pattern matching for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`,
+        ).toBe(expectedMatch);
       }
     });
   });
@@ -50,7 +53,10 @@ describe("complex array parsing", () => {
         const pattern = parse(patternText);
         const cborValue = cbor(value);
         const result = matches(pattern, cborValue);
-        expect(result, `Pattern '${patternText}' for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`).toBe(expectedMatch);
+        expect(
+          result,
+          `Pattern '${patternText}' for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`,
+        ).toBe(expectedMatch);
       }
     });
   });
@@ -72,7 +78,10 @@ describe("complex array parsing", () => {
       for (const [value, description, expectedMatch] of testCases) {
         const cborValue = cbor(value);
         const result = matches(pattern, cborValue);
-        expect(result, `Nested pattern for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`).toBe(expectedMatch);
+        expect(
+          result,
+          `Nested pattern for ${JSON.stringify(value)} (${description}) should be ${expectedMatch}`,
+        ).toBe(expectedMatch);
       }
     });
   });
@@ -96,7 +105,10 @@ describe("complex array parsing", () => {
         const pattern = parse(patternText);
         const cborValue = cbor(value);
         const result = matches(pattern, cborValue);
-        expect(result, `Simple pattern '${patternText}' for ${JSON.stringify(value)} should be ${expectedMatch}`).toBe(expectedMatch);
+        expect(
+          result,
+          `Simple pattern '${patternText}' for ${JSON.stringify(value)} should be ${expectedMatch}`,
+        ).toBe(expectedMatch);
       }
     });
   });

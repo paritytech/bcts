@@ -10,21 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { Envelope } from "@bcts/envelope";
 import { parseDcborItemPartial } from "@bcts/dcbor-parse";
-import {
-  anyBool,
-  bool,
-  anyNumber,
-  number,
-  numberGreaterThan,
-  numberRange,
-  anyText,
-  text,
-  textRegex,
-  and,
-  or,
-  type Pattern,
-  patternMatches,
-} from "../src";
+import { type Pattern as _Pattern, patternMatches } from "../src";
 import { convertDcborPatternToEnvelopePattern } from "../src/pattern/dcbor-integration";
 import {
   anyBool as dcborAnyBool,
@@ -49,8 +35,9 @@ function envelopeFromCbor(diagnostic: string): Envelope {
   if (!result.ok) {
     throw new Error(`Failed to parse CBOR: ${diagnostic}`);
   }
-  const [cbor] = result.value;
-  return Envelope.new(cbor);
+  const [cborValue] = result.value;
+  // Note: Envelope.new expects EnvelopeEncodableValue, cast needed for Cbor
+  return Envelope.new(cborValue as unknown as number);
 }
 
 describe("dCBOR Pattern Integration", () => {

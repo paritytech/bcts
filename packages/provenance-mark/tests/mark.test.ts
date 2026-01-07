@@ -815,7 +815,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(EXPECTED_ID_WORDS_MEDIUM_WITH_INFO);
+      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(
+        EXPECTED_ID_WORDS_MEDIUM_WITH_INFO,
+      );
     });
 
     it("should match Rust expected bytemoji identifiers", () => {
@@ -830,7 +832,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(EXPECTED_BYTEMOJI_IDS_MEDIUM_WITH_INFO);
+      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(
+        EXPECTED_BYTEMOJI_IDS_MEDIUM_WITH_INFO,
+      );
     });
 
     it("should match Rust expected UR strings", () => {
@@ -923,7 +927,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(EXPECTED_ID_WORDS_QUARTILE_WITH_INFO);
+      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(
+        EXPECTED_ID_WORDS_QUARTILE_WITH_INFO,
+      );
     });
 
     it("should match Rust expected bytemoji identifiers", () => {
@@ -938,7 +944,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(EXPECTED_BYTEMOJI_IDS_QUARTILE_WITH_INFO);
+      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(
+        EXPECTED_BYTEMOJI_IDS_QUARTILE_WITH_INFO,
+      );
     });
 
     it("should match Rust expected UR strings", () => {
@@ -969,7 +977,9 @@ describe("ProvenanceMark", () => {
       }
 
       const baseUrl = "https://example.com/validate";
-      expect(marks.map((m) => m.toUrl(baseUrl).toString())).toEqual(EXPECTED_URLS_QUARTILE_WITH_INFO);
+      expect(marks.map((m) => m.toUrl(baseUrl).toString())).toEqual(
+        EXPECTED_URLS_QUARTILE_WITH_INFO,
+      );
     });
   });
 
@@ -1031,7 +1041,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(EXPECTED_ID_WORDS_HIGH_WITH_INFO);
+      expect(marks.map((m) => m.bytewordsIdentifier(false))).toEqual(
+        EXPECTED_ID_WORDS_HIGH_WITH_INFO,
+      );
     });
 
     it("should match Rust expected bytemoji identifiers", () => {
@@ -1046,7 +1058,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(EXPECTED_BYTEMOJI_IDS_HIGH_WITH_INFO);
+      expect(marks.map((m) => m.bytemojiIdentifier(false))).toEqual(
+        EXPECTED_BYTEMOJI_IDS_HIGH_WITH_INFO,
+      );
     });
 
     it("should match Rust expected UR strings", () => {
