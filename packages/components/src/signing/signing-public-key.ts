@@ -621,7 +621,7 @@ export class SigningPublicKey
     // Tagged format for MLDSA
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
-      if (tagged !== undefined && tagged[0].value === TAG_MLDSA_PUBLIC_KEY.value) {
+      if (tagged?.[0].value === TAG_MLDSA_PUBLIC_KEY.value) {
         const mldsaKey = MLDSAPublicKey.fromTaggedCbor(cborValue);
         return SigningPublicKey.fromMldsa(mldsaKey);
       }

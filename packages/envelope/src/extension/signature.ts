@@ -34,7 +34,7 @@ export {
   type Signer,
   type Verifier,
 } from "@bcts/components";
-import type { Signature, Signer, Verifier } from "@bcts/components";
+import { Signature, type Signer, type Verifier } from "@bcts/components";
 
 /**
  * Known value for the 'signed' predicate.
@@ -89,6 +89,79 @@ export class SignatureMetadata {
    */
   assertions(): readonly [string, unknown][] {
     return this.#assertions;
+  }
+}
+
+// ============================================================================
+// Type Declarations for Envelope Signature Extension
+// ============================================================================
+
+declare module "../base/envelope" {
+  interface Envelope {
+    /**
+     * Add a signature assertion with optional metadata.
+     */
+    addSignatureWithMetadata(signer: Signer, metadata?: SignatureMetadata): Envelope;
+
+    /**
+     * Add a signature assertion without metadata.
+     */
+    addSignature(signer: Signer): Envelope;
+
+    /**
+     * Add a signature with optional signer options and metadata.
+     */
+    addSignatureOpt(signer: Signer, options?: unknown, metadata?: SignatureMetadata): Envelope;
+
+    /**
+     * Add multiple signatures from an array of signers.
+     */
+    addSignatures(signers: Signer[]): Envelope;
+
+    /**
+     * Check if this envelope has a valid signature from the given verifier.
+     */
+    hasSignatureFrom(verifier: Verifier): boolean;
+
+    /**
+     * Check if this envelope has valid signatures from all given verifiers.
+     */
+    hasSignaturesFrom(verifiers: Verifier[]): boolean;
+
+    /**
+     * Check if this envelope has at least threshold valid signatures from the given verifiers.
+     */
+    hasSignaturesFromThreshold(verifiers: Verifier[], threshold: number): boolean;
+
+    /**
+     * Wrap and sign this envelope (without metadata).
+     */
+    sign(signer: Signer): Envelope;
+
+    /**
+     * Wrap and sign this envelope with optional metadata.
+     */
+    signWithMetadata(signer: Signer, metadata?: SignatureMetadata): Envelope;
+
+    /**
+     * Verify the signature and unwrap the envelope.
+     */
+    verify(verifier: Verifier): Envelope;
+
+    /**
+     * Verify the signature and return the unwrapped envelope with metadata.
+     */
+    verifyReturningMetadata(verifier: Verifier): { envelope: Envelope; metadata?: SignatureMetadata };
+
+    /**
+     * Get all signature assertions from this envelope.
+     */
+    signatures(): Envelope[];
+
+    /**
+     * Verify the signature from a verifier and return this envelope if valid.
+     */
+    verifySignatureFrom(verifier: Verifier): Envelope;
   }
 }
 
@@ -169,7 +242,10 @@ Envelope.prototype.hasSignatureFrom = function (this: Envelope, verifier: Verifi
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signature = signatureEnvelope.tryLeaf() as unknown as Signature;
+      const signatureCbor = signatureEnvelope.tryLeaf();
+
+      // Decode the signature from tagged CBOR
+      const signature = Signature.fromTaggedCbor(signatureCbor);
 
       // Get the digest that was signed
       const digest = this.subject().digest();
@@ -210,7 +286,12 @@ Envelope.prototype.hasSignaturesFromThreshold = function (
   return false;
 };
 
-/// Implementation of sign() - wrap and sign
+/// Implementation of sign() - wrap and sign without metadata
+Envelope.prototype.sign = function (this: Envelope, signer: Signer): Envelope {
+  return this.wrap().addSignature(signer);
+};
+
+/// Implementation of signWithMetadata() - wrap and sign with metadata
 Envelope.prototype.signWithMetadata = function (
   this: Envelope,
   signer: Signer,
@@ -237,7 +318,8 @@ Envelope.prototype.verifyReturningMetadata = function (
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signature = signatureEnvelope.tryLeaf() as unknown as Signature;
+      const signatureCbor = signatureEnvelope.tryLeaf();
+      const signature = Signature.fromTaggedCbor(signatureCbor);
       const digest = this.subject().digest();
 
       if (verifier.verify(signature, digest.data())) {
@@ -272,4 +354,18 @@ Envelope.prototype.verifyReturningMetadata = function (
   }
 
   throw EnvelopeError.general("Signature verification failed");
+};
+
+/// Implementation of signatures() - get all signature assertions
+Envelope.prototype.signatures = function (this: Envelope): Envelope[] {
+  const signedAssertions = this.assertionsWithPredicate(SIGNED);
+  return signedAssertions.map((assertion) => assertion.tryObject());
+};
+
+/// Implementation of verifySignatureFrom() - verify and return this envelope
+Envelope.prototype.verifySignatureFrom = function (this: Envelope, verifier: Verifier): Envelope {
+  if (!this.hasSignatureFrom(verifier)) {
+    throw EnvelopeError.general("Signature verification failed");
+  }
+  return this;
 };

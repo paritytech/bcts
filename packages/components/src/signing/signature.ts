@@ -468,7 +468,7 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     // Tagged format for MLDSA
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
-      if (tagged !== undefined && tagged[0].value === TAG_MLDSA_SIGNATURE.value) {
+      if (tagged?.[0].value === TAG_MLDSA_SIGNATURE.value) {
         const mldsaSig = MLDSASignature.fromTaggedCbor(cborValue);
         return Signature.mldsaFromSignature(mldsaSig);
       }

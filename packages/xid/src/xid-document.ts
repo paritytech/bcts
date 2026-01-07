@@ -39,54 +39,6 @@ import { Delegate, registerXIDDocumentClass } from "./delegate";
 import { Service } from "./service";
 import { Provenance, XIDGeneratorOptions, type XIDGeneratorOptionsValue } from "./provenance";
 import { XIDError } from "./error";
-import { Signature as ComponentsSignature } from "@bcts/components";
-
-/**
- * Envelope's Signer interface (for type compatibility).
- * Envelope expects: sign(data) returns Signature with data() method.
- */
-interface EnvelopeSigner {
-  sign(data: Uint8Array): { data(): Uint8Array };
-}
-
-/**
- * Envelope's Verifier interface (for type compatibility).
- * Envelope expects: verify(data, signature) - data first, then signature.
- */
-interface EnvelopeVerifier {
-  verify(data: Uint8Array, signature: { data(): Uint8Array }): boolean;
-}
-
-/**
- * Adapts a components Signer to envelope's Signer interface.
- * Both interfaces use the same method signature, but Signature types differ.
- * Since both have data() method, they're structurally compatible.
- */
-function adaptSignerForEnvelope(componentsSigner: Signer): EnvelopeSigner {
-  return {
-    sign(data: Uint8Array): { data(): Uint8Array } {
-      const sig = componentsSigner.sign(data);
-      return { data: () => sig.data() };
-    },
-  };
-}
-
-/**
- * Adapts a components Verifier to envelope's Verifier interface.
- * Components: verify(signature, message) - signature first
- * Envelope: verify(data, signature) - data first
- */
-function adaptVerifierForEnvelope(componentsVerifier: Verifier): EnvelopeVerifier {
-  return {
-    verify(data: Uint8Array, signature: { data(): Uint8Array }): boolean {
-      // Create a components Signature from the raw bytes
-      // Components uses Ed25519 for signing, so we create an Ed25519 signature
-      const componentsSig = ComponentsSignature.ed25519FromData(signature.data());
-      return componentsVerifier.verify(componentsSig, data);
-    },
-  };
-}
-
 // Raw values for predicate matching
 const KEY_RAW = KEY.value();
 const DELEGATE_RAW = DELEGATE.value();
@@ -683,7 +635,7 @@ export class XIDDocument implements EnvelopeEncodable {
     }
 
     // Apply signing (uses sign() which wraps the envelope first)
-    // Uses adapters to bridge components' Signer interface with envelope's Signer interface
+    // PrivateKeys implements Signer from @bcts/components, which is compatible with envelope's sign()
     switch (signingOptions.type) {
       case "inception": {
         const inceptionKey = this.inceptionKey();
@@ -694,25 +646,18 @@ export class XIDDocument implements EnvelopeEncodable {
         if (privateKeys === undefined) {
           throw XIDError.missingInceptionKey();
         }
-        const adaptedSigner = adaptSignerForEnvelope(privateKeys);
-        envelope = (envelope as unknown as { sign(s: EnvelopeSigner): Envelope }).sign(
-          adaptedSigner,
-        );
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
         break;
       }
       case "privateKeyBase": {
         // Derive PrivateKeys from PrivateKeyBase and use for signing
         const privateKeys = signingOptions.privateKeyBase.ed25519PrivateKeys();
-        const adaptedSigner = adaptSignerForEnvelope(privateKeys);
-        envelope = (envelope as unknown as { sign(s: EnvelopeSigner): Envelope }).sign(
-          adaptedSigner,
-        );
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
         break;
       }
       case "privateKeys": {
-        const adaptedSigner = adaptSignerForEnvelope(signingOptions.privateKeys);
-        envelope = (envelope as unknown as { sign(s: EnvelopeSigner): Envelope }).sign(
-          adaptedSigner,
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(
+          signingOptions.privateKeys,
         );
         break;
       }
@@ -761,9 +706,8 @@ export class XIDDocument implements EnvelopeEncodable {
           throw XIDError.missingInceptionKey();
         }
 
-        // Verify signature using the PublicKeys (adapted to envelope's Verifier interface)
-        const adaptedVerifier = adaptVerifierForEnvelope(inceptionKey.publicKeys());
-        if (!envelopeExt.hasSignatureFrom(adaptedVerifier)) {
+        // Verify signature using the PublicKeys (implements Verifier from @bcts/components)
+        if (!envelopeExt.hasSignatureFrom(inceptionKey.publicKeys())) {
           throw XIDError.signatureVerificationFailed();
         }
 
@@ -860,8 +804,7 @@ export class XIDDocument implements EnvelopeEncodable {
     const envelope = this.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
       type: "none",
     });
-    const adaptedSigner = adaptSignerForEnvelope(signingKey);
-    return (envelope as unknown as { sign(s: EnvelopeSigner): Envelope }).sign(adaptedSigner);
+    return (envelope as unknown as { sign(s: Signer): Envelope }).sign(signingKey);
   }
 
   /**

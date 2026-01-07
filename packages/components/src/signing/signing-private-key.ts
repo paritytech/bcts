@@ -656,7 +656,7 @@ export class SigningPrivateKey
     // Tagged format for MLDSA
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
-      if (tagged !== undefined && tagged[0].value === TAG_MLDSA_PRIVATE_KEY.value) {
+      if (tagged?.[0].value === TAG_MLDSA_PRIVATE_KEY.value) {
         const mldsaKey = MLDSAPrivateKey.fromTaggedCbor(cborValue);
         return SigningPrivateKey.newMldsa(mldsaKey);
       }
