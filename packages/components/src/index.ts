@@ -148,6 +148,8 @@ export {
   keyDerivationParamsToString,
   keyDerivationParamsFromCbor,
   EncryptedKey,
+  SSHAgentParams,
+  sshAgentParams,
 } from "./encrypted-key/index.js";
 export type { KeyDerivation, KeyDerivationParams } from "./encrypted-key/index.js";
 
@@ -174,6 +176,7 @@ export {
   SSKRGroupSpec,
   SSKRSpec,
 } from "./sskr.js";
+export type { SimpleRng } from "./sskr.js";
 
 // Post-quantum cryptography - ML-DSA (from mldsa/ module)
 export {

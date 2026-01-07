@@ -97,4 +97,5 @@ export {
   provenanceMarkFromEnvelope,
   provenanceMarkGeneratorToEnvelope,
   provenanceMarkGeneratorFromEnvelope,
+  type TagsContext,
 } from "./envelope.js";

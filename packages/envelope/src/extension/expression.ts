@@ -583,7 +583,7 @@ export const RHS_VALUE = PARAMETER_IDS.RHS;
 //------------------------------------------------------------------------------
 
 /// Lazy initialization helper for global stores
-class LazyStore<T> {
+export class LazyStore<T> {
   #store: T | undefined;
   readonly #initializer: () => T;
 

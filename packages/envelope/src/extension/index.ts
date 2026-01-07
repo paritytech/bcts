@@ -112,6 +112,8 @@ export {
   // Types
   type FunctionID,
   type ParameterID,
+  // Lazy initialization helper
+  LazyStore,
 } from "./expression";
 
 // Secret support (password-based locking)

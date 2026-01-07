@@ -48,7 +48,7 @@ export function registerTagsIn(context: TagsContext): void {
 }
 
 // Simple tags context interface for registration
-interface TagsContext {
+export interface TagsContext {
   setSummarizer(tag: number, summarizer: (cbor: Cbor) => string): void;
 }
 
