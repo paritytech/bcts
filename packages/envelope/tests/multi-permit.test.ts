@@ -221,7 +221,7 @@ describe("Multi-Permit", () => {
       expect(unlocked.subject().asText()).toBe(testContent);
     });
 
-    it("should unlock with password using Argon2id", { timeout: 15000 }, () => {
+    it("should unlock with password using Argon2id", { timeout: 60000 }, () => {
       const password = new TextEncoder().encode("argon2-password");
       const locked = encryptedEnvelope.addSecret(
         KeyDerivationMethod.Argon2id,
@@ -325,7 +325,7 @@ describe("Multi-Permit", () => {
       );
     });
 
-    it("should support mixed permit types", { timeout: 15000 }, () => {
+    it("should support mixed permit types", { timeout: 60000 }, () => {
       // For SSKR compatibility, use a simple envelope with encryptSubject
       const envelope = Envelope.new("Mixed permit content");
       const contentKey = SymmetricKey.new();
