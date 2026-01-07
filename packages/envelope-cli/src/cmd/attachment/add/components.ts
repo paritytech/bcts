@@ -26,7 +26,7 @@ export interface CommandArgs {
  * Add components command implementation.
  */
 export class AddComponentsCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

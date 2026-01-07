@@ -193,7 +193,13 @@ describe("XID Document Test Vectors", () => {
       const xidDocument2 = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.None);
 
       // Provenance mark should match
-      expect(xidDocument.provenance()?.equals(xidDocument2.provenance()!)).toBe(true);
+      const prov1 = xidDocument.provenance();
+      const prov2 = xidDocument2.provenance();
+      expect(prov1).toBeDefined();
+      expect(prov2).toBeDefined();
+      if (prov1 && prov2) {
+        expect(prov1.equals(prov2)).toBe(true);
+      }
     });
   });
 
@@ -295,7 +301,8 @@ describe("XID Document Test Vectors", () => {
         { type: "publicKeys", publicKeys: aliceBase.ed25519PublicKeys() },
         { type: "none" },
       );
-      const aliceKey = aliceDoc.inceptionKey()!;
+      const aliceKey = aliceDoc.inceptionKey();
+      if (aliceKey === undefined) throw new Error("Expected inception key");
 
       // Create Bob's document
       const bobDoc = XIDDocument.new(

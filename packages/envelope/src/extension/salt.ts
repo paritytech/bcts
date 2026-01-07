@@ -38,50 +38,6 @@ import {
 // Envelope Prototype Extensions for Salted Assertions
 // ============================================================================
 
-declare module "../base/envelope" {
-  interface Envelope {
-    /// Add an assertion with optional salting.
-    ///
-    /// If `salted` is true, the assertion envelope will have salt added to it
-    /// before being added to this envelope. This decorrelates the assertion
-    /// from other identical assertions.
-    ///
-    /// @param predicate - The predicate of the assertion
-    /// @param object - The object of the assertion
-    /// @param salted - Whether to add salt to the assertion
-    /// @returns A new envelope with the (optionally salted) assertion added
-    addAssertionSalted(
-      predicate: EnvelopeEncodableValue,
-      object: EnvelopeEncodableValue,
-      salted: boolean,
-    ): Envelope;
-
-    /// Add an assertion envelope with optional salting.
-    ///
-    /// If `salted` is true, the assertion envelope will have salt added to it
-    /// before being added to this envelope.
-    ///
-    /// @param assertionEnvelope - The assertion envelope to add
-    /// @param salted - Whether to add salt to the assertion
-    /// @returns A new envelope with the (optionally salted) assertion added
-    addAssertionEnvelopeSalted(assertionEnvelope: Envelope, salted: boolean): Envelope;
-
-    /// Add an optional assertion envelope with optional salting.
-    ///
-    /// If the assertion envelope is undefined, returns the original envelope.
-    /// If `salted` is true, the assertion envelope will have salt added to it
-    /// before being added to this envelope.
-    ///
-    /// @param assertionEnvelope - The assertion envelope to add (or undefined)
-    /// @param salted - Whether to add salt to the assertion
-    /// @returns A new envelope with the (optionally salted) assertion added, or the original
-    addOptionalAssertionEnvelopeSalted(
-      assertionEnvelope: Envelope | undefined,
-      salted: boolean,
-    ): Envelope;
-  }
-}
-
 /// The standard predicate for salt assertions
 export const SALT = "salt";
 

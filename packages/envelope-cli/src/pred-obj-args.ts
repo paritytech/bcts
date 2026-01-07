@@ -5,7 +5,7 @@
  */
 
 import { Envelope } from "@bcts/envelope";
-import { DataType, parseDataTypeToEnvelope } from "./data-types.js";
+import { type DataType, parseDataTypeToEnvelope } from "./data-types.js";
 
 /**
  * Interface for arguments that include a predicate and object.

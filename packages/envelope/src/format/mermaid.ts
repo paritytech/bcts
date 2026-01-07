@@ -75,16 +75,6 @@ interface MermaidElement {
 // Envelope Prototype Extensions
 // ============================================================================
 
-declare module "../base/envelope" {
-  interface Envelope {
-    /// Format this envelope as a Mermaid flowchart diagram with default options.
-    mermaidFormat(): string;
-
-    /// Format this envelope as a Mermaid flowchart diagram with custom options.
-    mermaidFormatOpt(opts: MermaidFormatOpts): string;
-  }
-}
-
 /// Implementation of mermaidFormat
 Envelope.prototype.mermaidFormat = function (this: Envelope): string {
   return this.mermaidFormatOpt(defaultMermaidOpts());

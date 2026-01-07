@@ -28,7 +28,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Create command implementation.
  */
 export class CreateCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     let result = assertionEnvelope(this.args);

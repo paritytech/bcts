@@ -82,7 +82,7 @@ export function defaultArgs(): CommandArgs {
  * Encrypt command implementation.
  */
 export class EncryptCommand implements ExecAsync {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   async exec(): Promise<string> {
     const envelope = readEnvelope(this.args.envelope);

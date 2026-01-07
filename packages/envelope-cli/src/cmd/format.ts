@@ -97,7 +97,7 @@ export function defaultArgs(): CommandArgs {
  * Format command implementation.
  */
 export class FormatCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

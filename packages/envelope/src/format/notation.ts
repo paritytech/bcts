@@ -459,17 +459,6 @@ const compareFormatItems = (a: EnvelopeFormatItem, b: EnvelopeFormatItem): numbe
 // Envelope Prototype Extensions
 // ============================================================================
 
-declare module "../base/envelope" {
-  interface Envelope {
-    /// Returns the envelope notation for this envelope with options.
-    formatOpt(opts: EnvelopeFormatOpts): string;
-    /// Returns the envelope notation for this envelope.
-    format(): string;
-    /// Returns the envelope notation for this envelope in flat format.
-    formatFlat(): string;
-  }
-}
-
 /// Implementation of formatOpt
 Envelope.prototype.formatOpt = function (this: Envelope, opts: EnvelopeFormatOpts): string {
   const item = formatEnvelope(this, opts);

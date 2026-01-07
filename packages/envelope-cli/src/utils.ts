@@ -59,7 +59,7 @@ export async function readPassword(
           console.error(`askpass exited with ${result.status}`);
         }
       } catch (e) {
-        console.error(`askpass failed: ${e}`);
+        console.error(`askpass failed: ${String(e)}`);
       }
     }
   }
@@ -85,7 +85,7 @@ export async function readPassword(
  */
 function resolveAskpass(): string | undefined {
   // Explicit environment overrides take precedence.
-  const envAskpass = process.env["SSH_ASKPASS"] || process.env["ASKPASS"];
+  const envAskpass = process.env["SSH_ASKPASS"] ?? process.env["ASKPASS"];
   if (envAskpass) {
     return envAskpass;
   }
@@ -144,7 +144,7 @@ async function promptPassword(prompt: string): Promise<string> {
     }
 
     let password = "";
-    const onData = (char: Buffer) => {
+    const onData = (char: Buffer): void => {
       const c = char.toString("utf8");
       if (c === "\n" || c === "\r" || c === "\u0004") {
         // Enter or Ctrl+D

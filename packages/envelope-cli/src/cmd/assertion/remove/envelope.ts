@@ -23,7 +23,7 @@ export interface CommandArgs {
  * Remove envelope command implementation.
  */
 export class RemoveEnvelopeCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

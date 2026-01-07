@@ -75,7 +75,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * New command implementation.
  */
 export class NewCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     if (!this.args.keys) {
@@ -83,7 +83,6 @@ export class NewCommand implements Exec {
     }
 
     // Try parsing as different key types
-    let xidDocument: XIDDocument;
     let keyOptions: XIDInceptionKeyOptions | undefined;
 
     // Try parsing as PrivateKeyBase
@@ -121,7 +120,7 @@ export class NewCommand implements Exec {
       throw new Error("Invalid inception key format");
     }
 
-    xidDocument = XIDDocument.new(keyOptions);
+    const xidDocument = XIDDocument.new(keyOptions);
 
     // Update key with nickname if provided
     if (this.args.nickname) {

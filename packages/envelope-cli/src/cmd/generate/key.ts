@@ -10,12 +10,13 @@ import type { Exec } from "../../exec.js";
 /**
  * Command arguments for the key command.
  */
-export interface CommandArgs {}
+export type CommandArgs = Record<string, never>;
 
 /**
  * Key command implementation.
  */
 export class KeyCommand implements Exec {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor(_args: CommandArgs) {}
 
   exec(): string {

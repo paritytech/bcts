@@ -30,7 +30,7 @@ export function defaultArgs(): CommandArgs {
  * Decompress command implementation.
  */
 export class DecompressCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

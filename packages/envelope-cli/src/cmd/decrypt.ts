@@ -70,8 +70,9 @@ export function defaultArgs(): CommandArgs {
  * Decrypt command implementation.
  */
 export class DecryptCommand implements ExecAsync {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async exec(): Promise<string> {
     const envelope = readEnvelope(this.args.envelope);
 

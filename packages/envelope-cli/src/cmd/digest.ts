@@ -46,7 +46,7 @@ export function defaultArgs(): CommandArgs {
  * Digest command implementation.
  */
 export class DigestCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

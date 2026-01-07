@@ -51,7 +51,7 @@ export function defaultArgs(): CommandArgs {
  * Sign command implementation.
  */
 export class SignCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);

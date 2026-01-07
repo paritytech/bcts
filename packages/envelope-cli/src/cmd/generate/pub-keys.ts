@@ -35,7 +35,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Public keys command implementation.
  */
 export class PubKeysCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     let urString: string;

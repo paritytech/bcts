@@ -10,13 +10,13 @@ import { assertionEnvelope, type PredObjArgsLike } from "../../pred-obj-args.js"
 /**
  * Command arguments for the assertion command.
  */
-export interface CommandArgs extends PredObjArgsLike {}
+export type CommandArgs = PredObjArgsLike;
 
 /**
  * Assertion command implementation.
  */
 export class AssertionCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     return assertionEnvelope(this.args).urString();

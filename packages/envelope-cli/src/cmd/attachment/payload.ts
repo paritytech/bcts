@@ -19,7 +19,7 @@ export interface CommandArgs {
  * Payload command implementation.
  */
 export class PayloadCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const attachment = readEnvelope(this.args.attachment);

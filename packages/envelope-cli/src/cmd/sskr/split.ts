@@ -40,7 +40,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Split command implementation.
  */
 export class SplitCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     // Validate that an envelope was provided

@@ -51,7 +51,8 @@
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
     "blockchain",

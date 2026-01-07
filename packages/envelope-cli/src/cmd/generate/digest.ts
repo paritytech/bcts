@@ -23,7 +23,7 @@ export interface CommandArgs {
  * Digest command implementation.
  */
 export class DigestCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     let data: Uint8Array;

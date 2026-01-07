@@ -26,7 +26,7 @@ export interface CommandArgs {
  * Find predicate command implementation.
  */
 export class FindPredicateCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
@@ -39,7 +39,7 @@ export class FindPredicateCommand implements Exec {
     const result = assertions
       .filter((a) => {
         const pred = a.predicate();
-        return pred !== undefined && pred.digest().equals(predicate.digest());
+        return pred?.digest().equals(predicate.digest()) ?? false;
       })
       .map((a) => a.urString())
       .join("\n");

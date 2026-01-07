@@ -79,7 +79,7 @@ function parseInput(input: string): PrivateKeyBase {
  * Private keys command implementation.
  */
 export class PrvKeysCommand implements Exec {
-  constructor(private args: CommandArgs) {}
+  constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
     const privateKeyBase = this.args.input ? parseInput(this.args.input) : PrivateKeyBase.new();

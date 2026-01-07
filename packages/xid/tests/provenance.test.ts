@@ -218,7 +218,7 @@ describe("Provenance", () => {
       // Verify initial state
       const mark1 = xidDoc.provenance();
       expect(mark1).toBeDefined();
-      expect(mark1!.seq()).toBe(0);
+      expect(mark1?.seq()).toBe(0);
 
       // Advance the provenance mark
       const xidDoc2 = xidDoc.clone();
@@ -228,12 +228,12 @@ describe("Provenance", () => {
       // Verify advancement
       const mark2 = xidDoc2.provenance();
       expect(mark2).toBeDefined();
-      expect(mark2!.seq()).toBe(1);
+      expect(mark2?.seq()).toBe(1);
 
       // Verify generator is still available and advanced
       const generator = xidDoc2.provenanceGenerator();
       expect(generator).toBeDefined();
-      expect(generator!.nextSeq()).toBe(2);
+      expect(generator?.nextSeq()).toBe(2);
     });
 
     it("should advance with provided generator", () => {
@@ -258,7 +258,7 @@ describe("Provenance", () => {
       xidDoc.setProvenance(mark1);
 
       // Verify initial state
-      expect(xidDoc.provenance()!.seq()).toBe(0);
+      expect(xidDoc.provenance()?.seq()).toBe(0);
       expect(xidDoc.provenanceGenerator()).toBeUndefined();
 
       // Advance using the provided generator
@@ -267,7 +267,7 @@ describe("Provenance", () => {
 
       // Verify advancement
       const mark2 = xidDoc.provenance();
-      expect(mark2!.seq()).toBe(1);
+      expect(mark2?.seq()).toBe(1);
 
       // Generator should still be external
       expect(xidDoc.provenanceGenerator()).toBeUndefined();

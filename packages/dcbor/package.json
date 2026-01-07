@@ -47,8 +47,6 @@
     "dev": "tsdown --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cli": "vitest run tests/cli.test.ts",
-    "test:examples": "npm run build && node scripts/test-examples.js",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
