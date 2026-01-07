@@ -197,7 +197,7 @@ export class Request implements RequestBehavior {
    */
   toEnvelope(): Envelope {
     // Create the tagged ARID as the subject
-    const taggedArid = toTaggedValue(TAG_REQUEST.value, this.#id.untaggedCbor());
+    const taggedArid = toTaggedValue(TAG_REQUEST, this.#id.untaggedCbor());
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(BODY, this.#body.envelope());
 

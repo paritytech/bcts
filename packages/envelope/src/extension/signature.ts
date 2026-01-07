@@ -93,90 +93,9 @@ export class SignatureMetadata {
 }
 
 // ============================================================================
-// Type Declarations for Envelope Signature Extension
+// Note: Type declarations for signature methods are in ../base/envelope.ts
+// to ensure they are included in bundled type definitions.
 // ============================================================================
-
-declare module "../base/envelope" {
-  interface Envelope {
-    /**
-     * Add a signature assertion with optional metadata.
-     */
-    addSignatureWithMetadata(signer: Signer, metadata?: SignatureMetadata): Envelope;
-
-    /**
-     * Add a signature assertion without metadata.
-     */
-    addSignature(signer: Signer): Envelope;
-
-    /**
-     * Add a signature with optional signer options and metadata.
-     */
-    addSignatureOpt(signer: Signer, options?: unknown, metadata?: SignatureMetadata): Envelope;
-
-    /**
-     * Add multiple signatures from an array of signers.
-     */
-    addSignatures(signers: Signer[]): Envelope;
-
-    /**
-     * Check if this envelope has a valid signature from the given verifier.
-     */
-    hasSignatureFrom(verifier: Verifier): boolean;
-
-    /**
-     * Check if this envelope has valid signatures from all given verifiers.
-     */
-    hasSignaturesFrom(verifiers: Verifier[]): boolean;
-
-    /**
-     * Check if this envelope has at least threshold valid signatures from the given verifiers.
-     */
-    hasSignaturesFromThreshold(verifiers: Verifier[], threshold: number): boolean;
-
-    /**
-     * Wrap and sign this envelope (without metadata).
-     */
-    sign(signer: Signer): Envelope;
-
-    /**
-     * Wrap and sign this envelope with optional metadata.
-     */
-    signWithMetadata(signer: Signer, metadata?: SignatureMetadata): Envelope;
-
-    /**
-     * Verify the signature and unwrap the envelope.
-     */
-    verify(verifier: Verifier): Envelope;
-
-    /**
-     * Verify the signature and return the unwrapped envelope with metadata.
-     */
-    verifyReturningMetadata(verifier: Verifier): {
-      envelope: Envelope;
-      metadata?: SignatureMetadata;
-    };
-
-    /**
-     * Get all signature assertions from this envelope.
-     */
-    signatures(): Envelope[];
-
-    /**
-     * Verify the signature from a verifier and return this envelope if valid.
-     */
-    verifySignatureFrom(verifier: Verifier): Envelope;
-
-    /**
-     * Verify signatures from all given verifiers.
-     */
-    verifySignaturesFrom(verifiers: Verifier[]): Envelope;
-
-    /**
-     * Verify signatures meeting a threshold from given verifiers.
-     */
-    verifySignaturesFromThreshold(verifiers: Verifier[], threshold?: number): Envelope;
-  }
-}
 
 // ============================================================================
 // Envelope Extension Methods for Signatures

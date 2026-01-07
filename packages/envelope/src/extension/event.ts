@@ -152,7 +152,7 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
    * (if present).
    */
   toEnvelope(): Envelope {
-    const taggedArid = toTaggedValue(TAG_EVENT.value, this.#id.untaggedCbor());
+    const taggedArid = toTaggedValue(TAG_EVENT, this.#id.untaggedCbor());
     const contentEnvelope = Envelope.new(this.#content);
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(CONTENT, contentEnvelope);

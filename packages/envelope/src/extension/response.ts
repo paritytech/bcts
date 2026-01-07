@@ -291,15 +291,15 @@ export class Response implements ResponseBehavior {
    */
   toEnvelope(): Envelope {
     if (this.#result.ok) {
-      const taggedArid = toTaggedValue(TAG_RESPONSE.value, this.#result.id.untaggedCbor());
+      const taggedArid = toTaggedValue(TAG_RESPONSE, this.#result.id.untaggedCbor());
       return Envelope.newLeaf(taggedArid).addAssertion(RESULT, this.#result.result);
     } else {
       let subject: Envelope;
       if (this.#result.id !== undefined) {
-        const taggedArid = toTaggedValue(TAG_RESPONSE.value, this.#result.id.untaggedCbor());
+        const taggedArid = toTaggedValue(TAG_RESPONSE, this.#result.id.untaggedCbor());
         subject = Envelope.newLeaf(taggedArid);
       } else {
-        const taggedUnknown = toTaggedValue(TAG_RESPONSE.value, UNKNOWN_VALUE.untaggedCbor());
+        const taggedUnknown = toTaggedValue(TAG_RESPONSE, UNKNOWN_VALUE.untaggedCbor());
         subject = Envelope.newLeaf(taggedUnknown);
       }
       return subject.addAssertion(ERROR, this.#result.error);
