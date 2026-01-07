@@ -151,7 +151,10 @@ declare module "../base/envelope" {
     /**
      * Verify the signature and return the unwrapped envelope with metadata.
      */
-    verifyReturningMetadata(verifier: Verifier): { envelope: Envelope; metadata?: SignatureMetadata };
+    verifyReturningMetadata(verifier: Verifier): {
+      envelope: Envelope;
+      metadata?: SignatureMetadata;
+    };
 
     /**
      * Get all signature assertions from this envelope.
@@ -162,6 +165,16 @@ declare module "../base/envelope" {
      * Verify the signature from a verifier and return this envelope if valid.
      */
     verifySignatureFrom(verifier: Verifier): Envelope;
+
+    /**
+     * Verify signatures from all given verifiers.
+     */
+    verifySignaturesFrom(verifiers: Verifier[]): Envelope;
+
+    /**
+     * Verify signatures meeting a threshold from given verifiers.
+     */
+    verifySignaturesFromThreshold(verifiers: Verifier[], threshold?: number): Envelope;
   }
 }
 
@@ -242,7 +255,8 @@ Envelope.prototype.hasSignatureFrom = function (this: Envelope, verifier: Verifi
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signatureCbor = signatureEnvelope.tryLeaf();
+      // The signature envelope may have assertions (like verifiedBy), so get subject first
+      const signatureCbor = signatureEnvelope.subject().tryLeaf();
 
       // Decode the signature from tagged CBOR
       const signature = Signature.fromTaggedCbor(signatureCbor);
@@ -318,7 +332,8 @@ Envelope.prototype.verifyReturningMetadata = function (
   for (const assertion of signedAssertions) {
     try {
       const signatureEnvelope = assertion.tryObject();
-      const signatureCbor = signatureEnvelope.tryLeaf();
+      // The signature envelope may have assertions (like verifiedBy), so get subject first
+      const signatureCbor = signatureEnvelope.subject().tryLeaf();
       const signature = Signature.fromTaggedCbor(signatureCbor);
       const digest = this.subject().digest();
 
@@ -366,6 +381,30 @@ Envelope.prototype.signatures = function (this: Envelope): Envelope[] {
 Envelope.prototype.verifySignatureFrom = function (this: Envelope, verifier: Verifier): Envelope {
   if (!this.hasSignatureFrom(verifier)) {
     throw EnvelopeError.general("Signature verification failed");
+  }
+  return this;
+};
+
+/// Implementation of verifySignaturesFrom() - verify signatures from all verifiers
+Envelope.prototype.verifySignaturesFrom = function (
+  this: Envelope,
+  verifiers: Verifier[],
+): Envelope {
+  if (!this.hasSignaturesFrom(verifiers)) {
+    throw EnvelopeError.general("Signature verification failed");
+  }
+  return this;
+};
+
+/// Implementation of verifySignaturesFromThreshold() - verify threshold signatures
+Envelope.prototype.verifySignaturesFromThreshold = function (
+  this: Envelope,
+  verifiers: Verifier[],
+  threshold?: number,
+): Envelope {
+  const t = threshold ?? verifiers.length;
+  if (!this.hasSignaturesFromThreshold(verifiers, t)) {
+    throw EnvelopeError.general("Signature verification failed - threshold not met");
   }
   return this;
 };

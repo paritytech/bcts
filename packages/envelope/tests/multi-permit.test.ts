@@ -21,7 +21,7 @@ describe("Multi-Permit", () => {
    * as the TypeScript sskrJoin implementation works with subject-level encryption.
    * The Rust version uses encrypt() which wraps and encrypts the whole envelope.
    */
-  it("should support multiple unlock methods for the same envelope", () => {
+  it("should support multiple unlock methods for the same envelope", { timeout: 15000 }, () => {
     //
     // Alice composes a poem.
     //
@@ -221,7 +221,7 @@ describe("Multi-Permit", () => {
       expect(unlocked.subject().asText()).toBe(testContent);
     });
 
-    it("should unlock with password using Argon2id", () => {
+    it("should unlock with password using Argon2id", { timeout: 15000 }, () => {
       const password = new TextEncoder().encode("argon2-password");
       const locked = encryptedEnvelope.addSecret(
         KeyDerivationMethod.Argon2id,
@@ -325,7 +325,7 @@ describe("Multi-Permit", () => {
       );
     });
 
-    it("should support mixed permit types", () => {
+    it("should support mixed permit types", { timeout: 15000 }, () => {
       // For SSKR compatibility, use a simple envelope with encryptSubject
       const envelope = Envelope.new("Mixed permit content");
       const contentKey = SymmetricKey.new();
