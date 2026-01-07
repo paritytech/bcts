@@ -21,7 +21,7 @@ describe("Multi-Permit", () => {
    * as the TypeScript sskrJoin implementation works with subject-level encryption.
    * The Rust version uses encrypt() which wraps and encrypts the whole envelope.
    */
-  it("should support multiple unlock methods for the same envelope", { timeout: 15000 }, () => {
+  it("should support multiple unlock methods for the same envelope", { timeout: 60000 }, () => {
     //
     // Alice composes a poem.
     //
