@@ -10,8 +10,8 @@
  *
  * `SigningPublicKey` is serialized to CBOR with tag 40022.
  *
- * The CBOR encoding:
- * - Schnorr: `#6.40022([0, h'<32-byte-x-only-public-key>'])`
+ * The CBOR encoding (matching Rust bc-components):
+ * - Schnorr: `#6.40022(h'<32-byte-x-only-public-key>')` (bare byte string)
  * - ECDSA:   `#6.40022([1, h'<33-byte-compressed-public-key>'])`
  * - Ed25519: `#6.40022([2, h'<32-byte-public-key>'])`
  * - Sr25519: `#6.40022([3, h'<32-byte-public-key>'])`
@@ -35,33 +35,45 @@ import {
   extractTaggedContent,
   decodeCbor,
   tagsForValues,
+  isBytes,
+  isArray,
+  isTagged,
 } from "@bcts/dcbor";
-import { SIGNING_PUBLIC_KEY as TAG_SIGNING_PUBLIC_KEY } from "@bcts/tags";
+import {
+  SIGNING_PUBLIC_KEY as TAG_SIGNING_PUBLIC_KEY,
+  MLDSA_PUBLIC_KEY as TAG_MLDSA_PUBLIC_KEY,
+} from "@bcts/tags";
 import { Ed25519PublicKey } from "../ed25519/ed25519-public-key.js";
 import { Sr25519PublicKey } from "../sr25519/sr25519-public-key.js";
 import { ECPublicKey } from "../ec-key/ec-public-key.js";
 import { SchnorrPublicKey } from "../ec-key/schnorr-public-key.js";
-import { SignatureScheme } from "./signature-scheme.js";
+import { MLDSAPublicKey } from "../mldsa/mldsa-public-key.js";
+import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { SignatureScheme, isMldsaScheme } from "./signature-scheme.js";
 import type { Signature } from "./signature.js";
 import type { Verifier } from "./signer.js";
+import { Reference, type ReferenceProvider } from "../reference.js";
+import { Digest } from "../digest.js";
 
 /**
  * A public key used for verifying digital signatures.
  *
  * Currently supports:
- * - Schnorr public keys (32 bytes, x-only) - discriminator 0
+ * - Schnorr public keys (32 bytes, x-only) - bare byte string in CBOR
  * - ECDSA public keys (33 bytes, compressed) - discriminator 1
  * - Ed25519 public keys (32 bytes) - discriminator 2
  * - Sr25519 public keys (32 bytes) - discriminator 3
+ * - MLDSA public keys (post-quantum) - tagged CBOR delegating to MLDSAPublicKey
  */
 export class SigningPublicKey
-  implements Verifier, CborTaggedEncodable, CborTaggedDecodable<SigningPublicKey>
+  implements Verifier, ReferenceProvider, CborTaggedEncodable, CborTaggedDecodable<SigningPublicKey>
 {
   private readonly _type: SignatureScheme;
   private readonly _schnorrKey: SchnorrPublicKey | undefined;
   private readonly _ecdsaKey: ECPublicKey | undefined;
   private readonly _ed25519Key: Ed25519PublicKey | undefined;
   private readonly _sr25519Key: Sr25519PublicKey | undefined;
+  private readonly _mldsaKey: MLDSAPublicKey | undefined;
 
   private constructor(
     type: SignatureScheme,
@@ -69,12 +81,14 @@ export class SigningPublicKey
     ecdsaKey?: ECPublicKey,
     ed25519Key?: Ed25519PublicKey,
     sr25519Key?: Sr25519PublicKey,
+    mldsaKey?: MLDSAPublicKey,
   ) {
     this._type = type;
     this._schnorrKey = schnorrKey;
     this._ecdsaKey = ecdsaKey;
     this._ed25519Key = ed25519Key;
     this._sr25519Key = sr25519Key;
+    this._mldsaKey = mldsaKey;
   }
 
   // ============================================================================
@@ -88,7 +102,14 @@ export class SigningPublicKey
    * @returns A new signing public key containing the Schnorr key
    */
   static fromSchnorr(key: SchnorrPublicKey): SigningPublicKey {
-    return new SigningPublicKey(SignatureScheme.Schnorr, key, undefined, undefined, undefined);
+    return new SigningPublicKey(
+      SignatureScheme.Schnorr,
+      key,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
   }
 
   /**
@@ -98,7 +119,14 @@ export class SigningPublicKey
    * @returns A new signing public key containing the ECDSA key
    */
   static fromEcdsa(key: ECPublicKey): SigningPublicKey {
-    return new SigningPublicKey(SignatureScheme.Ecdsa, undefined, key, undefined, undefined);
+    return new SigningPublicKey(
+      SignatureScheme.Ecdsa,
+      undefined,
+      key,
+      undefined,
+      undefined,
+      undefined,
+    );
   }
 
   /**
@@ -108,7 +136,14 @@ export class SigningPublicKey
    * @returns A new signing public key containing the Ed25519 key
    */
   static fromEd25519(key: Ed25519PublicKey): SigningPublicKey {
-    return new SigningPublicKey(SignatureScheme.Ed25519, undefined, undefined, key, undefined);
+    return new SigningPublicKey(
+      SignatureScheme.Ed25519,
+      undefined,
+      undefined,
+      key,
+      undefined,
+      undefined,
+    );
   }
 
   /**
@@ -118,7 +153,39 @@ export class SigningPublicKey
    * @returns A new signing public key containing the Sr25519 key
    */
   static fromSr25519(key: Sr25519PublicKey): SigningPublicKey {
-    return new SigningPublicKey(SignatureScheme.Sr25519, undefined, undefined, undefined, key);
+    return new SigningPublicKey(
+      SignatureScheme.Sr25519,
+      undefined,
+      undefined,
+      undefined,
+      key,
+      undefined,
+    );
+  }
+
+  /**
+   * Creates a new signing public key from an MLDSAPublicKey.
+   *
+   * @param key - An MLDSAPublicKey
+   * @returns A new signing public key containing the MLDSA key
+   */
+  static fromMldsa(key: MLDSAPublicKey): SigningPublicKey {
+    // Determine the SignatureScheme based on the MLDSA level
+    let scheme: SignatureScheme;
+    switch (key.level()) {
+      case MLDSALevel.MLDSA44:
+        scheme = SignatureScheme.MLDSA44;
+        break;
+      case MLDSALevel.MLDSA65:
+        scheme = SignatureScheme.MLDSA65;
+        break;
+      case MLDSALevel.MLDSA87:
+        scheme = SignatureScheme.MLDSA87;
+        break;
+      default:
+        throw new Error(`Unknown MLDSA level: ${key.level()}`);
+    }
+    return new SigningPublicKey(scheme, undefined, undefined, undefined, undefined, key);
   }
 
   // ============================================================================
@@ -209,6 +276,25 @@ export class SigningPublicKey
   }
 
   /**
+   * Returns the underlying MLDSA public key if this is an MLDSA key.
+   *
+   * @returns The MLDSAPublicKey if this is an MLDSA key, null otherwise
+   */
+  toMldsa(): MLDSAPublicKey | null {
+    if (isMldsaScheme(this._type) && this._mldsaKey !== undefined) {
+      return this._mldsaKey;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if this is an MLDSA signing key.
+   */
+  isMldsa(): boolean {
+    return isMldsaScheme(this._type);
+  }
+
+  /**
    * Compare with another SigningPublicKey.
    */
   equals(other: SigningPublicKey): boolean {
@@ -226,6 +312,11 @@ export class SigningPublicKey
       case SignatureScheme.Sr25519:
         if (this._sr25519Key === undefined || other._sr25519Key === undefined) return false;
         return this._sr25519Key.equals(other._sr25519Key);
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87:
+        if (this._mldsaKey === undefined || other._mldsaKey === undefined) return false;
+        return this._mldsaKey.equals(other._mldsaKey);
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
@@ -247,12 +338,31 @@ export class SigningPublicKey
         return `SigningPublicKey(${this._type}, ${this._ed25519Key?.toHex().substring(0, 16)}...)`;
       case SignatureScheme.Sr25519:
         return `SigningPublicKey(${this._type}, ${this._sr25519Key?.toHex().substring(0, 16)}...)`;
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87:
+        return `SigningPublicKey(${this._type}, ${this._mldsaKey?.toString().substring(0, 30)}...)`;
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
       case SignatureScheme.SshEcdsaP384:
         return `SigningPublicKey(${this._type}, SSH scheme not supported)`;
     }
+  }
+
+  // ============================================================================
+  // ReferenceProvider Interface
+  // ============================================================================
+
+  /**
+   * Returns a unique reference to this SigningPublicKey instance.
+   *
+   * The reference is derived from the SHA-256 hash of the tagged CBOR
+   * representation, providing a unique, content-addressable identifier.
+   */
+  reference(): Reference {
+    const digest = Digest.fromImage(this.taggedCborData());
+    return Reference.from(digest);
   }
 
   // ============================================================================
@@ -329,6 +439,22 @@ export class SigningPublicKey
           return false;
         }
       }
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87: {
+        if (this._mldsaKey === undefined) {
+          return false;
+        }
+        const mldsaSig = signature.toMldsa();
+        if (mldsaSig === null) {
+          return false;
+        }
+        try {
+          return this._mldsaKey.verify(mldsaSig, message);
+        } catch {
+          return false;
+        }
+      }
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
@@ -351,10 +477,11 @@ export class SigningPublicKey
   /**
    * Returns the untagged CBOR encoding.
    *
-   * Format for Schnorr: [0, h'<32-byte-x-only-public-key>']
-   * Format for ECDSA:   [1, h'<33-byte-compressed-public-key>']
-   * Format for Ed25519: [2, h'<32-byte-public-key>']
-   * Format for Sr25519: [3, h'<32-byte-public-key>']
+   * Format (matching Rust bc-components):
+   * - Schnorr: h'<32-byte-x-only-public-key>' (bare byte string)
+   * - ECDSA:   [1, h'<33-byte-compressed-public-key>']
+   * - Ed25519: [2, h'<32-byte-public-key>']
+   * - Sr25519: [3, h'<32-byte-public-key>']
    */
   untaggedCbor(): Cbor {
     switch (this._type) {
@@ -362,7 +489,8 @@ export class SigningPublicKey
         if (this._schnorrKey === undefined) {
           throw new Error("Schnorr public key is missing");
         }
-        return cbor([0, toByteString(this._schnorrKey.toData())]);
+        // Rust: CBOR::to_byte_string(key.data()) - bare byte string
+        return toByteString(this._schnorrKey.toData());
       }
       case SignatureScheme.Ecdsa: {
         if (this._ecdsaKey === undefined) {
@@ -381,6 +509,15 @@ export class SigningPublicKey
           throw new Error("Sr25519 public key is missing");
         }
         return cbor([3, toByteString(this._sr25519Key.toData())]);
+      }
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87: {
+        if (this._mldsaKey === undefined) {
+          throw new Error("MLDSA public key is missing");
+        }
+        // Rust: delegates to MLDSAPublicKey (which produces tagged CBOR)
+        return this._mldsaKey.taggedCbor();
       }
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
@@ -411,34 +548,54 @@ export class SigningPublicKey
   /**
    * Creates a SigningPublicKey by decoding it from untagged CBOR.
    *
-   * Format:
-   * - [0, h'<32-byte-key>'] for Schnorr
+   * Format (matching Rust bc-components):
+   * - h'<32-byte-key>' (bare byte string) for Schnorr
    * - [1, h'<33-byte-key>'] for ECDSA
    * - [2, h'<32-byte-key>'] for Ed25519
    * - [3, h'<32-byte-key>'] for Sr25519
    */
   fromUntaggedCbor(cborValue: Cbor): SigningPublicKey {
-    const elements = expectArray(cborValue);
-
-    if (elements.length !== 2) {
-      throw new Error("SigningPublicKey must have 2 elements");
+    // Rust format: Schnorr is a bare byte string
+    if (isBytes(cborValue)) {
+      const keyData = expectBytes(cborValue);
+      return SigningPublicKey.fromSchnorr(SchnorrPublicKey.from(keyData));
     }
 
-    const discriminator = expectUnsigned(elements[0]);
-    const keyData = expectBytes(elements[1]);
+    // Array format for ECDSA, Ed25519, Sr25519
+    if (isArray(cborValue)) {
+      const elements = expectArray(cborValue);
 
-    switch (Number(discriminator)) {
-      case 0: // Schnorr
-        return SigningPublicKey.fromSchnorr(SchnorrPublicKey.from(keyData));
-      case 1: // ECDSA
-        return SigningPublicKey.fromEcdsa(ECPublicKey.from(keyData));
-      case 2: // Ed25519
-        return SigningPublicKey.fromEd25519(Ed25519PublicKey.from(keyData));
-      case 3: // Sr25519
-        return SigningPublicKey.fromSr25519(Sr25519PublicKey.from(keyData));
-      default:
-        throw new Error(`Unknown SigningPublicKey discriminator: ${discriminator}`);
+      if (elements.length !== 2) {
+        throw new Error("SigningPublicKey array must have 2 elements");
+      }
+
+      const discriminator = expectUnsigned(elements[0]);
+      const keyData = expectBytes(elements[1]);
+
+      switch (Number(discriminator)) {
+        case 1: // ECDSA
+          return SigningPublicKey.fromEcdsa(ECPublicKey.from(keyData));
+        case 2: // Ed25519
+          return SigningPublicKey.fromEd25519(Ed25519PublicKey.from(keyData));
+        case 3: // Sr25519
+          return SigningPublicKey.fromSr25519(Sr25519PublicKey.from(keyData));
+        default:
+          throw new Error(`Unknown SigningPublicKey discriminator: ${discriminator}`);
+      }
     }
+
+    // Tagged format for MLDSA
+    if (isTagged(cborValue)) {
+      const tagged = cborValue.asTagged();
+      if (tagged !== undefined && tagged[0].value === TAG_MLDSA_PUBLIC_KEY.value) {
+        const mldsaKey = MLDSAPublicKey.fromTaggedCbor(cborValue);
+        return SigningPublicKey.fromMldsa(mldsaKey);
+      }
+    }
+
+    throw new Error(
+      "SigningPublicKey must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), or tagged MLDSA",
+    );
   }
 
   /**

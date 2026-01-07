@@ -277,4 +277,69 @@ if (Envelope?.prototype) {
       }
     });
   };
+
+  /**
+   * Validates that this envelope is a valid attachment.
+   *
+   * An attachment is valid if:
+   * 1. The envelope is an assertion with 'attachment' as predicate
+   * 2. The object contains a wrapped payload with vendor assertion
+   * 3. Reconstructing the attachment yields an equivalent envelope
+   *
+   * @throws EnvelopeError if the envelope is not a valid attachment
+   */
+  Envelope.prototype.validateAttachment = function (this: Envelope): void {
+    const c = this.case();
+    if (c.type !== "assertion") {
+      throw EnvelopeError.invalidAttachment("Envelope is not an assertion");
+    }
+
+    // Verify predicate is 'attachment'
+    const predicate = c.assertion.predicate();
+    const predicateText = predicate.asText();
+    if (predicateText !== ATTACHMENT) {
+      throw EnvelopeError.invalidAttachment("Assertion predicate is not 'attachment'");
+    }
+
+    // Extract components
+    const payload = this.attachmentPayload();
+    const vendor = this.attachmentVendor();
+    const conformsTo = this.attachmentConformsTo();
+
+    // Reconstruct the attachment
+    const reconstructed = Envelope.newAttachment(payload, vendor, conformsTo);
+
+    // Check equivalence (same digest = semantically equivalent)
+    if (!this.digest().equals(reconstructed.digest())) {
+      throw EnvelopeError.invalidAttachment("Attachment structure is invalid");
+    }
+  };
+
+  /**
+   * Finds a single attachment matching the given vendor and conformsTo.
+   *
+   * Unlike `attachmentsWithVendorAndConformsTo` which returns an array,
+   * this method requires exactly one attachment to match.
+   *
+   * @param vendor - Optional vendor identifier to match
+   * @param conformsTo - Optional conformsTo URI to match
+   * @returns The matching attachment envelope
+   * @throws EnvelopeError if not exactly one attachment matches
+   */
+  Envelope.prototype.attachmentWithVendorAndConformsTo = function (
+    this: Envelope,
+    vendor?: string,
+    conformsTo?: string,
+  ): Envelope {
+    const matches = this.attachmentsWithVendorAndConformsTo(vendor, conformsTo);
+
+    if (matches.length === 0) {
+      throw EnvelopeError.general("No matching attachment found");
+    }
+    if (matches.length > 1) {
+      throw EnvelopeError.general(`Expected exactly one attachment, found ${matches.length}`);
+    }
+
+    return matches[0];
+  };
 }

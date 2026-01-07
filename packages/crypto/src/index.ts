@@ -112,4 +112,4 @@ export {
 export { scrypt, scryptOpt } from "./scrypt.js";
 
 // Argon2id
-export { argon2idHash, argon2idHashOpt } from "./argon.js";
+export { argon2id, argon2idHashOpt } from "./argon.js";

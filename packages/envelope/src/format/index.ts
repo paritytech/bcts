@@ -4,8 +4,9 @@
 /// serializing envelopes, including hex, diagnostic, notation, tree,
 /// UR, and mermaid diagram formats.
 
-// Export types
+// Export types and enums from tree
 export type { TreeFormatOptions } from "./tree";
+export { DigestDisplayFormat } from "./tree";
 
 // Export format context
 export {

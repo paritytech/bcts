@@ -2,9 +2,10 @@
 export { UR } from "./ur";
 export { URType } from "./ur-type";
 
-// Error types
+// Error types (matching Rust's Error enum variants)
 export {
   URError,
+  URDecodeError,
   InvalidSchemeError,
   TypeUnspecifiedError,
   InvalidTypeError,
@@ -29,33 +30,13 @@ export type { URCodable } from "./ur-codable";
 export { MultipartEncoder } from "./multipart-encoder";
 export { MultipartDecoder } from "./multipart-decoder";
 
-// Fountain codes (for advanced multipart handling)
+// Bytewords module (matching Rust's pub mod bytewords)
 export {
-  FountainEncoder,
-  FountainDecoder,
-  splitMessage,
-  xorBytes,
-  chooseFragments,
-  mixFragments,
-} from "./fountain";
-export type { FountainPart } from "./fountain";
-
-// PRNG for deterministic fountain code mixing
-export { Xoshiro256, createSeed } from "./xoshiro";
-
-// Utilities
-export {
-  isURTypeChar,
-  isValidURType,
-  validateURType,
   BYTEWORDS,
-  BYTEWORDS_MAP,
   BYTEMOJIS,
-  encodeBytewordsIdentifier,
-  encodeBytemojisIdentifier,
   BytewordsStyle,
   encodeBytewords,
   decodeBytewords,
-  crc32,
-  MINIMAL_BYTEWORDS_MAP,
+  encodeBytewordsIdentifier,
+  encodeBytemojisIdentifier,
 } from "./utils";

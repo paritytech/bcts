@@ -1,21 +1,18 @@
 // Ported from bc-crypto-rust/src/argon.rs
 
-import { argon2id } from "@noble/hashes/argon2.js";
+import { argon2id as nobleArgon2id } from "@noble/hashes/argon2.js";
 
 /**
  * Derive a key using Argon2id with default parameters.
+ * This matches the Rust `argon2id` function signature.
  *
  * @param password - Password or passphrase
  * @param salt - Salt value (must be at least 8 bytes)
  * @param outputLen - Desired output length
  * @returns Derived key
  */
-export function argon2idHash(
-  password: Uint8Array,
-  salt: Uint8Array,
-  outputLen: number,
-): Uint8Array {
-  // Use default parameters similar to the Rust implementation
+export function argon2id(password: Uint8Array, salt: Uint8Array, outputLen: number): Uint8Array {
+  // Use default parameters matching Argon2::default() in Rust
   return argon2idHashOpt(password, salt, outputLen, 3, 65536, 4);
 }
 
@@ -38,7 +35,7 @@ export function argon2idHashOpt(
   memory: number,
   parallelism: number,
 ): Uint8Array {
-  return argon2id(password, salt, {
+  return nobleArgon2id(password, salt, {
     t: iterations,
     m: memory,
     p: parallelism,

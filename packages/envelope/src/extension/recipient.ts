@@ -107,6 +107,11 @@ export class PrivateKeyBase {
   /// Generates a new random X25519 key pair
   static generate(): PrivateKeyBase {
     const rng = new SecureRandomNumberGenerator();
+    return PrivateKeyBase.generateUsing(rng);
+  }
+
+  /// Generates a new X25519 key pair using the provided RNG
+  static generateUsing(rng: { randomData(count: number): Uint8Array }): PrivateKeyBase {
     const privateKey = x25519NewPrivateKeyUsing(rng);
     const publicKey = x25519PublicKeyFromPrivateKey(privateKey);
     return new PrivateKeyBase(privateKey, publicKey);

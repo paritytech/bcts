@@ -59,15 +59,6 @@ export class MultipartEncoder {
   }
 
   /**
-   * Returns whether the message fits in a single part.
-   *
-   * For single-part messages, consider using UR.string() directly.
-   */
-  isSinglePart(): boolean {
-    return this._fountainEncoder.isSinglePart();
-  }
-
-  /**
    * Gets the next part of the encoding.
    *
    * Parts 1 through seqLen are "pure" fragments containing one piece each.
@@ -144,23 +135,5 @@ export class MultipartEncoder {
    */
   partsCount(): number {
     return this._fountainEncoder.seqLen;
-  }
-
-  /**
-   * Checks if all pure parts have been emitted.
-   *
-   * Even after this returns true, you can continue calling nextPart()
-   * to generate additional rateless parts for redundancy.
-   */
-  isComplete(): boolean {
-    return this._fountainEncoder.isComplete();
-  }
-
-  /**
-   * Resets the encoder to start from the beginning.
-   */
-  reset(): void {
-    this._currentIndex = 0;
-    this._fountainEncoder.reset();
   }
 }

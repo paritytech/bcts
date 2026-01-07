@@ -198,8 +198,11 @@ export class EnvelopeError extends Error {
   /// This error occurs when an envelope contains an attachment with an
   /// invalid structure according to the Envelope Attachment specification
   /// (BCR-2023-006).
-  static invalidAttachment(): EnvelopeError {
-    return new EnvelopeError(ErrorCode.INVALID_ATTACHMENT, "invalid attachment");
+  static invalidAttachment(message?: string): EnvelopeError {
+    return new EnvelopeError(
+      ErrorCode.INVALID_ATTACHMENT,
+      message !== undefined ? `invalid attachment: ${message}` : "invalid attachment",
+    );
   }
 
   /// Returned when an attachment is requested but does not exist.

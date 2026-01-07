@@ -8,8 +8,8 @@
  *
  * # CBOR Serialization
  *
- * The CBOR encoding:
- * - Schnorr: `#6.40020([0, h'<64-byte-signature>'])`
+ * The CBOR encoding (matching Rust bc-components):
+ * - Schnorr: `#6.40020(h'<64-byte-signature>')` (bare byte string)
  * - ECDSA:   `#6.40020([1, h'<64-byte-signature>'])`
  * - Ed25519: `#6.40020([2, h'<64-byte-signature>'])`
  * - Sr25519: `#6.40020([3, h'<64-byte-signature>'])`
@@ -34,28 +34,36 @@ import {
   extractTaggedContent,
   decodeCbor,
   tagsForValues,
+  isBytes,
+  isArray,
+  isTagged,
 } from "@bcts/dcbor";
-import { SIGNATURE as TAG_SIGNATURE } from "@bcts/tags";
+import { SIGNATURE as TAG_SIGNATURE, MLDSA_SIGNATURE as TAG_MLDSA_SIGNATURE } from "@bcts/tags";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes } from "../utils.js";
-import { SignatureScheme } from "./signature-scheme.js";
+import { SignatureScheme, isMldsaScheme } from "./signature-scheme.js";
+import { MLDSASignature } from "../mldsa/mldsa-signature.js";
+import { MLDSALevel } from "../mldsa/mldsa-level.js";
 
 /**
  * A digital signature created with various signature algorithms.
  *
  * Currently supports:
- * - Schnorr signatures (64 bytes) - discriminator 0
+ * - Schnorr signatures (64 bytes) - bare byte string in CBOR
  * - ECDSA signatures (64 bytes) - discriminator 1
  * - Ed25519 signatures (64 bytes) - discriminator 2
  * - Sr25519 signatures (64 bytes) - discriminator 3
+ * - MLDSA signatures (post-quantum) - tagged CBOR delegating to MLDSASignature
  */
 export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signature> {
   private readonly _type: SignatureScheme;
   private readonly _data: Uint8Array;
+  private readonly _mldsaSignature: MLDSASignature | undefined;
 
-  private constructor(type: SignatureScheme, data: Uint8Array) {
+  private constructor(type: SignatureScheme, data: Uint8Array, mldsaSignature?: MLDSASignature) {
     this._type = type;
     this._data = new Uint8Array(data);
+    this._mldsaSignature = mldsaSignature;
   }
 
   // ============================================================================
@@ -154,6 +162,31 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     return Signature.sr25519FromData(hexToBytes(hex));
   }
 
+  /**
+   * Creates a Signature from an MLDSASignature.
+   *
+   * @param sig - The MLDSASignature
+   * @returns A new Signature wrapping the MLDSA signature
+   */
+  static mldsaFromSignature(sig: MLDSASignature): Signature {
+    // Determine the SignatureScheme based on the MLDSA level
+    let scheme: SignatureScheme;
+    switch (sig.level()) {
+      case MLDSALevel.MLDSA44:
+        scheme = SignatureScheme.MLDSA44;
+        break;
+      case MLDSALevel.MLDSA65:
+        scheme = SignatureScheme.MLDSA65;
+        break;
+      case MLDSALevel.MLDSA87:
+        scheme = SignatureScheme.MLDSA87;
+        break;
+      default:
+        throw new Error(`Unknown MLDSA level: ${sig.level()}`);
+    }
+    return new Signature(scheme, sig.data(), sig);
+  }
+
   // ============================================================================
   // Instance Methods
   // ============================================================================
@@ -249,6 +282,25 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   }
 
   /**
+   * Returns the MLDSASignature if this is an MLDSA signature.
+   *
+   * @returns The MLDSASignature if this is an MLDSA signature, null otherwise
+   */
+  toMldsa(): MLDSASignature | null {
+    if (isMldsaScheme(this._type) && this._mldsaSignature !== undefined) {
+      return this._mldsaSignature;
+    }
+    return null;
+  }
+
+  /**
+   * Checks if this is an MLDSA signature.
+   */
+  isMldsa(): boolean {
+    return isMldsaScheme(this._type);
+  }
+
+  /**
    * Get hex string representation of the signature data.
    */
   toHex(): string {
@@ -288,21 +340,32 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   /**
    * Returns the untagged CBOR encoding.
    *
-   * Format for Schnorr: [0, h'<64-byte-signature>']
-   * Format for ECDSA:   [1, h'<64-byte-signature>']
-   * Format for Ed25519: [2, h'<64-byte-signature>']
-   * Format for Sr25519: [3, h'<64-byte-signature>']
+   * Format (matching Rust bc-components):
+   * - Schnorr: h'<64-byte-signature>' (bare byte string)
+   * - ECDSA:   [1, h'<64-byte-signature>']
+   * - Ed25519: [2, h'<64-byte-signature>']
+   * - Sr25519: [3, h'<64-byte-signature>']
    */
   untaggedCbor(): Cbor {
     switch (this._type) {
       case SignatureScheme.Schnorr:
-        return cbor([0, toByteString(this._data)]);
+        // Rust: CBOR::to_byte_string(data) - bare byte string
+        return toByteString(this._data);
       case SignatureScheme.Ecdsa:
         return cbor([1, toByteString(this._data)]);
       case SignatureScheme.Ed25519:
         return cbor([2, toByteString(this._data)]);
       case SignatureScheme.Sr25519:
         return cbor([3, toByteString(this._data)]);
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87: {
+        if (this._mldsaSignature === undefined) {
+          throw new Error("MLDSA signature is missing");
+        }
+        // Rust: delegates to MLDSASignature (which produces tagged CBOR)
+        return this._mldsaSignature.taggedCbor();
+      }
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
@@ -332,34 +395,54 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   /**
    * Creates a Signature by decoding it from untagged CBOR.
    *
-   * Format:
-   * - [0, h'<64-byte-signature>'] for Schnorr
+   * Format (matching Rust bc-components):
+   * - h'<64-byte-signature>' (bare byte string) for Schnorr
    * - [1, h'<64-byte-signature>'] for ECDSA
    * - [2, h'<64-byte-signature>'] for Ed25519
    * - [3, h'<64-byte-signature>'] for Sr25519
    */
   fromUntaggedCbor(cborValue: Cbor): Signature {
-    const elements = expectArray(cborValue);
-
-    if (elements.length !== 2) {
-      throw new Error("Signature must have 2 elements");
+    // Rust format: Schnorr is a bare byte string
+    if (isBytes(cborValue)) {
+      const signatureData = expectBytes(cborValue);
+      return Signature.schnorrFromData(signatureData);
     }
 
-    const discriminator = expectUnsigned(elements[0]);
-    const signatureData = expectBytes(elements[1]);
+    // Array format for ECDSA, Ed25519, Sr25519
+    if (isArray(cborValue)) {
+      const elements = expectArray(cborValue);
 
-    switch (Number(discriminator)) {
-      case 0: // Schnorr
-        return Signature.schnorrFromData(signatureData);
-      case 1: // ECDSA
-        return Signature.ecdsaFromData(signatureData);
-      case 2: // Ed25519
-        return Signature.ed25519FromData(signatureData);
-      case 3: // Sr25519
-        return Signature.sr25519FromData(signatureData);
-      default:
-        throw new Error(`Unknown signature discriminator: ${discriminator}`);
+      if (elements.length !== 2) {
+        throw new Error("Signature array must have 2 elements");
+      }
+
+      const discriminator = expectUnsigned(elements[0]);
+      const signatureData = expectBytes(elements[1]);
+
+      switch (Number(discriminator)) {
+        case 1: // ECDSA
+          return Signature.ecdsaFromData(signatureData);
+        case 2: // Ed25519
+          return Signature.ed25519FromData(signatureData);
+        case 3: // Sr25519
+          return Signature.sr25519FromData(signatureData);
+        default:
+          throw new Error(`Unknown signature discriminator: ${discriminator}`);
+      }
     }
+
+    // Tagged format for MLDSA
+    if (isTagged(cborValue)) {
+      const tagged = cborValue.asTagged();
+      if (tagged !== undefined && tagged[0].value === TAG_MLDSA_SIGNATURE.value) {
+        const mldsaSig = MLDSASignature.fromTaggedCbor(cborValue);
+        return Signature.mldsaFromSignature(mldsaSig);
+      }
+    }
+
+    throw new Error(
+      "Signature must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), or tagged MLDSA",
+    );
   }
 
   /**

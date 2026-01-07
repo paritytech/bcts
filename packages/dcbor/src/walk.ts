@@ -158,21 +158,20 @@ export type Visitor<State> = (
  * @param cbor - The CBOR value to traverse
  * @param initialState - Initial state value
  * @param visitor - Function to call for each element
- * @returns Final state after traversal
  *
  * @example
  * ```typescript
- * // Count all text strings in a structure
- * interface CountState { count: number }
+ * // Count all text strings in a structure using RefCell-like pattern
+ * const count = { value: 0 };
  *
  * const structure = cbor({ name: 'Alice', tags: ['urgent', 'draft'] });
- * const result = walk(structure, { count: 0 }, (element, level, edge, state) => {
+ * walk(structure, null, (element, level, edge, state) => {
  *   if (element.type === 'single' && element.cbor.type === MajorType.Text) {
- *     return [{ count: state.count + 1 }, false];
+ *     count.value++;
  *   }
  *   return [state, false];
  * });
- * console.log(result.count); // 3 (name, urgent, draft)
+ * console.log(count.value); // 3 (name, urgent, draft)
  * ```
  *
  * @example
@@ -181,7 +180,7 @@ export type Visitor<State> = (
  * const structure = cbor([1, 2, 3, 'found', 5, 6]);
  * let found = false;
  *
- * walk(structure, null, (element, level, edge) => {
+ * walk(structure, null, (element, level, edge, state) => {
  *   if (element.type === 'single' &&
  *       element.cbor.type === MajorType.Text &&
  *       element.cbor.value === 'found') {
@@ -192,8 +191,8 @@ export type Visitor<State> = (
  * });
  * ```
  */
-export const walk = <State>(cbor: Cbor, initialState: State, visitor: Visitor<State>): State => {
-  return walkInternal(cbor, 0, { type: EdgeType.None }, initialState, visitor);
+export const walk = <State>(cbor: Cbor, initialState: State, visitor: Visitor<State>): void => {
+  walkInternal(cbor, 0, { type: EdgeType.None }, initialState, visitor);
 };
 
 /**
@@ -344,173 +343,3 @@ function walkTagged<State>(
 ): State {
   return walkInternal(cbor.value, level + 1, { type: EdgeType.TaggedContent }, state, visitor);
 }
-
-/**
- * Helper: Count all elements in a CBOR tree.
- *
- * @param cbor - The CBOR value to count
- * @returns Total number of elements visited
- *
- * @example
- * ```typescript
- * const structure = cbor([1, 2, [3, 4]]);
- * const count = countElements(structure);
- * console.log(count); // 6 (array, 1, 2, inner array, 3, 4)
- * ```
- */
-export const countElements = (cbor: Cbor): number => {
-  interface CountState {
-    count: number;
-  }
-
-  const result = walk<CountState>(cbor, { count: 0 }, (_element, _level, _edge, state) => {
-    return [{ count: state.count + 1 }, false];
-  });
-
-  return result.count;
-};
-
-/**
- * Helper: Collect all elements at a specific depth level.
- *
- * @param cbor - The CBOR value to traverse
- * @param targetLevel - The depth level to collect (0 = root)
- * @returns Array of CBOR values at the target level
- *
- * @example
- * ```typescript
- * const structure = cbor([[1, 2], [3, 4]]);
- * const level1 = collectAtLevel(structure, 1);
- * // Returns: [[1, 2], [3, 4]]
- * const level2 = collectAtLevel(structure, 2);
- * // Returns: [1, 2, 3, 4]
- * ```
- */
-export const collectAtLevel = (cbor: Cbor, targetLevel: number): Cbor[] => {
-  interface CollectState {
-    items: Cbor[];
-  }
-
-  const result = walk<CollectState>(cbor, { items: [] }, (element, level, _edge, state) => {
-    if (level === targetLevel && element.type === "single") {
-      return [{ items: [...state.items, element.cbor] }, false];
-    }
-    return [state, false];
-  });
-
-  return result.items;
-};
-
-/**
- * Helper: Find first element matching a predicate.
- *
- * @template T - Type of extracted value
- * @param cbor - The CBOR value to search
- * @param predicate - Function to test each element
- * @returns First matching element, or undefined if not found
- *
- * @example
- * ```typescript
- * const structure = cbor({ users: [
- *   { name: 'Alice', age: 30 },
- *   { name: 'Bob', age: 25 }
- * ]});
- *
- * const bob = findFirst(structure, (element) => {
- *   if (element.type === 'single' &&
- *       element.cbor.type === MajorType.Text &&
- *       element.cbor.value === 'Bob') {
- *     return true;
- *   }
- *   return false;
- * });
- * ```
- */
-export const findFirst = (
-  cbor: Cbor,
-  predicate: (element: WalkElement) => boolean,
-): Cbor | undefined => {
-  interface FindState {
-    found?: Cbor;
-  }
-
-  const result = walk<FindState>(cbor, {}, (element, _level, _edge, state) => {
-    if (state.found !== undefined) {
-      // Already found, stop descending
-      return [state, true];
-    }
-
-    if (predicate(element)) {
-      if (element.type === "single") {
-        return [{ found: element.cbor }, true]; // Stop after finding
-      }
-      // Matched but not a single element, stop anyway
-      return [state, true];
-    }
-
-    return [state, false];
-  });
-
-  return result.found;
-};
-
-/**
- * Helper: Collect all text strings in a CBOR tree.
- *
- * @param cbor - The CBOR value to traverse
- * @returns Array of all text string values found
- *
- * @example
- * ```typescript
- * const doc = cbor({
- *   title: 'Document',
- *   tags: ['urgent', 'draft'],
- *   author: { name: 'Alice' }
- * });
- *
- * const texts = collectAllText(doc);
- * // Returns: ['Document', 'urgent', 'draft', 'Alice']
- * ```
- */
-export const collectAllText = (cbor: Cbor): string[] => {
-  interface TextState {
-    texts: string[];
-  }
-
-  const result = walk<TextState>(cbor, { texts: [] }, (element, _level, _edge, state) => {
-    if (element.type === "single" && element.cbor.type === MajorType.Text) {
-      return [{ texts: [...state.texts, element.cbor.value] }, false];
-    }
-    return [state, false];
-  });
-
-  return result.texts;
-};
-
-/**
- * Helper: Get the maximum depth of a CBOR tree.
- *
- * @param cbor - The CBOR value to measure
- * @returns Maximum depth (0 for leaf values, 1+ for containers)
- *
- * @example
- * ```typescript
- * const flat = cbor([1, 2, 3]);
- * console.log(maxDepth(flat)); // 1
- *
- * const nested = cbor([[[1]]]);
- * console.log(maxDepth(nested)); // 3
- * ```
- */
-export const maxDepth = (cbor: Cbor): number => {
-  interface DepthState {
-    maxDepth: number;
-  }
-
-  const result = walk<DepthState>(cbor, { maxDepth: 0 }, (_element, level, _edge, state) => {
-    const newMaxDepth = Math.max(state.maxDepth, level);
-    return [{ maxDepth: newMaxDepth }, false];
-  });
-
-  return result.maxDepth;
-};

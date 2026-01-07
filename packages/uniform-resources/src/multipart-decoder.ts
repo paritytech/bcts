@@ -160,28 +160,6 @@ export class MultipartDecoder {
   message(): UR | null {
     return this._decodedMessage;
   }
-
-  /**
-   * Returns the decoding progress as a fraction (0 to 1).
-   */
-  progress(): number {
-    if (this._decodedMessage !== null) {
-      return 1;
-    }
-    if (this._fountainDecoder === null) {
-      return 0;
-    }
-    return this._fountainDecoder.progress();
-  }
-
-  /**
-   * Resets the decoder to receive a new message.
-   */
-  reset(): void {
-    this._urType = null;
-    this._fountainDecoder = null;
-    this._decodedMessage = null;
-  }
 }
 
 /**

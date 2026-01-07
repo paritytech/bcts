@@ -164,9 +164,9 @@ const setupKnownValueSummarizer = (context: FormatContext): void => {
       // Try to extract the known value from the CBOR
       const kv = KnownValue.fromUntaggedCbor(cbor);
       const name = knownValues.name(kv);
-      return `'${name}'`;
+      return { ok: true, value: `'${name}'` };
     } catch {
-      return "'<unknown>'";
+      return { ok: true, value: "'<unknown>'" };
     }
   };
 

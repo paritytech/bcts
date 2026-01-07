@@ -97,6 +97,8 @@ export {
   createKeypairUsing,
   defaultSignatureScheme,
   isSshScheme,
+  isMldsaScheme,
+  type SigningOptions,
 } from "./signing/signature-scheme.js";
 
 // Key encapsulation (from encapsulation/ module)

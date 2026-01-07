@@ -182,6 +182,14 @@ export class Reference {
   }
 
   /**
+   * Get short reference as hex string.
+   * Convenience method for parity with Rust's ref_hex_short().
+   */
+  refHexShort(): string {
+    return this.shortReference("hex");
+  }
+
+  /**
    * Get base64 representation
    */
   toBase64(): string {

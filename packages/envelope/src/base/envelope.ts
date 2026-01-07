@@ -29,6 +29,7 @@ import type {
   PrivateKeyBase,
   Signer,
   Verifier,
+  Signature,
   SignatureMetadata,
 } from "../extension";
 
@@ -968,6 +969,8 @@ export class Envelope implements DigestProvider {
   declare attachmentConformsTo: () => string | undefined;
   declare attachments: () => Envelope[];
   declare attachmentsWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope[];
+  declare attachmentWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope;
+  declare validateAttachment: () => void;
 
   // From compress.ts
   declare compress: () => Envelope;
@@ -1010,9 +1013,25 @@ export class Envelope implements DigestProvider {
   declare addSignature: (signer: Signer) => Envelope;
   declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare addSignatures: (signers: Signer[]) => Envelope;
+  declare addSignaturesWithMetadata: (
+    signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
+  ) => Envelope;
   declare hasSignatureFrom: (verifier: Verifier) => boolean;
+  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
+  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => boolean;
+  declare hasSignatureFromReturningMetadata: (verifier: Verifier) => Envelope | undefined;
   declare verifySignatureFrom: (verifier: Verifier) => Envelope;
+  declare verifySignaturesFrom: (verifiers: Verifier[]) => Envelope;
+  declare verifySignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => Envelope;
+  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare sign: (signer: Signer) => Envelope;
+  declare signWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
+  declare verify: (verifier: Verifier) => Envelope;
+  declare verifyReturningMetadata: (verifier: Verifier) => { envelope: Envelope; metadata: Envelope };
   declare signatures: () => Envelope[];
+  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
+  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
+  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
 
   // From types.ts
   declare addType: (object: EnvelopeEncodableValue) => Envelope;

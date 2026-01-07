@@ -18,7 +18,7 @@
  */
 
 import { type Cbor, cbor, expectArray, expectNumber, expectBytes } from "@bcts/dcbor";
-import { argon2idHash } from "@bcts/crypto";
+import { argon2id } from "@bcts/crypto";
 
 import { Salt } from "../salt.js";
 import { Nonce } from "../nonce.js";
@@ -96,7 +96,7 @@ export class Argon2idParams implements KeyDerivation {
   }
 
   private _deriveKey(secret: Uint8Array): Uint8Array {
-    return argon2idHash(secret, this._salt.asBytes(), 32);
+    return argon2id(secret, this._salt.asBytes(), 32);
   }
 
   /**

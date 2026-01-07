@@ -2,7 +2,9 @@ import {
   KnownValue,
   KnownValuesStore,
   IS_A,
+  IS_A_RAW,
   NOTE,
+  NOTE_RAW,
   SIGNED,
   KNOWN_VALUES,
   ID,
@@ -358,5 +360,98 @@ describe("KnownValue BigInt support", () => {
     const bytes = hexToBytes("d99c401903e8");
     const kv = KnownValue.fromCborData(bytes);
     expect(kv.valueBigInt()).toBe(1000n);
+  });
+});
+
+// =============================================================================
+// Rust Parity Tests
+// =============================================================================
+
+describe("Rust Parity: test_1", () => {
+  // Direct port of Rust's test_1 from known_values_registry.rs
+  test("test_1 - IS_A value and name, registry lookup", () => {
+    // Rust: assert_eq!(IS_A.value(), 1);
+    expect(IS_A.value()).toBe(1);
+
+    // Rust: assert_eq!(IS_A.name(), "isA");
+    expect(IS_A.name()).toBe("isA");
+
+    // Rust: let store = KNOWN_VALUES.get();
+    const store = KNOWN_VALUES.get();
+
+    // Rust: assert_eq!(store.known_value_named("isA").unwrap().value(), 1);
+    expect(store.knownValueNamed("isA")?.value()).toBe(1);
+  });
+});
+
+describe("Rust Parity: _RAW constants", () => {
+  test("_RAW constants should match KnownValue values", () => {
+    // Verify that _RAW constants have the correct values
+    expect(IS_A_RAW).toBe(1n);
+    expect(NOTE_RAW).toBe(4n);
+
+    // Verify _RAW constants match the KnownValue.valueBigInt()
+    expect(IS_A.valueBigInt()).toBe(IS_A_RAW);
+    expect(NOTE.valueBigInt()).toBe(NOTE_RAW);
+  });
+
+  test("_RAW constants can be used for pattern matching", () => {
+    const rawValue = 1n;
+    let matched = false;
+
+    // This demonstrates the use case for _RAW constants
+    switch (rawValue) {
+      case IS_A_RAW:
+        matched = true;
+        break;
+      default:
+        break;
+    }
+
+    expect(matched).toBe(true);
+  });
+});
+
+describe("Rust Parity: DigestProvider", () => {
+  test("KnownValue should implement digest()", () => {
+    const kv = new KnownValue(1, "isA");
+
+    // digest() should return a Digest object
+    const digest = kv.digest();
+    expect(digest).toBeDefined();
+
+    // The digest should be a SHA-256 hash (32 bytes = 64 hex chars)
+    const hex = digest.hex();
+    expect(hex).toHaveLength(64);
+  });
+
+  test("digest should be deterministic", () => {
+    const kv1 = new KnownValue(1);
+    const kv2 = new KnownValue(1);
+
+    // Same value should produce same digest
+    expect(kv1.digest().hex()).toBe(kv2.digest().hex());
+  });
+
+  test("different values should produce different digests", () => {
+    const kv1 = new KnownValue(1);
+    const kv2 = new KnownValue(2);
+
+    // Different values should produce different digests
+    expect(kv1.digest().hex()).not.toBe(kv2.digest().hex());
+  });
+
+  test("digest should be based on tagged CBOR encoding", () => {
+    const kv = new KnownValue(1);
+
+    // The digest should be the SHA-256 of the tagged CBOR data
+    const cborData = kv.toCborData();
+
+    // Manually compute what the digest should be
+    // (This verifies the implementation matches Rust's Digest::from_image)
+    const digest = kv.digest();
+
+    // The digest validates against the CBOR data
+    expect(digest.validate(cborData)).toBe(true);
   });
 });

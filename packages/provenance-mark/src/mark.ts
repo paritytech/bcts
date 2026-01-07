@@ -9,7 +9,9 @@ import {
   decodeBytewords,
   encodeBytewordsIdentifier,
   encodeBytemojisIdentifier,
+  UR,
 } from "@bcts/uniform-resources";
+import { Envelope } from "@bcts/envelope";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
 import {
@@ -403,7 +405,7 @@ export class ProvenanceMark {
   }
 
   /**
-   * Encode for URL (minimal bytewords of CBOR).
+   * Encode for URL (minimal bytewords of tagged CBOR).
    */
   toUrlEncoding(): string {
     return encodeBytewords(this.toCborData(), BytewordsStyle.Minimal);
@@ -416,6 +418,27 @@ export class ProvenanceMark {
     const cborData = decodeBytewords(urlEncoding, BytewordsStyle.Minimal);
     const cborValue = decodeCbor(cborData);
     return ProvenanceMark.fromTaggedCbor(cborValue);
+  }
+
+  /**
+   * Get the UR string representation (e.g., "ur:provenance/...").
+   */
+  urString(): string {
+    const ur = UR.new("provenance", this.untaggedCbor());
+    return ur.string();
+  }
+
+  /**
+   * Create from a UR string.
+   */
+  static fromURString(urString: string): ProvenanceMark {
+    const ur = UR.fromURString(urString);
+    if (ur.urTypeStr() !== "provenance") {
+      throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+        message: `Expected UR type 'provenance', got '${ur.urTypeStr()}'`,
+      });
+    }
+    return ProvenanceMark.fromUntaggedCbor(ur.cbor());
   }
 
   /**
@@ -582,6 +605,51 @@ export class ProvenanceMark {
     }
 
     return new ProvenanceMark(res, key, hash, chainId, seqBytes, dateBytes, infoBytes, seq, date);
+  }
+
+  // ============================================================================
+  // Envelope Support (EnvelopeEncodable)
+  // ============================================================================
+
+  /**
+   * Convert this provenance mark to a Gordian Envelope.
+   *
+   * The envelope contains the tagged CBOR representation of the mark.
+   *
+   * Note: Use provenanceMarkToEnvelope() for a standalone function alternative.
+   */
+  intoEnvelope(): Envelope {
+    return Envelope.new(this.toCborData());
+  }
+
+  /**
+   * Extract a ProvenanceMark from a Gordian Envelope.
+   *
+   * @param envelope - The envelope to extract from
+   * @returns The extracted provenance mark
+   * @throws ProvenanceMarkError if extraction fails
+   */
+  static fromEnvelope(envelope: Envelope): ProvenanceMark {
+    // The envelope contains the CBOR-encoded bytes of the mark
+    // Use asByteString to extract the raw bytes, then decode
+    const bytes = envelope.asByteString();
+    if (bytes !== undefined) {
+      return ProvenanceMark.fromCborData(bytes);
+    }
+
+    // Try extracting from subject if it's a node
+    const envCase = envelope.case();
+    if (envCase.type === "node") {
+      const subject = envCase.subject;
+      const subjectBytes = subject.asByteString();
+      if (subjectBytes !== undefined) {
+        return ProvenanceMark.fromCborData(subjectBytes);
+      }
+    }
+
+    throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {
+      message: "Could not extract ProvenanceMark from envelope",
+    });
   }
 }
 

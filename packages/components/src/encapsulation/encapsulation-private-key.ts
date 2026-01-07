@@ -39,6 +39,8 @@ import { type EncapsulationCiphertext } from "./encapsulation-ciphertext.js";
 import { EncapsulationPublicKey } from "./encapsulation-public-key.js";
 import { CryptoError } from "../error.js";
 import { bytesToHex } from "../utils.js";
+import { Reference, type ReferenceProvider } from "../reference.js";
+import { Digest } from "../digest.js";
 
 /**
  * Represents a private key for key encapsulation.
@@ -46,7 +48,11 @@ import { bytesToHex } from "../utils.js";
  * Use this to decapsulate a shared secret from ciphertext.
  */
 export class EncapsulationPrivateKey
-  implements CborTaggedEncodable, CborTaggedDecodable<EncapsulationPrivateKey>, UREncodable
+  implements
+    ReferenceProvider,
+    CborTaggedEncodable,
+    CborTaggedDecodable<EncapsulationPrivateKey>,
+    UREncodable
 {
   private readonly _scheme: EncapsulationScheme;
   private readonly _x25519PrivateKey: X25519PrivateKey | undefined;
@@ -235,6 +241,21 @@ export class EncapsulationPrivateKey
       default:
         return `EncapsulationPrivateKey(${String(this._scheme)})`;
     }
+  }
+
+  // ============================================================================
+  // ReferenceProvider Interface
+  // ============================================================================
+
+  /**
+   * Returns a unique reference to this EncapsulationPrivateKey instance.
+   *
+   * The reference is derived from the SHA-256 hash of the tagged CBOR
+   * representation, providing a unique, content-addressable identifier.
+   */
+  reference(): Reference {
+    const digest = Digest.fromImage(this.taggedCborData());
+    return Reference.from(digest);
   }
 
   // ============================================================================

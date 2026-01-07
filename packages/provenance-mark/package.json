@@ -80,6 +80,7 @@
   },
   "dependencies": {
     "@bcts/dcbor": "workspace:*",
+    "@bcts/envelope": "workspace:*",
     "@bcts/rand": "workspace:*",
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",

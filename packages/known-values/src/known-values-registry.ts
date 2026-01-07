@@ -3,6 +3,137 @@ import { KnownValuesStore } from "./known-values-store";
 
 // For definitions see: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2023-002-known-value.md#appendix-a-registry
 
+// =============================================================================
+// Raw Value Constants (_RAW)
+// =============================================================================
+// These constants provide direct access to the raw numeric values for pattern
+// matching scenarios. They mirror the Rust implementation which creates both
+// XXX_RAW and XXX constants for each known value.
+
+// General
+export const UNIT_RAW = 0n;
+export const IS_A_RAW = 1n;
+export const ID_RAW = 2n;
+export const SIGNED_RAW = 3n;
+export const NOTE_RAW = 4n;
+export const HAS_RECIPIENT_RAW = 5n;
+export const SSKR_SHARE_RAW = 6n;
+export const CONTROLLER_RAW = 7n;
+export const KEY_RAW = 8n;
+export const DEREFERENCE_VIA_RAW = 9n;
+export const ENTITY_RAW = 10n;
+export const NAME_RAW = 11n;
+export const LANGUAGE_RAW = 12n;
+export const ISSUER_RAW = 13n;
+export const HOLDER_RAW = 14n;
+export const SALT_RAW = 15n;
+export const DATE_RAW = 16n;
+export const UNKNOWN_VALUE_RAW = 17n;
+export const VERSION_VALUE_RAW = 18n;
+export const HAS_SECRET_RAW = 19n;
+export const DIFF_EDITS_RAW = 20n;
+export const VALID_FROM_RAW = 21n;
+export const VALID_UNTIL_RAW = 22n;
+export const POSITION_RAW = 23n;
+export const NICKNAME_RAW = 24n;
+
+// Attachments
+export const ATTACHMENT_RAW = 50n;
+export const VENDOR_RAW = 51n;
+export const CONFORMS_TO_RAW = 52n;
+
+// XID Documents
+export const ALLOW_RAW = 60n;
+export const DENY_RAW = 61n;
+export const ENDPOINT_RAW = 62n;
+export const DELEGATE_RAW = 63n;
+export const PROVENANCE_RAW = 64n;
+export const PRIVATE_KEY_RAW = 65n;
+export const SERVICE_RAW = 66n;
+export const CAPABILITY_RAW = 67n;
+export const PROVENANCE_GENERATOR_RAW = 68n;
+
+// XID Privileges
+export const PRIVILEGE_ALL_RAW = 70n;
+export const PRIVILEGE_AUTH_RAW = 71n;
+export const PRIVILEGE_SIGN_RAW = 72n;
+export const PRIVILEGE_ENCRYPT_RAW = 73n;
+export const PRIVILEGE_ELIDE_RAW = 74n;
+export const PRIVILEGE_ISSUE_RAW = 75n;
+export const PRIVILEGE_ACCESS_RAW = 76n;
+export const PRIVILEGE_DELEGATE_RAW = 80n;
+export const PRIVILEGE_VERIFY_RAW = 81n;
+export const PRIVILEGE_UPDATE_RAW = 82n;
+export const PRIVILEGE_TRANSFER_RAW = 83n;
+export const PRIVILEGE_ELECT_RAW = 84n;
+export const PRIVILEGE_BURN_RAW = 85n;
+export const PRIVILEGE_REVOKE_RAW = 86n;
+
+// Expression and Function Calls
+export const BODY_RAW = 100n;
+export const RESULT_RAW = 101n;
+export const ERROR_RAW = 102n;
+export const OK_VALUE_RAW = 103n;
+export const PROCESSING_VALUE_RAW = 104n;
+export const SENDER_RAW = 105n;
+export const SENDER_CONTINUATION_RAW = 106n;
+export const RECIPIENT_CONTINUATION_RAW = 107n;
+export const CONTENT_RAW = 108n;
+
+// Cryptography
+export const SEED_TYPE_RAW = 200n;
+export const PRIVATE_KEY_TYPE_RAW = 201n;
+export const PUBLIC_KEY_TYPE_RAW = 202n;
+export const MASTER_KEY_TYPE_RAW = 203n;
+
+// Cryptocurrency Assets
+export const ASSET_RAW = 300n;
+export const BITCOIN_VALUE_RAW = 301n;
+export const ETHEREUM_VALUE_RAW = 302n;
+export const TEZOS_VALUE_RAW = 303n;
+
+// Cryptocurrency Networks
+export const NETWORK_RAW = 400n;
+export const MAIN_NET_VALUE_RAW = 401n;
+export const TEST_NET_VALUE_RAW = 402n;
+
+// Bitcoin
+export const BIP32_KEY_TYPE_RAW = 500n;
+export const CHAIN_CODE_RAW = 501n;
+export const DERIVATION_PATH_TYPE_RAW = 502n;
+export const PARENT_PATH_RAW = 503n;
+export const CHILDREN_PATH_RAW = 504n;
+export const PARENT_FINGERPRINT_RAW = 505n;
+export const PSBT_TYPE_RAW = 506n;
+export const OUTPUT_DESCRIPTOR_TYPE_RAW = 507n;
+export const OUTPUT_DESCRIPTOR_RAW = 508n;
+
+// Graphs
+export const GRAPH_RAW = 600n;
+export const SOURCE_TARGET_GRAPH_RAW = 601n;
+export const PARENT_CHILD_GRAPH_RAW = 602n;
+export const DIGRAPH_RAW = 603n;
+export const ACYCLIC_GRAPH_RAW = 604n;
+export const MULTIGRAPH_RAW = 605n;
+export const PSEUDOGRAPH_RAW = 606n;
+export const GRAPH_FRAGMENT_RAW = 607n;
+export const DAG_RAW = 608n;
+export const TREE_RAW = 609n;
+export const FOREST_RAW = 610n;
+export const COMPOUND_GRAPH_RAW = 611n;
+export const HYPERGRAPH_RAW = 612n;
+export const DIHYPERGRAPH_RAW = 613n;
+export const NODE_RAW = 700n;
+export const EDGE_RAW = 701n;
+export const SOURCE_RAW = 702n;
+export const TARGET_RAW = 703n;
+export const PARENT_RAW = 704n;
+export const CHILD_RAW = 705n;
+
+// =============================================================================
+// KnownValue Constants
+// =============================================================================
+
 //
 // General
 //

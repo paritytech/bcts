@@ -88,3 +88,13 @@ export {
 
 // Mark Info
 export { ProvenanceMarkInfo } from "./mark-info.js";
+
+// Envelope support
+export {
+  registerTags,
+  registerTagsIn,
+  provenanceMarkToEnvelope,
+  provenanceMarkFromEnvelope,
+  provenanceMarkGeneratorToEnvelope,
+  provenanceMarkGeneratorFromEnvelope,
+} from "./envelope.js";

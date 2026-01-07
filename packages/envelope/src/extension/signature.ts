@@ -395,4 +395,269 @@ if (Envelope?.prototype) {
         throw EnvelopeError.general("Invalid signature assertion");
       });
   };
+
+  /**
+   * Adds multiple signatures with optional metadata.
+   */
+  Envelope.prototype.addSignaturesWithMetadata = function (
+    this: Envelope,
+    signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
+  ): Envelope {
+    return signersWithMetadata.reduce(
+      (envelope, { signer, metadata }) => envelope.addSignatureWithMetadata(signer, metadata),
+      this,
+    );
+  };
+
+  /**
+   * Returns whether the envelope's subject has valid signatures from all of the given keys.
+   */
+  Envelope.prototype.hasSignaturesFrom = function (
+    this: Envelope,
+    verifiers: Verifier[],
+  ): boolean {
+    return this.hasSignaturesFromThreshold(verifiers, verifiers.length);
+  };
+
+  /**
+   * Returns whether the envelope's subject has at least `threshold` valid signatures
+   * from the given keys.
+   *
+   * If `threshold` is undefined, all signers must have signed.
+   */
+  Envelope.prototype.hasSignaturesFromThreshold = function (
+    this: Envelope,
+    verifiers: Verifier[],
+    threshold?: number,
+  ): boolean {
+    const requiredCount = threshold ?? verifiers.length;
+    let count = 0;
+    for (const verifier of verifiers) {
+      if (this.hasSignatureFrom(verifier)) {
+        count++;
+        if (count >= requiredCount) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  /**
+   * Verifies that all given keys have signed this envelope.
+   * Throws if not all signatures are valid.
+   */
+  Envelope.prototype.verifySignaturesFrom = function (
+    this: Envelope,
+    verifiers: Verifier[],
+  ): Envelope {
+    return this.verifySignaturesFromThreshold(verifiers, verifiers.length);
+  };
+
+  /**
+   * Verifies that at least `threshold` of the given keys have signed this envelope.
+   * Throws if not enough signatures are valid.
+   */
+  Envelope.prototype.verifySignaturesFromThreshold = function (
+    this: Envelope,
+    verifiers: Verifier[],
+    threshold?: number,
+  ): Envelope {
+    if (!this.hasSignaturesFromThreshold(verifiers, threshold)) {
+      throw EnvelopeError.unverifiedSignature();
+    }
+    return this;
+  };
+
+  /**
+   * Returns whether the envelope's subject has a valid signature from the given key,
+   * returning the signature metadata envelope if found.
+   */
+  Envelope.prototype.hasSignatureFromReturningMetadata = function (
+    this: Envelope,
+    verifier: Verifier,
+  ): Envelope | undefined {
+    const subjectDigest = this.subject().digest();
+    const signatures = this.signatures();
+
+    for (const sigEnvelope of signatures) {
+      const c = sigEnvelope.case();
+
+      if (c.type === "leaf") {
+        try {
+          const sigData = sigEnvelope.asByteString();
+          if (sigData !== undefined) {
+            const signature = new Signature(sigData);
+            if (verifier.verify(subjectDigest.data(), signature)) {
+              return sigEnvelope;
+            }
+          }
+        } catch {
+          continue;
+        }
+      } else if (c.type === "node") {
+        const outerSigs = sigEnvelope.assertions().filter((a) => {
+          const aC = a.case();
+          if (aC.type === "assertion") {
+            const pred = aC.assertion.predicate();
+            try {
+              return pred.asText() === SIGNED;
+            } catch {
+              return false;
+            }
+          }
+          return false;
+        });
+
+        for (const outerSig of outerSigs) {
+          const outerSigCase = outerSig.case();
+          if (outerSigCase.type === "assertion") {
+            const outerSigObj = outerSigCase.assertion.object();
+            try {
+              const outerSigData = outerSigObj.asByteString();
+              if (outerSigData !== undefined) {
+                const outerSignature = new Signature(outerSigData);
+                const nodeSubject = c.subject;
+                const nodeSubjectCase = nodeSubject.case();
+
+                if (
+                  nodeSubjectCase.type === "wrapped" &&
+                  verifier.verify(nodeSubject.digest().data(), outerSignature)
+                ) {
+                  const wrapped = nodeSubjectCase.envelope;
+                  const innerSig = wrapped.subject();
+                  const innerSigData = innerSig.asByteString();
+                  if (innerSigData !== undefined) {
+                    const innerSignature = new Signature(innerSigData);
+                    if (verifier.verify(subjectDigest.data(), innerSignature)) {
+                      // Return the metadata envelope (the wrapped envelope)
+                      return wrapped;
+                    }
+                  }
+                }
+              }
+            } catch {
+              continue;
+            }
+          }
+        }
+      }
+    }
+
+    return undefined;
+  };
+
+  /**
+   * Verifies that the envelope has a valid signature from the given key,
+   * returning the signature metadata envelope.
+   * Throws if no valid signature is found.
+   */
+  Envelope.prototype.verifySignatureFromReturningMetadata = function (
+    this: Envelope,
+    verifier: Verifier,
+  ): Envelope {
+    const metadata = this.hasSignatureFromReturningMetadata(verifier);
+    if (metadata === undefined) {
+      throw EnvelopeError.unverifiedSignature();
+    }
+    return metadata;
+  };
+
+  /**
+   * Signs the entire envelope (subject and assertions) by wrapping it first.
+   * This is a convenience method that wraps the envelope before signing.
+   */
+  Envelope.prototype.sign = function (this: Envelope, signer: Signer): Envelope {
+    return this.wrap().addSignature(signer);
+  };
+
+  /**
+   * Signs the entire envelope with metadata.
+   */
+  Envelope.prototype.signWithMetadata = function (
+    this: Envelope,
+    signer: Signer,
+    metadata?: SignatureMetadata,
+  ): Envelope {
+    return this.wrap().addSignatureWithMetadata(signer, metadata);
+  };
+
+  /**
+   * Verifies that the envelope has a valid signature and unwraps it.
+   * This is a convenience method for envelopes signed with `sign()`.
+   */
+  Envelope.prototype.verify = function (this: Envelope, verifier: Verifier): Envelope {
+    this.verifySignatureFrom(verifier);
+    return this.tryUnwrap();
+  };
+
+  /**
+   * Verifies the envelope's signature and returns both the unwrapped envelope
+   * and signature metadata.
+   */
+  Envelope.prototype.verifyReturningMetadata = function (
+    this: Envelope,
+    verifier: Verifier,
+  ): { envelope: Envelope; metadata: Envelope } {
+    const metadata = this.verifySignatureFromReturningMetadata(verifier);
+    return { envelope: this.tryUnwrap(), metadata };
+  };
+
+  /**
+   * Creates a signed assertion envelope.
+   *
+   * This is a convenience constructor that creates an assertion with the
+   * `signed` predicate and a Signature as the object. Optionally adds a
+   * note to the assertion.
+   *
+   * @param signature - The Signature to include in the assertion
+   * @param note - Optional note to add to the assertion
+   * @returns A new assertion envelope with the signature
+   */
+  Envelope.prototype.makeSignedAssertion = function (
+    this: Envelope,
+    signature: Signature,
+    note?: string,
+  ): Envelope {
+    let envelope = Envelope.newAssertion(SIGNED, signature.data());
+    if (note !== undefined && note !== "") {
+      envelope = envelope.addAssertion(NOTE, note);
+    }
+    return envelope;
+  };
+
+  /**
+   * Returns whether the given signature is valid for this envelope's subject.
+   *
+   * @param signature - The Signature to check
+   * @param verifier - The public key to verify against
+   * @returns true if the signature is valid, false otherwise
+   */
+  Envelope.prototype.isVerifiedSignature = function (
+    this: Envelope,
+    signature: Signature,
+    verifier: Verifier,
+  ): boolean {
+    return verifier.verify(this.digest().data(), signature);
+  };
+
+  /**
+   * Verifies that the given signature is valid for this envelope's subject.
+   * Throws if the signature is not valid.
+   *
+   * @param signature - The Signature to check
+   * @param verifier - The public key to verify against
+   * @returns This envelope (for chaining)
+   * @throws EnvelopeError.unverifiedSignature if the signature is invalid
+   */
+  Envelope.prototype.verifySignature = function (
+    this: Envelope,
+    signature: Signature,
+    verifier: Verifier,
+  ): Envelope {
+    if (!this.isVerifiedSignature(signature, verifier)) {
+      throw EnvelopeError.unverifiedSignature();
+    }
+    return this;
+  };
 }

@@ -43,8 +43,8 @@ describe("SignatureScheme", () => {
   });
 
   describe("defaultSignatureScheme", () => {
-    it("should return Ed25519", () => {
-      expect(defaultSignatureScheme()).toBe(SignatureScheme.Ed25519);
+    it("should return Schnorr (matching Rust bc-components default)", () => {
+      expect(defaultSignatureScheme()).toBe(SignatureScheme.Schnorr);
     });
   });
 

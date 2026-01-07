@@ -4,18 +4,14 @@ import {
   UR,
   URType,
   URError,
+  URDecodeError,
   InvalidSchemeError,
   TypeUnspecifiedError,
   InvalidTypeError,
   UnexpectedTypeError,
   NotSinglePartError,
-  isURTypeChar,
-  isValidURType,
-  validateURType,
   BYTEWORDS,
   BYTEMOJIS,
-  BYTEWORDS_MAP,
-  MINIMAL_BYTEWORDS_MAP,
   isUREncodable,
   isURDecodable,
   isURCodable,
@@ -24,11 +20,29 @@ import {
   BytewordsStyle,
   encodeBytewords,
   decodeBytewords,
-  crc32,
   encodeBytewordsIdentifier,
   encodeBytemojisIdentifier,
 } from "../src";
 import { cbor } from "@bcts/dcbor";
+
+// Import internal utilities for testing internal functionality
+// These are NOT part of the public API but needed for internal tests
+import {
+  isURTypeChar,
+  isValidURType,
+  validateURType,
+  crc32,
+  BYTEWORDS_MAP,
+  MINIMAL_BYTEWORDS_MAP,
+} from "../src/utils";
+import { Xoshiro256, createSeed } from "../src/xoshiro";
+import {
+  FountainEncoder,
+  FountainDecoder,
+  splitMessage,
+  xorBytes,
+  chooseFragments,
+} from "../src/fountain";
 
 describe("URType", () => {
   it("creates a valid UR type with lowercase letters", () => {
@@ -73,7 +87,7 @@ describe("URType", () => {
   });
 });
 
-describe("Utility Functions", () => {
+describe("Internal Utility Functions", () => {
   it("validates UR type characters", () => {
     expect(isURTypeChar("a")).toBe(true);
     expect(isURTypeChar("z")).toBe(true);
@@ -193,6 +207,12 @@ describe("Error Types", () => {
     expect(() => {
       throw new URError("Test error");
     }).toThrow(URError);
+  });
+
+  it("throws URDecodeError", () => {
+    const error = new URDecodeError("test message");
+    expect(error).toBeInstanceOf(URError);
+    expect(error.message).toBe("UR decoder error (test message)");
   });
 
   it("throws InvalidSchemeError", () => {
@@ -331,30 +351,6 @@ describe("MultipartEncoder", () => {
 
     expect(encoder.partsCount()).toBeGreaterThan(0);
   });
-
-  it("checks if encoding is complete", () => {
-    const cborData = cbor(42);
-    const ur = UR.new("bytes", cborData);
-    const encoder = new MultipartEncoder(ur, 100);
-
-    expect(encoder.isComplete()).toBe(false);
-    while (!encoder.isComplete()) {
-      encoder.nextPart();
-    }
-    expect(encoder.isComplete()).toBe(true);
-  });
-
-  it("resets encoder to start", () => {
-    const cborData = cbor(42);
-    const ur = UR.new("bytes", cborData);
-    const encoder = new MultipartEncoder(ur, 100);
-
-    encoder.nextPart();
-    expect(encoder.currentIndex()).toBe(1);
-
-    encoder.reset();
-    expect(encoder.currentIndex()).toBe(0);
-  });
 });
 
 describe("MultipartDecoder", () => {
@@ -417,18 +413,6 @@ describe("MultipartDecoder", () => {
     decoder.receive(ur1.string());
 
     expect(() => decoder.receive(ur2.string())).toThrow(UnexpectedTypeError);
-  });
-
-  it("resets decoder", () => {
-    const cborData = cbor(42);
-    const ur = UR.new("bytes", cborData);
-
-    const decoder = new MultipartDecoder();
-    decoder.receive(ur.string());
-
-    decoder.reset();
-    expect(decoder.isComplete()).toBe(false);
-    expect(decoder.message()).toBeNull();
   });
 });
 
@@ -574,7 +558,7 @@ describe("Bytewords encoding tests", () => {
   });
 });
 
-describe("CRC32 tests", () => {
+describe("CRC32 tests (internal)", () => {
   it("calculates CRC32 for empty data", () => {
     const data = new Uint8Array([]);
     const checksum = crc32(data);
@@ -660,20 +644,11 @@ describe("User's UR example test", () => {
 });
 
 // =============================================================================
-// FOUNTAIN CODE TESTS
+// INTERNAL FOUNTAIN CODE TESTS
+// These test internal functionality (not part of public API)
 // =============================================================================
 
-import {
-  Xoshiro256,
-  createSeed,
-  FountainEncoder,
-  FountainDecoder,
-  splitMessage,
-  xorBytes,
-  chooseFragments,
-} from "../src";
-
-describe("Xoshiro256** PRNG", () => {
+describe("Xoshiro256** PRNG (internal)", () => {
   it("creates a PRNG from seed", () => {
     const seed = new Uint8Array([1, 2, 3, 4]);
     const rng = new Xoshiro256(seed);
@@ -735,7 +710,7 @@ describe("Xoshiro256** PRNG", () => {
   });
 });
 
-describe("createSeed", () => {
+describe("createSeed (internal)", () => {
   it("creates 8-byte seed from checksum and seqNum", () => {
     const seed = createSeed(0x12345678, 1);
     expect(seed.length).toBe(8);
@@ -757,7 +732,7 @@ describe("createSeed", () => {
   });
 });
 
-describe("splitMessage", () => {
+describe("splitMessage (internal)", () => {
   it("splits message into fragments", () => {
     const message = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     const fragments = splitMessage(message, 3);
@@ -792,7 +767,7 @@ describe("splitMessage", () => {
   });
 });
 
-describe("xorBytes", () => {
+describe("xorBytes (internal)", () => {
   it("XORs two equal-length arrays", () => {
     const a = new Uint8Array([0b11110000, 0b10101010]);
     const b = new Uint8Array([0b00001111, 0b01010101]);
@@ -823,7 +798,7 @@ describe("xorBytes", () => {
   });
 });
 
-describe("chooseFragments", () => {
+describe("chooseFragments (internal)", () => {
   it("returns single fragment for pure parts", () => {
     const indices = chooseFragments(1, 5, 0x12345678);
     expect(indices).toEqual([0]); // seqNum 1 -> index 0
@@ -857,7 +832,7 @@ describe("chooseFragments", () => {
   });
 });
 
-describe("FountainEncoder", () => {
+describe("FountainEncoder (internal)", () => {
   it("creates encoder from message", () => {
     const message = new Uint8Array([1, 2, 3, 4, 5]);
     const encoder = new FountainEncoder(message, 2);
@@ -913,7 +888,7 @@ describe("FountainEncoder", () => {
   });
 });
 
-describe("FountainDecoder", () => {
+describe("FountainDecoder (internal)", () => {
   it("decodes pure fragments", () => {
     const message = new Uint8Array([1, 2, 3, 4, 5, 6]);
     const encoder = new FountainEncoder(message, 2);
@@ -1016,9 +991,12 @@ describe("Multipart UR round-trip", () => {
     const decoder = new MultipartDecoder();
     const parts: string[] = [];
 
-    while (!encoder.isComplete()) {
+    // Use internal FountainEncoder to check completion
+    const fountainEncoder = new FountainEncoder(ur.cbor().toData(), 10);
+    while (!fountainEncoder.isComplete()) {
       const part = encoder.nextPart();
       parts.push(part);
+      fountainEncoder.nextPart(); // Keep in sync
     }
 
     // Feed parts to decoder

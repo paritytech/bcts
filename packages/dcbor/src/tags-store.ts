@@ -9,17 +9,26 @@
 
 import type { Cbor, CborNumber } from "./cbor";
 import type { Tag } from "./tag";
+import type { Error as CborErrorType } from "./error";
+
+/**
+ * Result type for summarizer functions, matching Rust's Result<String, Error>.
+ */
+export type SummarizerResult =
+  | { readonly ok: true; readonly value: string }
+  | { readonly ok: false; readonly error: CborErrorType };
 
 /**
  * Function type for custom CBOR value summarizers.
  *
  * Summarizers provide custom string representations for tagged values.
+ * Returns a Result type matching Rust's `Result<String, Error>`.
  *
  * @param cbor - The CBOR value to summarize
  * @param flat - If true, produce single-line output
- * @returns String summary of the value
+ * @returns Result with summary string on success, or error on failure
  */
-export type CborSummarizer = (cbor: Cbor, flat: boolean) => string;
+export type CborSummarizer = (cbor: Cbor, flat: boolean) => SummarizerResult;
 
 /**
  * Interface for tag store operations.
@@ -92,7 +101,13 @@ export class TagsStore implements TagsStoreTrait {
   /**
    * Insert a tag into the registry.
    *
-   * @param tag - The tag to register
+   * Matches Rust's TagsStore::insert() behavior:
+   * - Throws if the tag name is undefined or empty
+   * - Throws if a tag with the same value exists with a different name
+   * - Allows re-registering the same tag value with the same name
+   *
+   * @param tag - The tag to register (must have a non-empty name)
+   * @throws Error if tag has no name, empty name, or conflicts with existing registration
    *
    * @example
    * ```typescript
@@ -101,11 +116,25 @@ export class TagsStore implements TagsStoreTrait {
    * ```
    */
   insert(tag: Tag): void {
-    const key = this.#valueKey(tag.value);
-    this.#tagsByValue.set(key, tag);
-    if (tag.name !== undefined) {
-      this.#tagsByName.set(tag.name, tag);
+    const name = tag.name;
+
+    // Rust: let name = tag.name().unwrap(); assert!(!name.is_empty());
+    if (name === undefined || name === "") {
+      throw new Error(`Tag ${tag.value} must have a non-empty name`);
     }
+
+    const key = this.#valueKey(tag.value);
+    const existing = this.#tagsByValue.get(key);
+
+    // Rust: if old_name != name { panic!(...) }
+    if (existing?.name !== undefined && existing.name !== name) {
+      throw new Error(
+        `Attempt to register tag: ${tag.value} '${existing.name}' with different name: '${name}'`,
+      );
+    }
+
+    this.#tagsByValue.set(key, tag);
+    this.#tagsByName.set(name, tag);
   }
 
   /**
@@ -148,27 +177,6 @@ export class TagsStore implements TagsStoreTrait {
     this.#summarizers.set(key, summarizer);
   }
 
-  /**
-   * Remove a tag from the registry.
-   *
-   * @param tagValue - The numeric tag value to remove
-   * @returns true if a tag was removed, false otherwise
-   */
-  remove(tagValue: CborNumber): boolean {
-    const key = this.#valueKey(tagValue);
-    const tag = this.#tagsByValue.get(key);
-    if (tag === undefined) {
-      return false;
-    }
-
-    this.#tagsByValue.delete(key);
-    if (tag.name !== undefined) {
-      this.#tagsByName.delete(tag.name);
-    }
-    this.#summarizers.delete(key);
-    return true;
-  }
-
   assignedNameForTag(tag: Tag): string | undefined {
     const key = this.#valueKey(tag.value);
     const stored = this.#tagsByValue.get(key);
@@ -196,33 +204,6 @@ export class TagsStore implements TagsStoreTrait {
   summarizer(tag: CborNumber): CborSummarizer | undefined {
     const key = this.#valueKey(tag);
     return this.#summarizers.get(key);
-  }
-
-  /**
-   * Get all registered tags.
-   *
-   * @returns Array of all registered tags
-   */
-  getAllTags(): Tag[] {
-    return Array.from(this.#tagsByValue.values());
-  }
-
-  /**
-   * Clear all registered tags and summarizers.
-   */
-  clear(): void {
-    this.#tagsByValue.clear();
-    this.#tagsByName.clear();
-    this.#summarizers.clear();
-  }
-
-  /**
-   * Get the number of registered tags.
-   *
-   * @returns Number of tags in the registry
-   */
-  get size(): number {
-    return this.#tagsByValue.size;
   }
 
   /**

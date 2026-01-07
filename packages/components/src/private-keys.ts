@@ -41,6 +41,7 @@ import type { SymmetricKey } from "./symmetric/symmetric-key.js";
 import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
 import type { Signature } from "./signing/signature.js";
 import type { Signer } from "./signing/signer.js";
+import type { SigningOptions } from "./signing/signature-scheme.js";
 import type { Decrypter } from "./encrypter.js";
 import { Reference, type ReferenceProvider } from "./reference.js";
 import { Digest } from "./digest.js";
@@ -139,6 +140,13 @@ export class PrivateKeys
   // ============================================================================
   // Signer Interface
   // ============================================================================
+
+  /**
+   * Sign a message with optional signing options using the signing private key.
+   */
+  signWithOptions(message: Uint8Array, options?: SigningOptions): Signature {
+    return this._signingPrivateKey.signWithOptions(message, options);
+  }
 
   /**
    * Sign a message using the signing private key.

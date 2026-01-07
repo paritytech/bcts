@@ -3,9 +3,10 @@
  */
 
 import { describe, it, expect, beforeAll } from "vitest";
-import { type Cbor, cbor, CborMap } from "@bcts/dcbor";
+import { type Cbor, cbor, CborMap, CborDate } from "@bcts/dcbor";
 import { registerTags } from "@bcts/tags";
 import { IS_A, UNIT } from "@bcts/known-values";
+import { UR } from "@bcts/uniform-resources";
 import { parseDcborItem, parseDcborItemPartial } from "../src/parse";
 import { type ParseError, fullErrorMessage } from "../src/error";
 
@@ -399,6 +400,178 @@ describe("parse", () => {
     it("should allow non-duplicate keys", () => {
       const result = parseDcborItem('{"key1": 1, "key2": 2, "key3": 3}');
       expect(result.ok).toBe(true);
+    });
+
+    it("should error on duplicate key with correct location", () => {
+      const input = '{"key1": 1, "key2": 2, "key1": 3}';
+      const result = parseDcborItem(input);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("DuplicateMapKey");
+        // Verify the error message can be formatted
+        const fullMsg = fullErrorMessage(result.error, input);
+        expect(fullMsg).toContain("Duplicate map key");
+        expect(fullMsg).toContain("^"); // Should show caret pointing to the error
+      }
+    });
+  });
+
+  describe("UR parsing", () => {
+    it("should parse UR strings", () => {
+      // Create a date UR - use untaggedCbor() since parseUr adds the tag wrapper
+      const date = CborDate.fromYmd(2025, 5, 15);
+      const ur = UR.new("date", date.untaggedCbor());
+      const urString = ur.string();
+      expect(urString).toMatch(/^ur:date\//);
+
+      const result = parseDcborItem(urString);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        // The parsed result should match the tagged date CBOR
+        expect(result.value.toDiagnostic()).toBe(date.taggedCbor().toDiagnostic());
+      }
+    });
+
+    it("should error on unknown UR type", () => {
+      const result = parseDcborItem("ur:foobar/cyisdadmlasgtapttl");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("UnknownUrType");
+      }
+    });
+
+    it("should error on invalid UR", () => {
+      // Invalid checksum (last character changed)
+      const result = parseDcborItem("ur:date/cyisdadmlasgtapttx");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("InvalidUr");
+      }
+    });
+  });
+
+  describe("named tags", () => {
+    it("should parse named tag (date)", () => {
+      const date = CborDate.fromYmd(2025, 5, 15);
+      const dateCbor = date.taggedCbor();
+      // Replace numeric tag with name: '1(' -> 'date('
+      const dateDiag = dateCbor.toDiagnostic().replace("1(", "date(");
+      const result = parseDcborItem(dateDiag);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.toDiagnostic()).toBe(dateCbor.toDiagnostic());
+      }
+    });
+  });
+
+  describe("nested structures", () => {
+    it("should parse complex nested structures", () => {
+      // Nested array with tagged values, arrays, and maps
+      const nested = cbor([
+        cbor({ tag: 1234, value: cbor(new Uint8Array([0x01, 0x02, 0x03])) }),
+        cbor([cbor(1), cbor(2), cbor(3)]),
+        (() => {
+          const map = new CborMap();
+          map.set(cbor("key1"), cbor("value1"));
+          map.set(cbor("key2"), cbor([cbor(4), cbor(5), cbor(6)]));
+          return cbor(map);
+        })(),
+      ]);
+      roundtrip(nested);
+    });
+  });
+
+  describe("additional whitespace", () => {
+    it("should handle whitespace variant 2", () => {
+      const src = `{"Hello":
+"World"}`;
+      const result = parseDcborItem(src);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const map = new CborMap();
+        map.set(cbor("Hello"), cbor("World"));
+        expect(result.value.toDiagnostic()).toBe(cbor(map).toDiagnostic());
+      }
+    });
+  });
+
+  describe("additional error cases", () => {
+    it("should error on expected comma in map", () => {
+      const result = parseDcborItem("{1: 2 3: 4}");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("ExpectedComma");
+      }
+    });
+
+    it("should error on invalid known value (very large number)", () => {
+      const result = parseDcborItem("'20000000000000000000'");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("InvalidKnownValue");
+      }
+    });
+  });
+
+  describe("date extended tests", () => {
+    it("should parse date with timezone offset", () => {
+      const result = parseDcborItem("2023-02-08T15:30:45+01:00");
+      expect(result.ok).toBe(true);
+    });
+
+    it("should parse date with negative timezone offset", () => {
+      const result = parseDcborItem("2023-02-08T15:30:45-08:00");
+      expect(result.ok).toBe(true);
+    });
+
+    it("should parse date with milliseconds", () => {
+      const result = parseDcborItem("2023-02-08T15:30:45.123Z");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const expected = CborDate.fromString("2023-02-08T15:30:45.123Z");
+        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+      }
+    });
+
+    it("should parse date in map", () => {
+      const result = parseDcborItem('{"start": 2023-01-01, "end": 2023-12-31}');
+      expect(result.ok).toBe(true);
+    });
+
+    it("should parse nested structure with dates", () => {
+      const result = parseDcborItem(
+        '{"events": [2023-01-01T00:00:00Z, 2023-06-15T12:30:00Z], "metadata": {"created": 2023-02-08}}',
+      );
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe("date vs number precedence", () => {
+    it("should parse pure number as number", () => {
+      const result = parseDcborItem("2023");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.toDiagnostic()).toBe("2023");
+      }
+    });
+
+    it("should parse date format as date", () => {
+      const result = parseDcborItem("2023-01-01");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const expected = CborDate.fromYmd(2023, 1, 1);
+        expect(result.value.toDiagnostic()).toBe(expected.taggedCbor().toDiagnostic());
+      }
+    });
+
+    it("should produce different results for number and date", () => {
+      const numberResult = parseDcborItem("2023");
+      const dateResult = parseDcborItem("2023-01-01");
+      expect(numberResult.ok).toBe(true);
+      expect(dateResult.ok).toBe(true);
+      if (numberResult.ok && dateResult.ok) {
+        expect(numberResult.value.toDiagnostic()).not.toBe(dateResult.value.toDiagnostic());
+      }
     });
   });
 });

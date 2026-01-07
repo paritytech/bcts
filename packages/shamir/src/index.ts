@@ -29,17 +29,3 @@ export { ShamirError, ShamirErrorType, type ShamirResult } from "./error.js";
 
 // Main functions
 export { splitSecret, recoverSecret } from "./shamir.js";
-
-// Low-level operations (hazmat)
-export {
-  bitslice,
-  unbitslice,
-  bitsliceSetall,
-  gf256Add,
-  gf256Mul,
-  gf256Square,
-  gf256Inv,
-} from "./hazmat.js";
-
-// Interpolation
-export { interpolate } from "./interpolate.js";

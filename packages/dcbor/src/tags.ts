@@ -148,11 +148,10 @@ export const TAG_SELF_DESCRIBE_CBOR = 55799;
 // Matches Rust's register_tags() functionality
 // ============================================================================
 
-import type { TagsStore } from "./tags-store";
+import type { TagsStore, SummarizerResult } from "./tags-store";
 import { getGlobalTagsStore } from "./tags-store";
 import { CborDate } from "./date";
 import type { Cbor } from "./cbor";
-import { diagnostic } from "./diag";
 
 // Tag constants matching Rust
 export const TAG_DATE = 1;
@@ -169,11 +168,13 @@ export const registerTagsIn = (tagsStore: TagsStore): void => {
   tagsStore.insertAll(tags);
 
   // Set summarizer for date tag
-  tagsStore.setSummarizer(TAG_DATE, (untaggedCbor: Cbor, _flat: boolean): string => {
+  tagsStore.setSummarizer(TAG_DATE, (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
     try {
-      return CborDate.fromUntaggedCbor(untaggedCbor).toString();
-    } catch {
-      return diagnostic(untaggedCbor);
+      return { ok: true, value: CborDate.fromUntaggedCbor(untaggedCbor).toString() };
+    } catch (e) {
+      // On error, return error result matching Rust's Result::Err
+      const message = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: { type: "Custom", message } };
     }
   });
 };
