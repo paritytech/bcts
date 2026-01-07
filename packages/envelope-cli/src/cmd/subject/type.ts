@@ -5,7 +5,7 @@
  */
 
 import type { Exec } from "../../exec.js";
-import { parseDataTypeToEnvelope, type DataType } from "../../data-types.js";
+import { parseDataTypeToEnvelope } from "../../data-types.js";
 import { readSubjectValue, type SubjectArgsLike } from "../../subject-args.js";
 
 /**

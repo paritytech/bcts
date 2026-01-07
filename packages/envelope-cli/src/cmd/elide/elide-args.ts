@@ -64,7 +64,11 @@ export function getAction(args: ElideArgsLike): ObscureAction {
 export function runElide(args: ElideArgsLike, envelope: Envelope, revealing: boolean): Envelope {
   const target = getTargetSet(args);
   const action = getAction(args);
-  return envelope.elideSetWithAction(target, revealing, action);
+  if (revealing) {
+    return envelope.elideRevealingSetWithAction(target, action);
+  } else {
+    return envelope.elideRemovingSetWithAction(target, action);
+  }
 }
 
 /**

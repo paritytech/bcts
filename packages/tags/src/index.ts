@@ -11,3 +11,6 @@
  */
 
 export * from "./tags-registry";
+
+// Re-export getGlobalTagsStore from dcbor for convenience
+export { getGlobalTagsStore, type TagsStore } from "@bcts/dcbor";

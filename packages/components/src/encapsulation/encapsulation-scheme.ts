@@ -27,10 +27,20 @@ export enum EncapsulationScheme {
    */
   X25519 = "x25519",
 
-  // Future: ML-KEM post-quantum schemes
-  // MLKEM512 = "mlkem512",
-  // MLKEM768 = "mlkem768",
-  // MLKEM1024 = "mlkem1024",
+  /**
+   * ML-KEM-512 post-quantum key encapsulation (NIST security level 1).
+   */
+  MLKEM512 = "mlkem512",
+
+  /**
+   * ML-KEM-768 post-quantum key encapsulation (NIST security level 3).
+   */
+  MLKEM768 = "mlkem768",
+
+  /**
+   * ML-KEM-1024 post-quantum key encapsulation (NIST security level 5).
+   */
+  MLKEM1024 = "mlkem1024",
 }
 
 /**

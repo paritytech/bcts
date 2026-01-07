@@ -4,9 +4,11 @@
  * Convert private keys to public keys.
  * Takes a ur:crypto-prvkeys or ur:signing-private-key and converts it to
  * ur:crypto-pubkeys or ur:signing-public-key.
+ *
+ * NOTE: SSH key comment support is not yet implemented in the TypeScript version.
  */
 
-import { PrivateKeys, SigningPrivateKey, PublicKeys, SigningPublicKey } from "@bcts/components";
+import { PrivateKeys, SigningPrivateKey } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 import { readStdinLine } from "../../utils.js";
 
@@ -16,7 +18,7 @@ import { readStdinLine } from "../../utils.js";
 export interface CommandArgs {
   /** The private keys to convert (ur:crypto-prvkeys or ur:signing-private-key) */
   prvKeys?: string;
-  /** The comment for SSH public keys */
+  /** The comment for SSH public keys (not yet implemented) */
   comment: string;
 }
 
@@ -54,16 +56,12 @@ export class PubKeysCommand implements Exec {
     // Try to parse as PrivateKeys first
     try {
       const privateKeys = PrivateKeys.fromURString(urString);
-      let publicKeys = privateKeys.publicKeys();
+      const publicKeys = privateKeys.publicKeys();
 
-      // If a comment is provided and the signing key is SSH, update the comment
-      if (this.args.comment && publicKeys.signingPublicKey().isSsh()) {
-        const sshKey = publicKeys.signingPublicKey().asSsh()!;
-        sshKey.setComment(this.args.comment);
-        publicKeys = PublicKeys.new(
-          SigningPublicKey.ssh(sshKey),
-          publicKeys.encapsulationPublicKey(),
-        );
+      // Note: SSH comment support requires isSsh()/asSsh() methods
+      // which are not yet implemented in @bcts/components
+      if (this.args.comment) {
+        console.warn("Warning: SSH key comment support is not yet implemented");
       }
 
       return publicKeys.urString();
@@ -76,11 +74,9 @@ export class PubKeysCommand implements Exec {
       const signingPrivateKey = SigningPrivateKey.fromURString(urString);
       const signingPublicKey = signingPrivateKey.publicKey();
 
-      // If a comment is provided and the signing key is SSH, update the comment
-      if (this.args.comment && signingPublicKey.isSsh()) {
-        const sshKey = signingPublicKey.asSsh()!;
-        sshKey.setComment(this.args.comment);
-        return SigningPublicKey.ssh(sshKey).urString();
+      // Note: SSH comment support requires isSsh()/asSsh() methods
+      if (this.args.comment) {
+        console.warn("Warning: SSH key comment support is not yet implemented");
       }
 
       return signingPublicKey.urString();

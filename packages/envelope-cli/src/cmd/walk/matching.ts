@@ -4,7 +4,7 @@
  * Find nodes matching obscuration types.
  */
 
-import type { Envelope, ObscureType } from "@bcts/envelope";
+import { type Envelope, ObscureType } from "@bcts/envelope";
 import type { Digest } from "@bcts/components";
 import { outputDigests } from "./index.js";
 
@@ -42,13 +42,13 @@ export function execWithEnvelopeAndTarget(
   const obscureTypes: ObscureType[] = [];
 
   if (args.elided) {
-    obscureTypes.push("elided");
+    obscureTypes.push(ObscureType.Elided);
   }
   if (args.encrypted) {
-    obscureTypes.push("encrypted");
+    obscureTypes.push(ObscureType.Encrypted);
   }
   if (args.compressed) {
-    obscureTypes.push("compressed");
+    obscureTypes.push(ObscureType.Compressed);
   }
 
   const digests = envelope.nodesMatching(target, obscureTypes);

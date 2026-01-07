@@ -541,19 +541,29 @@ export class ProvenanceMark {
 
   /**
    * Detailed debug representation.
+   * Matches Rust format exactly for parity.
    */
   toDebugString(): string {
+    // Format date without milliseconds to match Rust format
+    const dateStr = this._date.toISOString().replace(".000Z", "Z");
     const components = [
       `key: ${bytesToHex(this._key)}`,
       `hash: ${bytesToHex(this._hash)}`,
       `chainID: ${bytesToHex(this._chainId)}`,
       `seq: ${this._seq}`,
-      `date: ${this._date.toISOString()}`,
+      `date: ${dateStr}`,
     ];
 
     const info = this.info();
     if (info !== undefined) {
-      components.push(`info: ${JSON.stringify(info)}`);
+      // Format info as the underlying string value, matching Rust Debug format
+      const textValue = info.asText();
+      if (textValue !== undefined) {
+        components.push(`info: "${textValue}"`);
+      } else {
+        // For non-text values, use diagnostic format
+        components.push(`info: ${info.toDiagnostic()}`);
+      }
     }
 
     return `ProvenanceMark(${components.join(", ")})`;

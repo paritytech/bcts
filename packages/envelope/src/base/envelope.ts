@@ -831,6 +831,12 @@ export class Envelope implements DigestProvider {
   declare removeAssertion: (target: Envelope) => Envelope;
   declare replaceAssertion: (assertion: Envelope, newAssertion: Envelope) => Envelope;
   declare replaceSubject: (subject: Envelope) => Envelope;
+  declare addAssertionEnvelopeSalted: (assertion: Envelope, salted: boolean) => Envelope;
+  declare addAssertionSalted: (
+    predicate: EnvelopeEncodableValue,
+    object: EnvelopeEncodableValue,
+    salted: boolean,
+  ) => Envelope;
 
   // From elide.ts
   declare elide: () => Envelope;
@@ -953,6 +959,28 @@ export class Envelope implements DigestProvider {
   // From walk.ts
   declare walk: <State>(hideNodes: boolean, state: State, visit: Visitor<State>) => void;
 
+  // Digest-related methods
+  declare digests: (levelLimit: number) => Set<Digest>;
+  declare shallowDigests: () => Set<Digest>;
+  declare deepDigests: () => Set<Digest>;
+
+  // Alias methods for Rust API compatibility
+  declare object: () => Envelope;
+  declare predicate: () => Envelope;
+
+  // Additional elision method
+  declare elideSetWithAction: (target: Set<Digest>, action: ObscureAction) => Envelope;
+
+  // UR (Uniform Resource) support methods
+  declare urString: () => string;
+  declare ur: () => unknown; // UR type from @bcts/uniform-resources
+  declare taggedCborData: () => Uint8Array;
+
+  // Static UR methods - declared at class level
+  static fromUrString: (urString: string) => Envelope;
+  static fromURString: (urString: string) => Envelope;
+  static fromUR: (ur: unknown) => Envelope;
+
   // From wrap.ts
   declare wrap: () => Envelope;
   declare tryUnwrap: () => Envelope;
@@ -1006,6 +1034,7 @@ export class Envelope implements DigestProvider {
   // From salt.ts
   declare addSalt: () => Envelope;
   declare addSaltWithLength: (count: number) => Envelope;
+  declare addSaltWithLen: (count: number) => Envelope;
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
   declare addSaltInRange: (min: number, max: number) => Envelope;
 
@@ -1052,4 +1081,29 @@ export class Envelope implements DigestProvider {
 
   // Static methods from leaf.ts
   declare static unit: () => Envelope;
+
+  // From format/notation.ts
+  declare format: () => string;
+  declare formatOpt: (opts: unknown) => string;
+  declare formatFlat: () => string;
+
+  // From format/mermaid.ts
+  declare mermaidFormat: () => string;
+  declare mermaidFormatOpt: (opts: unknown) => string;
+
+  // From secret.ts
+  declare addSecret: (
+    method: unknown,
+    secret: unknown,
+    contentKey: SymmetricKey,
+  ) => Envelope;
+  declare getSecret: (
+    method: unknown,
+    secret: unknown,
+  ) => SymmetricKey;
+
+  // CBOR methods
+  declare toCbor: () => unknown;
+  declare expectLeaf: () => unknown;
+  declare checkTypeValue: (type: unknown) => void;
 }

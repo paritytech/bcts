@@ -200,6 +200,39 @@ export class SigningPublicKey
   }
 
   /**
+   * Returns a human-readable string identifying the key type.
+   * @returns A string like "Ed25519", "Schnorr", "ECDSA", "Sr25519", "MLDSA-44", etc.
+   */
+  keyType(): string {
+    switch (this._type) {
+      case SignatureScheme.Ed25519:
+        return "Ed25519";
+      case SignatureScheme.Schnorr:
+        return "Schnorr";
+      case SignatureScheme.Ecdsa:
+        return "ECDSA";
+      case SignatureScheme.Sr25519:
+        return "Sr25519";
+      case SignatureScheme.MLDSA44:
+        return "MLDSA-44";
+      case SignatureScheme.MLDSA65:
+        return "MLDSA-65";
+      case SignatureScheme.MLDSA87:
+        return "MLDSA-87";
+      case SignatureScheme.SshEd25519:
+        return "SSH-Ed25519";
+      case SignatureScheme.SshDsa:
+        return "SSH-DSA";
+      case SignatureScheme.SshEcdsaP256:
+        return "SSH-ECDSA-P256";
+      case SignatureScheme.SshEcdsaP384:
+        return "SSH-ECDSA-P384";
+      default:
+        return this._type;
+    }
+  }
+
+  /**
    * Returns the underlying Schnorr public key if this is a Schnorr key.
    *
    * @returns The SchnorrPublicKey if this is a Schnorr key, null otherwise
@@ -641,5 +674,117 @@ export class SigningPublicKey
       Ed25519PublicKey.from(new Uint8Array(ED25519_PUBLIC_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromUntaggedCbor(cborValue);
+  }
+
+  // ============================================================================
+  // UR (Uniform Resource) Serialization
+  // ============================================================================
+
+  /**
+   * Get the UR type for signing public keys.
+   */
+  static readonly UR_TYPE = "signing-public-key";
+
+  /**
+   * Returns the UR representation of the signing public key.
+   */
+  ur(): import("@bcts/uniform-resources").UR {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    return UR.new(SigningPublicKey.UR_TYPE, this.taggedCbor());
+  }
+
+  /**
+   * Returns the UR string representation of the signing public key.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Creates a SigningPublicKey from a UR.
+   */
+  static fromUR(ur: import("@bcts/uniform-resources").UR): SigningPublicKey {
+    ur.checkType(SigningPublicKey.UR_TYPE);
+    return SigningPublicKey.fromTaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Creates a SigningPublicKey from a UR string.
+   */
+  static fromURString(urString: string): SigningPublicKey {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    const ur = UR.fromURString(urString);
+    return SigningPublicKey.fromUR(ur);
+  }
+
+  /**
+   * Alias for fromURString for Rust API compatibility.
+   */
+  static fromUrString(urString: string): SigningPublicKey {
+    return SigningPublicKey.fromURString(urString);
+  }
+
+  // ============================================================================
+  // SSH Format
+  // ============================================================================
+
+  /**
+   * Converts the public key to SSH format.
+   * Currently only supports Ed25519 keys.
+   */
+  toSsh(comment?: string): string {
+    if (this._type !== SignatureScheme.Ed25519) {
+      throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
+    }
+    if (!this._ed25519Key) {
+      throw new Error("Ed25519 key not initialized");
+    }
+
+    // SSH format: ssh-ed25519 <base64-encoded-data> [comment]
+    // The data is: 4-byte length of "ssh-ed25519" + "ssh-ed25519" + 4-byte length of key + key bytes
+    const algorithm = "ssh-ed25519";
+    const algorithmBytes = new TextEncoder().encode(algorithm);
+    const keyBytes = this._ed25519Key.data();
+
+    // Build the blob: [4-byte length][algorithm][4-byte length][key]
+    const totalLength = 4 + algorithmBytes.length + 4 + keyBytes.length;
+    const blob = new Uint8Array(totalLength);
+    let offset = 0;
+
+    // Write algorithm length (big-endian)
+    blob[offset++] = (algorithmBytes.length >> 24) & 0xff;
+    blob[offset++] = (algorithmBytes.length >> 16) & 0xff;
+    blob[offset++] = (algorithmBytes.length >> 8) & 0xff;
+    blob[offset++] = algorithmBytes.length & 0xff;
+
+    // Write algorithm
+    blob.set(algorithmBytes, offset);
+    offset += algorithmBytes.length;
+
+    // Write key length (big-endian)
+    blob[offset++] = (keyBytes.length >> 24) & 0xff;
+    blob[offset++] = (keyBytes.length >> 16) & 0xff;
+    blob[offset++] = (keyBytes.length >> 8) & 0xff;
+    blob[offset++] = keyBytes.length & 0xff;
+
+    // Write key
+    blob.set(keyBytes, offset);
+
+    // Base64 encode the blob
+    let base64 = "";
+    const bytes = blob;
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b0 = bytes[i];
+      const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+      const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      base64 += chars[(b0 >> 2) & 0x3f];
+      base64 += chars[((b0 << 4) | (b1 >> 4)) & 0x3f];
+      base64 += i + 1 < bytes.length ? chars[((b1 << 2) | (b2 >> 6)) & 0x3f] : "=";
+      base64 += i + 2 < bytes.length ? chars[b2 & 0x3f] : "=";
+    }
+
+    const result = `${algorithm} ${base64}`;
+    return comment ? `${result} ${comment}` : result;
   }
 }

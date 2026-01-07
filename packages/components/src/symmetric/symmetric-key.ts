@@ -38,6 +38,7 @@ import {
   tagsForValues,
 } from "@bcts/dcbor";
 import { SYMMETRIC_KEY as TAG_SYMMETRIC_KEY } from "@bcts/tags";
+import { UR } from "@bcts/uniform-resources";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 import { Nonce } from "../nonce.js";
@@ -289,5 +290,51 @@ export class SymmetricKey implements CborTaggedEncodable, CborTaggedDecodable<Sy
     const cbor = decodeCbor(data);
     const bytes = expectBytes(cbor);
     return SymmetricKey.fromDataRef(bytes);
+  }
+
+  // ============================================================================
+  // UR (Uniform Resource) Serialization
+  // ============================================================================
+
+  /**
+   * Get the UR type for symmetric keys.
+   */
+  static readonly UR_TYPE = "crypto-key";
+
+  /**
+   * Returns the UR representation of the symmetric key.
+   */
+  ur(): UR {
+    return UR.new(SymmetricKey.UR_TYPE, this.taggedCbor());
+  }
+
+  /**
+   * Returns the UR string representation of the symmetric key.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Creates a SymmetricKey from a UR.
+   */
+  static fromUR(ur: UR): SymmetricKey {
+    ur.checkType(SymmetricKey.UR_TYPE);
+    return SymmetricKey.fromTaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Creates a SymmetricKey from a UR string.
+   */
+  static fromURString(urString: string): SymmetricKey {
+    const ur = UR.fromURString(urString);
+    return SymmetricKey.fromUR(ur);
+  }
+
+  /**
+   * Alias for fromURString for Rust API compatibility.
+   */
+  static fromUrString(urString: string): SymmetricKey {
+    return SymmetricKey.fromURString(urString);
   }
 }

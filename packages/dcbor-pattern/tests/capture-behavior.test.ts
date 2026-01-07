@@ -74,7 +74,7 @@ describe("capture behavior tests", () => {
 
     const itemCaptures = captures.get("item");
     expect(itemCaptures).toBeDefined();
-    expect(itemCaptures!.length).toBeGreaterThan(0);
+    expect(itemCaptures?.length).toBeGreaterThan(0);
 
     // This test documents current behavior and explores syntax options
     // The `search` pattern works correctly for finding elements within arrays
@@ -233,7 +233,7 @@ describe("capture behavior tests", () => {
 
     const itemCaptures = captures.get("item");
     expect(itemCaptures).toBeDefined();
-    expect(itemCaptures!.length).toBeGreaterThan(0);
+    expect(itemCaptures?.length).toBeGreaterThan(0);
     // Should capture at least one 42 (exact behavior may vary based on implementation)
   });
 

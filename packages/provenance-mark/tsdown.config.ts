@@ -13,6 +13,7 @@ export default defineConfig({
   outputOptions: {
     globals: {
       "@bcts/dcbor": "bctsDcbor",
+      "@bcts/envelope": "bctsEnvelope",
       "@bcts/rand": "bctsRand",
       "@bcts/tags": "bctsTags",
       "@bcts/uniform-resources": "bctsUniformResources",

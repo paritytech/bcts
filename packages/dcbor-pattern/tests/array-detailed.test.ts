@@ -49,9 +49,10 @@ describe("array detailed tests", () => {
 
     const arr = cborData.asArray();
     expect(arr).toBeDefined();
-    expect(arr!.length).toBe(1);
+    if (!arr) return;
+    expect(arr.length).toBe(1);
 
-    for (const element of arr!) {
+    for (const element of arr) {
       const pattern = parse("@item(42)");
       const [paths, captures] = getPathsWithCaptures(pattern, element);
 

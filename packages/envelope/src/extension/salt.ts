@@ -129,6 +129,9 @@ if (Envelope?.prototype) {
     return this.addAssertion(SALT, saltBytes);
   };
 
+  /// Alias for addSaltWithLength (Rust API compatibility)
+  Envelope.prototype.addSaltWithLen = Envelope.prototype.addSaltWithLength;
+
   /// Implementation of addSaltBytes()
   Envelope.prototype.addSaltBytes = function (this: Envelope, saltBytes: Uint8Array): Envelope {
     if (saltBytes.length < MIN_SALT_SIZE) {

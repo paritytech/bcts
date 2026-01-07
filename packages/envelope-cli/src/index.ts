@@ -10,26 +10,27 @@ export const VERSION = "1.0.0-alpha.13";
 
 // Core types
 export type { Exec, ExecAsync } from "./exec.js";
-export type { DataType, DataTypeConfig } from "./data-types.js";
+export type { DataType } from "./data-types.js";
 export type { EnvelopeArgsLike } from "./envelope-args.js";
 export type { SubjectArgsLike } from "./subject-args.js";
 export type { PredObjArgsLike } from "./pred-obj-args.js";
 
 // Data type utilities
-export { parseDataType, parseDataTypeToEnvelope, DATA_TYPE_HELP } from "./data-types.js";
+export { parseDataTypeToEnvelope, parseUrToCbor, bytesToHex } from "./data-types.js";
 
 // Utility functions
 export {
   readEnvelope,
-  readFromStdin,
   readStdinBytes,
-  parsePrivateKeyBase,
-  parsePublicKeyBase,
-  parseRecipient,
-  parseSigner,
+  readStdinSync,
+  readStdinLine,
+  readArgument,
+  readPassword,
   parseDigests,
   parseDigestFromUr,
-  STDIN_SENTINEL,
+  envelopeFromUr,
+  ASKPASS_HELP,
+  ASKPASS_LONG_HELP,
 } from "./utils.js";
 
 // Argument helpers

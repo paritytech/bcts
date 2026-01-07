@@ -36,7 +36,7 @@ export class SeedCommand implements Exec {
     let seed: Seed;
     if (this.args.hex !== undefined) {
       const bytes = Buffer.from(this.args.hex, "hex");
-      seed = Seed.newOpt(new Uint8Array(bytes));
+      seed = Seed.from(new Uint8Array(bytes));
     } else {
       const count = this.args.count ?? 16;
       if (count < Seed.MIN_SEED_LENGTH) {

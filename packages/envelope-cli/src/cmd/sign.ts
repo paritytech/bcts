@@ -2,19 +2,15 @@
  * Sign command - 1:1 port of cmd/sign.rs
  *
  * Sign the envelope subject with the provided signer(s).
+ *
+ * NOTE: SSH signature options are not currently supported in the TypeScript
+ * implementation. All keys are signed using their default algorithm.
  */
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import {
-  PrivateKeyBase,
-  PrivateKeys,
-  SigningPrivateKey,
-  SigningOptions,
-  SignatureMetadata,
-  type Signer,
-} from "@bcts/components";
-import { NOTE } from "@bcts/known-values";
+import { PrivateKeys, SigningPrivateKey, type Signer } from "@bcts/components";
+import { SignatureMetadata, NOTE } from "@bcts/envelope";
 
 /**
  * Hash algorithm types for SSH signatures.
@@ -64,41 +60,22 @@ export class SignCommand implements Exec {
       throw new Error("at least one signer must be provided");
     }
 
-    const privateKeyBases: PrivateKeyBase[] = [];
-    const privateKeysVec: PrivateKeys[] = [];
-    const signingPrivateKeys: SigningPrivateKey[] = [];
-    const signingOptions: (SigningOptions | undefined)[] = [];
+    const allSigners: Signer[] = [];
 
     for (const s of this.args.signers) {
-      // Try parsing as different key types
-      try {
-        const key = PrivateKeyBase.fromURString(s);
-        privateKeyBases.push(key);
-        continue;
-      } catch {
-        // Not a PrivateKeyBase
-      }
-
+      // Try parsing as PrivateKeys first (most common for CLI)
       try {
         const key = PrivateKeys.fromURString(s);
-        privateKeysVec.push(key);
+        allSigners.push(key);
         continue;
       } catch {
         // Not a PrivateKeys
       }
 
+      // Try as SigningPrivateKey
       try {
         const key = SigningPrivateKey.fromURString(s);
-        if (key.isSsh()) {
-          signingOptions.push({
-            type: "ssh",
-            namespace: this.args.namespace,
-            hashAlg: this.args.hashType === HashType.Sha512 ? "sha512" : "sha256",
-          });
-        } else {
-          signingOptions.push(undefined);
-        }
-        signingPrivateKeys.push(key);
+        allSigners.push(key);
         continue;
       } catch {
         // Not a SigningPrivateKey
@@ -107,49 +84,21 @@ export class SignCommand implements Exec {
       throw new Error(`invalid signer: ${s}`);
     }
 
-    // Build signers array
-    type SignerEntry = {
-      signer: Signer;
-      options?: SigningOptions;
-      metadata?: SignatureMetadata;
-    };
-
-    const signers: SignerEntry[] = [];
-
-    for (const key of privateKeyBases) {
-      signers.push({ signer: key });
-    }
-
-    for (const key of privateKeysVec) {
-      const options = key.signingPrivateKey().isSsh()
-        ? {
-            type: "ssh" as const,
-            namespace: this.args.namespace,
-            hashAlg:
-              this.args.hashType === HashType.Sha512 ? ("sha512" as const) : ("sha256" as const),
-          }
-        : undefined;
-      signers.push({ signer: key, options });
-    }
-
-    for (let i = 0; i < signingPrivateKeys.length; i++) {
-      signers.push({
-        signer: signingPrivateKeys[i],
-        options: signingOptions[i],
-      });
-    }
-
     // If there's a note, add it to a single signature
     if (this.args.note) {
-      if (signers.length !== 1) {
+      if (allSigners.length !== 1) {
         throw new Error("can only add a note on a single signature");
       }
-      const metadata = SignatureMetadata.new().withAssertion(NOTE, this.args.note);
-      return envelope.addSignatureOpt(signers[0].signer, signers[0].options, metadata).urString();
+      const signer = allSigners[0];
+      if (signer === undefined) {
+        throw new Error("no signer found");
+      }
+      const metadata = SignatureMetadata.new().withAssertion(NOTE.toString(), this.args.note);
+      return envelope.addSignatureWithMetadata(signer, metadata).urString();
     }
 
     // Add all signatures
-    return envelope.addSignaturesOpt(signers).urString();
+    return envelope.addSignatures(allSigners).urString();
   }
 }
 

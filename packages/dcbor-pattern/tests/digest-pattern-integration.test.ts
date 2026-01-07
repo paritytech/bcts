@@ -97,7 +97,6 @@ describe("digest pattern integration", () => {
 
     it("specific digest pattern should not match a different digest", () => {
       const digestValue = Digest.fromImage(new TextEncoder().encode("test data"));
-      const _digestCbor = createDigestCbor(digestValue);
 
       const otherDigest = Digest.fromImage(new TextEncoder().encode("other data"));
       const otherDigestCbor = createDigestCbor(otherDigest);

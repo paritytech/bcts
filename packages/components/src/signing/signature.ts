@@ -199,6 +199,39 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   }
 
   /**
+   * Returns a human-readable string identifying the signature type.
+   * @returns A string like "Ed25519", "Schnorr", "ECDSA", "Sr25519", "MLDSA-44", etc.
+   */
+  signatureType(): string {
+    switch (this._type) {
+      case SignatureScheme.Ed25519:
+        return "Ed25519";
+      case SignatureScheme.Schnorr:
+        return "Schnorr";
+      case SignatureScheme.Ecdsa:
+        return "ECDSA";
+      case SignatureScheme.Sr25519:
+        return "Sr25519";
+      case SignatureScheme.MLDSA44:
+        return "MLDSA-44";
+      case SignatureScheme.MLDSA65:
+        return "MLDSA-65";
+      case SignatureScheme.MLDSA87:
+        return "MLDSA-87";
+      case SignatureScheme.SshEd25519:
+        return "SSH-Ed25519";
+      case SignatureScheme.SshDsa:
+        return "SSH-DSA";
+      case SignatureScheme.SshEcdsaP256:
+        return "SSH-ECDSA-P256";
+      case SignatureScheme.SshEcdsaP384:
+        return "SSH-ECDSA-P384";
+      default:
+        return this._type;
+    }
+  }
+
+  /**
    * Returns the raw signature data.
    */
   data(): Uint8Array {
@@ -478,5 +511,53 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
     const cborValue = decodeCbor(data);
     const dummy = new Signature(SignatureScheme.Ed25519, new Uint8Array(ED25519_SIGNATURE_SIZE));
     return dummy.fromUntaggedCbor(cborValue);
+  }
+
+  // ============================================================================
+  // UR (Uniform Resource) Serialization
+  // ============================================================================
+
+  /**
+   * Get the UR type for signatures.
+   */
+  static readonly UR_TYPE = "signature";
+
+  /**
+   * Returns the UR representation of the signature.
+   */
+  ur(): import("@bcts/uniform-resources").UR {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    return UR.new(Signature.UR_TYPE, this.taggedCbor());
+  }
+
+  /**
+   * Returns the UR string representation of the signature.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Creates a Signature from a UR.
+   */
+  static fromUR(ur: import("@bcts/uniform-resources").UR): Signature {
+    ur.checkType(Signature.UR_TYPE);
+    return Signature.fromTaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Creates a Signature from a UR string.
+   */
+  static fromURString(urString: string): Signature {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    const ur = UR.fromURString(urString);
+    return Signature.fromUR(ur);
+  }
+
+  /**
+   * Alias for fromURString for Rust API compatibility.
+   */
+  static fromUrString(urString: string): Signature {
+    return Signature.fromURString(urString);
   }
 }

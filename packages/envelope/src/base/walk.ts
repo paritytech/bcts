@@ -1,4 +1,5 @@
 import { Envelope } from "./envelope";
+import { Digest } from "./digest";
 
 /// Functions for traversing and manipulating the envelope hierarchy.
 ///
@@ -213,3 +214,74 @@ function walkTree<State>(
 
   return currentState;
 }
+
+// ============================================================================
+// Digest collection methods
+// ============================================================================
+
+/// Implementation of digests()
+/// Returns the set of digests in the envelope, down to the specified level.
+Envelope.prototype.digests = function (this: Envelope, levelLimit: number): Set<Digest> {
+  const result = new Set<Digest>();
+
+  const visitor = (
+    envelope: Envelope,
+    level: number,
+    _incomingEdge: EdgeType,
+    _state: undefined,
+  ): [undefined, boolean] => {
+    if (level < levelLimit) {
+      result.add(envelope.digest());
+      result.add(envelope.subject().digest());
+    }
+    return [undefined, false]; // Continue walking
+  };
+
+  this.walk(false, undefined, visitor);
+  return result;
+};
+
+/// Implementation of deepDigests()
+/// Returns all digests in the envelope at all levels.
+Envelope.prototype.deepDigests = function (this: Envelope): Set<Digest> {
+  return this.digests(Number.MAX_SAFE_INTEGER);
+};
+
+/// Implementation of shallowDigests()
+/// Returns the digests in the envelope down to its second level.
+Envelope.prototype.shallowDigests = function (this: Envelope): Set<Digest> {
+  return this.digests(2);
+};
+
+// ============================================================================
+// Alias methods for Rust API compatibility
+// ============================================================================
+
+/// Implementation of object() - alias for tryObject()
+Envelope.prototype.object = function (this: Envelope): Envelope {
+  return this.tryObject();
+};
+
+/// Implementation of predicate() - alias for tryPredicate()
+Envelope.prototype.predicate = function (this: Envelope): Envelope {
+  return this.tryPredicate();
+};
+
+// ============================================================================
+// CBOR helper methods
+// ============================================================================
+
+/// Implementation of toCbor() - alias for taggedCbor()
+Envelope.prototype.toCbor = function (this: Envelope): unknown {
+  return this.taggedCbor();
+};
+
+/// Implementation of expectLeaf() - returns the leaf CBOR value or throws
+Envelope.prototype.expectLeaf = function (this: Envelope): unknown {
+  return this.tryLeaf();
+};
+
+/// Implementation of checkTypeValue() - validates the envelope has a specific type
+Envelope.prototype.checkTypeValue = function (this: Envelope, type: unknown): void {
+  this.checkType(type as import("./envelope-encodable").EnvelopeEncodableValue);
+};

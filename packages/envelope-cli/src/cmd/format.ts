@@ -113,12 +113,8 @@ export class FormatCommand implements Exec {
         });
 
       case FormatType.Mermaid:
-        return envelope.mermaidFormat({
-          hideNodes: this.args.hideNodes,
-          theme: this.args.theme,
-          monochrome: this.args.monochrome,
-          orientation: this.args.orientation,
-        });
+        // mermaidFormat doesn't take options in current implementation
+        return envelope.mermaidFormat();
 
       case FormatType.Diag:
         return envelope.diagnostic();

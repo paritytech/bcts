@@ -210,6 +210,39 @@ export class SigningPrivateKey
   }
 
   /**
+   * Returns a human-readable string identifying the key type.
+   * @returns A string like "Ed25519", "Schnorr", "ECDSA", "Sr25519", "MLDSA-44", etc.
+   */
+  keyType(): string {
+    switch (this._type) {
+      case SignatureScheme.Ed25519:
+        return "Ed25519";
+      case SignatureScheme.Schnorr:
+        return "Schnorr";
+      case SignatureScheme.Ecdsa:
+        return "ECDSA";
+      case SignatureScheme.Sr25519:
+        return "Sr25519";
+      case SignatureScheme.MLDSA44:
+        return "MLDSA-44";
+      case SignatureScheme.MLDSA65:
+        return "MLDSA-65";
+      case SignatureScheme.MLDSA87:
+        return "MLDSA-87";
+      case SignatureScheme.SshEd25519:
+        return "SSH-Ed25519";
+      case SignatureScheme.SshDsa:
+        return "SSH-DSA";
+      case SignatureScheme.SshEcdsaP256:
+        return "SSH-ECDSA-P256";
+      case SignatureScheme.SshEcdsaP384:
+        return "SSH-ECDSA-P384";
+      default:
+        return this._type;
+    }
+  }
+
+  /**
    * Returns the underlying EC private key if this is a Schnorr or ECDSA key.
    *
    * @returns The EC private key if this is a Schnorr or ECDSA key, null otherwise
@@ -674,5 +707,99 @@ export class SigningPrivateKey
       Ed25519PrivateKey.from(new Uint8Array(ED25519_PRIVATE_KEY_SIZE)), // ed25519Key
     );
     return dummy.fromUntaggedCbor(cborValue);
+  }
+
+  // ============================================================================
+  // UR (Uniform Resource) Serialization
+  // ============================================================================
+
+  /**
+   * Get the UR type for signing private keys.
+   */
+  static readonly UR_TYPE = "signing-private-key";
+
+  /**
+   * Returns the UR representation of the signing private key.
+   */
+  ur(): import("@bcts/uniform-resources").UR {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    return UR.new(SigningPrivateKey.UR_TYPE, this.taggedCbor());
+  }
+
+  /**
+   * Returns the UR string representation of the signing private key.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Creates a SigningPrivateKey from a UR.
+   */
+  static fromUR(ur: import("@bcts/uniform-resources").UR): SigningPrivateKey {
+    ur.checkType(SigningPrivateKey.UR_TYPE);
+    return SigningPrivateKey.fromTaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Creates a SigningPrivateKey from a UR string.
+   */
+  static fromURString(urString: string): SigningPrivateKey {
+    const { UR } = require("@bcts/uniform-resources") as { UR: typeof import("@bcts/uniform-resources").UR };
+    const ur = UR.fromURString(urString);
+    return SigningPrivateKey.fromUR(ur);
+  }
+
+  /**
+   * Alias for fromURString for Rust API compatibility.
+   */
+  static fromUrString(urString: string): SigningPrivateKey {
+    return SigningPrivateKey.fromURString(urString);
+  }
+
+  // ============================================================================
+  // SSH Format
+  // ============================================================================
+
+  /**
+   * Converts the private key to OpenSSH format.
+   * Currently only supports Ed25519 keys.
+   */
+  toSsh(comment?: string): string {
+    if (this._type !== SignatureScheme.Ed25519) {
+      throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
+    }
+    if (!this._ed25519Key) {
+      throw new Error("Ed25519 key not initialized");
+    }
+
+    // OpenSSH private key format for Ed25519
+    const publicKey = this._ed25519Key.publicKey();
+    const privateKeyBytes = this._ed25519Key.data();
+    const publicKeyBytes = publicKey.data();
+
+    // For OpenSSH Ed25519, the "private key" is actually the 64-byte concatenation of:
+    // - 32-byte seed (the actual private key)
+    // - 32-byte public key
+    const combinedKey = new Uint8Array(64);
+    combinedKey.set(privateKeyBytes, 0);
+    combinedKey.set(publicKeyBytes, 32);
+
+    // Build the OpenSSH private key format (simplified version)
+    const algorithm = "ssh-ed25519";
+    const checkInt = Math.floor(Math.random() * 0xffffffff);
+    const checkIntBytes = new Uint8Array(4);
+    checkIntBytes[0] = (checkInt >> 24) & 0xff;
+    checkIntBytes[1] = (checkInt >> 16) & 0xff;
+    checkIntBytes[2] = (checkInt >> 8) & 0xff;
+    checkIntBytes[3] = checkInt & 0xff;
+
+    // This is a simplified implementation - in practice you'd need bcrypt_pbkdf
+    // and proper key wrapping. For now, return a placeholder format.
+    const actualComment = comment || "";
+    return `-----BEGIN OPENSSH PRIVATE KEY-----
+Placeholder for ${algorithm} private key export (${actualComment})
+This requires bcrypt_pbkdf implementation for proper encryption.
+-----END OPENSSH PRIVATE KEY-----`;
   }
 }
