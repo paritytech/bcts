@@ -3,7 +3,7 @@
  * Ported from bc-xid-rust/tests/test_xid_document.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
+import { PrivateKeyBase } from "@bcts/components";
 import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import {
   XIDDocument,
@@ -19,11 +19,11 @@ import {
 describe("XIDDocument", () => {
   describe("Basic creation", () => {
     it("should create XID document from public keys", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
-      const publicKeys = privateKeyBase.publicKeys();
+      const privateKeyBase = PrivateKeyBase.new();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: publicKeys },
+        { type: "publicKeys", publicKeys: publicKeys },
         { type: "none" },
       );
 
@@ -38,7 +38,7 @@ describe("XIDDocument", () => {
     });
 
     it("should create XID document from private key base", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -52,9 +52,9 @@ describe("XIDDocument", () => {
 
     it("should create minimal XID document from XID only", () => {
       // Create a full XIDDocument first to get a valid XID
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const fullDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const xid = fullDoc.xid();
@@ -72,10 +72,10 @@ describe("XIDDocument", () => {
 
   describe("Resolution methods", () => {
     it("should manage resolution methods", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -95,7 +95,7 @@ describe("XIDDocument", () => {
 
   describe("Keys management", () => {
     it("should manage keys", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -107,22 +107,22 @@ describe("XIDDocument", () => {
       expect(inceptionKey).toBeDefined();
 
       // Add another key
-      const privateKeyBase2 = PrivateKeyBase.generate();
-      const key2 = Key.newAllowAll(privateKeyBase2.publicKeys());
+      const privateKeyBase2 = PrivateKeyBase.new();
+      const key2 = Key.newAllowAll(privateKeyBase2.ed25519PublicKeys());
       xidDocument.addKey(key2);
 
       expect(xidDocument.keys().length).toBe(2);
     });
 
     it("should find keys by public key base and reference", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
-      const foundKey = xidDocument.findKeyByPublicKeyBase(privateKeyBase.publicKeys());
+      const foundKey = xidDocument.findKeyByPublicKeys(privateKeyBase.ed25519PublicKeys());
       expect(foundKey).toBeDefined();
 
       const reference = foundKey!.reference();
@@ -132,7 +132,7 @@ describe("XIDDocument", () => {
     });
 
     it("should remove inception key", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -150,32 +150,32 @@ describe("XIDDocument", () => {
     });
 
     it("should identify inception key correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
         { type: "none" },
       );
 
-      expect(xidDocument.isInceptionKey(privateKeyBase.publicKeys())).toBe(true);
+      expect(xidDocument.isInceptionKey(privateKeyBase.ed25519PublicKeys())).toBe(true);
 
       // Add another key that's not inception
-      const privateKeyBase2 = PrivateKeyBase.generate();
-      expect(xidDocument.isInceptionKey(privateKeyBase2.publicKeys())).toBe(false);
+      const privateKeyBase2 = PrivateKeyBase.new();
+      expect(xidDocument.isInceptionKey(privateKeyBase2.ed25519PublicKeys())).toBe(false);
     });
   });
 
   describe("Delegates management", () => {
     it("should manage delegates", () => {
-      const alicePrivateKeyBase = PrivateKeyBase.generate();
+      const alicePrivateKeyBase = PrivateKeyBase.new();
       const aliceXidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase: alicePrivateKeyBase },
         { type: "none" },
       );
 
-      const bobPrivateKeyBase = PrivateKeyBase.generate();
+      const bobPrivateKeyBase = PrivateKeyBase.new();
       const bobXidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: bobPrivateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: bobPrivateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -200,20 +200,20 @@ describe("XIDDocument", () => {
     // Skipped: service reference consistency check has a bug with key references
     it.skip("should manage services with references", () => {
       // Create Alice with key
-      const alicePrivateKeyBase = PrivateKeyBase.generate();
+      const alicePrivateKeyBase = PrivateKeyBase.new();
       const aliceXidDocument = XIDDocument.new(
         {
-          type: "publicKeyBase",
-          publicKeyBase: alicePrivateKeyBase.publicKeys(),
+          type: "publicKeys",
+          publicKeys: alicePrivateKeyBase.ed25519PublicKeys(),
         },
         { type: "none" },
       );
       const aliceKey = aliceXidDocument.inceptionKey()!;
 
       // Create Bob as delegate
-      const bobPrivateKeyBase = PrivateKeyBase.generate();
+      const bobPrivateKeyBase = PrivateKeyBase.new();
       const bobXidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: bobPrivateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: bobPrivateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const bobDelegate = Delegate.new(bobXidDocument);
@@ -239,10 +239,10 @@ describe("XIDDocument", () => {
     });
 
     it("should prevent removing referenced keys", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const key = xidDocument.inceptionKey()!;
@@ -255,24 +255,24 @@ describe("XIDDocument", () => {
 
       // Can't remove key while service references it
       expect(() => {
-        xidDocument.removeKey(privateKeyBase.publicKeys());
+        xidDocument.removeKey(privateKeyBase.ed25519PublicKeys());
       }).toThrow();
 
       // Remove service first
       xidDocument.removeService("https://example.com");
 
       // Now can remove key
-      xidDocument.removeKey(privateKeyBase.publicKeys());
+      xidDocument.removeKey(privateKeyBase.ed25519PublicKeys());
       expect(xidDocument.keys().length).toBe(0);
     });
   });
 
   describe("Provenance", () => {
     it("should create XID document with provenance", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         {
           type: "passphrase",
           passphrase: "test",
@@ -289,7 +289,7 @@ describe("XIDDocument", () => {
   describe.skip("Private key options", () => {
     // Skipped: requires envelope features not yet compatible
     it("should omit private key by default", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -306,7 +306,7 @@ describe("XIDDocument", () => {
     });
 
     it("should include private key when specified", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -323,7 +323,7 @@ describe("XIDDocument", () => {
     });
 
     it("should elide private key when specified", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -342,7 +342,7 @@ describe("XIDDocument", () => {
     });
 
     it("should encrypt private key when specified", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("secure_password");
 
       const xidDocument = XIDDocument.new(
@@ -373,7 +373,7 @@ describe("XIDDocument", () => {
   describe.skip("Signing", () => {
     // Skipped: requires signing APIs not yet compatible
     it("should sign with inception key", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -396,10 +396,10 @@ describe("XIDDocument", () => {
     });
 
     it("should fail signing without inception key private key", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -414,18 +414,18 @@ describe("XIDDocument", () => {
   describe.skip("Document comparison", () => {
     // Skipped: requires envelope round-trip which has issues
     it("should compare documents by XID", () => {
-      const privateKeyBase1 = PrivateKeyBase.generate();
-      const privateKeyBase2 = PrivateKeyBase.generate();
+      const privateKeyBase1 = PrivateKeyBase.new();
+      const privateKeyBase2 = PrivateKeyBase.new();
 
       const xidDocument1 = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase1.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase1.ed25519PublicKeys() },
         { type: "none" },
       );
 
       const xidDocument2 = XIDDocument.fromXid(xidDocument1.xid());
 
       const xidDocument3 = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase2.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase2.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -439,7 +439,7 @@ describe("XIDDocument", () => {
 
   describe("Document cloning", () => {
     it("should clone document correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -460,7 +460,7 @@ describe("XIDDocument", () => {
   describe.skip("Encrypted generator", () => {
     // Skipped: requires encryption APIs not yet compatible
     it("should encrypt and decrypt generator in document", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("generator_password");
 
       const xidDocument = XIDDocument.new(
@@ -497,7 +497,7 @@ describe("XIDDocument", () => {
 
   describe("Changing keys", () => {
     it("should allow changing keys", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -510,8 +510,8 @@ describe("XIDDocument", () => {
       expect(xidDocument.isEmpty()).toBe(true);
 
       // Add new key
-      const privateKeyBase2 = PrivateKeyBase.generate();
-      const key2 = Key.newAllowAll(privateKeyBase2.publicKeys());
+      const privateKeyBase2 = PrivateKeyBase.new();
+      const key2 = Key.newAllowAll(privateKeyBase2.ed25519PublicKeys());
       xidDocument.addKey(key2);
 
       // Document still has same XID but different key
@@ -526,14 +526,14 @@ describe("XIDDocument", () => {
       const password = new TextEncoder().encode("multi_key_password");
 
       // Create document with inception key
-      const inceptionBase = PrivateKeyBase.generate();
+      const inceptionBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase: inceptionBase },
         { type: "none" },
       );
 
       // Add a second key
-      const secondBase = PrivateKeyBase.generate();
+      const secondBase = PrivateKeyBase.new();
       const secondKey = Key.newWithPrivateKeyBase(secondBase);
       xidDocument.addKey(secondKey);
 
@@ -556,7 +556,7 @@ describe("XIDDocument", () => {
   describe.skip("Mode switching", () => {
     // Skipped: requires encryption and envelope features not yet compatible
     it("should switch between storage modes", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("mode_switch_password");
 
       const xidDocument = XIDDocument.new(
@@ -592,9 +592,9 @@ describe("XIDDocument", () => {
   describe("Empty document", () => {
     it("should correctly identify empty documents", () => {
       // Create a full XIDDocument first to get a valid XID
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const fullDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const xid = fullDoc.xid();
@@ -621,10 +621,10 @@ describe("XIDDocument", () => {
 
   describe("Reference calculation", () => {
     it("should calculate document reference from XID", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 

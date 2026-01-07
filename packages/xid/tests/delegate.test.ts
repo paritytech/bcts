@@ -3,23 +3,23 @@
  * Ported from bc-xid-rust/tests/delegate.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
+import { PrivateKeyBase } from "@bcts/components";
 import { Delegate, XIDDocument, Privilege } from "../src";
 
 describe("Delegate", () => {
   it("should create delegate with controller and permissions", () => {
     // Create Alice's XIDDocument
-    const alicePrivateKeyBase = PrivateKeyBase.generate();
+    const alicePrivateKeyBase = PrivateKeyBase.new();
     const aliceXidDocument = XIDDocument.new(
       { type: "privateKeyBase", privateKeyBase: alicePrivateKeyBase },
       { type: "none" },
     );
 
     // Create Bob's XIDDocument
-    const bobPrivateKeyBase = PrivateKeyBase.generate();
-    const bobPublicKeys = bobPrivateKeyBase.publicKeys();
+    const bobPrivateKeyBase = PrivateKeyBase.new();
+    const bobPublicKeys = bobPrivateKeyBase.ed25519PublicKeys();
     const bobXidDocument = XIDDocument.new(
-      { type: "publicKeyBase", publicKeyBase: bobPublicKeys },
+      { type: "publicKeys", publicKeys: bobPublicKeys },
       { type: "none" },
     );
 
@@ -55,9 +55,9 @@ describe("Delegate", () => {
 
   describe("Delegate properties", () => {
     it("should get controller XID", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -66,9 +66,9 @@ describe("Delegate", () => {
     });
 
     it("should access controller through shared reference", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -78,9 +78,9 @@ describe("Delegate", () => {
     });
 
     it("should get delegate reference", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -92,9 +92,9 @@ describe("Delegate", () => {
 
   describe("Delegate permissions", () => {
     it("should manage delegate permissions", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -109,15 +109,15 @@ describe("Delegate", () => {
 
   describe("Delegate equality and cloning", () => {
     it("should compare delegates by XID", () => {
-      const privateKeyBase1 = PrivateKeyBase.generate();
+      const privateKeyBase1 = PrivateKeyBase.new();
       const xidDocument1 = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase1.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase1.ed25519PublicKeys() },
         { type: "none" },
       );
 
-      const privateKeyBase2 = PrivateKeyBase.generate();
+      const privateKeyBase2 = PrivateKeyBase.new();
       const xidDocument2 = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase2.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase2.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -130,9 +130,9 @@ describe("Delegate", () => {
     });
 
     it("should clone delegate correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -147,9 +147,9 @@ describe("Delegate", () => {
 
   describe("Delegate hash key", () => {
     it("should use XID hex as hash key", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 

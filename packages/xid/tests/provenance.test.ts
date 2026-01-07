@@ -3,7 +3,7 @@
  * Ported from bc-xid-rust/tests/provenance.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
+import { PrivateKeyBase } from "@bcts/components";
 import { ProvenanceMarkGenerator, ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { cbor } from "@bcts/dcbor";
 import { Provenance, XIDGeneratorOptions, XIDDocument } from "../src";
@@ -199,13 +199,13 @@ describe("Provenance", () => {
 
   describe("Advancing provenance marks", () => {
     it("should advance with embedded generator", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const passphrase = "test_passphrase";
       const date1 = new Date(Date.UTC(2025, 0, 1));
 
       const xidDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         {
           type: "passphrase",
           passphrase,
@@ -249,7 +249,7 @@ describe("Provenance", () => {
       const mark1 = generator.next(date1, cbor("Genesis mark"));
 
       // Create XID document WITHOUT embedded generator
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocBase = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
         { type: "none" },
@@ -279,7 +279,7 @@ describe("Provenance", () => {
 
   describe("Provenance errors", () => {
     it("should error when advancing without provenance mark", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDoc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
 
@@ -298,7 +298,7 @@ describe("Provenance", () => {
       const mark = generator.next(date, cbor("Test"));
 
       // Create XID document with mark but no generator
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocBase = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
         { type: "none" },
@@ -314,10 +314,10 @@ describe("Provenance", () => {
     it("should error on generator conflict", () => {
       const passphrase = "test_passphrase";
       const date = new Date(Date.UTC(2025, 0, 1));
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const xidDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         {
           type: "passphrase",
           passphrase,
@@ -349,7 +349,7 @@ describe("Provenance", () => {
       const mark1 = generator1.next(date1, cbor("Test"));
 
       // Create XID document with mark but no embedded generator
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocBase = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
         { type: "none" },
@@ -382,7 +382,7 @@ describe("Provenance", () => {
       generator.next(date2, cbor("Test"));
 
       // Create XID document with mark at seq 0
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocBase = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
         { type: "none" },

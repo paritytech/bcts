@@ -7,7 +7,7 @@
  * Ported from bc-xid-rust/tests/test_xid_document.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
+import { PrivateKeyBase } from "@bcts/components";
 import { makeFakeRandomNumberGenerator } from "@bcts/rand";
 import { XID } from "@bcts/components";
 import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
@@ -25,7 +25,7 @@ import {
 // Helper to create a deterministic PrivateKeyBase
 function makeFakePrivateKeyBase(): PrivateKeyBase {
   const rng = makeFakeRandomNumberGenerator();
-  return PrivateKeyBase.generateUsing(rng);
+  return PrivateKeyBase.newUsing(rng);
 }
 
 // Helper to create multiple deterministic PrivateKeyBases
@@ -33,7 +33,7 @@ function makeFakePrivateKeyBases(count: number): PrivateKeyBase[] {
   const rng = makeFakeRandomNumberGenerator();
   const result: PrivateKeyBase[] = [];
   for (let i = 0; i < count; i++) {
-    result.push(PrivateKeyBase.generateUsing(rng));
+    result.push(PrivateKeyBase.newUsing(rng));
   }
   return result;
 }
@@ -42,10 +42,10 @@ describe("XID Document Test Vectors", () => {
   describe("Basic XID Document", () => {
     it("should create XID document with deterministic key and verify XID format", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
-      const publicKeys = privateKeyBase.publicKeys();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: publicKeys },
+        { type: "publicKeys", publicKeys: publicKeys },
         { type: "none" },
       );
 
@@ -70,10 +70,10 @@ describe("XID Document Test Vectors", () => {
 
     it("should verify deterministic XID matches expected value", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
-      const publicKeys = privateKeyBase.publicKeys();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: publicKeys },
+        { type: "publicKeys", publicKeys: publicKeys },
         { type: "none" },
       );
 
@@ -94,7 +94,7 @@ describe("XID Document Test Vectors", () => {
 
       // Create document with key first to get XID
       const tempDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const xid = tempDoc.xid();
@@ -121,7 +121,7 @@ describe("XID Document Test Vectors", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -172,7 +172,7 @@ describe("XID Document Test Vectors", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         {
           type: "passphrase",
           passphrase: "test",
@@ -271,7 +271,7 @@ describe("XID Document Test Vectors", () => {
       expect(xidDocument.isEmpty()).toBe(true);
 
       // Add new key
-      const newKey = Key.newAllowAll(privateKeyBase2.publicKeys());
+      const newKey = Key.newAllowAll(privateKeyBase2.ed25519PublicKeys());
       xidDocument.addKey(newKey);
 
       // Same XID, different key
@@ -292,14 +292,14 @@ describe("XID Document Test Vectors", () => {
 
       // Create Alice's document
       const aliceDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: aliceBase.publicKeys() },
+        { type: "publicKeys", publicKeys: aliceBase.ed25519PublicKeys() },
         { type: "none" },
       );
       const aliceKey = aliceDoc.inceptionKey()!;
 
       // Create Bob's document
       const bobDoc = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: bobBase.publicKeys() },
+        { type: "publicKeys", publicKeys: bobBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -379,7 +379,7 @@ describe("Signing Options Tests", () => {
 
       // Create with public key only
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -484,7 +484,7 @@ describe("XID Identifier Format Tests", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -505,7 +505,7 @@ describe("XID Identifier Format Tests", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -531,7 +531,7 @@ describe("XID Document Envelope Encoding", () => {
     const privateKeyBase = makeFakePrivateKeyBase();
 
     const xidDocument = XIDDocument.new(
-      { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+      { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
       { type: "none" },
     );
 

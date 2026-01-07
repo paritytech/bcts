@@ -3,19 +3,18 @@
  * Ported from bc-xid-rust/tests/service.rs
  */
 
-import { PrivateKeyBase } from "@bcts/envelope";
-import { Reference } from "@bcts/components";
+import { PrivateKeyBase } from "@bcts/components";
 import { Service, XIDDocument, Privilege } from "../src";
 
 describe("Service", () => {
   it("should create service with keys, delegates, permissions, and capabilities", () => {
-    const alicePrivateKeyBase = PrivateKeyBase.generate();
-    const alicePublicKeys = alicePrivateKeyBase.publicKeys();
+    const alicePrivateKeyBase = PrivateKeyBase.new();
+    const alicePublicKeys = alicePrivateKeyBase.ed25519PublicKeys();
 
-    const bobPrivateKeyBase = PrivateKeyBase.generate();
-    const bobPublicKeys = bobPrivateKeyBase.publicKeys();
+    const bobPrivateKeyBase = PrivateKeyBase.new();
+    const bobPublicKeys = bobPrivateKeyBase.ed25519PublicKeys();
     const bobXidDocument = XIDDocument.new(
-      { type: "publicKeyBase", publicKeyBase: bobPublicKeys },
+      { type: "publicKeys", publicKeys: bobPublicKeys },
       {
         type: "passphrase",
         passphrase: "test",
@@ -25,7 +24,7 @@ describe("Service", () => {
     const service = Service.new("https://example.com");
 
     // Add key reference
-    const aliceKeyRef = Reference.hash(alicePublicKeys.data());
+    const aliceKeyRef = alicePublicKeys.reference();
     service.addKeyReference(aliceKeyRef);
     // Adding same key again should throw
     expect(() => service.addKeyReference(aliceKeyRef)).toThrow();
@@ -85,20 +84,20 @@ describe("Service", () => {
 
   describe("Key and delegate references", () => {
     it("should manage key references", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
-      const publicKeys = privateKeyBase.publicKeys();
+      const privateKeyBase = PrivateKeyBase.new();
+      const publicKeys = privateKeyBase.ed25519PublicKeys();
 
       const service = Service.new("https://example.com");
-      const keyRef = Reference.hash(publicKeys.data());
+      const keyRef = publicKeys.reference();
 
       service.addKeyReference(keyRef);
       expect(service.keyReferences().size).toBe(1);
     });
 
     it("should manage delegate references", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
-        { type: "publicKeyBase", publicKeyBase: privateKeyBase.publicKeys() },
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
         { type: "none" },
       );
 
@@ -121,10 +120,10 @@ describe("Service", () => {
     });
 
     it("should clone service correctly", () => {
-      const privateKeyBase = PrivateKeyBase.generate();
+      const privateKeyBase = PrivateKeyBase.new();
 
       const service = Service.new("https://example.com");
-      service.addKeyReference(Reference.hash(privateKeyBase.publicKeys().data()));
+      service.addKeyReference(privateKeyBase.ed25519PublicKeys().reference());
       service.permissions().addAllow(Privilege.Sign);
       service.addCapability("test");
       service.setName("Test");
