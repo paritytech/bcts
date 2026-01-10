@@ -1,3 +1,3 @@
-import createConfig from "@bcts/eslint";
+import createCliConfig from "@bcts/eslint/cli";
 
-export default createConfig("./tsconfig.json");
+export default createCliConfig("./tsconfig.json");

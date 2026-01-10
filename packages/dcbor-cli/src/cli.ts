@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console, no-undef, no-restricted-globals, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /**
  * dcbor CLI - Command line parser/validator for deterministic CBOR (dCBOR)
  *

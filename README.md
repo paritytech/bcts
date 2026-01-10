@@ -14,9 +14,15 @@
 
 This monorepo provides TypeScript implementations of Blockchain Commons specifications, including deterministic CBOR encoding, Gordian Envelope, Uniform Resources (URs), Sharded Secret Key Reconstruction (SSKR), and other cryptographic standards. All implementations follow the Rust reference implementations as the source of truth and maintain compatibility with the official specifications.
 
-## 📦 Packages
+## 📚 Resources
 
-### Core Libraries
+- [CBOR Book](https://cborbook.com/) - Comprehensive guide to CBOR, dCBOR and Gordian Envelope
+- [Blockchain Commons YouTube](https://www.youtube.com/@blockchaincommons) - A YouTube channel with many lectures and tutorials
+- [Blockchain Commons Developer](https://developer.blockchaincommons.com/) - BC's developer documentation
+- [JSON vs CBOR](https://hackmd.io/@leonardocustodio/json-vs-cbor) - Comparison of JSON and CBOR formats
+- [Deterministic Data: Intro to dCBOR](https://hackmd.io/@leonardocustodio/deterministic-data-intro-to-dcbor) - Introduction to deterministic CBOR
+
+## 📦 Packages
 
 | Package | Description |
 |---------|-------------|
@@ -27,6 +33,7 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 | [**dcbor-pattern**](packages/dcbor-pattern) | Pattern matching for dCBOR - a powerful query language for matching and extracting data from dCBOR structures. Supports value, structure, and meta patterns with named captures and VM-based execution. [📖 Docs](https://docs.bcts.dev/api/dcbor-pattern) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust) |
 | [**envelope**](packages/envelope) | Gordian Envelope - structured, privacy-focused data containers for secure information exchange. Supports encryption, elision, and cryptographic assertions. [📖 Docs](https://docs.bcts.dev/api/envelope) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-envelope-rust) |
 | [**envelope-pattern**](packages/envelope-pattern) | Pattern matching for Gordian Envelope - query and extract data from Envelope structures. Supports leaf, structure, and meta patterns with subject/predicate/object matching and tree traversal. [📖 Docs](https://docs.bcts.dev/api/envelope-pattern) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-envelope-pattern-rust) |
+| [**gstp**](packages/gstp) | Gordian Sealed Transaction Protocol - a secure, authenticated, transport-agnostic data exchange protocol with distributed state management via Encrypted State Continuations (ESC). [📖 Docs](https://docs.bcts.dev/api/gstp) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-gstp-rust) |
 | [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 Docs](https://docs.bcts.dev/api/known-values) \| [🦀 Rust](https://github.com/BlockchainCommons/known-values-rust) |
 | [**provenance-mark**](packages/provenance-mark) | Provenance Marks - cryptographically-secured system for establishing authenticity and provenance of digital works. Generates verifiable mark chains with configurable resolution levels. [📖 Docs](https://docs.bcts.dev/api/provenance-mark) \| [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-rust) |
 | [**rand**](packages/rand) | Cryptographically secure random number generation utilities. Provides a consistent interface for random operations across all packages. [📖 Docs](https://docs.bcts.dev/api/rand) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-rand-rust) |
@@ -35,6 +42,15 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 | [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. [📖 Docs](https://docs.bcts.dev/api/tags) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-tags-rust) |
 | [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 Docs](https://docs.bcts.dev/api/uniform-resources) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-ur-rust) |
 | [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 Docs](https://docs.bcts.dev/api/xid) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-xid-rust) |
+
+## 💻 CLI Tools
+
+| CLI | Description |
+|-----|-------------|
+| [**dcbor-cli**](packages/dcbor-cli) | Command-line tool for working with dCBOR data. Parse, encode, and convert between hex, diagnostic notation, and other formats. [🦀 Rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
+| [**envelope-cli**](packages/envelope-cli) | Command-line tool for creating and manipulating Gordian Envelopes. Supports encryption, signing, elision, and format conversion. [🦀 Rust](https://github.com/BlockchainCommons/bc-envelope-cli-rust) |
+| [**provenance-mark-cli**](packages/provenance-mark-cli) | Command-line tool for generating and verifying Provenance Marks. Create mark chains for establishing authenticity of digital works. [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) |
+| [**seedtool-cli**](packages/seedtool-cli) | Command-line tool for generating and managing cryptographic seeds. Supports multiple output formats including hex, Bytewords, SSKR shares, and Gordian Envelope. [🦀 Rust](https://github.com/ArcadeCity/seedtool-cli-rust) |
 
 ## 🎮 Applications
 
@@ -58,23 +74,6 @@ bun playground
 ```
 
 **Live Demo:** https://bcts.dev
-
-## 🛠️ Development
-
-This is a monorepo managed with Turborepo. Common commands:
-
-```bash
-# Build all packages
-bun run build
-# Run tests across all packages
-bun run test
-# Lint all packages
-bun run lint
-# Format code
-bun run format
-# Run tests for a specific package
-bun run test --filter=@bcts/dcbor
-```
 
 ## 👥 Credits
 

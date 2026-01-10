@@ -20,6 +20,7 @@
  */
 
 import { ED25519_PRIVATE_KEY_SIZE } from "@bcts/crypto";
+import type { RandomNumberGenerator } from "@bcts/rand";
 import {
   type Cbor,
   type Tag,
@@ -253,6 +254,30 @@ export class SigningPrivateKey
       (this._type === SignatureScheme.Schnorr || this._type === SignatureScheme.Ecdsa) &&
       this._ecKey !== undefined
     ) {
+      return this._ecKey;
+    }
+    return null;
+  }
+
+  /**
+   * Returns the underlying Schnorr private key if this is a Schnorr key.
+   *
+   * @returns The EC private key if this is a Schnorr key, null otherwise
+   */
+  toSchnorr(): ECPrivateKey | null {
+    if (this._type === SignatureScheme.Schnorr && this._ecKey !== undefined) {
+      return this._ecKey;
+    }
+    return null;
+  }
+
+  /**
+   * Returns the underlying ECDSA private key if this is an ECDSA key.
+   *
+   * @returns The EC private key if this is an ECDSA key, null otherwise
+   */
+  toEcdsa(): ECPrivateKey | null {
+    if (this._type === SignatureScheme.Ecdsa && this._ecKey !== undefined) {
       return this._ecKey;
     }
     return null;
@@ -528,6 +553,101 @@ export class SigningPrivateKey
    */
   verify(signature: Signature, message: Uint8Array): boolean {
     return this.publicKey().verify(signature, message);
+  }
+
+  // ============================================================================
+  // Scheme-Specific Sign Methods
+  // ============================================================================
+
+  /**
+   * Signs a message using Schnorr with the provided random number generator.
+   *
+   * This method is only valid for Schnorr keys.
+   *
+   * @param message - The message to sign
+   * @param rng - The random number generator to use for signature creation
+   * @returns The Schnorr signature
+   * @throws Error if this is not a Schnorr key
+   */
+  schnorrSign(message: Uint8Array, rng: RandomNumberGenerator): Signature {
+    const privateKey = this.toSchnorr();
+    if (privateKey === null) {
+      throw new Error("Invalid key type for Schnorr signing");
+    }
+    const sigData = privateKey.schnorrSignUsing(message, rng);
+    return Signature.schnorrFromData(sigData);
+  }
+
+  /**
+   * Signs a message using ECDSA.
+   *
+   * This method is only valid for ECDSA keys.
+   *
+   * @param message - The message to sign
+   * @returns The ECDSA signature
+   * @throws Error if this is not an ECDSA key
+   */
+  ecdsaSign(message: Uint8Array): Signature {
+    const privateKey = this.toEcdsa();
+    if (privateKey === null) {
+      throw new Error("Invalid key type for ECDSA signing");
+    }
+    const sigData = privateKey.ecdsaSign(message);
+    return Signature.ecdsaFromData(sigData);
+  }
+
+  /**
+   * Signs a message using Ed25519.
+   *
+   * This method is only valid for Ed25519 keys.
+   *
+   * @param message - The message to sign
+   * @returns The Ed25519 signature
+   * @throws Error if this is not an Ed25519 key
+   */
+  ed25519Sign(message: Uint8Array): Signature {
+    const privateKey = this.toEd25519();
+    if (privateKey === null) {
+      throw new Error("Invalid key type for Ed25519 signing");
+    }
+    const sigData = privateKey.sign(message);
+    return Signature.ed25519FromData(sigData);
+  }
+
+  /**
+   * Signs a message using SR25519.
+   *
+   * This method is only valid for SR25519 keys.
+   *
+   * @param message - The message to sign
+   * @returns The SR25519 signature
+   * @throws Error if this is not an SR25519 key
+   */
+  sr25519Sign(message: Uint8Array): Signature {
+    const privateKey = this.toSr25519();
+    if (privateKey === null) {
+      throw new Error("Invalid key type for SR25519 signing");
+    }
+    const sigData = privateKey.sign(message);
+    return Signature.sr25519FromData(sigData);
+  }
+
+  /**
+   * Signs a message using ML-DSA.
+   *
+   * This method is only valid for MLDSA keys.
+   *
+   * @param message - The message to sign
+   * @returns The ML-DSA signature
+   * @throws Error if this is not an MLDSA key
+   */
+  mldsaSign(message: Uint8Array): Signature {
+    const privateKey = this.toMldsa();
+    if (privateKey === null) {
+      throw new Error("Invalid key type for MLDSA signing");
+    }
+    const mldsaSig = privateKey.sign(message);
+    return Signature.mldsaFromSignature(mldsaSig);
   }
 
   // ============================================================================

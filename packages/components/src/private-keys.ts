@@ -108,6 +108,14 @@ export class PrivateKeys
     return new PrivateKeys(signingKey, encapsulationKey);
   }
 
+  /**
+   * Generate a new PrivateKeys container with random Ed25519/X25519 keys.
+   * This is an alias for new() for API compatibility.
+   */
+  static generate(): PrivateKeys {
+    return PrivateKeys.new();
+  }
+
   // ============================================================================
   // Instance Methods
   // ============================================================================

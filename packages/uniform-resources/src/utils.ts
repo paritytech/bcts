@@ -615,7 +615,7 @@ export function encodeBytemojisIdentifier(data: Uint8Array): string {
 export enum BytewordsStyle {
   /** Full 4-letter words separated by spaces */
   Standard = "standard",
-  /** Full 4-letter words without separators */
+  /** Full 4-letter words separated by hyphens (URI-safe) */
   Uri = "uri",
   /** First and last character only (minimal) - used by UR encoding */
   Minimal = "minimal",
@@ -712,6 +712,7 @@ export function encodeBytewords(
     case BytewordsStyle.Standard:
       return words.join(" ");
     case BytewordsStyle.Uri:
+      return words.join("-");
     case BytewordsStyle.Minimal:
       return words.join("");
   }
@@ -741,19 +742,15 @@ export function decodeBytewords(
       break;
     }
     case BytewordsStyle.Uri: {
-      // 4-character words with no separator
-      if (lowercased.length % 4 !== 0) {
-        throw new Error("Invalid URI bytewords length");
-      }
-      bytes = [];
-      for (let i = 0; i < lowercased.length; i += 4) {
-        const word = lowercased.slice(i, i + 4);
+      // 4-character words separated by hyphens
+      const words = lowercased.split("-");
+      bytes = words.map((word) => {
         const index = BYTEWORDS_MAP.get(word);
         if (index === undefined) {
           throw new Error(`Invalid byteword: ${word}`);
         }
-        bytes.push(index);
-      }
+        return index;
+      });
       break;
     }
     case BytewordsStyle.Minimal: {

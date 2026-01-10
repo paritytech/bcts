@@ -2,6 +2,7 @@ import type { UR } from "./ur.js";
 import { URError } from "./error.js";
 import { FountainEncoder, type FountainPart } from "./fountain.js";
 import { encodeBytewords, BytewordsStyle } from "./utils.js";
+import { cbor } from "@bcts/dcbor";
 
 /**
  * Encodes a UR as multiple parts using fountain codes.
@@ -96,28 +97,14 @@ export class MultipartEncoder {
   }
 
   /**
-   * Encodes part metadata and data into bytes for bytewords encoding.
+   * Encodes part metadata and data as CBOR for bytewords encoding.
+   * Format: CBOR array [seqNum, seqLen, messageLen, checksum, data]
    */
   private _encodePartData(part: FountainPart): Uint8Array {
-    // Simple encoding: messageLen (4 bytes) + checksum (4 bytes) + data
-    const result = new Uint8Array(8 + part.data.length);
+    // Create CBOR array with 5 elements: [seqNum, seqLen, messageLen, checksum, data]
+    const cborArray = cbor([part.seqNum, part.seqLen, part.messageLen, part.checksum, part.data]);
 
-    // Message length (big-endian)
-    result[0] = (part.messageLen >>> 24) & 0xff;
-    result[1] = (part.messageLen >>> 16) & 0xff;
-    result[2] = (part.messageLen >>> 8) & 0xff;
-    result[3] = part.messageLen & 0xff;
-
-    // Checksum (big-endian)
-    result[4] = (part.checksum >>> 24) & 0xff;
-    result[5] = (part.checksum >>> 16) & 0xff;
-    result[6] = (part.checksum >>> 8) & 0xff;
-    result[7] = part.checksum & 0xff;
-
-    // Fragment data
-    result.set(part.data, 8);
-
-    return result;
+    return cborArray.toData();
   }
 
   /**

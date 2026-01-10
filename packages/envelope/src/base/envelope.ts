@@ -25,8 +25,6 @@ import type { Visitor } from "./walk";
 import type {
   SymmetricKey,
   SealedMessage,
-  PublicKeyBase,
-  PrivateKeyBase,
   Signer,
   Verifier,
   Signature,
@@ -37,7 +35,7 @@ import type { TreeFormatOptions } from "../format/tree";
 import type { EnvelopeFormatOpts } from "../format/notation";
 import type { MermaidFormatOpts } from "../format/mermaid";
 import type { FormatContext } from "../format/format-context";
-import type { KeyDerivationMethod } from "@bcts/components";
+import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce } from "@bcts/components";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
@@ -549,8 +547,9 @@ export class Envelope implements DigestProvider {
         // Elided is just the digest bytes
         return Envelope.valueToCbor(c.digest.data());
       case "knownValue":
-        // TODO: Implement known value encoding
-        throw new Error("Known value encoding not yet implemented");
+        // Known values are encoded as untagged unsigned integers
+        // This matches Rust: value.untagged_cbor()
+        return c.value.untaggedCbor();
       case "encrypted": {
         // Encrypted is tagged with TAG_ENCRYPTED (40002)
         // Contains: [ciphertext, nonce, auth, optional_aad_digest]
@@ -1025,13 +1024,17 @@ export class Envelope implements DigestProvider {
   declare confirmContainsSet: (target: Set<Digest>, proof: Envelope) => boolean;
   declare confirmContainsTarget: (target: Envelope, proof: Envelope) => boolean;
 
-  // From recipient.ts
-  declare encryptSubjectToRecipient: (recipientPublicKey: PublicKeyBase) => Envelope;
-  declare encryptSubjectToRecipients: (recipients: PublicKeyBase[]) => Envelope;
-  declare addRecipient: (recipientPublicKey: PublicKeyBase, contentKey: SymmetricKey) => Envelope;
-  declare decryptSubjectToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
-  declare decryptToRecipient: (recipientPrivateKey: PrivateKeyBase) => Envelope;
-  declare encryptToRecipients: (recipients: PublicKeyBase[]) => Envelope;
+  // From recipient.ts - uses Encrypter/Decrypter interfaces for PQ support
+  declare encryptSubjectToRecipient: (recipient: Encrypter) => Envelope;
+  declare encryptSubjectToRecipients: (recipients: Encrypter[]) => Envelope;
+  declare addRecipient: (
+    recipient: Encrypter,
+    contentKey: SymmetricKey,
+    testNonce?: Nonce,
+  ) => Envelope;
+  declare decryptSubjectToRecipient: (recipient: Decrypter) => Envelope;
+  declare decryptToRecipient: (recipient: Decrypter) => Envelope;
+  declare encryptToRecipients: (recipients: Encrypter[]) => Envelope;
   declare recipients: () => SealedMessage[];
 
   // From seal.ts - encryptToRecipient, seal, unseal declared in seal.ts module augmentation

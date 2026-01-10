@@ -1,4 +1,4 @@
-import { decodeCbor } from "@bcts/dcbor";
+import { decodeCbor, MajorType, type Cbor } from "@bcts/dcbor";
 import { InvalidSchemeError, InvalidTypeError, UnexpectedTypeError, URError } from "./error.js";
 import { UR } from "./ur.js";
 import { URType } from "./ur-type.js";
@@ -118,27 +118,43 @@ export class MultipartDecoder {
 
   /**
    * Decodes a multipart UR's fountain part data.
+   *
+   * The multipart body is a CBOR array: [seqNum, seqLen, messageLen, checksum, data]
    */
   private _decodeFountainPart(partInfo: MultipartInfo): FountainPart {
-    // Decode bytewords
-    const rawData = decodeBytewords(partInfo.encodedData, BytewordsStyle.Minimal);
+    // Decode bytewords to get CBOR data
+    const cborData = decodeBytewords(partInfo.encodedData, BytewordsStyle.Minimal);
 
-    if (rawData.length < 8) {
-      throw new URError("Invalid multipart data: too short");
+    // Decode the CBOR array
+    const decoded = decodeCbor(cborData);
+
+    // The decoded value should be an array with 5 elements
+    if (decoded.type !== MajorType.Array) {
+      throw new URError("Invalid multipart data: expected CBOR array");
     }
 
-    // Extract metadata
-    const messageLen =
-      ((rawData[0] << 24) | (rawData[1] << 16) | (rawData[2] << 8) | rawData[3]) >>> 0;
+    const items = decoded.value as Cbor[];
+    if (items.length !== 5) {
+      throw new URError(`Invalid multipart data: expected 5 elements, got ${items.length}`);
+    }
 
-    const checksum =
-      ((rawData[4] << 24) | (rawData[5] << 16) | (rawData[6] << 8) | rawData[7]) >>> 0;
+    // Extract the fields: [seqNum, seqLen, messageLen, checksum, data]
+    const seqNum = Number(items[0].value);
+    const seqLen = Number(items[1].value);
+    const messageLen = Number(items[2].value);
+    const checksum = Number(items[3].value);
+    const data = items[4].value as Uint8Array;
 
-    const data = rawData.slice(8);
+    // Verify seqNum and seqLen match the URL path values
+    if (seqNum !== partInfo.seqNum || seqLen !== partInfo.seqLen) {
+      throw new URError(
+        `Multipart metadata mismatch: URL says ${partInfo.seqNum}-${partInfo.seqLen}, CBOR says ${seqNum}-${seqLen}`,
+      );
+    }
 
     return {
-      seqNum: partInfo.seqNum,
-      seqLen: partInfo.seqLen,
+      seqNum,
+      seqLen,
       messageLen,
       checksum,
       data,

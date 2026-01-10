@@ -12,14 +12,15 @@ import { Envelope } from "./envelope";
 
 /// Implementation of urString
 Envelope.prototype.urString = function (this: Envelope): string {
-  // Use explicit return type to avoid circular type resolution issues
-  const ur = UR.new("envelope", this.taggedCbor());
+  // Use untaggedCbor() per Rust implementation - the UR type "envelope" implies the tag
+  const ur = UR.new("envelope", this.untaggedCbor());
   return ur.string();
 };
 
 /// Implementation of ur
 Envelope.prototype.ur = function (this: Envelope): UR {
-  return UR.new("envelope", this.taggedCbor());
+  // Use untaggedCbor() per Rust implementation - the UR type "envelope" implies the tag
+  return UR.new("envelope", this.untaggedCbor());
 };
 
 /// Implementation of taggedCborData (alias for cborBytes)
@@ -39,5 +40,6 @@ Envelope.fromURString = Envelope.fromUrString;
 /// Implementation of fromUR
 Envelope.fromUR = function (ur: UR): Envelope {
   ur.checkType("envelope");
-  return Envelope.fromTaggedCbor(ur.cbor());
+  // Use fromUntaggedCbor() per Rust implementation - the UR type "envelope" implies the tag
+  return Envelope.fromUntaggedCbor(ur.cbor());
 };

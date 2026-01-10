@@ -45,6 +45,7 @@ import {
   mlkemPrivateKeySize,
   mlkemGenerateKeypairUsing,
   mlkemDecapsulate,
+  mlkemExtractPublicKey,
 } from "./mlkem-level.js";
 import { MLKEMPublicKey } from "./mlkem-public-key.js";
 import type { MLKEMCiphertext } from "./mlkem-ciphertext.js";
@@ -180,6 +181,19 @@ export class MLKEMPrivateKey
     }
     const sharedSecret = mlkemDecapsulate(this._level, this._data, ciphertext.asBytes());
     return SymmetricKey.fromData(sharedSecret);
+  }
+
+  /**
+   * Derives and returns the corresponding public key.
+   *
+   * In ML-KEM (FIPS 203), the decapsulation key contains the encapsulation key (public key)
+   * embedded within it. This method extracts that public key.
+   *
+   * @returns The corresponding MLKEMPublicKey
+   */
+  publicKey(): MLKEMPublicKey {
+    const publicKeyData = mlkemExtractPublicKey(this._level, this._data);
+    return MLKEMPublicKey.fromBytes(this._level, publicKeyData);
   }
 
   // ============================================================================

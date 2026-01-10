@@ -5,7 +5,7 @@
  * Command line tool for creating and managing Provenance Marks.
  */
 
-/* eslint-disable no-console, no-undef, no-restricted-globals, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
 
 import { Command, Option } from "commander";
 import { VERSION } from "./index.js";

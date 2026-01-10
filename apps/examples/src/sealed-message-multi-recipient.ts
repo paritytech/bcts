@@ -47,14 +47,18 @@ function main(): void {
   const daveKeys = PrivateKeyBase.generate(); // Party D (e.g., Lawyer)
 
   console.log("Generated keys for:");
-  console.log(`  - Alice (Buyer):   ${aliceKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Bob (Seller):    ${bobKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Carol (Notary):  ${carolKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Dave (Lawyer):   ${daveKeys.publicKeys().hex().slice(0, 16)}...`);
+  console.log(
+    `  - Alice (Buyer):   ${aliceKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
+  console.log(`  - Bob (Seller):    ${bobKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Carol (Notary):  ${carolKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
+  console.log(`  - Dave (Lawyer):   ${daveKeys.publicKeys().reference().shortReference("hex")}...`);
 
   // Also create an unauthorized party
   const eveKeys = PrivateKeyBase.generate();
-  console.log(`  - Eve (Attacker):  ${eveKeys.publicKeys().hex().slice(0, 16)}...`);
+  console.log(`  - Eve (Attacker):  ${eveKeys.publicKeys().reference().shortReference("hex")}...`);
 
   // ================================================================
   // STEP 2: Create a contract document
@@ -213,7 +217,7 @@ function main(): void {
   manualEncrypted = manualEncrypted.addRecipient(bobKeys.publicKeys(), contentKey);
   console.log("  Added Alice and Bob as recipients.");
 
-  // Later, add Eve as an authorized recipient (if the content key holder allows it)
+  // Later, add Eve as an authorized recipient (if the content keyholder allows it)
   manualEncrypted = manualEncrypted.addRecipient(eveKeys.publicKeys(), contentKey);
   console.log("  Added Eve as a new recipient (authorized by content key holder).");
 

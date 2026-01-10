@@ -25,6 +25,7 @@ import {
   PrivateKeyBase,
   type PrivateKeys,
   type Signer,
+  type EncapsulationPublicKey,
 } from "@bcts/components";
 import {
   type ProvenanceMark,
@@ -304,6 +305,26 @@ export class XIDDocument implements EnvelopeEncodable {
    */
   inceptionPrivateKeys(): PrivateKeys | undefined {
     return this.inceptionKey()?.privateKeys();
+  }
+
+  /**
+   * Get the encryption key (encapsulation public key) for this document.
+   *
+   * Prefers the inception key for encryption. If no inception key is available,
+   * falls back to the first key in the document.
+   */
+  encryptionKey(): EncapsulationPublicKey | undefined {
+    // Prefer the inception key for encryption
+    const inceptionKey = this.inceptionKey();
+    if (inceptionKey !== undefined) {
+      return inceptionKey.publicKeys().encapsulationPublicKey();
+    }
+    // Fall back to first key
+    const firstKey = this._keys.values().next().value;
+    if (firstKey !== undefined) {
+      return firstKey.publicKeys().encapsulationPublicKey();
+    }
+    return undefined;
   }
 
   /**

@@ -23,7 +23,7 @@ import { REQUEST as TAG_REQUEST } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { BODY, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 import { Expression, Function, type ParameterID } from "./expression";
 
@@ -105,7 +105,7 @@ export interface RequestBehavior {
  * const envelope = request.toEnvelope();
  * ```
  */
-export class Request implements RequestBehavior {
+export class Request implements RequestBehavior, EnvelopeEncodable {
   readonly #body: Expression;
   readonly #id: ARID;
   #note: string;
@@ -213,6 +213,13 @@ export class Request implements RequestBehavior {
   }
 
   /**
+   * Converts this request into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
+  }
+
+  /**
    * Creates a request from an envelope.
    */
   static fromEnvelope(envelope: Envelope, expectedFunction?: Function): Request {
@@ -237,9 +244,11 @@ export class Request implements RequestBehavior {
       throw EnvelopeError.general("Request envelope has invalid subject");
     }
 
-    // The ARID should be extracted from the tagged value
-    // For now, we'll create a placeholder - this needs proper CBOR parsing
-    const id = ARID.new(); // TODO: Extract from tagged CBOR
+    // The subject is TAG_REQUEST(ARID_bytes)
+    // First expect the REQUEST tag, then extract the ARID from the content
+    const aridCbor = leaf.expectTag(TAG_REQUEST);
+    const aridBytes = aridCbor.toByteString();
+    const id = ARID.fromData(aridBytes);
 
     // Extract optional note
     let note = "";

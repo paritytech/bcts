@@ -4,8 +4,6 @@
  * Initialize a directory with a new provenance mark chain.
  */
 
-/* eslint-disable no-console, no-undef */
-
 import * as fs from "fs";
 import * as path from "path";
 import {

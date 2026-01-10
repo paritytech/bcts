@@ -45,11 +45,15 @@ function main(): void {
   const deliveryKeys = PrivateKeyBase.generate();
 
   console.log("Generated keys for:");
-  console.log(`  - Bar/Club:     ${barKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Employer:     ${employerKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Bank:         ${bankKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Medical:      ${medicalKeys.publicKeys().hex().slice(0, 16)}...`);
-  console.log(`  - Delivery:     ${deliveryKeys.publicKeys().hex().slice(0, 16)}...`);
+  console.log(`  - Bar/Club:     ${barKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Employer:     ${employerKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
+  console.log(`  - Bank:         ${bankKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(`  - Medical:      ${medicalKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Delivery:     ${deliveryKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
 
   // ================================================================
   // STEP 2: Create encrypted assertions for each recipient

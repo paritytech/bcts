@@ -222,3 +222,31 @@ export function mlkemDecapsulate(
       return ml_kem1024.decapsulate(ciphertext, secretKey);
   }
 }
+
+/**
+ * Private key portion sizes for each ML-KEM level.
+ * The decapsulation key structure is: dk = (dk_pke || ek_pke || H(ek) || z)
+ * where dk_pke is the private portion before the public key.
+ */
+const MLKEM_DK_PKE_SIZES = {
+  [MLKEMLevel.MLKEM512]: 768, // 12 * 64
+  [MLKEMLevel.MLKEM768]: 1152, // 12 * 96
+  [MLKEMLevel.MLKEM1024]: 1536, // 12 * 128
+} as const;
+
+/**
+ * Extract the public key from a secret key.
+ *
+ * In ML-KEM (FIPS 203), the decapsulation key contains the encapsulation key (public key)
+ * embedded within it. The structure is: dk = (dk_pke || ek_pke || H(ek) || z)
+ *
+ * @param level - The ML-KEM security level
+ * @param secretKey - The secret key bytes
+ * @returns The public key bytes extracted from the secret key
+ */
+export function mlkemExtractPublicKey(level: MLKEMLevel, secretKey: Uint8Array): Uint8Array {
+  const dkPkeSize = MLKEM_DK_PKE_SIZES[level];
+  const publicKeySize = MLKEM_KEY_SIZES[level].publicKey;
+  const offset = dkPkeSize;
+  return secretKey.slice(offset, offset + publicKeySize);
+}

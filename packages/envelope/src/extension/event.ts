@@ -24,7 +24,7 @@ import { EVENT as TAG_EVENT } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { CONTENT, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -88,7 +88,9 @@ export interface EventBehavior<T extends EnvelopeEncodableValue> {
  *
  * @typeParam T - The type of content this event carries
  */
-export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T> {
+export class Event<T extends EnvelopeEncodableValue>
+  implements EventBehavior<T>, EnvelopeEncodable
+{
   readonly #content: T;
   readonly #id: ARID;
   #note: string;
@@ -169,6 +171,13 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
   }
 
   /**
+   * Converts this event into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
+  }
+
+  /**
    * Creates an event from an envelope.
    *
    * @typeParam T - The type to extract the content as
@@ -184,8 +193,18 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
     }
     const content = contentExtractor(contentEnvelope);
 
-    // TODO: Extract ARID from tagged subject properly
-    const id = ARID.new(); // Placeholder
+    // Extract the ARID from the subject
+    // Subject is TAG_EVENT(ARID_bytes)
+    const subject = envelope.subject();
+    const leaf = subject.asLeaf();
+    if (leaf === undefined) {
+      throw EnvelopeError.general("Event envelope has invalid subject");
+    }
+
+    // Expect the EVENT tag and extract the ARID
+    const aridCbor = leaf.expectTag(TAG_EVENT);
+    const aridBytes = aridCbor.toByteString();
+    const id = ARID.fromData(aridBytes);
 
     // Extract optional note
     let note = "";

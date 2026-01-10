@@ -2,7 +2,7 @@
  * Default parsing and validation behavior
  * Equivalent to Rust's cmd/default.rs
  */
-/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/strict-boolean-expressions */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
 import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";

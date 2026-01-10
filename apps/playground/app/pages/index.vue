@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, inject, nextTick, type Ref } from 'vue'
 import { decodeCbor, cborData, cbor, hexToBytes, hexOpt, diagnosticOpt, MajorType, type CborMap, type Cbor } from '@bcts/dcbor'
-import { UR, decodeBytewords, encodeBytewords, BytewordsStyle } from '@bcts/uniform-resources'
+import { UR, decodeBytewords, encodeBytewords, BytewordsStyle, MultipartDecoder } from '@bcts/uniform-resources'
 import { envelopeFromCbor } from '@bcts/envelope'
 import { ENVELOPE } from '@bcts/tags'
 import encodeQR from '@paulmillr/qr'
@@ -113,6 +113,11 @@ interface TabState {
   displayMode: DisplayMode
   qrCodeDataUrl: string
   isCameraTab: boolean
+  // Fountain code scanning state
+  fountainProgress: number
+  fountainPartsReceived: number
+  fountainTotalParts: number
+  isFountainScanning: boolean
 }
 
 interface PaneState {
@@ -238,7 +243,11 @@ function loadState(): boolean {
         viewMode: tab.viewMode || 'auto',
         displayMode: tab.displayMode || 'editor',
         qrCodeDataUrl: '',
-        isCameraTab: false
+        isCameraTab: false,
+        fountainProgress: 0,
+        fountainPartsReceived: 0,
+        fountainTotalParts: 0,
+        isFountainScanning: false
       })),
       activeTabId: pane.activeTabId
     }))
@@ -270,7 +279,12 @@ function createTab(name?: string, initialInput?: string, isCameraTab = false): T
     viewMode: 'auto',
     displayMode: 'editor',
     qrCodeDataUrl: '',
-    isCameraTab
+    isCameraTab,
+    // Fountain code scanning state
+    fountainProgress: 0,
+    fountainPartsReceived: 0,
+    fountainTotalParts: 0,
+    isFountainScanning: false
   }
 }
 
@@ -329,7 +343,7 @@ function addTab(paneId: string) {
   nextTick(() => parseTabCbor(paneId, newTab.id))
 }
 
-// Add a camera tab for QR code scanning
+// Add a camera tab for QR code scanning (supports both static and animated/fountain QR codes)
 function addCameraTab(paneId: string) {
   const pane = panes.value.find(p => p.id === paneId)
   if (!pane) return
@@ -346,6 +360,9 @@ function addCameraTab(paneId: string) {
 // Camera state management
 const cameraStreams = new Map<string, MediaStream>()
 const scanningIntervals = new Map<string, ReturnType<typeof setInterval>>()
+// Fountain decoder state management for animated QR codes
+const fountainDecoders = new Map<string, MultipartDecoder>()
+const lastScannedParts = new Map<string, string>() // Track last scanned to avoid duplicates
 
 // Start camera for a tab
 async function startCamera(tabId: string) {
@@ -381,6 +398,50 @@ function stopCamera(tabId: string) {
     clearInterval(interval)
     scanningIntervals.delete(tabId)
   }
+
+  // Clean up fountain decoder state
+  fountainDecoders.delete(tabId)
+  lastScannedParts.delete(tabId)
+}
+
+// Normalize scanned QR data - URs are encoded uppercase in QR codes for efficiency,
+// but should be displayed lowercase per the UR specification
+function normalizeScannedQR(data: string): string {
+  const trimmed = data.trim()
+  // UR strings should be lowercase (they're uppercase in QR for alphanumeric mode efficiency)
+  if (trimmed.toUpperCase().startsWith('UR:')) {
+    return trimmed.toLowerCase()
+  }
+  // Return other formats as-is
+  return trimmed
+}
+
+// Check if a UR string is a multipart UR
+function isMultipartUR(urString: string): { isMultipart: boolean; seqNum?: number; seqLen?: number } {
+  const lowercased = urString.toLowerCase()
+  if (!lowercased.startsWith('ur:')) {
+    return { isMultipart: false }
+  }
+
+  const afterScheme = lowercased.substring(3)
+  const components = afterScheme.split('/')
+
+  if (components.length >= 3) {
+    const seqPart = components[1]
+    if (seqPart) {
+      const seqMatch = /^(\d+)-(\d+)$/.exec(seqPart)
+
+      if (seqMatch !== null && seqMatch[1] && seqMatch[2]) {
+        return {
+          isMultipart: true,
+          seqNum: parseInt(seqMatch[1], 10),
+          seqLen: parseInt(seqMatch[2], 10)
+        }
+      }
+    }
+  }
+
+  return { isMultipart: false }
 }
 
 // Start QR code scanning for a camera tab
@@ -409,17 +470,114 @@ function startQRScanning(tabId: string) {
         })
 
         if (result) {
-          // QR code detected - populate the tab with the data
           const pane = panes.value.find(p => p.tabs.some(t => t.id === tabId))
-          if (pane) {
-            const tab = pane.tabs.find(t => t.id === tabId)
-            if (tab) {
-              tab.hexInput = result
-              tab.isCameraTab = false
-              stopCamera(tabId)
-              // Parse the scanned data
-              nextTick(() => parseTabCbor(pane.id, tabId))
+          if (!pane) return
+
+          const tab = pane.tabs.find(t => t.id === tabId)
+          if (!tab) return
+
+          // Normalize the scanned data (URs are uppercase in QR codes but should be lowercase)
+          const normalizedResult = normalizeScannedQR(result)
+
+          // Check if this is a multipart UR (fountain code / animated QR)
+          const multipartInfo = isMultipartUR(normalizedResult)
+
+          if (multipartInfo.isMultipart && multipartInfo.seqLen && multipartInfo.seqLen > 1) {
+            // Skip if we just scanned this exact same part
+            const lastPart = lastScannedParts.get(tabId)
+            if (lastPart === normalizedResult) {
+              return
             }
+            lastScannedParts.set(tabId, normalizedResult)
+
+            // Initialize or get the fountain decoder for this tab
+            let decoder = fountainDecoders.get(tabId)
+            if (!decoder) {
+              console.log('[Fountain] Creating NEW decoder (previous was reset or first time)')
+              decoder = new MultipartDecoder()
+              fountainDecoders.set(tabId, decoder)
+              tab.isFountainScanning = true
+              tab.fountainTotalParts = multipartInfo.seqLen
+            }
+
+            // Receive the part
+            try {
+              console.log(`[Fountain] Receiving part ${multipartInfo.seqNum}/${multipartInfo.seqLen}`)
+              decoder.receive(normalizedResult)
+              console.log(`[Fountain] After receive - isComplete: ${decoder.isComplete()}`)
+
+              // Update progress
+              tab.fountainPartsReceived = (tab.fountainPartsReceived || 0) + 1
+              tab.fountainProgress = Math.min(
+                (tab.fountainPartsReceived / tab.fountainTotalParts) * 100,
+                99 // Cap at 99% until truly complete
+              )
+
+              // Check if complete
+              if (decoder.isComplete()) {
+                console.log('[Fountain] Decoder complete, getting message...')
+                const ur = decoder.message()
+                console.log('[Fountain] Message:', ur)
+                if (ur) {
+                  tab.hexInput = ur.string()
+                  tab.isCameraTab = false
+                  tab.isFountainScanning = false
+                  tab.fountainProgress = 100
+                  stopCamera(tabId)
+                  fountainDecoders.delete(tabId)
+                  lastScannedParts.delete(tabId)
+                  nextTick(() => parseTabCbor(pane.id, tabId))
+                }
+              }
+            } catch (err) {
+              // Check if this is an "Inconsistent part metadata" error
+              // This happens when scanning a different animated QR sequence
+              const isMetadataMismatch = err instanceof Error &&
+                err.message.includes('Inconsistent part metadata')
+
+              if (isMetadataMismatch) {
+                console.log('[Fountain] Metadata mismatch - resetting decoder for new sequence')
+                // Reset and start fresh with the new sequence
+                const newDecoder = new MultipartDecoder()
+                fountainDecoders.set(tabId, newDecoder)
+                lastScannedParts.clear()
+                tab.fountainPartsReceived = 0
+                tab.fountainTotalParts = multipartInfo.seqLen
+
+                // Try to receive this part with the new decoder
+                try {
+                  newDecoder.receive(normalizedResult)
+                  tab.fountainPartsReceived = 1
+                  tab.fountainProgress = Math.min(
+                    (1 / tab.fountainTotalParts) * 100,
+                    99
+                  )
+                } catch (innerErr) {
+                  console.error('[Fountain] Failed to receive after reset:', innerErr)
+                  // If it still fails, reset completely
+                  fountainDecoders.delete(tabId)
+                  lastScannedParts.delete(tabId)
+                  tab.isFountainScanning = false
+                  tab.fountainProgress = 0
+                  tab.fountainPartsReceived = 0
+                }
+              } else {
+                console.error('[Fountain] Decode error (resetting decoder):', err)
+                // Reset decoder on other errors
+                fountainDecoders.delete(tabId)
+                lastScannedParts.delete(tabId)
+                tab.isFountainScanning = false
+                tab.fountainProgress = 0
+                tab.fountainPartsReceived = 0
+              }
+            }
+          } else {
+            // Single QR code detected - populate the tab with the data
+            tab.hexInput = normalizedResult
+            tab.isCameraTab = false
+            stopCamera(tabId)
+            // Parse the scanned data
+            nextTick(() => parseTabCbor(pane.id, tabId))
           }
         }
       } catch {
@@ -439,6 +597,8 @@ onUnmounted(() => {
   cameraStreams.clear()
   scanningIntervals.forEach(interval => clearInterval(interval))
   scanningIntervals.clear()
+  fountainDecoders.clear()
+  lastScannedParts.clear()
 })
 
 // Trigger file input for QR upload
@@ -508,7 +668,7 @@ function handleQRUpload(paneId: string, event: Event) {
             if (result) {
               const tab = pane.tabs.find(t => t.id === newTab.id)
               if (tab) {
-                tab.hexInput = result
+                tab.hexInput = normalizeScannedQR(result)
                 tab.name = 'Scanned QR'
                 nextTick(() => parseTabCbor(pane.id, newTab.id))
               }
@@ -574,7 +734,7 @@ function handleQRUpload(paneId: string, event: Event) {
             // Populate tab with decoded data
             const tab = pane.tabs.find(t => t.id === newTab.id)
             if (tab) {
-              tab.hexInput = result
+              tab.hexInput = normalizeScannedQR(result)
               tab.name = 'Scanned QR'
               nextTick(() => parseTabCbor(pane.id, newTab.id))
             }
@@ -1129,13 +1289,15 @@ watch(activePaneId, () => {
                 variant="ghost"
                 @click.stop="addTab(pane.id)"
               />
-              <UButton
-                icon="i-heroicons-camera"
-                size="xs"
-                color="neutral"
-                variant="ghost"
-                @click.stop="addCameraTab(pane.id)"
-              />
+              <UTooltip text="Scan QR (supports animated)">
+                <UButton
+                  icon="i-heroicons-camera"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click.stop="addCameraTab(pane.id)"
+                />
+              </UTooltip>
               <UButton
                 icon="i-heroicons-arrow-up-tray"
                 size="xs"
@@ -1221,10 +1383,30 @@ watch(activePaneId, () => {
                       :data-tab-id="tab.id"
                       class="hidden"
                     />
+                    <!-- Scanning overlay for fountain codes -->
+                    <div v-if="tab.isFountainScanning" class="absolute inset-0 pointer-events-none">
+                      <div class="absolute top-4 left-4 right-4">
+                        <div class="bg-black/70 rounded-lg p-3">
+                          <div class="flex items-center justify-between text-white text-sm mb-2">
+                            <span class="flex items-center gap-2">
+                              <UIcon name="i-heroicons-film" class="w-4 h-4 animate-pulse text-blue-400" />
+                              Animated QR
+                            </span>
+                            <span class="font-mono">{{ tab.fountainPartsReceived }} parts</span>
+                          </div>
+                          <div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div
+                              class="bg-blue-500 h-2 rounded-full transition-all duration-200"
+                              :style="{ width: `${tab.fountainProgress}%` }"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div class="absolute bottom-4 left-0 right-0 text-center">
                     <p class="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full inline-block">
-                      Point camera at QR code
+                      {{ tab.isFountainScanning ? 'Keep scanning animated QR...' : 'Point camera at QR code' }}
                     </p>
                   </div>
                 </div>

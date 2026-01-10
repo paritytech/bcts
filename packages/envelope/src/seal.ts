@@ -23,7 +23,7 @@
 
 import { Envelope } from "./base/envelope";
 import type { Signer, Verifier } from "./extension/signature";
-import type { PublicKeyBase, PrivateKeyBase } from "./extension/recipient";
+import type { Encrypter, Decrypter } from "@bcts/components";
 
 // ============================================================================
 // Envelope Prototype Extensions for Sealing
@@ -34,22 +34,22 @@ declare module "./base/envelope" {
     /// Encrypt this envelope to a single recipient.
     ///
     /// Convenience method that wraps the envelope first, then encrypts
-    /// to a single recipient.
+    /// to a single recipient. Supports both X25519 and MLKEM encryption.
     ///
-    /// @param recipientPublicKey - The public key of the recipient
+    /// @param recipient - The recipient (implements Encrypter interface)
     /// @returns A new wrapped and encrypted envelope
-    encryptToRecipient(recipientPublicKey: PublicKeyBase): Envelope;
+    encryptToRecipient(recipient: Encrypter): Envelope;
 
     /// Seal this envelope by signing with sender's key and encrypting to
     /// recipient.
     ///
     /// This is a convenience method that combines signing and encryption in
-    /// one step.
+    /// one step. Supports both classical and post-quantum cryptography.
     ///
     /// @param sender - The private key used to sign the envelope
-    /// @param recipientPublicKey - The public key used to encrypt the envelope
+    /// @param recipient - The recipient (implements Encrypter interface)
     /// @returns A new envelope that has been signed and encrypted
-    seal(sender: Signer, recipientPublicKey: PublicKeyBase): Envelope;
+    seal(sender: Signer, recipient: Encrypter): Envelope;
 
     /// Unseal this envelope by decrypting with recipient's key and verifying
     /// signature.
@@ -58,37 +58,34 @@ declare module "./base/envelope" {
     /// verification in one step.
     ///
     /// @param senderPublicKey - The public key used to verify the signature
-    /// @param recipientPrivateKey - The private key used to decrypt
+    /// @param recipient - The recipient's private key (implements Decrypter interface)
     /// @returns The unsealed envelope if successful
     /// @throws EnvelopeError if decryption or verification fails
-    unseal(senderPublicKey: Verifier, recipientPrivateKey: PrivateKeyBase): Envelope;
+    unseal(senderPublicKey: Verifier, recipient: Decrypter): Envelope;
   }
 }
 
 /// Implementation of encryptToRecipient
-Envelope.prototype.encryptToRecipient = function (
-  this: Envelope,
-  recipientPublicKey: PublicKeyBase,
-): Envelope {
-  return this.wrap().encryptSubjectToRecipient(recipientPublicKey);
+Envelope.prototype.encryptToRecipient = function (this: Envelope, recipient: Encrypter): Envelope {
+  return this.wrap().encryptSubjectToRecipient(recipient);
 };
 
 /// Implementation of seal
 Envelope.prototype.seal = function (
   this: Envelope,
   sender: Signer,
-  recipientPublicKey: PublicKeyBase,
+  recipient: Encrypter,
 ): Envelope {
-  return this.addSignature(sender).encryptToRecipient(recipientPublicKey);
+  return this.addSignature(sender).encryptToRecipient(recipient);
 };
 
 /// Implementation of unseal
 Envelope.prototype.unseal = function (
   this: Envelope,
   senderPublicKey: Verifier,
-  recipientPrivateKey: PrivateKeyBase,
+  recipient: Decrypter,
 ): Envelope {
-  return this.decryptToRecipient(recipientPrivateKey).verifySignatureFrom(senderPublicKey);
+  return this.decryptToRecipient(recipient).verifySignatureFrom(senderPublicKey);
 };
 
 // ============================================================================

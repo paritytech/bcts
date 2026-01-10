@@ -206,8 +206,8 @@ export class ProvenanceMarkGenerator {
     // Create envelope with chain ID as subject
     let envelope = Envelope.new(this._chainId);
 
-    // Add type assertion
-    envelope = envelope.addAssertion("isA", "provenance-generator");
+    // Add type assertion (using addType() which uses IS_A KnownValue, like Rust's add_type())
+    envelope = envelope.addType("provenance-generator");
 
     // Add resolution
     envelope = envelope.addAssertion("res", resolutionToNumber(this._res));

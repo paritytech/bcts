@@ -19,7 +19,7 @@ import { RESPONSE as TAG_RESPONSE } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { RESULT, ERROR, OK_VALUE, UNKNOWN_VALUE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -118,7 +118,7 @@ export interface ResponseBehavior {
  * const errorEnvelope = errorResponse.toEnvelope();
  * ```
  */
-export class Response implements ResponseBehavior {
+export class Response implements ResponseBehavior, EnvelopeEncodable {
   #result: ResponseResult;
 
   private constructor(result: ResponseResult) {
@@ -307,6 +307,13 @@ export class Response implements ResponseBehavior {
   }
 
   /**
+   * Converts this response into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
+  }
+
+  /**
    * Creates a response from an envelope.
    */
   static fromEnvelope(envelope: Envelope): Response {
@@ -333,11 +340,30 @@ export class Response implements ResponseBehavior {
       throw EnvelopeError.invalidResponse();
     }
 
-    // TODO: Extract ARID from tagged subject properly
-    const id = ARID.new(); // Placeholder
+    // Extract ARID from tagged subject
+    // Subject is TAG_RESPONSE(ARID_bytes) or TAG_RESPONSE(UNKNOWN_VALUE)
+    const subject = envelope.subject();
+    const leaf = subject.asLeaf();
+    if (leaf === undefined) {
+      throw EnvelopeError.general("Response envelope has invalid subject");
+    }
+
+    // Expect the RESPONSE tag
+    const content = leaf.expectTag(TAG_RESPONSE);
+
+    // Try to extract ARID from byte string; if it's a KnownValue, ID is undefined
+    let id: ARID | undefined;
+    const bytes = content.asByteString();
+    if (bytes !== undefined) {
+      id = ARID.fromData(bytes);
+    }
+    // If bytes is undefined, the content is UNKNOWN_VALUE, so id remains undefined
 
     if (hasResult) {
       const resultEnvelope = envelope.objectForPredicate(RESULT);
+      if (id === undefined) {
+        throw EnvelopeError.general("Successful response must have an ID");
+      }
       return new Response({
         ok: true,
         id,

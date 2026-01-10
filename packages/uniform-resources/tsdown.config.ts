@@ -12,6 +12,7 @@ export default defineConfig({
   noExternal: ["@bcts/dcbor"],
   outputOptions: {
     globals: {
+      "@bcts/crypto": "bctsCrypto",
       "@bcts/dcbor": "bctsDcbor",
     },
   },
