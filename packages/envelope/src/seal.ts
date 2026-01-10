@@ -66,10 +66,7 @@ declare module "./base/envelope" {
 }
 
 /// Implementation of encryptToRecipient
-Envelope.prototype.encryptToRecipient = function (
-  this: Envelope,
-  recipient: Encrypter,
-): Envelope {
+Envelope.prototype.encryptToRecipient = function (this: Envelope, recipient: Encrypter): Envelope {
   return this.wrap().encryptSubjectToRecipient(recipient);
 };
 

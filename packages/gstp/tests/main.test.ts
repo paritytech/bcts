@@ -110,12 +110,7 @@ describe("Continuation", () => {
       const invalidNow = new Date(requestDate().getTime() + 90 * 1000);
 
       expect(() => {
-        Continuation.tryFromEnvelope(
-          envelope,
-          requestId(),
-          invalidNow,
-          senderPrivateKeys,
-        );
+        Continuation.tryFromEnvelope(envelope, requestId(), invalidNow, senderPrivateKeys);
       }).toThrow();
     });
 
@@ -131,12 +126,7 @@ describe("Continuation", () => {
       const invalidId = ARID.new();
 
       expect(() => {
-        Continuation.tryFromEnvelope(
-          envelope,
-          invalidId,
-          validNow,
-          senderPrivateKeys,
-        );
+        Continuation.tryFromEnvelope(envelope, invalidId, validNow, senderPrivateKeys);
       }).toThrow();
     });
   });
@@ -167,7 +157,11 @@ describe("SealedRequest", () => {
     const serverState = new Expression(Function.newNamed("nextPage"))
       .withParameter("fromRecord", 100)
       .withParameter("toRecord", 199);
-    const serverContinuation = new Continuation(serverState, undefined, serverContinuationValidUntil);
+    const serverContinuation = new Continuation(
+      serverState,
+      undefined,
+      serverContinuationValidUntil,
+    );
     const serverContinuationEnvelope = serverContinuation.toEnvelope(serverPublicKeys);
 
     // Client composes a request
@@ -272,7 +266,11 @@ describe("SealedRequest", () => {
     const serverState = new Expression(Function.newNamed("nextPage"))
       .withParameter("fromRecord", 100)
       .withParameter("toRecord", 199);
-    const serverContinuation = new Continuation(serverState, undefined, new Date(now.getTime() + 60 * 1000));
+    const serverContinuation = new Continuation(
+      serverState,
+      undefined,
+      new Date(now.getTime() + 60 * 1000),
+    );
     const serverContinuationEnvelope = serverContinuation.toEnvelope(serverPublicKeys);
 
     // Client composes request
@@ -338,9 +336,7 @@ describe("SealedRequest", () => {
       clientPrivateKeys,
     );
 
-    expect(parsedServerResponseClient.result().extractString()).toBe(
-      "Records retrieved: 100-199",
-    );
+    expect(parsedServerResponseClient.result().extractString()).toBe("Records retrieved: 100-199");
 
     // Auditor can also decrypt
     expect(() => {

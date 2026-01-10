@@ -38,12 +38,7 @@ export class Seed {
    * Create a new Seed with data and optional metadata.
    * Matches Rust Seed::new_opt function.
    */
-  static newOpt(
-    data: Uint8Array,
-    name: string,
-    note: string,
-    creationDate?: Date,
-  ): Seed {
+  static newOpt(data: Uint8Array, name: string, note: string, creationDate?: Date): Seed {
     const seed = new Seed(data);
     seed._name = name;
     seed._note = note;
@@ -129,12 +124,7 @@ export class Seed {
    * Clone the seed.
    */
   clone(): Seed {
-    return Seed.newOpt(
-      new Uint8Array(this._data),
-      this._name,
-      this._note,
-      this._creationDate,
-    );
+    return Seed.newOpt(new Uint8Array(this._data), this._name, this._note, this._creationDate);
   }
 
   // ============================================================================
@@ -277,12 +267,7 @@ export class Seed {
    * Matches Rust impl From<ComponentsSeed> for Seed.
    */
   static fromComponentsSeed(seed: ComponentsSeed): Seed {
-    return Seed.newOpt(
-      seed.asBytes(),
-      seed.name(),
-      seed.note(),
-      seed.creationDate(),
-    );
+    return Seed.newOpt(seed.asBytes(), seed.name(), seed.note(), seed.creationDate());
   }
 
   // ============================================================================

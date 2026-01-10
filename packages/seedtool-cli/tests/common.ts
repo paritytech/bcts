@@ -60,11 +60,7 @@ export function runCli(args: string[]): string {
 /**
  * Run the CLI with arguments and stdin, expect a specific output.
  */
-export function runCliExpectStdin(
-  args: string[],
-  expected: string,
-  stdin: string = ""
-): void {
+export function runCliExpectStdin(args: string[], expected: string, stdin: string = ""): void {
   const output = runCliStdin(args, stdin);
   if (expected.trim() !== output) {
     throw new Error(`Expected:\n${expected.trim()}\nGot:\n${output}`);
@@ -112,7 +108,7 @@ export function runCliPiped(cmds: string[][]): string {
 export function runCliPipedExpectStdin(
   cmds: string[][],
   expected: string,
-  stdin: string = ""
+  stdin: string = "",
 ): void {
   const output = runCliPipedStdin(cmds, stdin);
   if (expected !== output) {

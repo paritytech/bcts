@@ -11,26 +11,14 @@
  */
 
 // Error types
-export {
-  GstpError,
-  GstpErrorCode,
-} from "./error";
+export { GstpError, GstpErrorCode } from "./error";
 
 // Core types
 export { Continuation } from "./continuation";
 
 // Sealed message types
-export {
-  SealedRequest,
-  type SealedRequestBehavior,
-} from "./sealed-request";
+export { SealedRequest, type SealedRequestBehavior } from "./sealed-request";
 
-export {
-  SealedResponse,
-  type SealedResponseBehavior,
-} from "./sealed-response";
+export { SealedResponse, type SealedResponseBehavior } from "./sealed-response";
 
-export {
-  SealedEvent,
-  type SealedEventBehavior,
-} from "./sealed-event";
+export { SealedEvent, type SealedEventBehavior } from "./sealed-event";

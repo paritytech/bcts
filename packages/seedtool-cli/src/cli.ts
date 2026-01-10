@@ -146,9 +146,7 @@ export function parseDate(s: string): Date {
 export function parseGroupSpec(s: string): SSKRGroupSpec {
   const match = s.match(/^(\d+)-of-(\d+)$/i);
   if (!match) {
-    throw new Error(
-      `Invalid group specification: ${s}. Use format 'M-of-N' (e.g., '2-of-3').`,
-    );
+    throw new Error(`Invalid group specification: ${s}. Use format 'M-of-N' (e.g., '2-of-3').`);
   }
   const threshold = parseInt(match[1], 10);
   const count = parseInt(match[2], 10);

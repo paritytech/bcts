@@ -8,19 +8,8 @@ import type { InputFormat, OutputFormat } from "./format.js";
 import { Seed } from "../seed.js";
 import { Envelope } from "@bcts/envelope";
 import { SymmetricKey } from "@bcts/envelope";
-import {
-  SSKRShare,
-  SSKRShareCbor,
-  SSKRSecret,
-  sskrGenerate,
-  sskrCombine,
-} from "@bcts/components";
-import {
-  encodeBytewords,
-  decodeBytewords,
-  BytewordsStyle,
-  UR,
-} from "@bcts/uniform-resources";
+import { SSKRShare, SSKRShareCbor, SSKRSecret, sskrGenerate, sskrCombine } from "@bcts/components";
+import { encodeBytewords, decodeBytewords, BytewordsStyle, UR } from "@bcts/uniform-resources";
 import { SSKR_SHARE, SSKR_SHARE_V1 } from "@bcts/tags";
 import { toByteString, toTaggedValue, decodeCbor, expectBytes } from "@bcts/dcbor";
 
@@ -59,20 +48,15 @@ export class SSKRFormat implements InputFormat, OutputFormat {
 function outputSskrSeed(
   seed: Seed,
   spec: import("@bcts/sskr").Spec,
-  format: SSKRFormatKey
+  format: SSKRFormatKey,
 ): string {
   switch (format) {
     case "envelope": {
       const envelope = seed.toEnvelope();
       const contentKey = SymmetricKey.new();
       const encryptedEnvelope = envelope.wrap().encryptSubject(contentKey);
-      const shareEnvelopes = encryptedEnvelope.sskrSplitFlattened(
-        spec,
-        contentKey
-      );
-      const shareEnvelopesStrings = shareEnvelopes.map((envelope) =>
-        envelope.urString()
-      );
+      const shareEnvelopes = encryptedEnvelope.sskrSplitFlattened(spec, contentKey);
+      const shareEnvelopesStrings = shareEnvelopes.map((envelope) => envelope.urString());
       return shareEnvelopesStrings.join("\n");
     }
     case "btw": {
@@ -95,10 +79,7 @@ function outputSskrSeed(
   }
 }
 
-function makeShares(
-  spec: import("@bcts/sskr").Spec,
-  seed: Seed
-): SSKRShareCbor[] {
+function makeShares(spec: import("@bcts/sskr").Spec, seed: Seed): SSKRShareCbor[] {
   const secret = SSKRSecret.new(seed.data());
   const shareGroups = sskrGenerate(spec, secret);
   const flatShares: SSKRShareCbor[] = [];
@@ -113,15 +94,13 @@ function makeShares(
 function makeBytewordsShares(
   spec: import("@bcts/sskr").Spec,
   seed: Seed,
-  style: BytewordsStyle
+  style: BytewordsStyle,
 ): string {
   const shares = makeShares(spec, seed);
   const cborShares = shares.map((share) =>
-    toTaggedValue(SSKR_SHARE.value, toByteString(share.asBytes()))
+    toTaggedValue(SSKR_SHARE.value, toByteString(share.asBytes())),
   );
-  const sharesStrings = cborShares.map((share) =>
-    encodeBytewords(share.toData(), style)
-  );
+  const sharesStrings = cborShares.map((share) => encodeBytewords(share.toData(), style));
   return sharesStrings.join("\n");
 }
 
@@ -169,10 +148,7 @@ function fromTaggedCborShares(taggedCborDataShares: Uint8Array[]): Seed | null {
       const cbor = decodeCbor(data);
       // Extract the tagged value and ensure it's the expected tag
       const tagged = cbor as { tag?: number; value?: unknown };
-      if (
-        tagged.tag !== SSKR_SHARE.value &&
-        tagged.tag !== SSKR_SHARE_V1.value
-      ) {
+      if (tagged.tag !== SSKR_SHARE.value && tagged.tag !== SSKR_SHARE_V1.value) {
         return null;
       }
       const content = (tagged.value as { buffer?: Uint8Array }) || cbor;
@@ -215,15 +191,10 @@ function parseBytewords(input: string, style: BytewordsStyle): Seed | null {
   }
 }
 
-function parseUr(
-  input: string,
-  expectedTagValue: number,
-  allowTaggedCbor: boolean
-): Seed | null {
+function parseUr(input: string, expectedTagValue: number, allowTaggedCbor: boolean): Seed | null {
   try {
     // Get the expected type name
-    const expectedType =
-      expectedTagValue === SSKR_SHARE.value ? "sskr" : "crypto-sskr";
+    const expectedType = expectedTagValue === SSKR_SHARE.value ? "sskr" : "crypto-sskr";
 
     const shareStrings = input.split(/\s+/).filter((s) => s.length > 0);
     const urs: UR[] = [];
@@ -258,10 +229,7 @@ function parseUr(
         try {
           const decoded = decodeCbor(cbor.toData());
           const tagged = decoded as { tag?: number; value?: unknown };
-          if (
-            tagged.tag === SSKR_SHARE.value ||
-            tagged.tag === SSKR_SHARE_V1.value
-          ) {
+          if (tagged.tag === SSKR_SHARE.value || tagged.tag === SSKR_SHARE_V1.value) {
             const content = tagged.value as { buffer?: Uint8Array };
             cbor = content as unknown as ReturnType<typeof toByteString>;
           }

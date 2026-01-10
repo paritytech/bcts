@@ -102,13 +102,7 @@ export class MultipartEncoder {
    */
   private _encodePartData(part: FountainPart): Uint8Array {
     // Create CBOR array with 5 elements: [seqNum, seqLen, messageLen, checksum, data]
-    const cborArray = cbor([
-      part.seqNum,
-      part.seqLen,
-      part.messageLen,
-      part.checksum,
-      part.data,
-    ]);
+    const cborArray = cbor([part.seqNum, part.seqLen, part.messageLen, part.checksum, part.data]);
 
     return cborArray.toData();
   }

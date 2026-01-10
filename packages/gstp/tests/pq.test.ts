@@ -50,7 +50,9 @@ function createPQKeypairs(): { privateKeys: PrivateKeys; publicKeys: PublicKeys 
   const signingPublic = SigningPublicKey.fromMldsa(mldsaPublic);
 
   // Encapsulation with MLKEM512
-  const [encapsulationPrivate, encapsulationPublic] = EncapsulationPrivateKey.mlkemKeypair(MLKEMLevel.MLKEM512);
+  const [encapsulationPrivate, encapsulationPublic] = EncapsulationPrivateKey.mlkemKeypair(
+    MLKEMLevel.MLKEM512,
+  );
 
   const privateKeys = PrivateKeys.withKeys(signingPrivate, encapsulationPrivate);
   const publicKeys = PublicKeys.new(signingPublic, encapsulationPublic);
@@ -67,10 +69,7 @@ function createPQXIDDocument(): {
   publicKeys: PublicKeys;
 } {
   const { privateKeys, publicKeys } = createPQKeypairs();
-  const xid = XIDDocument.new(
-    { type: "privateKeys", privateKeys, publicKeys },
-    { type: "none" },
-  );
+  const xid = XIDDocument.new({ type: "privateKeys", privateKeys, publicKeys }, { type: "none" });
   return { xid, privateKeys, publicKeys };
 }
 
@@ -110,12 +109,7 @@ describe("Post-Quantum", () => {
       const invalidNow = new Date(requestDate().getTime() + 90 * 1000);
 
       expect(() => {
-        Continuation.tryFromEnvelope(
-          envelope,
-          requestId(),
-          invalidNow,
-          privateKeys,
-        );
+        Continuation.tryFromEnvelope(envelope, requestId(), invalidNow, privateKeys);
       }).toThrow();
     });
 
@@ -130,12 +124,7 @@ describe("Post-Quantum", () => {
       const invalidId = ARID.new();
 
       expect(() => {
-        Continuation.tryFromEnvelope(
-          envelope,
-          invalidId,
-          validNow,
-          privateKeys,
-        );
+        Continuation.tryFromEnvelope(envelope, invalidId, validNow, privateKeys);
       }).toThrow();
     });
   });
@@ -143,7 +132,11 @@ describe("Post-Quantum", () => {
   describe("Sealed request", () => {
     it("should handle full PQ request/response cycle", () => {
       // Generate PQ keypairs for the server and client
-      const { xid: server, privateKeys: serverPrivateKeys, publicKeys: serverPublicKeys } = createPQXIDDocument();
+      const {
+        xid: server,
+        privateKeys: serverPrivateKeys,
+        publicKeys: serverPublicKeys,
+      } = createPQXIDDocument();
       const { xid: client, privateKeys: clientPrivateKeys } = createPQXIDDocument();
 
       const now = requestDate();
@@ -154,7 +147,11 @@ describe("Post-Quantum", () => {
       const serverState = new Expression(Function.newNamed("nextPage"))
         .withParameter("fromRecord", 100)
         .withParameter("toRecord", 199);
-      const serverContinuation = new Continuation(serverState, undefined, serverContinuationValidUntil);
+      const serverContinuation = new Continuation(
+        serverState,
+        undefined,
+        serverContinuationValidUntil,
+      );
       const serverContinuationEnvelope = serverContinuation.toEnvelope(serverPublicKeys);
 
       // Client composes a request

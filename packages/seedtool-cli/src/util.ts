@@ -106,12 +106,7 @@ export function parseInts(input: string): Uint8Array {
  * @returns String of integers
  * @throws Error if range is invalid
  */
-export function dataToInts(
-  buf: Uint8Array,
-  low: number,
-  high: number,
-  separator: string,
-): string {
+export function dataToInts(buf: Uint8Array, low: number, high: number, separator: string): string {
   if (!(low < high && high <= 255)) {
     throw new Error("Int conversion range must be in 0 <= low < high <= 255.");
   }
@@ -132,11 +127,7 @@ export function dataToInts(
  * @returns Array of digit values
  * @throws Error if any digit is out of range
  */
-export function digitsToData(
-  inStr: string,
-  low: number,
-  high: number,
-): Uint8Array {
+export function digitsToData(inStr: string, low: number, high: number): Uint8Array {
   const result: number[] = [];
   for (const c of inStr) {
     const n = c.charCodeAt(0) - "0".charCodeAt(0);

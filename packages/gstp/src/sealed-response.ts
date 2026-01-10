@@ -429,7 +429,8 @@ export class SealedResponse implements SealedResponseBehavior {
     }
 
     // Get and decrypt our continuation (recipient_continuation)
-    const encryptedContinuation = responseEnvelope.optionalObjectForPredicate(RECIPIENT_CONTINUATION);
+    const encryptedContinuation =
+      responseEnvelope.optionalObjectForPredicate(RECIPIENT_CONTINUATION);
     let state: Envelope | undefined;
     if (encryptedContinuation !== undefined) {
       const continuation = Continuation.tryFromEnvelope(
@@ -466,8 +467,7 @@ export class SealedResponse implements SealedResponseBehavior {
    * Returns a string representation of the sealed response.
    */
   toString(): string {
-    const stateStr =
-      this._state !== undefined ? this._state.formatFlat() : "None";
+    const stateStr = this._state !== undefined ? this._state.formatFlat() : "None";
     const peerStr = this._peerContinuation !== undefined ? "Some" : "None";
     return `SealedResponse(${this._response.summary()}, state: ${stateStr}, peer_continuation: ${peerStr})`;
   }

@@ -148,7 +148,7 @@ export class MultipartDecoder {
     // Verify seqNum and seqLen match the URL path values
     if (seqNum !== partInfo.seqNum || seqLen !== partInfo.seqLen) {
       throw new URError(
-        `Multipart metadata mismatch: URL says ${partInfo.seqNum}-${partInfo.seqLen}, CBOR says ${seqNum}-${seqLen}`
+        `Multipart metadata mismatch: URL says ${partInfo.seqNum}-${partInfo.seqLen}, CBOR says ${seqNum}-${seqLen}`,
       );
     }
 

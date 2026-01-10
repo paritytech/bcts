@@ -22,10 +22,23 @@ export {
 export { Seed } from "./seed.js";
 
 // Re-export random utilities
-export { DeterministicRandomNumberGenerator, hkdfHmacSha256, sha256DeterministicRandom, deterministicRandom } from "./random.js";
+export {
+  DeterministicRandomNumberGenerator,
+  hkdfHmacSha256,
+  sha256DeterministicRandom,
+  deterministicRandom,
+} from "./random.js";
 
 // Re-export utility functions
-export { dataToHex, hexToData, dataToBase, dataToAlphabet, parseInts, dataToInts, digitsToData } from "./util.js";
+export {
+  dataToHex,
+  hexToData,
+  dataToBase,
+  dataToAlphabet,
+  parseInts,
+  dataToInts,
+  digitsToData,
+} from "./util.js";
 
 // Re-export formats
 export * from "./formats/index.js";

@@ -78,11 +78,7 @@ export class DeterministicRandomNumberGenerator {
  * HKDF-HMAC-SHA256 key derivation.
  * Matches Rust hkdf_hmac_sha256 function from bc-crypto.
  */
-export function hkdfHmacSha256(
-  ikm: Uint8Array,
-  salt: Uint8Array,
-  length: number,
-): Uint8Array {
+export function hkdfHmacSha256(ikm: Uint8Array, salt: Uint8Array, length: number): Uint8Array {
   // @noble/hashes hkdf takes (hash, ikm, salt, info, length)
   // Use empty info for our use case
   return hkdf(sha256, ikm, salt, new Uint8Array(0), length);
@@ -97,10 +93,7 @@ export function hkdfHmacSha256(
  * @param n - Number of bytes to return (must be <= 32)
  * @throws Error if n > 32
  */
-export function sha256DeterministicRandom(
-  entropy: Uint8Array,
-  n: number,
-): Uint8Array {
+export function sha256DeterministicRandom(entropy: Uint8Array, n: number): Uint8Array {
   const seed = sha256(entropy);
   if (n <= seed.length) {
     return seed.slice(0, n);
@@ -117,10 +110,7 @@ export function sha256DeterministicRandom(
  * @param n - Number of bytes to return (must be <= 32)
  * @throws Error if n > 32
  */
-export function sha256DeterministicRandomString(
-  str: string,
-  n: number,
-): Uint8Array {
+export function sha256DeterministicRandomString(str: string, n: number): Uint8Array {
   const encoder = new TextEncoder();
   const entropy = encoder.encode(str);
   return sha256DeterministicRandom(entropy, n);

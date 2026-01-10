@@ -26,7 +26,10 @@ import {
   tagsForValues,
   tagValue,
 } from "@bcts/dcbor";
-import { X25519_PUBLIC_KEY as TAG_X25519_PUBLIC_KEY, MLKEM_CIPHERTEXT as TAG_MLKEM_CIPHERTEXT } from "@bcts/tags";
+import {
+  X25519_PUBLIC_KEY as TAG_X25519_PUBLIC_KEY,
+  MLKEM_CIPHERTEXT as TAG_MLKEM_CIPHERTEXT,
+} from "@bcts/tags";
 import { X25519PublicKey } from "../x25519/x25519-public-key.js";
 import { EncapsulationScheme } from "./encapsulation-scheme.js";
 import { MLKEMCiphertext } from "../mlkem/mlkem-ciphertext.js";

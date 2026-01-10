@@ -28,61 +28,49 @@ describe("Seedtool CLI", () => {
     describe("Non-round-trippable formats", () => {
       it("should convert to/from base6", () => {
         const base6 = "3123121543215241";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "base6", hex])
-        ).toBe(base6);
+        expect(runCli(["--deterministic", "TEST", "--out", "base6", hex])).toBe(base6);
         expect(runCli(["--in", "base6", "--out", "hex", base6])).toBe(
-          "cb97f8ff03b3434258a7a8974e3187a0"
+          "cb97f8ff03b3434258a7a8974e3187a0",
         );
       });
 
       it("should convert to/from base10", () => {
         const base10 = "6245132875418481";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "base10", hex])
-        ).toBe(base10);
+        expect(runCli(["--deterministic", "TEST", "--out", "base10", hex])).toBe(base10);
         expect(runCli(["--in", "base10", "--out", "hex", base10])).toBe(
-          "3f3830e7e4d4f95c3e037630c6ae811a"
+          "3f3830e7e4d4f95c3e037630c6ae811a",
         );
       });
 
       it("should convert to/from bits", () => {
         const bits = "1001000111001010";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "bits", hex])
-        ).toBe(bits);
+        expect(runCli(["--deterministic", "TEST", "--out", "bits", hex])).toBe(bits);
         expect(runCli(["--in", "bits", "--out", "hex", bits])).toBe(
-          "980947e4f8cd49459819d9453fca085f"
+          "980947e4f8cd49459819d9453fca085f",
         );
       });
 
       it("should convert to/from cards", () => {
         const cards = "6hjckdah6c4dtc8skh2htd6ctsjd5s8c";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "cards", hex])
-        ).toBe(cards);
+        expect(runCli(["--deterministic", "TEST", "--out", "cards", hex])).toBe(cards);
         expect(runCli(["--in", "cards", "--out", "hex", cards])).toBe(
-          "1d0f2f3b502256cf56e3eaaa9f95ef71"
+          "1d0f2f3b502256cf56e3eaaa9f95ef71",
         );
       });
 
       it("should convert to/from dice", () => {
         const dice = "4234232654326352";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "dice", hex])
-        ).toBe(dice);
+        expect(runCli(["--deterministic", "TEST", "--out", "dice", hex])).toBe(dice);
         expect(runCli(["--in", "dice", "--out", "hex", dice])).toBe(
-          "eefa19b88c5846e71fcb52d007066ae4"
+          "eefa19b88c5846e71fcb52d007066ae4",
         );
       });
 
       it("should convert to/from ints", () => {
         const ints = "6 2 4 5 1 3 2 8 7 5 4 1 8 4 8 1";
-        expect(
-          runCli(["--deterministic", "TEST", "--out", "ints", hex])
-        ).toBe(ints);
+        expect(runCli(["--deterministic", "TEST", "--out", "ints", hex])).toBe(ints);
         expect(runCli(["--in", "ints", "--out", "hex", ints])).toBe(
-          "19a7830e032c0e027d176162112ee67e"
+          "19a7830e032c0e027d176162112ee67e",
         );
       });
     });

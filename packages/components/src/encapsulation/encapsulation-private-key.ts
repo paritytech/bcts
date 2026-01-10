@@ -34,7 +34,10 @@ import {
   tagValue,
 } from "@bcts/dcbor";
 import { UR, type UREncodable } from "@bcts/uniform-resources";
-import { X25519_PRIVATE_KEY as TAG_X25519_PRIVATE_KEY, MLKEM_PRIVATE_KEY as TAG_MLKEM_PRIVATE_KEY } from "@bcts/tags";
+import {
+  X25519_PRIVATE_KEY as TAG_X25519_PRIVATE_KEY,
+  MLKEM_PRIVATE_KEY as TAG_MLKEM_PRIVATE_KEY,
+} from "@bcts/tags";
 import { X25519PrivateKey } from "../x25519/x25519-private-key.js";
 import { type SymmetricKey } from "../symmetric/symmetric-key.js";
 import { EncapsulationScheme } from "./encapsulation-scheme.js";

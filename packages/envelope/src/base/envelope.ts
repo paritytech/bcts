@@ -1027,7 +1027,11 @@ export class Envelope implements DigestProvider {
   // From recipient.ts - uses Encrypter/Decrypter interfaces for PQ support
   declare encryptSubjectToRecipient: (recipient: Encrypter) => Envelope;
   declare encryptSubjectToRecipients: (recipients: Encrypter[]) => Envelope;
-  declare addRecipient: (recipient: Encrypter, contentKey: SymmetricKey, testNonce?: Nonce) => Envelope;
+  declare addRecipient: (
+    recipient: Encrypter,
+    contentKey: SymmetricKey,
+    testNonce?: Nonce,
+  ) => Envelope;
   declare decryptSubjectToRecipient: (recipient: Decrypter) => Envelope;
   declare decryptToRecipient: (recipient: Decrypter) => Envelope;
   declare encryptToRecipients: (recipients: Encrypter[]) => Envelope;

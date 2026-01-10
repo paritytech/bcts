@@ -665,9 +665,7 @@ describe("Xoshiro256** PRNG (internal)", () => {
   });
 
   it("throws error for non-32-byte seed", () => {
-    expect(() => new Xoshiro256(new Uint8Array([1, 2, 3, 4]))).toThrow(
-      "Seed must be 32 bytes"
-    );
+    expect(() => new Xoshiro256(new Uint8Array([1, 2, 3, 4]))).toThrow("Seed must be 32 bytes");
   });
 
   it("generates deterministic values", () => {
@@ -1054,9 +1052,7 @@ describe("Multipart UR round-trip", () => {
 describe("Rust parity tests", () => {
   describe("Fountain code completion behavior", () => {
     // Test message from Rust: "The only thing we have to fear is fear itself."
-    const message = new TextEncoder().encode(
-      "The only thing we have to fear is fear itself."
-    );
+    const message = new TextEncoder().encode("The only thing we have to fear is fear itself.");
 
     it("should complete with pure parts when receiving from part 1", () => {
       const encoder = new FountainEncoder(message, 10);

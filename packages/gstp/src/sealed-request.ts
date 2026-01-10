@@ -390,7 +390,11 @@ export class SealedRequest implements SealedRequestBehavior {
    * @param recipients - Array of recipient XID documents for encryption
    * @returns The sealed request as an envelope
    */
-  toEnvelopeForRecipients(validUntil?: Date, signer?: Signer, recipients?: XIDDocument[]): Envelope {
+  toEnvelopeForRecipients(
+    validUntil?: Date,
+    signer?: Signer,
+    recipients?: XIDDocument[],
+  ): Envelope {
     // Even if no state is provided, requests always include a continuation
     // that at least specifies the required valid response ID.
     const stateEnvelope = this._state ?? Envelope.new(null);
@@ -504,7 +508,8 @@ export class SealedRequest implements SealedRequestBehavior {
     }
 
     // Get and decrypt our continuation (recipient_continuation)
-    const encryptedContinuation = requestEnvelope.optionalObjectForPredicate(RECIPIENT_CONTINUATION);
+    const encryptedContinuation =
+      requestEnvelope.optionalObjectForPredicate(RECIPIENT_CONTINUATION);
     let state: Envelope | undefined;
     if (encryptedContinuation !== undefined) {
       const continuation = Continuation.tryFromEnvelope(
@@ -535,8 +540,7 @@ export class SealedRequest implements SealedRequestBehavior {
    * Returns a string representation of the sealed request.
    */
   toString(): string {
-    const stateStr =
-      this._state !== undefined ? this._state.formatFlat() : "None";
+    const stateStr = this._state !== undefined ? this._state.formatFlat() : "None";
     const peerStr = this._peerContinuation !== undefined ? "Some" : "None";
     return `SealedRequest(${this._request.summary()}, state: ${stateStr}, peer_continuation: ${peerStr})`;
   }

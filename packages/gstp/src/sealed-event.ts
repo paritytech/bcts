@@ -119,7 +119,11 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
    * @param id - The event ID
    * @param sender - The sender's XID document
    */
-  static new<T extends EnvelopeEncodable>(content: T, id: ARID, sender: XIDDocument): SealedEvent<T> {
+  static new<T extends EnvelopeEncodable>(
+    content: T,
+    id: ARID,
+    sender: XIDDocument,
+  ): SealedEvent<T> {
     return new SealedEvent(Event.new(content, id), sender);
   }
 
@@ -274,7 +278,11 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
    * @param recipients - Array of recipient XID documents for encryption
    * @returns The sealed event as an envelope
    */
-  toEnvelopeForRecipients(validUntil?: Date, signer?: Signer, recipients?: XIDDocument[]): Envelope {
+  toEnvelopeForRecipients(
+    validUntil?: Date,
+    signer?: Signer,
+    recipients?: XIDDocument[],
+  ): Envelope {
     // Get sender's encryption key (from inception key)
     const senderInceptionKey = this._sender.inceptionKey();
     const senderEncryptionKey = senderInceptionKey?.publicKeys()?.encapsulationPublicKey();
@@ -431,8 +439,7 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
    * Returns a string representation of the sealed event.
    */
   toString(): string {
-    const stateStr =
-      this._state !== undefined ? this._state.formatFlat() : "None";
+    const stateStr = this._state !== undefined ? this._state.formatFlat() : "None";
     const peerStr = this._peerContinuation !== undefined ? "Some" : "None";
     return `SealedEvent(${this._event.summary()}, state: ${stateStr}, peer_continuation: ${peerStr})`;
   }

@@ -99,11 +99,7 @@ export class SealedMessage {
    * @param testNonce - Optional nonce for deterministic testing
    * @returns A sealed message containing the encrypted content key
    */
-  static seal(
-    contentKey: SymmetricKey,
-    recipient: Encrypter,
-    testNonce?: Nonce,
-  ): SealedMessage {
+  static seal(contentKey: SymmetricKey, recipient: Encrypter, testNonce?: Nonce): SealedMessage {
     // Get the encapsulation public key from the Encrypter
     const encapsulationPublicKey = recipient.encapsulationPublicKey();
 

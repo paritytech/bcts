@@ -62,36 +62,100 @@ async function main(): Promise<void> {
       "A tool for generating and transforming cryptographic seeds.\n\n" +
         "by Wolf McNally and Christopher Allen\n\n" +
         "Report bugs to ChristopherA@BlockchainCommons.com.\n" +
-        "© 2024 Blockchain Commons."
+        "© 2024 Blockchain Commons.",
     )
     .version(VERSION)
-    .argument("[INPUT]", "The input to be transformed. If required and not present, it will be read from stdin.")
-    .option("-c, --count <COUNT>", "The number of output units (hex bytes, base-10 digits, etc.)", "16")
+    .argument(
+      "[INPUT]",
+      "The input to be transformed. If required and not present, it will be read from stdin.",
+    )
+    .option(
+      "-c, --count <COUNT>",
+      "The number of output units (hex bytes, base-10 digits, etc.)",
+      "16",
+    )
     .addOption(
-      new Option("-i, --in <INPUT_TYPE>", "The input format. If not specified, a new random seed is generated using a secure random number generator.")
-        .choices(["random", "hex", "btw", "btwm", "btwu", "bits", "cards", "dice", "base6", "base10", "ints", "bip39", "sskr", "envelope", "seed", "multipart"])
-        .default("random")
+      new Option(
+        "-i, --in <INPUT_TYPE>",
+        "The input format. If not specified, a new random seed is generated using a secure random number generator.",
+      )
+        .choices([
+          "random",
+          "hex",
+          "btw",
+          "btwm",
+          "btwu",
+          "bits",
+          "cards",
+          "dice",
+          "base6",
+          "base10",
+          "ints",
+          "bip39",
+          "sskr",
+          "envelope",
+          "seed",
+          "multipart",
+        ])
+        .default("random"),
     )
     .addOption(
       new Option("-o, --out <OUTPUT_TYPE>", "The output format.")
-        .choices(["hex", "btw", "btwm", "btwu", "bits", "cards", "dice", "base6", "base10", "ints", "bip39", "sskr", "envelope", "seed", "multipart"])
-        .default("hex")
+        .choices([
+          "hex",
+          "btw",
+          "btwm",
+          "btwu",
+          "bits",
+          "cards",
+          "dice",
+          "base6",
+          "base10",
+          "ints",
+          "bip39",
+          "sskr",
+          "envelope",
+          "seed",
+          "multipart",
+        ])
+        .default("hex"),
     )
     .option("--low <LOW>", "The lowest int returned (0-254)", parseLowInt, 0)
     .option("--high <HIGH>", "The highest int returned (1-255), low < high", parseHighInt, 9)
     .option("--name <NAME>", "The name of the seed.")
     .option("--note <NOTE>", "The note associated with the seed.")
     .option("--date <DATE>", "The seed's creation date, in ISO-8601 format. May also be `now`.")
-    .option("--max-fragment-len <MAX_FRAG_LEN>", "For `multipart` output, the UR will be segmented into parts with fragments no larger than MAX_FRAG_LEN", "500")
-    .option("--additional-parts <NUM_PARTS>", "For `multipart` output, the number of additional parts above the minimum to generate using fountain encoding.", "0")
-    .option("-g, --groups <M-of-N>", "Group specifications. May appear more than once. M must be < N", parseGroupSpec, [])
-    .option("-t, --group-threshold <THRESHOLD>", "The number of groups that must meet their threshold. Must be <= the number of group specifications.", parseGroupThreshold, 1)
+    .option(
+      "--max-fragment-len <MAX_FRAG_LEN>",
+      "For `multipart` output, the UR will be segmented into parts with fragments no larger than MAX_FRAG_LEN",
+      "500",
+    )
+    .option(
+      "--additional-parts <NUM_PARTS>",
+      "For `multipart` output, the number of additional parts above the minimum to generate using fountain encoding.",
+      "0",
+    )
+    .option(
+      "-g, --groups <M-of-N>",
+      "Group specifications. May appear more than once. M must be < N",
+      parseGroupSpec,
+      [],
+    )
+    .option(
+      "-t, --group-threshold <THRESHOLD>",
+      "The number of groups that must meet their threshold. Must be <= the number of group specifications.",
+      parseGroupThreshold,
+      1,
+    )
     .addOption(
       new Option("-s, --sskr-format <SSKR_FORMAT>", "SSKR output format.")
         .choices(["envelope", "btw", "btwm", "btwu", "ur"])
-        .default("envelope")
+        .default("envelope"),
     )
-    .option("-d, --deterministic <SEED_STRING>", "Use a deterministic random number generator with the given seed string. Output generated from this seed will be the same every time, so generated seeds are only as secure as the seed string.");
+    .option(
+      "-d, --deterministic <SEED_STRING>",
+      "Use a deterministic random number generator with the given seed string. Output generated from this seed will be the same every time, so generated seeds are only as secure as the seed string.",
+    );
 
   program.parse();
 
