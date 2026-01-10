@@ -13,7 +13,7 @@ import {
   Request,
   type Expression,
   type Function,
-  type EnvelopeEncodable,
+  type EnvelopeEncodableValue,
   type ParameterID,
 } from "@bcts/envelope";
 import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known-values";
@@ -31,12 +31,12 @@ export interface SealedRequestBehavior {
   /**
    * Adds state to the request that the receiver must return in the response.
    */
-  withState(state: EnvelopeEncodable): SealedRequest;
+  withState(state: EnvelopeEncodableValue): SealedRequest;
 
   /**
    * Adds optional state to the request.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedRequest;
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedRequest;
 
   /**
    * Adds a continuation previously received from the recipient.
@@ -143,7 +143,7 @@ export class SealedRequest implements SealedRequestBehavior {
   /**
    * Adds a parameter to the request.
    */
-  withParameter(parameter: ParameterID, value: EnvelopeEncodable): SealedRequest {
+  withParameter(parameter: ParameterID, value: EnvelopeEncodableValue): SealedRequest {
     this._request = this._request.withParameter(parameter, value);
     return this;
   }
@@ -153,7 +153,7 @@ export class SealedRequest implements SealedRequestBehavior {
    */
   withOptionalParameter(
     parameter: ParameterID,
-    value: EnvelopeEncodable | undefined,
+    value: EnvelopeEncodableValue | undefined,
   ): SealedRequest {
     if (value !== undefined) {
       this._request = this._request.withParameter(parameter, value);
@@ -290,7 +290,7 @@ export class SealedRequest implements SealedRequestBehavior {
   /**
    * Adds state to the request that the receiver must return in the response.
    */
-  withState(state: EnvelopeEncodable): SealedRequest {
+  withState(state: EnvelopeEncodableValue): SealedRequest {
     this._state = Envelope.new(state);
     return this;
   }
@@ -298,7 +298,7 @@ export class SealedRequest implements SealedRequestBehavior {
   /**
    * Adds optional state to the request.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedRequest {
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedRequest {
     this._state = state !== undefined ? Envelope.new(state) : undefined;
     return this;
   }

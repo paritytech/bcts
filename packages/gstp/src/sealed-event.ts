@@ -12,7 +12,7 @@
  */
 
 import type { ARID, PrivateKeys, Signer } from "@bcts/components";
-import { Envelope, Event, type EnvelopeEncodable } from "@bcts/envelope";
+import { Envelope, Event, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known-values";
 import { XIDDocument } from "@bcts/xid";
 import { Continuation } from "./continuation";
@@ -24,16 +24,16 @@ import { GstpError } from "./error";
  * Extends EventBehavior with additional methods for managing
  * sender information and state continuations.
  */
-export interface SealedEventBehavior<T extends EnvelopeEncodable> {
+export interface SealedEventBehavior<T extends EnvelopeEncodableValue> {
   /**
    * Adds state to the event that the receiver must return in the response.
    */
-  withState(state: EnvelopeEncodable): SealedEvent<T>;
+  withState(state: EnvelopeEncodableValue): SealedEvent<T>;
 
   /**
    * Adds optional state to the event.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedEvent<T>;
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedEvent<T>;
 
   /**
    * Adds a continuation previously received from the recipient.
@@ -94,7 +94,7 @@ export interface SealedEventBehavior<T extends EnvelopeEncodable> {
  * );
  * ```
  */
-export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBehavior<T> {
+export class SealedEvent<T extends EnvelopeEncodableValue> implements SealedEventBehavior<T> {
   private _event: Event<T>;
   private readonly _sender: XIDDocument;
   private _state: Envelope | undefined;
@@ -119,7 +119,7 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
    * @param id - The event ID
    * @param sender - The sender's XID document
    */
-  static new<T extends EnvelopeEncodable>(
+  static new<T extends EnvelopeEncodableValue>(
     content: T,
     id: ARID,
     sender: XIDDocument,
@@ -182,7 +182,7 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
   /**
    * Adds state to the event that the receiver must return in the response.
    */
-  withState(state: EnvelopeEncodable): SealedEvent<T> {
+  withState(state: EnvelopeEncodableValue): SealedEvent<T> {
     this._state = Envelope.new(state);
     return this;
   }
@@ -190,7 +190,7 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
   /**
    * Adds optional state to the event.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedEvent<T> {
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedEvent<T> {
     if (state !== undefined) {
       return this.withState(state);
     }
@@ -349,7 +349,7 @@ export class SealedEvent<T extends EnvelopeEncodable> implements SealedEventBeha
    * @param contentExtractor - Function to extract content from envelope
    * @returns The parsed sealed event
    */
-  static tryFromEnvelope<T extends EnvelopeEncodable>(
+  static tryFromEnvelope<T extends EnvelopeEncodableValue>(
     encryptedEnvelope: Envelope,
     expectedId: ARID | undefined,
     now: Date | undefined,

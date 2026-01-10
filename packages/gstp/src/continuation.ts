@@ -9,7 +9,7 @@
  */
 
 import { ARID, type Encrypter, type PrivateKeys } from "@bcts/components";
-import { Envelope, type EnvelopeEncodable } from "@bcts/envelope";
+import { Envelope, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { ID, VALID_UNTIL } from "@bcts/known-values";
 import { GstpError } from "./error";
 
@@ -47,7 +47,7 @@ export class Continuation {
    * @param validId - Optional ID for validation
    * @param validUntil - Optional expiration date
    */
-  constructor(state: EnvelopeEncodable, validId?: ARID, validUntil?: Date) {
+  constructor(state: EnvelopeEncodableValue, validId?: ARID, validUntil?: Date) {
     this._state = Envelope.new(state);
     this._validId = validId;
     this._validUntil = validUntil;

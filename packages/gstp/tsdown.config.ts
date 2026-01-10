@@ -14,6 +14,7 @@ export default defineConfig({
       "@bcts/components": "bctsComponents",
       "@bcts/dcbor": "bctsDcbor",
       "@bcts/envelope": "bctsEnvelope",
+      "@bcts/known-values": "bctsKnownValues",
       "@bcts/rand": "bctsRand",
       "@bcts/xid": "bctsXid",
     },

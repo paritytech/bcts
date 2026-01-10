@@ -50,7 +50,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist",
-    "docs": "typedoc",
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [

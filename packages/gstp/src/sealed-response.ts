@@ -8,7 +8,7 @@
  */
 
 import type { ARID, PrivateKeys, Signer } from "@bcts/components";
-import { Envelope, Response, type EnvelopeEncodable } from "@bcts/envelope";
+import { Envelope, Response, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known-values";
 import { XIDDocument } from "@bcts/xid";
 import { Continuation } from "./continuation";
@@ -24,12 +24,12 @@ export interface SealedResponseBehavior {
   /**
    * Adds state to the response that the peer may return at some future time.
    */
-  withState(state: EnvelopeEncodable): SealedResponse;
+  withState(state: EnvelopeEncodableValue): SealedResponse;
 
   /**
    * Adds optional state to the response.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedResponse;
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedResponse;
 
   /**
    * Adds a continuation previously received from the recipient.
@@ -141,7 +141,7 @@ export class SealedResponse implements SealedResponseBehavior {
    *
    * @throws Error if called on a failed response
    */
-  withState(state: EnvelopeEncodable): SealedResponse {
+  withState(state: EnvelopeEncodableValue): SealedResponse {
     if (!this._response.isOk()) {
       throw new Error("Cannot set state on a failed response");
     }
@@ -152,7 +152,7 @@ export class SealedResponse implements SealedResponseBehavior {
   /**
    * Adds optional state to the response.
    */
-  withOptionalState(state: EnvelopeEncodable | undefined): SealedResponse {
+  withOptionalState(state: EnvelopeEncodableValue | undefined): SealedResponse {
     if (state !== undefined) {
       return this.withState(state);
     }
@@ -196,7 +196,7 @@ export class SealedResponse implements SealedResponseBehavior {
   /**
    * Sets the result value for a successful response.
    */
-  withResult(result: EnvelopeEncodable): SealedResponse {
+  withResult(result: EnvelopeEncodableValue): SealedResponse {
     this._response = this._response.withResult(result);
     return this;
   }
@@ -205,7 +205,7 @@ export class SealedResponse implements SealedResponseBehavior {
    * Sets an optional result value for a successful response.
    * If the result is undefined, the value of the response will be the null envelope.
    */
-  withOptionalResult(result: EnvelopeEncodable | undefined): SealedResponse {
+  withOptionalResult(result: EnvelopeEncodableValue | undefined): SealedResponse {
     this._response = this._response.withOptionalResult(result);
     return this;
   }
@@ -213,7 +213,7 @@ export class SealedResponse implements SealedResponseBehavior {
   /**
    * Sets the error value for a failure response.
    */
-  withError(error: EnvelopeEncodable): SealedResponse {
+  withError(error: EnvelopeEncodableValue): SealedResponse {
     this._response = this._response.withError(error);
     return this;
   }
@@ -222,7 +222,7 @@ export class SealedResponse implements SealedResponseBehavior {
    * Sets an optional error value for a failure response.
    * If the error is undefined, the value of the response will be the unknown value.
    */
-  withOptionalError(error: EnvelopeEncodable | undefined): SealedResponse {
+  withOptionalError(error: EnvelopeEncodableValue | undefined): SealedResponse {
     this._response = this._response.withOptionalError(error);
     return this;
   }
