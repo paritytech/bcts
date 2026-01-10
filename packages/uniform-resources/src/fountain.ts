@@ -71,6 +71,11 @@ export function xorBytes(a: Uint8Array, b: Uint8Array): Uint8Array {
  * This uses a seeded Xoshiro256** PRNG to deterministically select fragments,
  * ensuring encoder and decoder agree without explicit coordination.
  *
+ * The algorithm matches the BC-UR reference implementation:
+ * 1. For pure parts (seqNum <= seqLen), return single fragment index
+ * 2. For mixed parts, use weighted sampling to choose degree
+ * 3. Shuffle all indices and take the first 'degree' indices
+ *
  * @param seqNum - The sequence number (1-based)
  * @param seqLen - Total number of pure fragments
  * @param checksum - CRC32 checksum of the message
@@ -86,43 +91,18 @@ export function chooseFragments(seqNum: number, seqLen: number, checksum: number
   const seed = createSeed(checksum, seqNum);
   const rng = new Xoshiro256(seed);
 
-  // Choose degree (number of fragments to mix)
-  // Uses a simplified soliton distribution
-  const degree = chooseDegree(rng, seqLen);
+  // Choose degree using weighted sampler (1/k distribution)
+  const degree = rng.chooseDegree(seqLen);
 
-  // Choose which fragments to include
-  const indices = new Set<number>();
-  while (indices.size < degree) {
-    const index = rng.nextInt(0, seqLen);
-    indices.add(index);
+  // Create array of all indices [0, 1, 2, ..., seqLen-1]
+  const allIndices: number[] = [];
+  for (let i = 0; i < seqLen; i++) {
+    allIndices.push(i);
   }
 
-  return Array.from(indices).sort((a, b) => a - b);
-}
-
-/**
- * Chooses the degree (number of fragments to mix) using a simplified
- * robust soliton distribution.
- *
- * This ensures good coverage of fragments for efficient decoding.
- */
-function chooseDegree(rng: Xoshiro256, seqLen: number): number {
-  // Use a simplified distribution that tends toward lower degrees
-  // but can occasionally include more fragments
-  const r = rng.nextDouble();
-
-  // Probability distribution favoring lower degrees
-  // Based on robust soliton distribution
-  if (r < 0.5) {
-    return 1;
-  } else if (r < 0.75) {
-    return 2;
-  } else if (r < 0.9) {
-    return Math.min(3, seqLen);
-  } else {
-    // Higher degrees are less common but help with convergence
-    return Math.min(rng.nextInt(4, seqLen + 1), seqLen);
-  }
+  // Shuffle all indices and take the first 'degree' indices
+  const shuffled = rng.shuffled(allIndices);
+  return shuffled.slice(0, degree);
 }
 
 /**
@@ -264,7 +244,7 @@ export class FountainDecoder {
     const indices = chooseFragments(part.seqNum, this.seqLen, this.checksum);
 
     if (indices.length === 1) {
-      // Pure fragment
+      // Pure fragment (or degree-1 mixed that acts like pure)
       const index = indices[0];
       if (!this.pureFragments.has(index)) {
         this.pureFragments.set(index, part.data);

@@ -67,8 +67,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@bcts/dcbor": "workspace:*",
-    "@noble/hashes": "^2.0.1"
+    "@bcts/crypto": "workspace:*",
+    "@bcts/dcbor": "workspace:*"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",

@@ -703,12 +703,12 @@ describe("Xoshiro256** PRNG (internal)", () => {
     }
   });
 
-  it("nextInt returns values in [low, high)", () => {
+  it("nextInt returns values in [low, high] (inclusive)", () => {
     const rng = new Xoshiro256(make32ByteSeed(42));
     for (let i = 0; i < 100; i++) {
       const val = rng.nextInt(10, 20);
       expect(val).toBeGreaterThanOrEqual(10);
-      expect(val).toBeLessThan(20);
+      expect(val).toBeLessThanOrEqual(20); // Inclusive upper bound to match BC-UR reference
     }
   });
 
