@@ -121,10 +121,11 @@ describe("Seedtool CLI", () => {
   });
 
   describe("Envelope (test_envelope)", () => {
-    // KNOWN ISSUE: Date encoding differs between Rust (CBOR Date tag 1) and TypeScript (ISO string)
-    // The Rust expected value uses CBOR date format, but our implementation uses ISO string
-    // This causes the UR strings to differ
-    it("should create envelope with metadata (functional test)", () => {
+    it("should create envelope with metadata (exact Rust parity)", () => {
+      // Expected output from seedtool-cli-rust with same parameters
+      const rustExpected =
+        "ur:envelope/lptpsogdnteelblrcygldwvarflojtcywyjytpdkoyadcsspoyaatpsojoghisinjkcxinjkcxjyisihcxjtjljyihoybdtpsoisguihihieglhsjnihoybetpsosecyiyjzvsayehspswda";
+
       const result = runCli([
         "--out",
         "envelope",
@@ -137,8 +138,9 @@ describe("Seedtool CLI", () => {
         "--deterministic",
         "TEST",
       ]);
-      // Verify it produces a valid envelope UR
-      expect(result.startsWith("ur:envelope/")).toBe(true);
+
+      // Verify exact match with Rust output
+      expect(result).toBe(rustExpected);
 
       // Verify it can be parsed back
       const envelope = Envelope.fromURString(result);

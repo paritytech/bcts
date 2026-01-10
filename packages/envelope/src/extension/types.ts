@@ -1,12 +1,13 @@
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
+import { IS_A } from "@bcts/known-values";
 
 /// Type system for Gordian Envelopes.
 ///
 /// This module provides functionality for adding, querying, and verifying types
 /// within envelopes. In Gordian Envelope, types are implemented using the
-/// special `'isA'` predicate (the string "isA"), which is semantically
+/// special `'isA'` KnownValue predicate (value 1), which is semantically
 /// equivalent to the RDF `rdf:type` concept.
 ///
 /// Type information enables:
@@ -49,9 +50,6 @@ import { EnvelopeError } from "../base/error";
 ///      console.log(`${name} is ${age} years old`);
 ///    }
 ///    ```
-
-/// The standard predicate for type assertions
-export const IS_A = "isA";
 
 /// Implementation of addType()
 // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions

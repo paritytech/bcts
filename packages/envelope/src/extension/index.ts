@@ -4,8 +4,10 @@
 /// Envelopes, including type system support, encryption, compression,
 /// signatures, and more.
 
-// Type system
-export { IS_A } from "./types";
+// Type system - IS_A is now imported from @bcts/known-values
+// Import types module for side effects (prototype registration)
+import "./types";
+export { IS_A } from "@bcts/known-values";
 
 // Salt support
 export { SALT } from "./salt";
