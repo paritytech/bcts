@@ -4,7 +4,7 @@
  */
 
 import { ARID, PrivateKeys } from "@bcts/components";
-import { Envelope, Expression, Function } from "@bcts/envelope";
+import { Expression, Function, type Envelope } from "@bcts/envelope";
 import { XIDDocument } from "@bcts/xid";
 import { Continuation, SealedRequest, SealedResponse, SealedEvent } from "../src";
 

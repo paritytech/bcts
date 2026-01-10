@@ -7,7 +7,7 @@
  * Ported from gstp-rust/src/sealed_response.rs
  */
 
-import { ARID, type PrivateKeys, type Signer } from "@bcts/components";
+import type { ARID, PrivateKeys, Signer } from "@bcts/components";
 import { Envelope, Response, type EnvelopeEncodable } from "@bcts/envelope";
 import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known-values";
 import { XIDDocument } from "@bcts/xid";

@@ -7,11 +7,11 @@
  * Ported from gstp-rust/src/sealed_request.rs
  */
 
-import { ARID, type PrivateKeys, type Signer } from "@bcts/components";
+import type { ARID, PrivateKeys, Signer } from "@bcts/components";
 import {
   Envelope,
   Request,
-  Expression,
+  type Expression,
   type Function,
   type EnvelopeEncodable,
   type ParameterID,

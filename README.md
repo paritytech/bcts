@@ -17,7 +17,8 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 ## 📚 Resources
 
 - [CBOR Book](https://cborbook.com/) - Comprehensive guide to CBOR, dCBOR and Gordian Envelope
-- [Blockchain Commons Developer](https://developer.blockchaincommons.com/) - Blockchain Commons developer documentation
+- [Blockchain Commons YouTube](https://www.youtube.com/@blockchaincommons) - A YouTube channel with many lectures and tutorials
+- [Blockchain Commons Developer](https://developer.blockchaincommons.com/) - BC's developer documentation
 - [JSON vs CBOR](https://hackmd.io/@leonardocustodio/json-vs-cbor) - Comparison of JSON and CBOR formats
 - [Deterministic Data: Intro to dCBOR](https://hackmd.io/@leonardocustodio/deterministic-data-intro-to-dcbor) - Introduction to deterministic CBOR
 

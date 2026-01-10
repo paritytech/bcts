@@ -11,7 +11,7 @@
  * Ported from gstp-rust/src/sealed_event.rs
  */
 
-import { ARID, type PrivateKeys, type Signer } from "@bcts/components";
+import type { ARID, PrivateKeys, Signer } from "@bcts/components";
 import { Envelope, Event, type EnvelopeEncodable } from "@bcts/envelope";
 import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known-values";
 import { XIDDocument } from "@bcts/xid";
