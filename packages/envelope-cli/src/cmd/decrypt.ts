@@ -25,6 +25,7 @@ function privateKeysToEnvelopeKey(pk: PrivateKeys): EnvelopePrivateKeyBase {
   const x25519Key = encKey.x25519PrivateKey();
   const privateData = x25519Key.data();
   const publicData = x25519Key.publicKey().data();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
   return EnvelopePrivateKeyBase.fromBytes(privateData, publicData);
 }
 
@@ -36,6 +37,7 @@ function privateKeyBaseToEnvelopeKey(pkb: PrivateKeyBase): EnvelopePrivateKeyBas
   const x25519Key = pkb.x25519PrivateKey();
   const privateData = x25519Key.data();
   const publicData = x25519Key.publicKey().data();
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
   return EnvelopePrivateKeyBase.fromBytes(privateData, publicData);
 }
 

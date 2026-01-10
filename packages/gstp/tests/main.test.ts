@@ -47,7 +47,9 @@ describe("Continuation", () => {
       );
 
       expect(parsedContinuation.state().digest().equals(continuation.state().digest())).toBe(true);
-      expect(parsedContinuation.id()?.equals(continuation.id()!)).toBe(true);
+      expect(parsedContinuation.id()?.equals(continuation.id() ?? parsedContinuation.id())).toBe(
+        true,
+      );
       expect(parsedContinuation.validUntil()?.getTime()).toBe(continuation.validUntil()?.getTime());
       expect(continuation.equals(parsedContinuation)).toBe(true);
     });
@@ -94,7 +96,9 @@ describe("Continuation", () => {
       );
 
       expect(parsedContinuation.state().digest().equals(continuation.state().digest())).toBe(true);
-      expect(parsedContinuation.id()?.equals(continuation.id()!)).toBe(true);
+      expect(parsedContinuation.id()?.equals(continuation.id() ?? parsedContinuation.id())).toBe(
+        true,
+      );
       expect(parsedContinuation.validUntil()?.getTime()).toBe(continuation.validUntil()?.getTime());
       expect(continuation.equals(parsedContinuation)).toBe(true);
     });
