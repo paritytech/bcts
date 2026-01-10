@@ -669,13 +669,14 @@ export class Expression {
     // Add all parameters as assertions
     for (const param of this.#parameters.values()) {
       const paramEnv = param.envelope();
-      // Extract the assertion from the parameter envelope
-      const assertion = paramEnv.assertions()[0];
-      if (assertion !== undefined) {
-        const predicate = assertion.subject().asPredicate();
-        const object = assertion.subject().asObject();
-        if (predicate !== undefined && object !== undefined) {
-          env = env.addAssertion(predicate.asText(), object);
+      // The paramEnv is itself an assertion envelope - extract predicate and object directly
+      const paramCase = paramEnv.case();
+      if (paramCase.type === "assertion") {
+        const predicate = paramCase.assertion.predicate();
+        const object = paramCase.assertion.object();
+        const predText = predicate.asText();
+        if (predText !== undefined) {
+          env = env.addAssertion(predText, object);
         }
       }
     }
@@ -712,7 +713,7 @@ export class Expression {
     for (const assertion of envelope.assertions()) {
       try {
         const pred = assertion.subject().asPredicate();
-        const obj = assertion.subject().asObject();
+        const obj = assertion.asObject();
 
         if (pred !== undefined && obj !== undefined) {
           const predText = pred.asText();

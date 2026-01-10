@@ -237,9 +237,11 @@ export class Request implements RequestBehavior {
       throw EnvelopeError.general("Request envelope has invalid subject");
     }
 
-    // The ARID should be extracted from the tagged value
-    // For now, we'll create a placeholder - this needs proper CBOR parsing
-    const id = ARID.new(); // TODO: Extract from tagged CBOR
+    // The subject is TAG_REQUEST(ARID_bytes)
+    // First expect the REQUEST tag, then extract the ARID from the content
+    const aridCbor = leaf.expectTag(TAG_REQUEST);
+    const aridBytes = aridCbor.toByteString();
+    const id = ARID.fromData(aridBytes);
 
     // Extract optional note
     let note = "";

@@ -184,8 +184,18 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
     }
     const content = contentExtractor(contentEnvelope);
 
-    // TODO: Extract ARID from tagged subject properly
-    const id = ARID.new(); // Placeholder
+    // Extract the ARID from the subject
+    // Subject is TAG_EVENT(ARID_bytes)
+    const subject = envelope.subject();
+    const leaf = subject.asLeaf();
+    if (leaf === undefined) {
+      throw EnvelopeError.general("Event envelope has invalid subject");
+    }
+
+    // Expect the EVENT tag and extract the ARID
+    const aridCbor = leaf.expectTag(TAG_EVENT);
+    const aridBytes = aridCbor.toByteString();
+    const id = ARID.fromData(aridBytes);
 
     // Extract optional note
     let note = "";

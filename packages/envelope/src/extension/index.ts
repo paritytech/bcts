@@ -33,7 +33,18 @@ export {
 export { Attachments, ATTACHMENT, VENDOR, CONFORMS_TO } from "./attachment";
 
 // Recipient support (public-key encryption)
-export { PublicKeyBase, PrivateKeyBase, SealedMessage, HAS_RECIPIENT } from "./recipient";
+// Now uses Encrypter/Decrypter interfaces for PQ support (X25519 and MLKEM)
+export {
+  SealedMessage,
+  HAS_RECIPIENT,
+  // Legacy exports for backwards compatibility (deprecated)
+  PublicKeyBase,
+  PrivateKeyBase,
+  // Re-export from components
+  ComponentsSealedMessage,
+  type Encrypter,
+  type Decrypter,
+} from "./recipient";
 
 // Expression support
 export {
@@ -116,6 +127,9 @@ export {
   LazyStore,
 } from "./expression";
 
+// Proof support (inclusion proofs)
+export { registerProofExtension } from "./proof";
+
 // Secret support (password-based locking)
 export { registerSecretExtension } from "./secret";
 
@@ -127,14 +141,7 @@ export { Request, type RequestBehavior } from "./request";
 export { Response, type ResponseBehavior } from "./response";
 export { Event, type EventBehavior } from "./event";
 
-// Import side-effect modules to register prototype extensions
-import "./types";
-import "./salt";
-import "./compress";
-import "./encrypt";
-import "./signature";
-import "./attachment";
-import "./recipient";
-import "./proof";
-import "./secret";
-import "./sskr";
+// Note: Extension prototype registration is handled by the main index.ts
+// to avoid circular dependency issues. The named exports above already
+// cause the modules to be loaded; explicit registration calls ensure
+// proper initialization order after all modules are ready.

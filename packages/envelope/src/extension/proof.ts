@@ -223,5 +223,8 @@ function isSubset(subset: Set<Digest>, superset: Set<Digest>): boolean {
   return true;
 }
 
-// Export empty object to make this a module
-export {};
+/// Register proof extension on Envelope prototype.
+/// This function is exported to allow explicit registration.
+export function registerProofExtension(): void {
+  // Methods are already registered above when this module loads
+}

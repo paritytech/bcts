@@ -244,6 +244,5 @@ export function registerEncryptExtension(): void {
   };
 }
 
-// Auto-register on module load - will be called again from index.ts
-// to ensure proper ordering after all modules are loaded
-registerEncryptExtension();
+// Registration is handled by the main index.ts to avoid circular dependency issues.
+// The registerEncryptExtension() function is called explicitly after all modules are loaded.

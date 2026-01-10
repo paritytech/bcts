@@ -333,11 +333,30 @@ export class Response implements ResponseBehavior {
       throw EnvelopeError.invalidResponse();
     }
 
-    // TODO: Extract ARID from tagged subject properly
-    const id = ARID.new(); // Placeholder
+    // Extract ARID from tagged subject
+    // Subject is TAG_RESPONSE(ARID_bytes) or TAG_RESPONSE(UNKNOWN_VALUE)
+    const subject = envelope.subject();
+    const leaf = subject.asLeaf();
+    if (leaf === undefined) {
+      throw EnvelopeError.general("Response envelope has invalid subject");
+    }
+
+    // Expect the RESPONSE tag
+    const content = leaf.expectTag(TAG_RESPONSE);
+
+    // Try to extract ARID from byte string; if it's a KnownValue, ID is undefined
+    let id: ARID | undefined;
+    const bytes = content.asByteString();
+    if (bytes !== undefined) {
+      id = ARID.fromData(bytes);
+    }
+    // If bytes is undefined, the content is UNKNOWN_VALUE, so id remains undefined
 
     if (hasResult) {
       const resultEnvelope = envelope.objectForPredicate(RESULT);
+      if (id === undefined) {
+        throw EnvelopeError.general("Successful response must have an ID");
+      }
       return new Response({
         ok: true,
         id,

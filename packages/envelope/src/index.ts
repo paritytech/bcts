@@ -17,10 +17,12 @@ export * from "./extension";
 // Import registration functions and call them to ensure proper initialization order
 import { registerEncryptExtension } from "./extension/encrypt";
 import { registerCompressExtension } from "./extension/compress";
+import { registerProofExtension } from "./extension/proof";
 import { registerSecretExtension } from "./extension/secret";
 import { registerSskrExtension } from "./extension/sskr";
 registerEncryptExtension();
 registerCompressExtension();
+registerProofExtension();
 registerSecretExtension();
 registerSskrExtension();
 
