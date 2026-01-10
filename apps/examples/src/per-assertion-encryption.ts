@@ -46,10 +46,14 @@ function main(): void {
 
   console.log("Generated keys for:");
   console.log(`  - Bar/Club:     ${barKeys.publicKeys().reference().shortReference("hex")}...`);
-  console.log(`  - Employer:     ${employerKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Employer:     ${employerKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
   console.log(`  - Bank:         ${bankKeys.publicKeys().reference().shortReference("hex")}...`);
   console.log(`  - Medical:      ${medicalKeys.publicKeys().reference().shortReference("hex")}...`);
-  console.log(`  - Delivery:     ${deliveryKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Delivery:     ${deliveryKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
 
   // ================================================================
   // STEP 2: Create encrypted assertions for each recipient

@@ -47,9 +47,13 @@ function main(): void {
   const daveKeys = PrivateKeyBase.generate(); // Party D (e.g., Lawyer)
 
   console.log("Generated keys for:");
-  console.log(`  - Alice (Buyer):   ${aliceKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Alice (Buyer):   ${aliceKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
   console.log(`  - Bob (Seller):    ${bobKeys.publicKeys().reference().shortReference("hex")}...`);
-  console.log(`  - Carol (Notary):  ${carolKeys.publicKeys().reference().shortReference("hex")}...`);
+  console.log(
+    `  - Carol (Notary):  ${carolKeys.publicKeys().reference().shortReference("hex")}...`,
+  );
   console.log(`  - Dave (Lawyer):   ${daveKeys.publicKeys().reference().shortReference("hex")}...`);
 
   // Also create an unauthorized party
