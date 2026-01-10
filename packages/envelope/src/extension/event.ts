@@ -24,7 +24,7 @@ import { EVENT as TAG_EVENT } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { CONTENT, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -88,7 +88,9 @@ export interface EventBehavior<T extends EnvelopeEncodableValue> {
  *
  * @typeParam T - The type of content this event carries
  */
-export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T> {
+export class Event<T extends EnvelopeEncodableValue>
+  implements EventBehavior<T>, EnvelopeEncodable
+{
   readonly #content: T;
   readonly #id: ARID;
   #note: string;
@@ -166,6 +168,13 @@ export class Event<T extends EnvelopeEncodableValue> implements EventBehavior<T>
     }
 
     return envelope;
+  }
+
+  /**
+   * Converts this event into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
   }
 
   /**

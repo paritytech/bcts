@@ -19,7 +19,7 @@ import { RESPONSE as TAG_RESPONSE } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { RESULT, ERROR, OK_VALUE, UNKNOWN_VALUE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /**
@@ -118,7 +118,7 @@ export interface ResponseBehavior {
  * const errorEnvelope = errorResponse.toEnvelope();
  * ```
  */
-export class Response implements ResponseBehavior {
+export class Response implements ResponseBehavior, EnvelopeEncodable {
   #result: ResponseResult;
 
   private constructor(result: ResponseResult) {
@@ -304,6 +304,13 @@ export class Response implements ResponseBehavior {
       }
       return subject.addAssertion(ERROR, this.#result.error);
     }
+  }
+
+  /**
+   * Converts this response into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
   }
 
   /**

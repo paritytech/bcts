@@ -47,9 +47,13 @@ describe("Continuation", () => {
       );
 
       expect(parsedContinuation.state().digest().equals(continuation.state().digest())).toBe(true);
-      expect(parsedContinuation.id()?.equals(continuation.id() ?? parsedContinuation.id())).toBe(
-        true,
-      );
+      const expectedId = continuation.id();
+      const actualId = parsedContinuation.id();
+      if (expectedId !== undefined && actualId !== undefined) {
+        expect(actualId.equals(expectedId)).toBe(true);
+      } else {
+        expect(actualId).toBe(expectedId);
+      }
       expect(parsedContinuation.validUntil()?.getTime()).toBe(continuation.validUntil()?.getTime());
       expect(continuation.equals(parsedContinuation)).toBe(true);
     });
@@ -96,9 +100,13 @@ describe("Continuation", () => {
       );
 
       expect(parsedContinuation.state().digest().equals(continuation.state().digest())).toBe(true);
-      expect(parsedContinuation.id()?.equals(continuation.id() ?? parsedContinuation.id())).toBe(
-        true,
-      );
+      const expectedId = continuation.id();
+      const actualId = parsedContinuation.id();
+      if (expectedId !== undefined && actualId !== undefined) {
+        expect(actualId.equals(expectedId)).toBe(true);
+      } else {
+        expect(actualId).toBe(expectedId);
+      }
       expect(parsedContinuation.validUntil()?.getTime()).toBe(continuation.validUntil()?.getTime());
       expect(continuation.equals(parsedContinuation)).toBe(true);
     });

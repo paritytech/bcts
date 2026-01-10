@@ -16,8 +16,8 @@ import { PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
 function publicKeysToEnvelopeKey(pk: PublicKeys): EnvelopePublicKeyBase {
   const encKey = pk.encapsulationPublicKey();
   const publicData = encKey.x25519PublicKey().data();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return new EnvelopePublicKeyBase(publicData);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
+  return new (EnvelopePublicKeyBase as any)(publicData);
 }
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };

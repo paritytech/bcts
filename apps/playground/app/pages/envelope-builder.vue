@@ -192,7 +192,7 @@ const toast = useToast()
 function createRecipient(name: string): RecipientKey {
   const privateKey = PrivateKeyBase.generate()
   // Get hex representation of public key for display
-  const publicKeyHex = privateKey.publicKeys().hex()
+  const publicKeyHex = privateKey.publicKeys().reference().shortReference("hex")
   return {
     id: generateId(),
     name,

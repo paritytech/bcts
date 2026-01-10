@@ -23,7 +23,7 @@ import { REQUEST as TAG_REQUEST } from "@bcts/tags";
 import { toTaggedValue } from "@bcts/dcbor";
 import { BODY, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 import { Expression, Function, type ParameterID } from "./expression";
 
@@ -105,7 +105,7 @@ export interface RequestBehavior {
  * const envelope = request.toEnvelope();
  * ```
  */
-export class Request implements RequestBehavior {
+export class Request implements RequestBehavior, EnvelopeEncodable {
   readonly #body: Expression;
   readonly #id: ARID;
   #note: string;
@@ -210,6 +210,13 @@ export class Request implements RequestBehavior {
     }
 
     return envelope;
+  }
+
+  /**
+   * Converts this request into an envelope (EnvelopeEncodable implementation).
+   */
+  intoEnvelope(): Envelope {
+    return this.toEnvelope();
   }
 
   /**

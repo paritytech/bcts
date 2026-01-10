@@ -197,9 +197,7 @@ export class Continuation {
 
     // Encrypt to recipient if provided
     if (recipient !== undefined) {
-      // Type assertion needed because encryptToRecipient is a prototype extension
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      envelope = envelope.encryptToRecipient(recipient) as Envelope;
+      envelope = envelope.encryptToRecipients([recipient]);
     }
 
     return envelope;

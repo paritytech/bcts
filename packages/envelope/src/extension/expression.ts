@@ -1,5 +1,5 @@
 import { Envelope } from "../base/envelope";
-import { type EnvelopeEncodableValue } from "../base/envelope-encodable";
+import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
 
 /// Extension for envelope expressions.
@@ -94,7 +94,7 @@ type FunctionVariant = "known" | "named";
 /// 2. By a string name (for application-specific functions) - Named variant
 ///
 /// When encoded in CBOR, functions are tagged with #6.40006.
-export class Function {
+export class Function implements EnvelopeEncodable {
   readonly #variant: FunctionVariant;
   readonly #value: number; // Only used for 'known' variant
   readonly #name: string | undefined;
@@ -189,6 +189,11 @@ export class Function {
   envelope(): Envelope {
     const functionStr = this.#variant === "known" ? `«${this.#value}»` : `«"${this.#name}"»`;
     return Envelope.new(functionStr);
+  }
+
+  /// Converts this function into an envelope (EnvelopeEncodable implementation).
+  intoEnvelope(): Envelope {
+    return this.envelope();
   }
 
   /// Creates an expression with a parameter.
@@ -307,7 +312,7 @@ type ParameterVariant = "known" | "named";
 /// 2. By a string name (for application-specific parameters) - Named variant
 ///
 /// When encoded in CBOR, parameters are tagged with #6.40007.
-export class Parameter {
+export class Parameter implements EnvelopeEncodable {
   readonly #variant: ParameterVariant;
   readonly #value: number; // Only used for 'known' variant, or 0 for 'named'
   readonly #name: string | undefined;
@@ -416,6 +421,11 @@ export class Parameter {
       return Envelope.newAssertion(paramStr, this.#paramValue);
     }
     return Envelope.new(paramStr);
+  }
+
+  /// Converts this parameter into an envelope (EnvelopeEncodable implementation).
+  intoEnvelope(): Envelope {
+    return this.envelope();
   }
 
   /// Checks equality based on value (for known) or name (for named).
@@ -610,7 +620,7 @@ export const GLOBAL_PARAMETERS = new LazyStore(() => new ParametersStore([BLANK,
 //------------------------------------------------------------------------------
 
 /// Represents a complete expression with function and parameters.
-export class Expression {
+export class Expression implements EnvelopeEncodable {
   readonly #function: Function;
   readonly #parameters = new Map<string, Parameter>();
   #envelope: Envelope | null = null;
@@ -683,6 +693,11 @@ export class Expression {
 
     this.#envelope = env;
     return env;
+  }
+
+  /// Converts this expression into an envelope (EnvelopeEncodable implementation).
+  intoEnvelope(): Envelope {
+    return this.envelope();
   }
 
   /// Creates an expression from an envelope.
