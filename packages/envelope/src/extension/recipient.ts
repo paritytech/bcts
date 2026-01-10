@@ -36,8 +36,8 @@ import { SymmetricKey } from "./encrypt";
 import {
   type Encrypter,
   type Decrypter,
+  type Nonce,
   SealedMessage as ComponentsSealedMessage,
-  Nonce,
   isEncrypter,
 } from "@bcts/components";
 import { HAS_RECIPIENT as HAS_RECIPIENT_KV } from "@bcts/known-values";

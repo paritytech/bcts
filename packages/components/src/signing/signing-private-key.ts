@@ -20,6 +20,7 @@
  */
 
 import { ED25519_PRIVATE_KEY_SIZE } from "@bcts/crypto";
+import type { RandomNumberGenerator } from "@bcts/rand";
 import {
   type Cbor,
   type Tag,
@@ -568,7 +569,7 @@ export class SigningPrivateKey
    * @returns The Schnorr signature
    * @throws Error if this is not a Schnorr key
    */
-  schnorrSign(message: Uint8Array, rng: import("@bcts/rand").RandomNumberGenerator): Signature {
+  schnorrSign(message: Uint8Array, rng: RandomNumberGenerator): Signature {
     const privateKey = this.toSchnorr();
     if (privateKey === null) {
       throw new Error("Invalid key type for Schnorr signing");

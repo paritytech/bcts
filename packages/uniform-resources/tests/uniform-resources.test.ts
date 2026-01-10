@@ -1112,7 +1112,9 @@ describe("Rust parity tests", () => {
       // Receive in shuffled order: 3, 1, 5, 2, 4
       const order = [2, 0, 4, 1, 3];
       for (const idx of order) {
-        decoder.receive(parts[idx]!);
+        const part = parts[idx];
+        if (part === undefined) continue;
+        decoder.receive(part);
         if (decoder.isComplete()) break;
       }
 

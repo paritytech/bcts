@@ -66,14 +66,14 @@ export function isMlkemScheme(scheme: EncapsulationScheme): boolean {
  */
 export function schemeToMlkemLevel(scheme: EncapsulationScheme): MLKEMLevel {
   switch (scheme) {
+    case EncapsulationScheme.X25519:
+      throw new Error(`Not an MLKEM scheme: ${String(scheme)}`);
     case EncapsulationScheme.MLKEM512:
       return MLKEMLevel.MLKEM512;
     case EncapsulationScheme.MLKEM768:
       return MLKEMLevel.MLKEM768;
     case EncapsulationScheme.MLKEM1024:
       return MLKEMLevel.MLKEM1024;
-    default:
-      throw new Error(`Not an MLKEM scheme: ${String(scheme)}`);
   }
 }
 

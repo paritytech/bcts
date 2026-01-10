@@ -184,8 +184,8 @@ class WeightedSampler {
     const normalized = weights.map((w) => (w * n) / sum);
 
     // Initialize alias table
-    this.aliases = new Array(n).fill(0);
-    this.probs = new Array(n).fill(0);
+    this.aliases = Array.from<number>({ length: n }).fill(0);
+    this.probs = Array.from<number>({ length: n }).fill(0);
 
     // Partition into small and large
     const small: number[] = [];
@@ -201,12 +201,15 @@ class WeightedSampler {
 
     // Build the alias table
     while (small.length > 0 && large.length > 0) {
-      const a = small.pop()!;
-      const g = large.pop()!;
-      this.probs[a] = normalized[a];
+      const a = small.pop();
+      const g = large.pop();
+      if (a === undefined || g === undefined) break;
+      this.probs[a] = normalized[a] ?? 0;
       this.aliases[a] = g;
-      normalized[g] = normalized[g] + normalized[a] - 1.0;
-      if (normalized[g] < 1.0) {
+      const normalizedG = normalized[g] ?? 0;
+      const normalizedA = normalized[a] ?? 0;
+      normalized[g] = normalizedG + normalizedA - 1.0;
+      if (normalized[g] !== undefined && normalized[g] < 1.0) {
         small.push(g);
       } else {
         large.push(g);
@@ -214,12 +217,14 @@ class WeightedSampler {
     }
 
     while (large.length > 0) {
-      const g = large.pop()!;
+      const g = large.pop();
+      if (g === undefined) break;
       this.probs[g] = 1.0;
     }
 
     while (small.length > 0) {
-      const a = small.pop()!;
+      const a = small.pop();
+      if (a === undefined) break;
       this.probs[a] = 1.0;
     }
   }

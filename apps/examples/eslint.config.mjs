@@ -1,20 +1,3 @@
-import createConfig from '@bcts/eslint';
+import createCliConfig from "@bcts/eslint/cli";
 
-const config = createConfig('./tsconfig.json');
-
-export default [
-  ...config,
-  {
-    files: ['src/**/*.ts'],
-    languageOptions: {
-      globals: {
-        console: 'readonly',
-        Buffer: 'readonly',
-      },
-    },
-    rules: {
-      'no-console': 'off',
-      'no-restricted-globals': 'off',
-    },
-  },
-];
+export default createCliConfig("./tsconfig.json");

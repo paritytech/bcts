@@ -51,22 +51,6 @@ import { Reference, type ReferenceProvider } from "../reference.js";
 import { Digest } from "../digest.js";
 
 /**
- * Convert EncapsulationScheme to MLKEMLevel
- */
-function schemeToMlkemLevel(scheme: EncapsulationScheme): MLKEMLevel {
-  switch (scheme) {
-    case EncapsulationScheme.MLKEM512:
-      return MLKEMLevel.MLKEM512;
-    case EncapsulationScheme.MLKEM768:
-      return MLKEMLevel.MLKEM768;
-    case EncapsulationScheme.MLKEM1024:
-      return MLKEMLevel.MLKEM1024;
-    default:
-      throw new Error(`Not an MLKEM scheme: ${String(scheme)}`);
-  }
-}
-
-/**
  * Convert MLKEMLevel to EncapsulationScheme
  */
 function mlkemLevelToScheme(level: MLKEMLevel): EncapsulationScheme {
