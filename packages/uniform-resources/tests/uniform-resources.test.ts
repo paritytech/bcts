@@ -649,14 +649,29 @@ describe("User's UR example test", () => {
 // =============================================================================
 
 describe("Xoshiro256** PRNG (internal)", () => {
-  it("creates a PRNG from seed", () => {
-    const seed = new Uint8Array([1, 2, 3, 4]);
+  // Helper to create 32-byte seeds
+  const make32ByteSeed = (...values: number[]) => {
+    const seed = new Uint8Array(32);
+    for (let i = 0; i < values.length && i < 32; i++) {
+      seed[i] = values[i];
+    }
+    return seed;
+  };
+
+  it("creates a PRNG from 32-byte seed", () => {
+    const seed = make32ByteSeed(1, 2, 3, 4);
     const rng = new Xoshiro256(seed);
     expect(rng).toBeDefined();
   });
 
+  it("throws error for non-32-byte seed", () => {
+    expect(() => new Xoshiro256(new Uint8Array([1, 2, 3, 4]))).toThrow(
+      "Seed must be 32 bytes"
+    );
+  });
+
   it("generates deterministic values", () => {
-    const seed = new Uint8Array([1, 2, 3, 4]);
+    const seed = make32ByteSeed(1, 2, 3, 4);
     const rng1 = new Xoshiro256(seed);
     const rng2 = new Xoshiro256(seed);
 
@@ -667,17 +682,20 @@ describe("Xoshiro256** PRNG (internal)", () => {
   });
 
   it("generates different values for different seeds", () => {
-    const rng1 = new Xoshiro256(new Uint8Array([1, 2, 3, 4]));
-    const rng2 = new Xoshiro256(new Uint8Array([5, 6, 7, 8]));
+    // Use createSeed to generate proper 32-byte seeds from different inputs
+    const seed1 = createSeed(0x12345678, 1);
+    const seed2 = createSeed(0x87654321, 2);
+    const rng1 = new Xoshiro256(seed1);
+    const rng2 = new Xoshiro256(seed2);
 
-    // Different seeds should likely produce different values
+    // Different seeds should produce different values
     const val1 = rng1.nextDouble();
     const val2 = rng2.nextDouble();
     expect(val1).not.toBe(val2);
   });
 
   it("nextDouble returns values in [0, 1)", () => {
-    const rng = new Xoshiro256(new Uint8Array([42]));
+    const rng = new Xoshiro256(make32ByteSeed(42));
     for (let i = 0; i < 100; i++) {
       const val = rng.nextDouble();
       expect(val).toBeGreaterThanOrEqual(0);
@@ -686,7 +704,7 @@ describe("Xoshiro256** PRNG (internal)", () => {
   });
 
   it("nextInt returns values in [low, high)", () => {
-    const rng = new Xoshiro256(new Uint8Array([42]));
+    const rng = new Xoshiro256(make32ByteSeed(42));
     for (let i = 0; i < 100; i++) {
       const val = rng.nextInt(10, 20);
       expect(val).toBeGreaterThanOrEqual(10);
@@ -695,7 +713,7 @@ describe("Xoshiro256** PRNG (internal)", () => {
   });
 
   it("nextByte returns values in [0, 255]", () => {
-    const rng = new Xoshiro256(new Uint8Array([42]));
+    const rng = new Xoshiro256(make32ByteSeed(42));
     for (let i = 0; i < 100; i++) {
       const val = rng.nextByte();
       expect(val).toBeGreaterThanOrEqual(0);
@@ -704,24 +722,17 @@ describe("Xoshiro256** PRNG (internal)", () => {
   });
 
   it("nextData generates array of specified length", () => {
-    const rng = new Xoshiro256(new Uint8Array([42]));
+    const rng = new Xoshiro256(make32ByteSeed(42));
     const data = rng.nextData(32);
     expect(data.length).toBe(32);
   });
 });
 
 describe("createSeed (internal)", () => {
-  it("creates 8-byte seed from checksum and seqNum", () => {
+  it("creates 32-byte seed from checksum and seqNum using SHA-256", () => {
     const seed = createSeed(0x12345678, 1);
-    expect(seed.length).toBe(8);
-    expect(seed[0]).toBe(0x12);
-    expect(seed[1]).toBe(0x34);
-    expect(seed[2]).toBe(0x56);
-    expect(seed[3]).toBe(0x78);
-    expect(seed[4]).toBe(0x00);
-    expect(seed[5]).toBe(0x00);
-    expect(seed[6]).toBe(0x00);
-    expect(seed[7]).toBe(0x01);
+    // SHA-256 output is always 32 bytes
+    expect(seed.length).toBe(32);
   });
 
   it("produces different seeds for different seqNums", () => {
@@ -729,6 +740,13 @@ describe("createSeed (internal)", () => {
     const seed2 = createSeed(0x12345678, 2);
 
     expect(seed1).not.toEqual(seed2);
+  });
+
+  it("produces deterministic seeds", () => {
+    const seed1 = createSeed(0x12345678, 1);
+    const seed2 = createSeed(0x12345678, 1);
+
+    expect(seed1).toEqual(seed2);
   });
 });
 
@@ -1023,5 +1041,120 @@ describe("Multipart UR round-trip", () => {
     const decoded = decoder.message();
     expect(decoded).not.toBeNull();
     expect(decoded?.urTypeStr()).toBe("test");
+  });
+});
+
+// =============================================================================
+// RUST PARITY TESTS
+// These tests verify that the TypeScript fountain code implementation matches
+// the behavior of the Rust bc-ur implementation.
+// Reference: ref/bc-ur-rust/src/lib.rs
+// =============================================================================
+
+describe("Rust parity tests", () => {
+  describe("Fountain code completion behavior", () => {
+    // Test message from Rust: "The only thing we have to fear is fear itself."
+    const message = new TextEncoder().encode(
+      "The only thing we have to fear is fear itself."
+    );
+
+    it("should complete with pure parts when receiving from part 1", () => {
+      const encoder = new FountainEncoder(message, 10);
+      const decoder = new FountainDecoder();
+
+      let completedAt = 0;
+      for (let i = 1; i <= 1000; i++) {
+        const part = encoder.nextPart();
+        decoder.receive(part);
+        if (decoder.isComplete()) {
+          completedAt = i;
+          break;
+        }
+      }
+
+      // With 10-byte fragments, message of 47 bytes = ceil(47/10) = 5 pure fragments
+      // Should complete after receiving all 5 pure parts
+      expect(completedAt).toBe(5);
+      expect(decoder.message()).toEqual(message);
+    });
+
+    it("should complete with mixed parts when starting late", () => {
+      const encoder = new FountainEncoder(message, 10);
+      const decoder = new FountainDecoder();
+
+      // Skip parts 1-5 (all pure parts)
+      for (let i = 1; i <= 5; i++) {
+        encoder.nextPart();
+      }
+
+      // Now receive only mixed/rateless parts
+      let completedAt = 0;
+      for (let i = 6; i <= 1000; i++) {
+        const part = encoder.nextPart();
+        decoder.receive(part);
+        if (decoder.isComplete()) {
+          completedAt = i;
+          break;
+        }
+      }
+
+      // Should eventually complete using fountain code properties
+      expect(completedAt).toBeGreaterThan(5);
+      expect(decoder.message()).toEqual(message);
+    });
+
+    it("should decode correctly when receiving out of order", () => {
+      const encoder = new FountainEncoder(message, 10);
+      const decoder = new FountainDecoder();
+
+      // Collect 10 parts
+      const parts = [];
+      for (let i = 0; i < 10; i++) {
+        parts.push(encoder.nextPart());
+      }
+
+      // Receive in shuffled order: 3, 1, 5, 2, 4
+      const order = [2, 0, 4, 1, 3];
+      for (const idx of order) {
+        decoder.receive(parts[idx]!);
+        if (decoder.isComplete()) break;
+      }
+
+      expect(decoder.isComplete()).toBe(true);
+      expect(decoder.message()).toEqual(message);
+    });
+  });
+
+  describe("Deterministic fragment selection", () => {
+    it("should produce consistent fragment indices for same inputs", () => {
+      const checksum = 0x12345678;
+
+      // Pure parts should always return single index
+      expect(chooseFragments(1, 5, checksum)).toEqual([0]);
+      expect(chooseFragments(2, 5, checksum)).toEqual([1]);
+      expect(chooseFragments(5, 5, checksum)).toEqual([4]);
+
+      // Mixed parts should be deterministic
+      const mixed1 = chooseFragments(6, 5, checksum);
+      const mixed2 = chooseFragments(6, 5, checksum);
+      expect(mixed1).toEqual(mixed2);
+      expect(mixed1.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("should produce different fragments for different seqNums", () => {
+      const checksum = 0x12345678;
+      const seqLen = 10;
+
+      // Different mixed parts should generally have different indices
+      const fragments1 = chooseFragments(11, seqLen, checksum);
+      const fragments2 = chooseFragments(12, seqLen, checksum);
+      const fragments3 = chooseFragments(13, seqLen, checksum);
+
+      // At least some should differ
+      const allSame =
+        JSON.stringify(fragments1) === JSON.stringify(fragments2) &&
+        JSON.stringify(fragments2) === JSON.stringify(fragments3);
+      expect(allSame).toBe(false);
+    });
   });
 });

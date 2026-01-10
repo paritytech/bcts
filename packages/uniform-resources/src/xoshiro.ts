@@ -7,6 +7,8 @@
  * Reference: https://prng.di.unimi.it/
  */
 
+import { sha256 } from "@noble/hashes/sha2.js";
+
 const MAX_UINT64 = BigInt("0xffffffffffffffff");
 
 /**
@@ -28,24 +30,24 @@ export class Xoshiro256 {
   private s: [bigint, bigint, bigint, bigint];
 
   /**
-   * Creates a new Xoshiro256** instance from a seed.
+   * Creates a new Xoshiro256** instance from a 32-byte seed.
    *
-   * The seed is hashed using SHA-256 to initialize the state.
-   * For consistent results across encoder/decoder, use the same seed.
+   * The seed must be exactly 32 bytes (256 bits). Use createSeed()
+   * to generate the appropriate seed from checksum and sequence number.
    *
-   * @param seed - The seed bytes (any length)
+   * @param seed - The seed bytes (must be exactly 32 bytes)
    */
   constructor(seed: Uint8Array) {
-    // Hash the seed using a simple hash function
-    // In production, you'd use SHA-256 here
-    const hash = this.hashSeed(seed);
+    if (seed.length !== 32) {
+      throw new Error(`Seed must be 32 bytes, got ${seed.length}`);
+    }
 
-    // Initialize the 4x64-bit state from the hash
+    // Initialize the 4x64-bit state from the seed (little-endian)
     this.s = [
-      this.bytesToBigInt(hash.slice(0, 8)),
-      this.bytesToBigInt(hash.slice(8, 16)),
-      this.bytesToBigInt(hash.slice(16, 24)),
-      this.bytesToBigInt(hash.slice(24, 32)),
+      this.bytesToBigInt(seed.slice(0, 8)),
+      this.bytesToBigInt(seed.slice(8, 16)),
+      this.bytesToBigInt(seed.slice(16, 24)),
+      this.bytesToBigInt(seed.slice(24, 32)),
     ];
   }
 
@@ -57,36 +59,6 @@ export class Xoshiro256 {
     const instance = Object.create(Xoshiro256.prototype) as Xoshiro256;
     instance.s = [s0, s1, s2, s3];
     return instance;
-  }
-
-  /**
-   * Simple hash function for seeding.
-   * This is a basic implementation - in production use SHA-256.
-   */
-  private hashSeed(seed: Uint8Array): Uint8Array {
-    // Simple hash expansion using CRC32-like operations
-    const result = new Uint8Array(32);
-
-    if (seed.length === 0) {
-      return result;
-    }
-
-    // Expand seed to 32 bytes using a simple mixing function
-    for (let i = 0; i < 32; i++) {
-      let hash = 0;
-      for (const byte of seed) {
-        hash = (hash * 31 + byte + i) >>> 0;
-      }
-      // Mix the hash further
-      hash ^= hash >>> 16;
-      hash = (hash * 0x85ebca6b) >>> 0;
-      hash ^= hash >>> 13;
-      hash = (hash * 0xc2b2ae35) >>> 0;
-      hash ^= hash >>> 16;
-      result[i] = hash & 0xff;
-    }
-
-    return result;
   }
 
   /**
@@ -156,25 +128,29 @@ export class Xoshiro256 {
 }
 
 /**
- * Creates a seed for the Xoshiro PRNG from message checksum and sequence number.
+ * Creates a 32-byte seed for the Xoshiro PRNG from message checksum and sequence number.
  *
- * This ensures that both encoder and decoder produce the same random sequence
- * for a given message and part number.
+ * This uses SHA-256 to hash the concatenation of seqNum and checksum (both big-endian),
+ * producing a deterministic 32-byte seed. This ensures that both encoder and decoder
+ * produce the same random sequence for a given message and part number.
+ *
+ * Per BCR-2020-005 specification for fountain code fragment selection.
  */
 export function createSeed(checksum: number, seqNum: number): Uint8Array {
-  const seed = new Uint8Array(8);
+  const input = new Uint8Array(8);
 
-  // Pack checksum (4 bytes, big-endian)
-  seed[0] = (checksum >>> 24) & 0xff;
-  seed[1] = (checksum >>> 16) & 0xff;
-  seed[2] = (checksum >>> 8) & 0xff;
-  seed[3] = checksum & 0xff;
+  // Pack seqNum first (4 bytes, big-endian)
+  input[0] = (seqNum >>> 24) & 0xff;
+  input[1] = (seqNum >>> 16) & 0xff;
+  input[2] = (seqNum >>> 8) & 0xff;
+  input[3] = seqNum & 0xff;
 
-  // Pack seqNum (4 bytes, big-endian)
-  seed[4] = (seqNum >>> 24) & 0xff;
-  seed[5] = (seqNum >>> 16) & 0xff;
-  seed[6] = (seqNum >>> 8) & 0xff;
-  seed[7] = seqNum & 0xff;
+  // Pack checksum second (4 bytes, big-endian)
+  input[4] = (checksum >>> 24) & 0xff;
+  input[5] = (checksum >>> 16) & 0xff;
+  input[6] = (checksum >>> 8) & 0xff;
+  input[7] = checksum & 0xff;
 
-  return seed;
+  // SHA-256 produces exactly 32 bytes
+  return sha256(input);
 }
