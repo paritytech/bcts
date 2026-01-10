@@ -213,7 +213,7 @@ function main(): void {
   manualEncrypted = manualEncrypted.addRecipient(bobKeys.publicKeys(), contentKey);
   console.log("  Added Alice and Bob as recipients.");
 
-  // Later, add Eve as an authorized recipient (if the content key holder allows it)
+  // Later, add Eve as an authorized recipient (if the content keyholder allows it)
   manualEncrypted = manualEncrypted.addRecipient(eveKeys.publicKeys(), contentKey);
   console.log("  Added Eve as a new recipient (authorized by content key holder).");
 
