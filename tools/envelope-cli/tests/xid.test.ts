@@ -16,13 +16,7 @@ import * as xid from "../src/cmd/xid/index.js";
 import * as format from "../src/cmd/format.js";
 import * as extract from "../src/cmd/extract.js";
 import * as assertion from "../src/cmd/assertion/index.js";
-import {
-  ALICE_PUBKEYS,
-  ALICE_PRVKEYS,
-  BOB_PUBKEYS,
-  CAROL_PUBKEYS,
-  DAVE_PUBKEYS,
-} from "./common.js";
+import { ALICE_PUBKEYS } from "./common.js";
 
 const XID_DOC =
   "ur:xid/tpsplftpsotanshdhdcxjsdigtwneocmnybadpdlzobysbstmekteypspeotcfldynlpsfolsbintyjkrhfnoyaylftpsotansgylftanshfhdcxhslkfzemaylrwttynsdlghrydpmdfzvdglndloimaahykorefddtsguogmvlahqztansgrhdcxetlewzvlwyfdtobeytidosbamkswaomwwfyabakssakggegychesmerkcatekpcxoycsfncsfggmplgshd";

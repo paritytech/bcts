@@ -6,17 +6,7 @@ import { describe, it, expect } from "vitest";
 import * as subject from "../src/cmd/subject/index.js";
 import * as format from "../src/cmd/format.js";
 import * as extract from "../src/cmd/extract.js";
-import {
-  HELLO_STR,
-  HELLO_ENVELOPE_UR,
-  ARID,
-  ARID_HEX,
-  DATE_EXAMPLE,
-  DIGEST_EXAMPLE,
-  SEED_UR_EXAMPLE,
-  UUID_EXAMPLE,
-  expectOutput,
-} from "./common.js";
+import { HELLO_STR, HELLO_ENVELOPE_UR, DATE_EXAMPLE, UUID_EXAMPLE } from "./common.js";
 
 describe("subject type command", () => {
   it("test_subject_type_arid_1", () => {

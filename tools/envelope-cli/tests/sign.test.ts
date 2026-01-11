@@ -7,6 +7,7 @@ import * as sign from "../src/cmd/sign.js";
 import * as verify from "../src/cmd/verify.js";
 import * as format from "../src/cmd/format.js";
 import * as generate from "../src/cmd/generate/index.js";
+import * as subject from "../src/cmd/subject/index.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, ALICE_PRVKEYS, CAROL_PRVKEYS, expectOutput } from "./common.js";
 
 describe("sign command", () => {
@@ -113,10 +114,9 @@ describe("sign command", () => {
   // Skip: Format output differs from Rust and uses wrong parameter names
   it.skip("test_sign_3", () => {
     // Create envelope from string subject
-    const subjectCmd = require("../src/cmd/subject/index.js");
-    const envelope = subjectCmd.type.exec({
-      type: "string",
-      value: "Hello.",
+    const envelope = subject.type.exec({
+      subjectType: "string",
+      subjectValue: "Hello.",
     });
 
     const signed = sign.exec({

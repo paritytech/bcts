@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import * as extract from "../src/cmd/extract.js";
-import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { ALICE_KNOWS_BOB_EXAMPLE } from "./common.js";
 
 describe("extract command", () => {
   it("test_extract_arid", () => {

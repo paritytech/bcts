@@ -7,7 +7,7 @@ import type { Cli } from "../cli.js";
 import type { InputFormat, OutputFormat } from "./format.js";
 import { Seed } from "../seed.js";
 import { mnemonicToEntropy, entropyToMnemonic, validateMnemonic } from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 
 /**
  * BIP39 mnemonic format handler.

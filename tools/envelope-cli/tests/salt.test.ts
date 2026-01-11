@@ -2,7 +2,7 @@
  * Salt command tests - 1:1 port of tests/test_salt.rs
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it } from "vitest";
 import * as salt from "../src/cmd/salt.js";
 import * as format from "../src/cmd/format.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";

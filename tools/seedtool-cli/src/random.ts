@@ -3,8 +3,8 @@
  * Ported from seedtool-cli-rust/src/random.rs
  */
 
-import { sha256 } from "@noble/hashes/sha256";
-import { hkdf } from "@noble/hashes/hkdf";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
 
 /** SHA256 output size in bytes */
 const SHA256_SIZE = 32;

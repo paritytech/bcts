@@ -38,7 +38,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --filter=!@bcts/playground",
+    "build:all": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -49,7 +50,7 @@
     "deploy": "turbo run deploy --filter=@bcts/playground",
     "playground": "turbo run dev --filter=@bcts/playground",
     "clean": "turbo run clean",
-    "release": "turbo run build lint test && changeset publish",
+    "release": "turbo run build:all lint test && changeset publish",
     "version": "changeset version",
     "bump-version": "bun run scripts/bump-version.ts"
   },
