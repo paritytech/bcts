@@ -20,7 +20,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/leonardocustodio/bcts.git",
-    "directory": "packages/seedtool-cli"
+    "directory": "tools/seedtool-cli"
   },
   "bugs": {
     "url": "https://github.com/leonardocustodio/bcts/issues"
@@ -93,6 +93,7 @@
     "ts-node": "^10.9.2",
     "tsdown": "^0.18.4",
     "typedoc": "^0.28.15",
+    "typedoc-plugin-markdown": "^4.6.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   }

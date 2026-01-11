@@ -1,0 +1,32 @@
+name: Claude Code
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  generate-description:
+    name: Generate Description
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Required to update the PR description
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for accurate diff analysis
+
+      - name: Generate and Update PR Description with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are an expert software engineer.
+            Analyze the changes in this pull request and generate a clear, concise, and structured pull request description.
+            The description should include:
+            - A summary of the purpose and key modifications.
+            - Technical details and impact.
+            - Any relevant linked issues or follow-up tasks.
+            Please format your response using GitHub-flavored Markdown.

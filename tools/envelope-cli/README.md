@@ -128,18 +128,3 @@ Options:
   -h, --help      Display help
   -V, --version   Display version
 ```
-
-## Dependencies
-
-- `@bcts/envelope` - Gordian Envelope core
-- `@bcts/envelope-pattern` - Pattern matching
-- `@bcts/dcbor` - dCBOR encoding
-- `@bcts/uniform-resources` - UR encoding
-- `@bcts/xid` - XID documents
-- `@bcts/provenance-mark` - Provenance marks
-- `@bcts/components` - Shared components
-- `@bcts/rand` - Random number generation
-
-## License
-
-BSD-2-Clause-Patent

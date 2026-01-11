@@ -20,7 +20,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/leonardocustodio/bcts.git",
-    "directory": "packages/provenance-mark-cli"
+    "directory": "tools/provenance-mark-cli"
   },
   "bugs": {
     "url": "https://github.com/leonardocustodio/bcts/issues"

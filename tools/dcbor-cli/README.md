@@ -92,14 +92,3 @@ Options:
   -h, --help           Display help
   -V, --version        Display version
 ```
-
-## Dependencies
-
-- `@bcts/dcbor` - dCBOR encoding/decoding
-- `@bcts/dcbor-parse` - Diagnostic notation parser
-- `@bcts/dcbor-pattern` - Pattern matching
-- `@bcts/components` - Shared components
-
-## License
-
-BSD-2-Clause-Patent
