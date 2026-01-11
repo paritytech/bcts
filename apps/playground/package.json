@@ -18,8 +18,8 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@nuxt/ui": "^4.3.0",
-    "@tailwindcss/vite": "^4.1.18",
     "@paulmillr/qr": "^0.3.0",
+    "@tailwindcss/vite": "^4.1.18",
     "tailwindcss": "^4.1.18",
     "vuedraggable": "^2.24.3"
   },
@@ -34,6 +34,7 @@
     "@types/node": "^25.0.6",
     "eslint": "^9.39.2",
     "nuxt": "^4.2.2",
+    "nuxt-gtag": "4.1.0",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.2.2",
     "wrangler": "^4.58.0"
