@@ -14,7 +14,7 @@ dist-ssr
 coverage
 *.local
 
-# Lock files (use bun.lockb only)
+# Lock files
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
@@ -51,7 +51,7 @@ playwright-report/
 .env.**
 
 # Extra
-ref/
+tools/**/docs/**
 packages/**/docs/**
 docs-site
 
