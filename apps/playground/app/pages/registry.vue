@@ -4,7 +4,7 @@ import { useRegistryData, type TagItem, type KnownValueItem } from '~/composable
 import { useIanaTags } from '~/composables/useIanaTags'
 
 useHead({
-  title: 'Registry Browser | BCTS IDE - Blockchain Commons TypeScript',
+  title: 'Registry Browser',
   meta: [{ name: 'description', content: 'Browse CBOR tags and Known Values registry' }],
 })
 

@@ -3,7 +3,7 @@ import { Envelope, SigningPrivateKey, SymmetricKey, PrivateKeyBase } from '@bcts
 import encodeQR from '@paulmillr/qr'
 
 useHead({
-  title: 'Envelope Builder | BCTS IDE - Blockchain Commons TypeScript',
+  title: 'Envelope Builder',
   meta: [
     { name: 'description', content: 'Build Gordian Envelopes layer by layer with a visual tree builder' }
   ]
