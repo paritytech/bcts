@@ -16,7 +16,7 @@ interface PackageJson {
 }
 
 const ROOT_DIR = join(import.meta.dirname, "..");
-const WORKSPACE_DIRS = ["packages", "shared"];
+const WORKSPACE_DIRS = ["packages", "tools", "shared"];
 
 async function getPackageVersions(): Promise<Map<string, string>> {
   const versions = new Map<string, string>();
