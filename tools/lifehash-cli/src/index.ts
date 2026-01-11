@@ -43,11 +43,7 @@ import { makeFromUtf8, Version, type Image } from "@bcts/lifehash";
 export { writeImage, generatePNG };
 
 // Utility exports
-export {
-  appendingPathComponent,
-  randomElement,
-  makeRandomInput,
-} from "./utils";
+export { appendingPathComponent, randomElement, makeRandomInput } from "./utils";
 
 // CLI exports
 export { parseVersion, run, type CliOptions };
@@ -99,10 +95,7 @@ export interface GenerateOptions {
  * writeFileSync("Hello.png", pngBuffer);
  * ```
  */
-export function generateLifeHash(
-  input: string,
-  options: GenerateOptions = {},
-): Buffer {
+export function generateLifeHash(input: string, options: GenerateOptions = {}): Buffer {
   const { version = "version2", moduleSize = 1 } = options;
 
   const versionEnum = parseVersion(version);

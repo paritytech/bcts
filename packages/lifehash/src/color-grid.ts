@@ -26,9 +26,7 @@ const pinwheelTransforms: Transform[] = [
   { transpose: false, reflectX: true, reflectY: true },
 ];
 
-const fiducialTransforms: Transform[] = [
-  { transpose: false, reflectX: false, reflectY: false },
-];
+const fiducialTransforms: Transform[] = [{ transpose: false, reflectX: false, reflectY: false }];
 
 /**
  * A class that takes a grayscale grid and applies color and

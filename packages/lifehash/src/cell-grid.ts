@@ -20,10 +20,7 @@ export class CellGrid extends Grid<boolean> {
     return value ? Color.white : Color.black;
   }
 
-  private static isAliveInNextGeneration(
-    currentAlive: boolean,
-    neighborsCount: number,
-  ): boolean {
+  private static isAliveInNextGeneration(currentAlive: boolean, neighborsCount: number): boolean {
     if (currentAlive) {
       return neighborsCount === 2 || neighborsCount === 3;
     } else {
@@ -78,10 +75,7 @@ export class CellGrid extends Grid<boolean> {
       const currentAlive = this.getValue(p);
       if (currentChangeGrid.getValue(p)) {
         const neighborsCount = this.countNeighbors(p);
-        const nextAlive = CellGrid.isAliveInNextGeneration(
-          currentAlive,
-          neighborsCount,
-        );
+        const nextAlive = CellGrid.isAliveInNextGeneration(currentAlive, neighborsCount);
         if (nextAlive) {
           nextCellGrid.setValue(true, p);
         }

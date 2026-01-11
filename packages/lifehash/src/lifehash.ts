@@ -50,15 +50,9 @@ function makeImage(
       const targetOffset = (targetY * scaledWidth + targetX) * resultComponents;
 
       // C++ truncates when assigning double to uint8_t, so use Math.trunc
-      resultColors[targetOffset] = Math.trunc(
-        clamped(floatColors[sourceOffset]) * 255,
-      );
-      resultColors[targetOffset + 1] = Math.trunc(
-        clamped(floatColors[sourceOffset + 1]) * 255,
-      );
-      resultColors[targetOffset + 2] = Math.trunc(
-        clamped(floatColors[sourceOffset + 2]) * 255,
-      );
+      resultColors[targetOffset] = Math.trunc(clamped(floatColors[sourceOffset]) * 255);
+      resultColors[targetOffset + 1] = Math.trunc(clamped(floatColors[sourceOffset + 1]) * 255);
+      resultColors[targetOffset + 2] = Math.trunc(clamped(floatColors[sourceOffset + 2]) * 255);
 
       if (hasAlpha) {
         resultColors[targetOffset + 3] = 255;
@@ -193,11 +187,7 @@ export function makeFromDigest(
     historySet.add(hashHex);
     history.push(data);
 
-    currentCellGrid.nextGeneration(
-      currentChangeGrid,
-      nextCellGrid,
-      nextChangeGrid,
-    );
+    currentCellGrid.nextGeneration(currentChangeGrid, nextCellGrid, nextChangeGrid);
   }
 
   // Build the frac grid from history

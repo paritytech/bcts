@@ -8,11 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { existsSync, unlinkSync, mkdirSync, rmdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import {
-  appendingPathComponent,
-  makeRandomInput,
-  randomElement,
-} from "../src/utils";
+import { appendingPathComponent, makeRandomInput, randomElement } from "../src/utils";
 import { parseVersion, run } from "../src/main";
 import { generateLifeHash } from "../src/index";
 import { Version } from "@bcts/lifehash";
@@ -139,21 +135,21 @@ describe("run", () => {
   });
 
   it("should throw for invalid module size", () => {
-    expect(() =>
-      run("Test", { version: "version2", module: "0", path: testDir }),
-    ).toThrow("Illegal value.");
+    expect(() => run("Test", { version: "version2", module: "0", path: testDir })).toThrow(
+      "Illegal value.",
+    );
   });
 
   it("should throw for negative module size", () => {
-    expect(() =>
-      run("Test", { version: "version2", module: "-1", path: testDir }),
-    ).toThrow("Illegal value.");
+    expect(() => run("Test", { version: "version2", module: "-1", path: testDir })).toThrow(
+      "Illegal value.",
+    );
   });
 
   it("should throw for non-numeric module size", () => {
-    expect(() =>
-      run("Test", { version: "version2", module: "abc", path: testDir }),
-    ).toThrow("Illegal value.");
+    expect(() => run("Test", { version: "version2", module: "abc", path: testDir })).toThrow(
+      "Illegal value.",
+    );
   });
 });
 
@@ -201,13 +197,7 @@ describe("generateLifeHash", () => {
 describe("Version consistency with @bcts/lifehash", () => {
   it("should match all versions from lifehash package", () => {
     // Ensure all versions can be parsed
-    const versions = [
-      "version1",
-      "version2",
-      "detailed",
-      "fiducial",
-      "grayscaleFiducial",
-    ] as const;
+    const versions = ["version1", "version2", "detailed", "fiducial", "grayscaleFiducial"] as const;
 
     for (const v of versions) {
       expect(() => parseVersion(v)).not.toThrow();

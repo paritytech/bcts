@@ -60,10 +60,7 @@ function adjustForLuminance(color: Color, contrastColor: Color): Color {
 }
 
 // Monochromatic gradient functions
-function monochromatic(
-  entropy: BitEnumerator,
-  hueGenerator: ColorFunc,
-): ColorFunc {
+function monochromatic(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFunc {
   const hue = entropy.nextFrac();
   const isTint = entropy.next();
   const isReversed = entropy.next();
@@ -101,10 +98,7 @@ function monochromaticFiducial(entropy: BitEnumerator): ColorFunc {
 }
 
 // Complementary gradient functions
-function complementary(
-  entropy: BitEnumerator,
-  hueGenerator: ColorFunc,
-): ColorFunc {
+function complementary(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFunc {
   const spectrum1 = entropy.nextFrac();
   const spectrum2 = modulo(spectrum1 + 0.5, 1);
   const lighterAdvance = entropy.nextFrac() * 0.3;
@@ -145,9 +139,7 @@ function complementaryFiducial(entropy: BitEnumerator): ColorFunc {
   const color1 = spectrumCmykSafe(spectrum1);
   const color2 = spectrumCmykSafe(spectrum2);
 
-  const biasedNeutralColor = neutralColor
-    .lerpTo(neutralColorBias ? color1 : color2, 0.2)
-    .burn(0.1);
+  const biasedNeutralColor = neutralColor.lerpTo(neutralColorBias ? color1 : color2, 0.2).burn(0.1);
 
   const gradient = blend([
     adjustForLuminance(color1, biasedNeutralColor),
@@ -170,9 +162,7 @@ function triadic(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFunc {
   const color2 = hueGenerator(spectrum2);
   const color3 = hueGenerator(spectrum3);
 
-  const colors = [color1, color2, color3].sort(
-    (a, b) => a.luminance() - b.luminance(),
-  );
+  const colors = [color1, color2, color3].sort((a, b) => a.luminance() - b.luminance());
 
   const darkerColor = colors[0];
   const middleColor = colors[1];
@@ -181,11 +171,7 @@ function triadic(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFunc {
   const adjustedLighterColor = lighterColor.lighten(lighterAdvance);
   const adjustedDarkerColor = darkerColor.darken(darkerAdvance);
 
-  const gradient = blend([
-    adjustedLighterColor,
-    middleColor,
-    adjustedDarkerColor,
-  ]);
+  const gradient = blend([adjustedLighterColor, middleColor, adjustedDarkerColor]);
   return isReversed ? reverse(gradient) : gradient;
 }
 
@@ -312,10 +298,7 @@ function analogousFiducial(entropy: BitEnumerator): ColorFunc {
  * A function that takes a deterministic source of bits and selects a gradient
  * used to color a particular LifeHash version.
  */
-export function selectGradient(
-  entropy: BitEnumerator,
-  version: Version,
-): ColorFunc {
+export function selectGradient(entropy: BitEnumerator, version: Version): ColorFunc {
   if (version === Version.grayscale_fiducial) {
     return selectGrayscale(entropy);
   }

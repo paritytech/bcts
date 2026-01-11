@@ -15,13 +15,7 @@ export function lerpFrom(fromA: number, fromB: number, t: number): number {
 /**
  * Interpolate `t` from [a..b] to [c..d].
  */
-export function lerp(
-  fromA: number,
-  fromB: number,
-  toC: number,
-  toD: number,
-  t: number,
-): number {
+export function lerp(fromA: number, fromB: number, toC: number, toD: number, t: number): number {
   return lerpTo(toC, toD, lerpFrom(fromA, fromB, t));
 }
 

@@ -68,9 +68,7 @@ export class Color {
    */
   luminance(): number {
     return Math.sqrt(
-      Math.pow(0.299 * this.r, 2) +
-        Math.pow(0.587 * this.g, 2) +
-        Math.pow(0.114 * this.b, 2),
+      Math.pow(0.299 * this.r, 2) + Math.pow(0.587 * this.g, 2) + Math.pow(0.114 * this.b, 2),
     );
   }
 }

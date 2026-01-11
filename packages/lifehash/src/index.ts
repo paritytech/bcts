@@ -1,11 +1,5 @@
 // Main API
-export {
-  Version,
-  makeFromUtf8,
-  makeFromData,
-  makeFromDigest,
-  type Image,
-} from "./lifehash";
+export { Version, makeFromUtf8, makeFromData, makeFromDigest, type Image } from "./lifehash";
 
 // Utilities
 export { dataToHex, hexToData } from "./hex";
