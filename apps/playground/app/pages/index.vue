@@ -87,7 +87,7 @@ function cborToJson(cborVal: Cbor): unknown {
 }
 
 useHead({
-  title: 'Data Playground | BCTS',
+  title: 'Data Playground | BCTS IDE - Blockchain Commons TypeScript',
   meta: [{ name: 'description', content: 'Parse and visualize dCBOR data with annotated hex and diagnostic notation' }],
 })
 
