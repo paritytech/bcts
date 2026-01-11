@@ -7,10 +7,13 @@ on:
 jobs:
   generate-description:
     name: Generate Description
+
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write # Required to update the PR description
+      issues: read
+      id-token: write
 
     steps:
       - name: Checkout code
