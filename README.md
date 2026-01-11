@@ -1,6 +1,6 @@
 # Blockchain Commons - TypeScript
 
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha.13-green)](https://github.com/leonardocustodio/bcts/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha.14-green)](https://github.com/leonardocustodio/bcts/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
@@ -17,8 +17,8 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 ## 📚 Resources
 
 - [CBOR Book](https://cborbook.com/) - Comprehensive guide to CBOR, dCBOR and Gordian Envelope
-- [Blockchain Commons YouTube](https://www.youtube.com/@blockchaincommons) - A YouTube channel with many lectures and tutorials
-- [Blockchain Commons Developer](https://developer.blockchaincommons.com/) - BC's developer documentation
+- [BC YouTube Channel](https://www.youtube.com/@blockchaincommons) - A YouTube channel with many lectures and tutorials
+- [BC Developer Docs](https://developer.blockchaincommons.com/) - BC's developer documentation
 - [JSON vs CBOR](https://hackmd.io/@leonardocustodio/json-vs-cbor) - Comparison of JSON and CBOR formats
 - [Deterministic Data: Intro to dCBOR](https://hackmd.io/@leonardocustodio/deterministic-data-intro-to-dcbor) - Introduction to deterministic CBOR
 
