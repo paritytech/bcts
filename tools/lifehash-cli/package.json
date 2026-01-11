@@ -1,0 +1,92 @@
+{
+  "name": "@bcts/lifehash-cli",
+  "version": "1.0.0-alpha.16",
+  "type": "module",
+  "description": "A command-line tool for generating LifeHash visual hash images as PNG files.",
+  "license": "BSD-2-Clause-Patent",
+  "contributors": [
+    {
+      "name": "Leonardo Custodio",
+      "email": "leonardo.custodio@parity.io",
+      "url": "https://github.com/leonardocustodio"
+    },
+    {
+      "name": "Karim Jedda",
+      "email": "karim@parity.io",
+      "url": "https://github.com/KarimJedda"
+    }
+  ],
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leonardocustodio/bcts.git",
+    "directory": "tools/lifehash-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/bcts/issues"
+  },
+  "bin": {
+    "lifehash": "./dist/main.mjs"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "lifehash",
+    "visual-hash",
+    "hash-visualization",
+    "png",
+    "image",
+    "cli",
+    "blockchain-commons",
+    "game-of-life",
+    "cellular-automata",
+    "fiducial"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@bcts/lifehash": "workspace:*",
+    "commander": "^14.0.0",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.6",
+    "@types/pngjs": "^6.0.5",
+    "eslint": "^9.39.2",
+    "ts-node": "^10.9.2",
+    "tsdown": "^0.18.4",
+    "typedoc": "^0.28.15",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
