@@ -1,5 +1,4 @@
 name: Continuous Integration
-
 on:
   push:
     branches:
@@ -46,7 +45,7 @@ jobs:
         run: bun install
 
       - name: Build packages
-        run: bun run build
+        run: bun run build:all
 
       - name: Run tests
         run: bun run test

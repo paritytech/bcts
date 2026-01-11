@@ -1,0 +1,94 @@
+# GitHub Actions labeler configuration for BCTS monorepo
+# https://github.com/actions/labeler
+
+github-actions:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**'
+
+"rand":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/rand/**'
+
+"dcbor":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/dcbor/**'
+
+"tags":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/tags/**'
+
+"crypto":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/crypto/**'
+
+"uniform-resources":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/uniform-resources/**'
+
+"shamir":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/shamir/**'
+
+"sskr":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/sskr/**'
+
+"components":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/components/**'
+
+"known-values":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/known-values/**'
+
+"envelope":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/envelope/**'
+
+"provenance-mark":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/provenance-mark/**'
+
+"xid":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/xid/**'
+
+"gstp":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/gstp/**'
+
+"dcbor-parse":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/dcbor-parse/**'
+
+"dcbor-pattern":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/dcbor-pattern/**'
+
+"envelope-pattern":
+  - changed-files:
+      - any-glob-to-any-file: 'packages/envelope-pattern/**'
+
+"dcbor-cli":
+  - changed-files:
+      - any-glob-to-any-file: 'tools/dcbor-cli/**'
+
+"envelope-cli":
+  - changed-files:
+      - any-glob-to-any-file: 'tools/envelope-cli/**'
+
+"provenance-mark-cli":
+  - changed-files:
+      - any-glob-to-any-file: 'tools/provenance-mark-cli/**'
+
+"seedtool-cli":
+  - changed-files:
+      - any-glob-to-any-file: 'tools/seedtool-cli/**'
+
+"examples":
+  - changed-files:
+      - any-glob-to-any-file: 'apps/example/**'
+
+"playground":
+  - changed-files:
+      - any-glob-to-any-file: 'apps/playground/**'

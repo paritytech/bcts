@@ -1,0 +1,52 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "BC-DCBOR-CLI TypeScript Library",
+  "includeVersion": true,
+  "readme": "README.md",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/tests/**",
+    "**/node_modules/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "skipErrorChecking": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Core CBOR",
+    "Encoding/Decoding",
+    "Data Structures",
+    "Tagged Values",
+    "Utilities",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "kindSortOrder": [
+    "Function",
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Variable",
+    "Enum"
+  ],
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "searchInComments": true,
+  "cleanOutputDir": true,
+  "gitRevision": "main",
+  "plugin": []
+}
