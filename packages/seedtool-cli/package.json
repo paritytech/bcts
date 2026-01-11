@@ -19,7 +19,7 @@
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/leonardocustodio/bcts",
+    "url": "git+https://github.com/leonardocustodio/bcts.git",
     "directory": "packages/seedtool-cli"
   },
   "bugs": {
