@@ -74,7 +74,6 @@
     "eslint": "^9.39.2",
     "tsdown": "^0.18.4",
     "typedoc": "^0.28.15",
-    "typedoc-plugin-markdown": "^4.6.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },
