@@ -1,6 +1,6 @@
 {
   "name": "@bcts/provenance-mark",
-  "version": "1.0.0-alpha.15",
+  "version": "1.0.0-alpha.16",
   "type": "module",
   "description": "Blockchain Commons Provenance Mark for TypeScript - A cryptographically-secured system for establishing and verifying the authenticity of works",
   "license": "BSD-2-Clause-Patent",

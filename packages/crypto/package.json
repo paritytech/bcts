@@ -1,6 +1,6 @@
 {
   "name": "@bcts/crypto",
-  "version": "1.0.0-alpha.15",
+  "version": "1.0.0-alpha.16",
   "type": "module",
   "description": "Blockchain Commons Cryptographic Utilities for TypeScript",
   "license": "BSD-2-Clause-Patent",
