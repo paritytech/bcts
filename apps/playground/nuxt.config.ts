@@ -49,6 +49,9 @@ export default defineNuxtConfig({
   hub: {
     kv: true,
   },
+  gtag: {
+    id: "G-3SNT76DSC3",
+  },
   nitro: {
     preset: "cloudflare_module",
     cloudflare: {
