@@ -77,8 +77,8 @@ function makeImage(
 export function makeFromUtf8(
   s: string,
   version: Version = Version.version2,
-  moduleSize: number = 1,
-  hasAlpha: boolean = false,
+  moduleSize = 1,
+  hasAlpha = false,
 ): Image {
   return makeFromData(toData(s), version, moduleSize, hasAlpha);
 }
@@ -89,8 +89,8 @@ export function makeFromUtf8(
 export function makeFromData(
   data: Data,
   version: Version = Version.version2,
-  moduleSize: number = 1,
-  hasAlpha: boolean = false,
+  moduleSize = 1,
+  hasAlpha = false,
 ): Image {
   const digest = sha256(data);
   return makeFromDigest(digest, version, moduleSize, hasAlpha);
@@ -106,8 +106,8 @@ export function makeFromData(
 export function makeFromDigest(
   digest: Data,
   version: Version = Version.version2,
-  moduleSize: number = 1,
-  hasAlpha: boolean = false,
+  moduleSize = 1,
+  hasAlpha = false,
 ): Image {
   if (digest.length !== 32) {
     throw new Error("Digest must be 32 bytes.");
@@ -240,7 +240,10 @@ export function makeFromDigest(
       // Throw away two bits of entropy to ensure we generate different colors and patterns from .version1 or .detailed.
       entropy.nextUint2();
       break;
-    default:
+    case Version.version1:
+    case Version.fiducial:
+    case Version.grayscale_fiducial:
+      // No entropy adjustment needed
       break;
   }
 

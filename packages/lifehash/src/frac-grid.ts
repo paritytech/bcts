@@ -1,6 +1,6 @@
 import { Grid } from "./grid";
 import { Color } from "./color";
-import { Size } from "./size";
+import { type Size } from "./size";
 import type { CellGrid } from "./cell-grid";
 
 /**

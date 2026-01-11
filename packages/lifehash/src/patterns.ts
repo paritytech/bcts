@@ -1,4 +1,4 @@
-import { BitEnumerator } from "./bit-enumerator";
+import { type BitEnumerator } from "./bit-enumerator";
 import { Version } from "./version";
 
 /**
@@ -22,7 +22,9 @@ export function selectPattern(entropy: BitEnumerator, version: Version): Pattern
     case Version.fiducial:
     case Version.grayscale_fiducial:
       return Pattern.fiducial;
-    default:
+    case Version.version1:
+    case Version.version2:
+    case Version.detailed:
       return entropy.next() ? Pattern.snowflake : Pattern.pinwheel;
   }
 }

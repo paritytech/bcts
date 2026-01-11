@@ -1,13 +1,13 @@
-import { clamped, max, min, sqrtf, powf } from "./numeric";
+import { clamped, max, min } from "./numeric";
 
 /**
  * A struct representing a color.
  */
 export class Color {
   constructor(
-    public r: number = 0,
-    public g: number = 0,
-    public b: number = 0,
+    public r = 0,
+    public g = 0,
+    public b = 0,
   ) {}
 
   static white = new Color(1, 1, 1);
@@ -65,13 +65,12 @@ export class Color {
 
   /**
    * Calculate the luminance of this color.
-   * Uses sqrtf/powf for C++ parity.
    */
   luminance(): number {
-    return sqrtf(
-      powf(0.299 * this.r, 2) +
-        powf(0.587 * this.g, 2) +
-        powf(0.114 * this.b, 2),
+    return Math.sqrt(
+      Math.pow(0.299 * this.r, 2) +
+        Math.pow(0.587 * this.g, 2) +
+        Math.pow(0.114 * this.b, 2),
     );
   }
 }

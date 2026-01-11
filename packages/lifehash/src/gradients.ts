@@ -1,7 +1,7 @@
 import { Color } from "./color";
 import { HSBColor } from "./hsb-color";
 import { blend, reverse, type ColorFunc } from "./color-func";
-import { BitEnumerator } from "./bit-enumerator";
+import { type BitEnumerator } from "./bit-enumerator";
 import { Version } from "./version";
 import { lerp, modulo } from "./numeric";
 

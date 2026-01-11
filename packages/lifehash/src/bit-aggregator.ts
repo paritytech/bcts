@@ -4,7 +4,7 @@ import type { Data } from "./data";
  * A class that accumulates bits fed into it and returns a block of data containing those bits.
  */
 export class BitAggregator {
-  private _data: number[] = [];
+  private readonly _data: number[] = [];
   private bitMask = 0;
 
   append(bit: boolean): void {

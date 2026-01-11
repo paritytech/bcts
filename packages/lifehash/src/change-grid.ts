@@ -1,7 +1,7 @@
 import { Grid } from "./grid";
 import { Color } from "./color";
-import { Point } from "./point";
-import { Size } from "./size";
+import { type Point } from "./point";
+import { type Size } from "./size";
 
 /**
  * A grid used to optimize the running of Conway's Game of Life by keeping

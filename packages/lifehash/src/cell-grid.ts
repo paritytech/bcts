@@ -1,7 +1,7 @@
 import { Grid } from "./grid";
 import { Color } from "./color";
 import { Point } from "./point";
-import { Size } from "./size";
+import { type Size } from "./size";
 import type { Data } from "./data";
 import { BitEnumerator } from "./bit-enumerator";
 import { BitAggregator } from "./bit-aggregator";

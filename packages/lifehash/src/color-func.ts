@@ -20,7 +20,9 @@ export function blend(color1: Color, color2: Color): ColorFunc;
 /**
  * Returns a color function that blends through each of the given colors at equal intervals.
  */
+// eslint-disable-next-line no-redeclare
 export function blend(colors: Color[]): ColorFunc;
+// eslint-disable-next-line no-redeclare
 export function blend(arg1: Color | Color[], arg2?: Color): ColorFunc {
   if (Array.isArray(arg1)) {
     const colors = arg1;
@@ -52,6 +54,8 @@ export function blend(arg1: Color | Color[], arg2?: Color): ColorFunc {
     }
   } else {
     const color1 = arg1;
+    // arg2 is guaranteed to be defined when arg1 is not an array (from overload signature)
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const color2 = arg2!;
     return (t: number) => color1.lerpTo(color2, t);
   }

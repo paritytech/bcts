@@ -1,5 +1,5 @@
 import { Color } from "./color";
-import { clamped, max, min, modulo, floorf } from "./numeric";
+import { clamped, max, min, modulo } from "./numeric";
 
 /**
  * A struct representing a color in the HSB space.
@@ -8,8 +8,8 @@ import { clamped, max, min, modulo, floorf } from "./numeric";
 export class HSBColor {
   constructor(
     public hue: number,
-    public saturation: number = 1,
-    public brightness: number = 1,
+    public saturation = 1,
+    public brightness = 1,
   ) {}
 
   /**
@@ -60,7 +60,7 @@ export class HSBColor {
     }
     h *= 6;
 
-    const i = floorf(h);
+    const i = Math.floor(h);
     const f = h - i;
     const p = v * (1 - s);
     const q = v * (1 - s * f);

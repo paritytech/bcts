@@ -1,6 +1,6 @@
-import { Color } from "./color";
+import { type Color } from "./color";
 import { Point } from "./point";
-import { Size } from "./size";
+import { type Size } from "./size";
 
 /**
  * A class that holds a 2-dimensional grid of values,
@@ -19,7 +19,7 @@ export abstract class Grid<T> {
     this.capacity = size.width * size.height;
     this.maxX = size.width - 1;
     this.maxY = size.height - 1;
-    this.storage = new Array(this.capacity).fill(defaultValue);
+    this.storage = new Array<T>(this.capacity).fill(defaultValue);
   }
 
   protected abstract colorForValue(value: T): Color;
