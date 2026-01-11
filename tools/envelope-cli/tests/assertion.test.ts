@@ -8,15 +8,16 @@ import * as subject from "../src/cmd/subject/index.js";
 import * as format from "../src/cmd/format.js";
 import * as extract from "../src/cmd/extract.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, CREDENTIAL_EXAMPLE, expectOutput } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 describe("assertion command", () => {
   describe("subject assertion", () => {
     // Skip: UR/CBOR library has internal issues with toData()
     it.skip("test_assertion", () => {
       const e = subject.assertion.exec({
-        predType: "string",
+        predType: DataType.String,
         predValue: "Alpha",
-        objType: "string",
+        objType: DataType.String,
         objValue: "Beta",
       });
       expect(e).toBe("ur:envelope/oytpsoihfpjzjoishstpsoiefwihjyhsgavlfypl");
@@ -31,9 +32,9 @@ describe("assertion command", () => {
     // Skip: UR/CBOR library has internal issues with toData()
     it.skip("test_assertion_2", () => {
       const e = subject.assertion.exec({
-        predType: "number",
+        predType: DataType.Number,
         predValue: "1",
-        objType: "number",
+        objType: DataType.Number,
         objValue: "2",
       });
       expect(e).toBe("ur:envelope/oytpsoadtpsoaoptspcale");
@@ -48,9 +49,9 @@ describe("assertion command", () => {
     // Skip: UR/CBOR library has internal issues with toData()
     it.skip("test_assertion_3", () => {
       const e = subject.assertion.exec({
-        predType: "known",
+        predType: DataType.Known,
         predValue: "note",
-        objType: "string",
+        objType: DataType.String,
         objValue: "ThisIsANote.",
       });
       expect(e).toBe("ur:envelope/oyaatpsojzghisinjkgajkfpgljljyihdmwktslkgm");
@@ -66,15 +67,15 @@ describe("assertion command", () => {
   describe("add", () => {
     it("test_assertion_add_pred_obj", () => {
       const subjectEnvelope = subject.type.exec({
-        subjectType: "string",
+        subjectType: DataType.String,
         subjectValue: "Hello",
       });
 
       const result = assertion.add.predObj.exec({
-        ...assertion.add.predObj.defaultArgs(),
-        predType: "known",
+        salted: false,
+        predType: DataType.Known,
         predValue: "note",
-        objType: "string",
+        objType: DataType.String,
         objValue: "This is the note.",
         envelope: subjectEnvelope,
       });
@@ -86,15 +87,15 @@ describe("assertion command", () => {
 
     it("test_assertion_add", () => {
       const subjectEnvelope = subject.type.exec({
-        subjectType: "string",
+        subjectType: DataType.String,
         subjectValue: "Alice",
       });
 
       const result = assertion.add.predObj.exec({
-        ...assertion.add.predObj.defaultArgs(),
-        predType: "string",
+        salted: false,
+        predType: DataType.String,
         predValue: "knows",
-        objType: "string",
+        objType: DataType.String,
         objValue: "Bob",
         envelope: subjectEnvelope,
       });
@@ -114,25 +115,25 @@ describe("assertion command", () => {
 
     it("test_assertion_add_2", () => {
       const subjectEnvelope = subject.type.exec({
-        subjectType: "string",
+        subjectType: DataType.String,
         subjectValue: "Alice",
       });
 
       const predicateEnvelope = subject.type.exec({
-        subjectType: "string",
+        subjectType: DataType.String,
         subjectValue: "knows",
       });
 
       const objectEnvelope = subject.type.exec({
-        subjectType: "string",
+        subjectType: DataType.String,
         subjectValue: "Bob",
       });
 
       const result = assertion.add.predObj.exec({
-        ...assertion.add.predObj.defaultArgs(),
-        predType: "envelope",
+        salted: false,
+        predType: DataType.Envelope,
         predValue: predicateEnvelope,
-        objType: "envelope",
+        objType: DataType.Envelope,
         objValue: objectEnvelope,
         envelope: subjectEnvelope,
       });
@@ -189,11 +190,10 @@ describe("assertion command", () => {
     // Skip: Format output differs from Rust (shows "salt": Bytes(undefined) instead of 'salt': Salt)
     it.skip("test_assertion_create", () => {
       const assertionEnvelope = assertion.create.exec({
-        ...assertion.create.defaultArgs(),
         salted: true,
-        predType: "string",
+        predType: DataType.String,
         predValue: "knows",
-        objType: "string",
+        objType: DataType.String,
         objValue: "Bob",
       });
 
@@ -220,7 +220,7 @@ describe("assertion command", () => {
       });
 
       const removed = assertion.remove.envelope.exec({
-        assertionEnvelope,
+        assertion: assertionEnvelope,
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });
 
@@ -234,9 +234,9 @@ describe("assertion command", () => {
 
     it("test_assertion_remove_pred_obj", () => {
       const removed = assertion.remove.predObj.exec({
-        predType: "string",
+        predType: DataType.String,
         predValue: "knows",
-        objType: "string",
+        objType: DataType.String,
         objValue: "Bob",
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });

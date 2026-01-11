@@ -10,6 +10,7 @@ import * as extract from "../src/cmd/extract.js";
 import * as subject from "../src/cmd/subject/index.js";
 import * as generate from "../src/cmd/generate/index.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 describe("encrypt command", () => {
   // Skip: SymmetricKey.fromURString is not yet implemented in decrypt
@@ -46,7 +47,7 @@ describe("encrypt command", () => {
   it.skip("test_encrypt_password", async () => {
     // First wrap the envelope
     const wrapped = subject.type.exec({
-      subjectType: "wrapped",
+      subjectType: DataType.Wrapped,
       subjectValue: ALICE_KNOWS_BOB_EXAMPLE,
     });
 

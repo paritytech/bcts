@@ -324,23 +324,23 @@ export class Cli {
    */
   clone(): Cli {
     const cli = new Cli();
-    cli.input = this.input;
+    if (this.input !== undefined) cli.input = this.input;
     cli.count = this.count;
     cli.in = this.in;
     cli.out = this.out;
     cli.low = this.low;
     cli.high = this.high;
-    cli.name = this.name;
-    cli.note = this.note;
-    cli.date = this.date;
+    if (this.name !== undefined) cli.name = this.name;
+    if (this.note !== undefined) cli.note = this.note;
+    if (this.date !== undefined) cli.date = this.date;
     cli.maxFragmentLen = this.maxFragmentLen;
     cli.additionalParts = this.additionalParts;
     cli.groups = [...this.groups];
     cli.groupThreshold = this.groupThreshold;
     cli.sskrFormat = this.sskrFormat;
-    cli.deterministic = this.deterministic;
-    cli.seed = this.seed?.clone();
-    cli.rng = this.rng;
+    if (this.deterministic !== undefined) cli.deterministic = this.deterministic;
+    if (this.seed !== undefined) cli.seed = this.seed.clone();
+    if (this.rng !== undefined) cli.rng = this.rng;
     return cli;
   }
 }

@@ -40,7 +40,7 @@ export class MultipartFormat implements InputFormat, OutputFormat {
     }
 
     const ur = decoder.message();
-    if (ur === undefined) {
+    if (ur === undefined || ur === null) {
       throw new Error("Failed to decode multipart message");
     }
 

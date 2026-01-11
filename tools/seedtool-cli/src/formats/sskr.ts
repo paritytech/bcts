@@ -7,7 +7,13 @@ import { SSKRFormatKey, type Cli } from "../cli.js";
 import type { InputFormat, OutputFormat } from "./format.js";
 import { Seed } from "../seed.js";
 import { Envelope, SymmetricKey } from "@bcts/envelope";
-import { SSKRShare, SSKRSecret, sskrGenerate, sskrCombine, type SSKRShareCbor } from "@bcts/components";
+import {
+  SSKRShare,
+  SSKRSecret,
+  sskrGenerate,
+  sskrCombine,
+  type SSKRShareCbor,
+} from "@bcts/components";
 import { encodeBytewords, decodeBytewords, BytewordsStyle, UR } from "@bcts/uniform-resources";
 import { SSKR_SHARE, SSKR_SHARE_V1 } from "@bcts/tags";
 import { toByteString, toTaggedValue, decodeCbor, expectBytes } from "@bcts/dcbor";
@@ -51,9 +57,13 @@ function outputSskrSeed(seed: Seed, spec: Spec, format: SSKRFormatKey): string {
       const seedEnvelope = seed.toEnvelope();
       const contentKey = SymmetricKey.new();
       const encryptedEnvelope = seedEnvelope.wrap().encryptSubject(contentKey);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      const shareEnvelopes: Envelope[] = encryptedEnvelope.sskrSplitFlattened(spec, contentKey);
-       
+      // Use type assertion for prototype extension method
+      const shareEnvelopes: Envelope[] = (
+        encryptedEnvelope as unknown as {
+          sskrSplitFlattened: (spec: Spec, key: SymmetricKey) => Envelope[];
+        }
+      ).sskrSplitFlattened(spec, contentKey);
+
       const shareEnvelopesStrings: string[] = shareEnvelopes.map((env: Envelope) => env.urString());
       return shareEnvelopesStrings.join("\n");
     }
@@ -69,9 +79,7 @@ function outputSskrSeed(seed: Seed, spec: Spec, format: SSKRFormatKey): string {
     case SSKRFormatKey.Ur: {
       const shares = makeShares(spec, seed);
       const urStrings: string[] = shares.map((share) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-        const ur: UR = UR.fromCbor("sskr", toByteString(share.asBytes()));
-         
+        const ur = UR.new("sskr", toByteString(share.asBytes()));
         return ur.toString();
       });
       return urStrings.join("\n");
@@ -121,9 +129,11 @@ function parseEnvelopes(input: string): Seed | null {
       return null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const recoveredEnvelope: Envelope = Envelope.sskrJoin(shareEnvelopes).unwrap();
-     
+    // Use type assertion for static prototype extension method
+    const sskrJoin = (Envelope as unknown as { sskrJoin: (envelopes: Envelope[]) => Envelope })
+      .sskrJoin;
+    const recoveredEnvelope: Envelope = sskrJoin(shareEnvelopes).unwrap();
+
     return Seed.fromEnvelope(recoveredEnvelope);
   } catch {
     return null;
@@ -150,9 +160,7 @@ function fromTaggedCborShares(taggedCborDataShares: Uint8Array[]): Seed | null {
         return null;
       }
       const content =
-        tagged.value !== undefined
-          ? (tagged.value as ReturnType<typeof decodeCbor>)
-          : cbor;
+        tagged.value !== undefined ? (tagged.value as ReturnType<typeof decodeCbor>) : cbor;
       const bytes = expectBytes(content);
       untaggedShares.push(bytes);
     }
@@ -215,8 +223,7 @@ function parseUr(input: string, expectedTagValue: number, allowTaggedCbor: boole
 
     // Ensure every UR is of the expected type
     for (const ur of urs) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      if (ur.type() !== expectedType) {
+      if (ur.urTypeStr() !== expectedType) {
         return null;
       }
     }
@@ -277,13 +284,13 @@ function parseSskrSeed(input: string): Seed {
   }
 
   // Try UR format (current tag)
-  const urResult = parseUr(input, SSKR_SHARE.value, false);
+  const urResult = parseUr(input, Number(SSKR_SHARE.value), false);
   if (urResult !== null) {
     return urResult;
   }
 
   // Try legacy UR format (v1 tag, allow tagged cbor)
-  const urLegacyResult = parseUr(input, SSKR_SHARE_V1.value, true);
+  const urLegacyResult = parseUr(input, Number(SSKR_SHARE_V1.value), true);
   if (urLegacyResult !== null) {
     return urLegacyResult;
   }

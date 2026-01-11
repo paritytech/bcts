@@ -60,7 +60,8 @@ describe("import command", () => {
 
       // Export back to SSH format
       const exported = await exportCmd.exec({
-        ...exportCmd.defaultArgs(),
+        encrypt: false,
+        askpass: false,
         urString: ED25519_PRIVATE_KEY_UR,
       });
       expect(exported).toBe(ED25519_PRIVATE_KEY_SSH.trim());
@@ -88,7 +89,8 @@ describe("import command", () => {
 
       // Export back to SSH format
       const exported = await exportCmd.exec({
-        ...exportCmd.defaultArgs(),
+        encrypt: false,
+        askpass: false,
         urString: ED25519_PUBLIC_KEY_UR,
       });
       expect(exported).toBe(ED25519_PUBLIC_KEY_SSH);
@@ -108,7 +110,8 @@ describe("import command", () => {
 
       // Export back to SSH format
       const exported = await exportCmd.exec({
-        ...exportCmd.defaultArgs(),
+        encrypt: false,
+        askpass: false,
         urString: ED25519_SIGNATURE_UR,
       });
       expect(exported).toBe(ED25519_SIGNATURE_SSH.trim());

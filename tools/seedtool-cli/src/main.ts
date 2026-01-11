@@ -5,13 +5,8 @@
 
 import { Command, Option } from "commander";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
-import type { SSKRGroupSpec } from "@bcts/components";
-import {
-  Cli,
-  type InputFormatKey,
-  type OutputFormatKey,
-  type SSKRFormatKey,
-} from "./cli.js";
+import { SSKRGroupSpec } from "@bcts/components";
+import { Cli, type InputFormatKey, type OutputFormatKey, type SSKRFormatKey } from "./cli.js";
 import { selectInputFormat, selectOutputFormat } from "./formats/index.js";
 import { DeterministicRandomNumberGenerator } from "./random.js";
 import fs from "node:fs";
@@ -204,8 +199,8 @@ function main(): void {
   cli.out = options.out;
   cli.low = options.low;
   cli.high = options.high;
-  cli.name = options.name;
-  cli.note = options.note;
+  if (options.name !== undefined) cli.name = options.name;
+  if (options.note !== undefined) cli.note = options.note;
   if (options.date !== undefined) {
     cli.date = parseCliDate(options.date);
   }

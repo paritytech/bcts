@@ -10,6 +10,7 @@ import * as assertion from "../src/cmd/assertion/index.js";
 import * as subject from "../src/cmd/subject/index.js";
 import * as format from "../src/cmd/format.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 describe("elide command", () => {
   // Skip: UR/CBOR library has internal issues with toData()
@@ -62,7 +63,8 @@ describe("elide command", () => {
 
     const digests = target.join(" ");
     const elided = elide.revealing.exec({
-      digests,
+      target: digests,
+      action: elide.Action.Elide,
       envelope: ALICE_KNOWS_BOB_EXAMPLE,
     });
 
@@ -85,7 +87,7 @@ describe("elide command", () => {
   it.skip("test_elide_2", () => {
     // Get digest of "knows" predicate
     const knowsEnvelope = subject.type.exec({
-      subjectType: "string",
+      subjectType: DataType.String,
       subjectValue: "knows",
     });
     const knowsDigest = digest.exec({
@@ -94,7 +96,8 @@ describe("elide command", () => {
     });
 
     const elided = elide.removing.exec({
-      digests: knowsDigest,
+      target: knowsDigest,
+      action: elide.Action.Elide,
       envelope: ALICE_KNOWS_BOB_EXAMPLE,
     });
 

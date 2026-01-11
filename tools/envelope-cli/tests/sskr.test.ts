@@ -11,7 +11,9 @@ describe("sskr command", () => {
   // Skip: SSKR is not yet implemented in TypeScript
   it.skip("test_sskr_1", () => {
     const result = sskr.split.exec({
-      ...sskr.split.defaultArgs(),
+      groupThreshold: 1,
+      groups: ["1-of-1"],
+      recipients: [],
       envelope: ALICE_KNOWS_BOB_EXAMPLE,
     });
 
@@ -26,7 +28,6 @@ describe("sskr command", () => {
     expectOutput(formatted, expected);
 
     const restored = sskr.join.exec({
-      ...sskr.join.defaultArgs(),
       shares: [result],
     });
     expect(restored).toBe(ALICE_KNOWS_BOB_EXAMPLE);
@@ -35,9 +36,9 @@ describe("sskr command", () => {
   // Skip: SSKR is not yet implemented in TypeScript
   it.skip("test_sskr_2", () => {
     const result = sskr.split.exec({
-      ...sskr.split.defaultArgs(),
-      threshold: 2,
+      groupThreshold: 2,
       groups: ["2-of-3", "2-of-3"],
+      recipients: [],
       envelope: ALICE_KNOWS_BOB_EXAMPLE,
     });
 
@@ -48,7 +49,6 @@ describe("sskr command", () => {
     const recoveredShares = [shares[0], shares[1], shares[4], shares[5]] as string[];
 
     const restored = sskr.join.exec({
-      ...sskr.join.defaultArgs(),
       shares: recoveredShares,
     });
 

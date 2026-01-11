@@ -8,8 +8,8 @@ import * as generate from "../src/cmd/generate/index.js";
 describe("generate command", () => {
   describe("arid", () => {
     it("test_generate_arid", () => {
-      const output1 = generate.arid.exec({});
-      const output2 = generate.arid.exec({});
+      const output1 = generate.arid.exec({ hex: false });
+      const output2 = generate.arid.exec({ hex: false });
       // Two generated ARIDs should be different (random)
       expect(output1).not.toBe(output2);
       // Both should be valid ARID URs

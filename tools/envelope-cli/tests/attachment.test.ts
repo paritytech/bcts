@@ -7,6 +7,7 @@ import * as attachment from "../src/cmd/attachment/index.js";
 import * as subject from "../src/cmd/subject/index.js";
 import * as format from "../src/cmd/format.js";
 import { expectOutput } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 const SUBJECT = "this-is-the-subject";
 const PAYLOAD_V1 = "this-is-the-v1-payload";
@@ -17,21 +18,21 @@ const CONFORMS_TO_V2 = "https://example.com/v2";
 
 function subjectEnvelope(): string {
   return subject.type.exec({
-    subjectType: "string",
+    subjectType: DataType.String,
     subjectValue: SUBJECT,
   });
 }
 
 function payloadV1Envelope(): string {
   return subject.type.exec({
-    subjectType: "string",
+    subjectType: DataType.String,
     subjectValue: PAYLOAD_V1,
   });
 }
 
 function payloadV2Envelope(): string {
   return subject.type.exec({
-    subjectType: "string",
+    subjectType: DataType.String,
     subjectValue: PAYLOAD_V2,
   });
 }
@@ -62,11 +63,11 @@ function attachmentV1NoConformance(): string {
 function envelopeV1V2(): string {
   let envelope = subjectEnvelope();
   envelope = attachment.add.envelope.exec({
-    attachmentEnvelope: attachmentV1(),
+    attachment: attachmentV1(),
     envelope,
   });
   envelope = attachment.add.envelope.exec({
-    attachmentEnvelope: attachmentV2(),
+    attachment: attachmentV2(),
     envelope,
   });
   return envelope;
@@ -114,23 +115,23 @@ describe("attachment command", () => {
       const att = attachmentV1();
 
       const payloadEnv = attachment.payload.exec({
-        envelope: att,
+        attachment: att,
       });
       expect(payloadEnv).toBe(payloadV1Envelope());
 
       const vendor = attachment.vendor.exec({
-        envelope: att,
+        attachment: att,
       });
       expect(vendor).toBe(VENDOR);
 
       const conformsTo = attachment.conformsTo.exec({
-        envelope: att,
+        attachment: att,
       });
       expect(conformsTo).toBe(CONFORMS_TO_V1);
 
       const attNoConformance = attachmentV1NoConformance();
       const conformsToEmpty = attachment.conformsTo.exec({
-        envelope: attNoConformance,
+        attachment: attNoConformance,
       });
       expect(conformsToEmpty).toBe("");
     });

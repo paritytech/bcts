@@ -9,6 +9,7 @@ import * as format from "../src/cmd/format.js";
 import * as generate from "../src/cmd/generate/index.js";
 import * as subject from "../src/cmd/subject/index.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, ALICE_PRVKEYS, CAROL_PRVKEYS, expectOutput } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 describe("sign command", () => {
   // Skip: Format output differs from Rust (shows raw CBOR tags instead of Signature)
@@ -115,7 +116,7 @@ describe("sign command", () => {
   it.skip("test_sign_3", () => {
     // Create envelope from string subject
     const envelope = subject.type.exec({
-      subjectType: "string",
+      subjectType: DataType.String,
       subjectValue: "Hello.",
     });
 

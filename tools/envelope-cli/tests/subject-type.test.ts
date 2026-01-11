@@ -7,11 +7,12 @@ import * as subject from "../src/cmd/subject/index.js";
 import * as format from "../src/cmd/format.js";
 import * as extract from "../src/cmd/extract.js";
 import { HELLO_STR, HELLO_ENVELOPE_UR, DATE_EXAMPLE, UUID_EXAMPLE } from "./common.js";
+import { DataType } from "../src/data-types.js";
 
 describe("subject type command", () => {
   it("test_subject_type_arid_1", () => {
     const result = subject.type.exec({
-      subjectType: "arid",
+      subjectType: DataType.Arid,
       subjectValue:
         "ur:arid/hdcxaywpflbdnyynyaeyykssbwfxbzcwwnyaampacnetbssatkpasrmerospveluinsgpdesltpe",
     });
@@ -22,7 +23,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_arid_2", () => {
     const result = subject.type.exec({
-      subjectType: "arid",
+      subjectType: DataType.Arid,
       subjectValue: "08ec470b9af6f832f5c41343151bf1f806b123380fc2cfb1c391b8c8e48b69ca",
     });
     expect(result).toBe(
@@ -33,7 +34,7 @@ describe("subject type command", () => {
   // Skip: dcbor error - expected TAG_ENVELOPE (200)
   it.skip("test_subject_type_cbor", () => {
     const result = subject.type.exec({
-      subjectType: "cbor",
+      subjectType: DataType.Cbor,
       subjectValue: "83010203",
     });
     expect(result).toBe("ur:envelope/tpsolsadaoaxzerkykme");
@@ -41,7 +42,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_data", () => {
     const result = subject.type.exec({
-      subjectType: "data",
+      subjectType: DataType.Data,
       subjectValue: "010203",
     });
     expect(result).toBe("ur:envelope/tpsofxadaoaxloyncwms");
@@ -49,7 +50,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_date_1", () => {
     const result = subject.type.exec({
-      subjectType: "date",
+      subjectType: DataType.Date,
       subjectValue: "2022-08-30T07:16:11Z",
     });
     expect(result).toBe("ur:envelope/tpsosecyiabtrhfrrfztcase");
@@ -57,7 +58,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_date_2", () => {
     const result = subject.type.exec({
-      subjectType: "date",
+      subjectType: DataType.Date,
       subjectValue: "2022-08-30",
     });
     expect(result).toBe("ur:envelope/tpsosecyiabtguaeptiywsls");
@@ -65,7 +66,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_digest", () => {
     const result = subject.type.exec({
-      subjectType: "digest",
+      subjectType: DataType.Digest,
       subjectValue:
         "ur:digest/hdcxvlfgdmamwlsshgiaemcsnelkylfwjefdsktadpfwolgmlrlevduyontbbbpyiaspvadsadje",
     });
@@ -76,7 +77,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_envelope", () => {
     const result = subject.type.exec({
-      subjectType: "envelope",
+      subjectType: DataType.Envelope,
       subjectValue: "ur:envelope/tpcsfyadaoaxaatitospwz",
     });
     expect(result).toBe("ur:envelope/tpsofyadaoaxaaaspsatks");
@@ -84,7 +85,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_known_1", () => {
     const result = subject.type.exec({
-      subjectType: "known",
+      subjectType: DataType.Known,
       subjectValue: "1",
     });
     expect(result).toBe("ur:envelope/adonahurcw");
@@ -92,7 +93,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_known_2", () => {
     const result = subject.type.exec({
-      subjectType: "known",
+      subjectType: DataType.Known,
       subjectValue: "isA",
     });
     expect(result).toBe("ur:envelope/adonahurcw");
@@ -100,7 +101,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_number_1", () => {
     const result = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: "3.14",
     });
     expect(result).toBe("ur:envelope/tpsozofzasckrogywmlpctynlngyfx");
@@ -108,7 +109,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_number_2", () => {
     const result = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: "42",
     });
     expect(result).toBe("ur:envelope/tpsocsdrahknprdr");
@@ -116,7 +117,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_string", () => {
     const result = subject.type.exec({
-      subjectType: "string",
+      subjectType: DataType.String,
       subjectValue: "Hello",
     });
     expect(result).toBe("ur:envelope/tpsoihfdihjzjzjllamdlowy");
@@ -124,7 +125,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_uri", () => {
     const result = subject.type.exec({
-      subjectType: "uri",
+      subjectType: DataType.Uri,
       subjectValue: "https://example.com",
     });
     expect(result).toBe("ur:envelope/tpsotpcxjkisjyjyjojkftdldlihkshsjnjojzihdmiajljnrlsrpsas");
@@ -132,7 +133,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_uuid", () => {
     const result = subject.type.exec({
-      subjectType: "uuid",
+      subjectType: DataType.Uuid,
       subjectValue: "492ACBF4-13DC-4872-8A3B-4BF65C6BDF7C",
     });
     expect(result).toBe("ur:envelope/tpsotpdagdgadrsbwkbwuofdjplefrgrynhhjeurkeflkgehwt");
@@ -140,7 +141,7 @@ describe("subject type command", () => {
 
   it("test_subject_type_wrapped", () => {
     const result = subject.type.exec({
-      subjectType: "wrapped",
+      subjectType: DataType.Wrapped,
       subjectValue: "ur:envelope/tpcslsadaoaxgedmotks",
     });
     expect(result).toBe("ur:envelope/tpsptpsolsadaoaxaegyemck");
@@ -150,7 +151,7 @@ describe("subject type command", () => {
   it.skip("test_cbor_subject", () => {
     const cborArrayExample = "83010203";
     const e = subject.type.exec({
-      subjectType: "cbor",
+      subjectType: DataType.Cbor,
       subjectValue: cborArrayExample,
     });
     expect(e).toBe("ur:envelope/tpsolsadaoaxzerkykme");
@@ -170,7 +171,7 @@ describe("subject type command", () => {
 
   it("test_bool_subject", () => {
     const e = subject.type.exec({
-      subjectType: "bool",
+      subjectType: DataType.Bool,
       subjectValue: "true",
     });
     expect(e).toBe("ur:envelope/tpsoykpyeetsba");
@@ -196,7 +197,7 @@ describe("subject type command", () => {
 
   it("test_wrapped_envelope_subject", () => {
     const e = subject.type.exec({
-      subjectType: "wrapped",
+      subjectType: DataType.Wrapped,
       subjectValue: HELLO_ENVELOPE_UR,
     });
     expect(e).toBe("ur:envelope/tpsptpsoiyfdihjzjzjldmdnjyfzse");
@@ -220,7 +221,7 @@ describe("subject type command", () => {
   it.skip("test_data_subject", () => {
     const value = "cafebabe";
     const e = subject.type.exec({
-      subjectType: "data",
+      subjectType: DataType.Data,
       subjectValue: value,
     });
     expect(e).toBe("ur:envelope/tpsofysgzerdrnbklgpypd");
@@ -240,7 +241,7 @@ describe("subject type command", () => {
 
   it("test_date_subject", () => {
     const e = subject.type.exec({
-      subjectType: "date",
+      subjectType: DataType.Date,
       subjectValue: DATE_EXAMPLE,
     });
     expect(e).toBe("ur:envelope/tpsosecyiabtrhfrrfztcase");
@@ -261,7 +262,7 @@ describe("subject type command", () => {
   it("test_float_subject", () => {
     const value = "42.5";
     const e = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: value,
     });
     expect(e).toBe("ur:envelope/tpsoytgygdamfnchrl");
@@ -282,7 +283,7 @@ describe("subject type command", () => {
   it("test_int_subject", () => {
     const value = "42";
     const e = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: value,
     });
     expect(e).toBe("ur:envelope/tpsocsdrahknprdr");
@@ -304,7 +305,7 @@ describe("subject type command", () => {
   it.skip("test_negative_int_subject", () => {
     const value = "-42";
     const e = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: value,
     });
     expect(e).toBe("ur:envelope/tpsoetdtasylstey");
@@ -326,7 +327,7 @@ describe("subject type command", () => {
   it.skip("test_known_value_subject", () => {
     const value = "note";
     const e = subject.type.exec({
-      subjectType: "known",
+      subjectType: DataType.Known,
       subjectValue: value,
     });
     expect(e).toBe("ur:envelope/aatljldnmw");
@@ -346,7 +347,7 @@ describe("subject type command", () => {
 
   it("test_string_subject", () => {
     const result = subject.type.exec({
-      subjectType: "string",
+      subjectType: DataType.String,
       subjectValue: HELLO_STR,
     });
     expect(result).toBe(HELLO_ENVELOPE_UR);
@@ -361,7 +362,7 @@ describe("subject type command", () => {
   // Skip: Format output differs from Rust (shows raw CBOR tag instead of UUID)
   it.skip("test_uuid_subject", () => {
     const e = subject.type.exec({
-      subjectType: "uuid",
+      subjectType: DataType.Uuid,
       subjectValue: UUID_EXAMPLE,
     });
     expect(e).toBe("ur:envelope/tpsotpdagdwmemkbihhgjyfpbkrhsbgybdztjkvatabwmnltwl");

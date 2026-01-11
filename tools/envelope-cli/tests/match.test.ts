@@ -6,28 +6,35 @@ import { describe, it, expect } from "vitest";
 import * as pattern from "../src/cmd/pattern.js";
 import * as subject from "../src/cmd/subject/index.js";
 import * as assertion from "../src/cmd/assertion/index.js";
+import { DataType } from "../src/data-types.js";
 
 describe("match command", () => {
   // Skip: pattern library has internal issues with paths function
   it.skip("test_match_traversal_pattern", () => {
     // Create Alice envelope
     const aliceEnvelope = subject.type.exec({
-      subjectType: "string",
+      subjectType: DataType.String,
       subjectValue: "Alice",
     });
 
     // Add isA: Person assertion
     const aliceWithAssertion = assertion.add.predObj.exec({
-      ...assertion.add.predObj.defaultArgs(),
-      predType: "string",
+      salted: false,
+      predType: DataType.String,
       predValue: "isA",
-      objType: "string",
+      objType: DataType.String,
       objValue: "Person",
       envelope: aliceEnvelope,
     });
 
     // Test matching assertion predicate with traversal syntax
     const matchResult = pattern.exec({
+      ...pattern.defaultArgs(),
+      noIndent: false,
+      lastOnly: false,
+      envelopes: false,
+      digests: false,
+      summary: false,
       pattern: 'node -> assertpred("isA")',
       envelope: aliceWithAssertion,
     });
@@ -38,6 +45,12 @@ describe("match command", () => {
 
     // Test matching assertion object with traversal syntax
     const matchObjResult = pattern.exec({
+      ...pattern.defaultArgs(),
+      noIndent: false,
+      lastOnly: false,
+      envelopes: false,
+      digests: false,
+      summary: false,
       pattern: 'node -> assertobj("Person")',
       envelope: aliceWithAssertion,
     });
@@ -48,6 +61,12 @@ describe("match command", () => {
 
     // Test deeper traversal pattern
     const deepMatchResult = pattern.exec({
+      ...pattern.defaultArgs(),
+      noIndent: false,
+      lastOnly: false,
+      envelopes: false,
+      digests: false,
+      summary: false,
       pattern: 'node -> assertpred("isA") -> obj("Person")',
       envelope: aliceWithAssertion,
     });
@@ -61,12 +80,17 @@ describe("match command", () => {
   it("test_match_numeric_comparison", () => {
     // Create number envelope
     const numberEnvelope = subject.type.exec({
-      subjectType: "number",
+      subjectType: DataType.Number,
       subjectValue: "42",
     });
 
     // Test > comparison
     const matchResult = pattern.exec({
+      noIndent: false,
+      lastOnly: false,
+      envelopes: false,
+      digests: false,
+      summary: false,
       pattern: ">40",
       envelope: numberEnvelope,
     });
@@ -75,6 +99,11 @@ describe("match command", () => {
 
     // Test < comparison
     const matchLessResult = pattern.exec({
+      noIndent: false,
+      lastOnly: false,
+      envelopes: false,
+      digests: false,
+      summary: false,
       pattern: "<50",
       envelope: numberEnvelope,
     });

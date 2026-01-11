@@ -88,7 +88,7 @@ describe("keys command", () => {
       // Sign an envelope
       const signed = await sign.exec({
         ...sign.defaultArgs(),
-        signer: prvkeys,
+        signers: [prvkeys],
         namespace: "test",
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });
@@ -107,7 +107,7 @@ describe("keys command", () => {
       // Verify the signature
       await verify.exec({
         ...verify.defaultArgs(),
-        verifier: pubkeys,
+        verifiers: [pubkeys],
         envelope: signed,
       });
     }
@@ -188,7 +188,7 @@ describe("keys command", () => {
       // Sign an envelope
       const signed = await sign.exec({
         ...sign.defaultArgs(),
-        signer: prvkeys,
+        signers: [prvkeys],
         namespace: "test",
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });
@@ -204,7 +204,7 @@ describe("keys command", () => {
       // Verify the signature
       await verify.exec({
         ...verify.defaultArgs(),
-        verifier: pubkeys,
+        verifiers: [pubkeys],
         envelope: signed,
       });
     });

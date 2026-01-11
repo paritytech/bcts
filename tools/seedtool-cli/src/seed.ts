@@ -11,7 +11,7 @@
 import { Envelope } from "@bcts/envelope";
 import { Seed as ComponentsSeed } from "@bcts/components";
 import { NAME, NOTE, DATE, SEED_TYPE } from "@bcts/known-values";
-import { toByteString, CborDate } from "@bcts/dcbor";
+import { CborDate } from "@bcts/dcbor";
 
 /**
  * Seed with optional metadata.
@@ -21,7 +21,7 @@ export class Seed {
   private readonly _data: Uint8Array;
   private _name: string;
   private _note: string;
-  private _creationDate?: Date;
+  private _creationDate: Date | undefined;
 
   /**
    * Create a new Seed with the given data.
@@ -144,7 +144,7 @@ export class Seed {
    */
   toEnvelope(): Envelope {
     // Create envelope with seed data as byte string subject
-    let envelope = Envelope.new(toByteString(this._data));
+    let envelope = Envelope.new(this._data);
 
     // Add type assertion
     envelope = envelope.addType(SEED_TYPE);
