@@ -45,12 +45,12 @@ This monorepo provides TypeScript implementations of Blockchain Commons specific
 
 ## 💻 CLI Tools
 
-| CLI | Description |
-|-----|-------------|
-| [**dcbor-cli**](packages/dcbor-cli) | Command-line tool for working with dCBOR data. Parse, encode, and convert between hex, diagnostic notation, and other formats. [🦀 Rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
-| [**envelope-cli**](packages/envelope-cli) | Command-line tool for creating and manipulating Gordian Envelopes. Supports encryption, signing, elision, and format conversion. [🦀 Rust](https://github.com/BlockchainCommons/bc-envelope-cli-rust) |
-| [**provenance-mark-cli**](packages/provenance-mark-cli) | Command-line tool for generating and verifying Provenance Marks. Create mark chains for establishing authenticity of digital works. [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) |
-| [**seedtool-cli**](packages/seedtool-cli) | Command-line tool for generating and managing cryptographic seeds. Supports multiple output formats including hex, Bytewords, SSKR shares, and Gordian Envelope. [🦀 Rust](https://github.com/ArcadeCity/seedtool-cli-rust) |
+| CLI                                                  | Description |
+|------------------------------------------------------|-------------|
+| [**dcbor-cli**](tools/dcbor-cli)                     | Command-line tool for working with dCBOR data. Parse, encode, and convert between hex, diagnostic notation, and other formats. [🦀 Rust](https://github.com/BlockchainCommons/bc-dcbor-rust) |
+| [**envelope-cli**](tools/envelope-cli)               | Command-line tool for creating and manipulating Gordian Envelopes. Supports encryption, signing, elision, and format conversion. [🦀 Rust](https://github.com/BlockchainCommons/bc-envelope-cli-rust) |
+| [**provenance-mark-cli**](tools/provenance-mark-cli) | Command-line tool for generating and verifying Provenance Marks. Create mark chains for establishing authenticity of digital works. [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) |
+| [**seedtool-cli**](tools/seedtool-cli)               | Command-line tool for generating and managing cryptographic seeds. Supports multiple output formats including hex, Bytewords, SSKR shares, and Gordian Envelope. [🦀 Rust](https://github.com/ArcadeCity/seedtool-cli-rust) |
 
 ## 🎮 Applications
 
