@@ -3,10 +3,10 @@
  * Ported from seedtool-cli-rust/src/cli.rs
  */
 
-import * as readline from "readline";
+import * as readline from "node:readline";
 import { SSKRGroupSpec, SSKRSpec } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
-import { SecureRandomNumberGenerator } from "@bcts/rand";
+import type { SecureRandomNumberGenerator } from "@bcts/rand";
+import type { Envelope } from "@bcts/envelope";
 import type { Seed } from "./seed.js";
 import type { DeterministicRandomNumberGenerator } from "./random.js";
 
@@ -144,8 +144,9 @@ export function parseDate(s: string): Date {
  * Returns SSKRGroupSpec instance.
  */
 export function parseGroupSpec(s: string): SSKRGroupSpec {
-  const match = s.match(/^(\d+)-of-(\d+)$/i);
-  if (!match) {
+  const regex = /^(\d+)-of-(\d+)$/i;
+  const match = regex.exec(s);
+  if (match === null) {
     throw new Error(`Invalid group specification: ${s}. Use format 'M-of-N' (e.g., '2-of-3').`);
   }
   const threshold = parseInt(match[1], 10);
@@ -166,19 +167,19 @@ export class Cli {
   input?: string;
 
   /** The number of output units (hex bytes, base-10 digits, etc.) */
-  count: number = 16;
+  count = 16;
 
   /** The input format. Default: Random */
-  in: InputFormatKey = InputFormatKey.Random;
+  in = InputFormatKey.Random;
 
   /** The output format. Default: Hex */
-  out: OutputFormatKey = OutputFormatKey.Hex;
+  out = OutputFormatKey.Hex;
 
   /** The lowest int returned (0-254). Default: 0 */
-  low: number = 0;
+  low = 0;
 
   /** The highest int returned (1-255), low < high. Default: 9 */
-  high: number = 9;
+  high = 9;
 
   /** The name of the seed. */
   name?: string;
@@ -190,19 +191,19 @@ export class Cli {
   date?: Date;
 
   /** For `multipart` output, max fragment length. Default: 500 */
-  maxFragmentLen: number = 500;
+  maxFragmentLen = 500;
 
   /** For `multipart` output, additional parts for fountain encoding. Default: 0 */
-  additionalParts: number = 0;
+  additionalParts = 0;
 
   /** Group specifications for SSKR. */
   groups: SSKRGroupSpec[] = [];
 
   /** The number of groups that must meet their threshold. Default: 1 */
-  groupThreshold: number = 1;
+  groupThreshold = 1;
 
   /** SSKR output format. Default: Envelope */
-  sskrFormat: SSKRFormatKey = SSKRFormatKey.Envelope;
+  sskrFormat = SSKRFormatKey.Envelope;
 
   /** Deterministic RNG seed string. */
   deterministic?: string;
@@ -244,15 +245,15 @@ export class Cli {
         terminal: false,
       });
 
-      rl.on("line", (line) => {
-        data += line + "\n";
+      rl.on("line", (line: string) => {
+        data += `${line}\n`;
       });
 
       rl.on("close", () => {
         resolve(data.trim());
       });
 
-      rl.on("error", (err) => {
+      rl.on("error", (err: Error) => {
         reject(err);
       });
     });

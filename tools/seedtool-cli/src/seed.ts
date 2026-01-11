@@ -18,7 +18,7 @@ import { toByteString, CborDate } from "@bcts/dcbor";
  * Matches Rust Seed struct in seed.rs.
  */
 export class Seed {
-  private _data: Uint8Array;
+  private readonly _data: Uint8Array;
   private _name: string;
   private _note: string;
   private _creationDate?: Date;

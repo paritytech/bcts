@@ -3,7 +3,7 @@
  * Ported from seedtool-cli-rust/tests/tests.rs
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Envelope } from "@bcts/envelope";
 import { runCli, runCliExpect, runCliStdin } from "./common";
 

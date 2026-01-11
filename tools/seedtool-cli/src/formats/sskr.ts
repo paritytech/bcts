@@ -3,15 +3,15 @@
  * Ported from seedtool-cli-rust/src/formats/sskr.rs
  */
 
-import type { Cli, SSKRFormatKey } from "../cli.js";
+import { SSKRFormatKey, type Cli } from "../cli.js";
 import type { InputFormat, OutputFormat } from "./format.js";
 import { Seed } from "../seed.js";
-import { Envelope } from "@bcts/envelope";
-import { SymmetricKey } from "@bcts/envelope";
-import { SSKRShare, SSKRShareCbor, SSKRSecret, sskrGenerate, sskrCombine } from "@bcts/components";
+import { Envelope, SymmetricKey } from "@bcts/envelope";
+import { SSKRShare, SSKRSecret, sskrGenerate, sskrCombine, type SSKRShareCbor } from "@bcts/components";
 import { encodeBytewords, decodeBytewords, BytewordsStyle, UR } from "@bcts/uniform-resources";
 import { SSKR_SHARE, SSKR_SHARE_V1 } from "@bcts/tags";
 import { toByteString, toTaggedValue, decodeCbor, expectBytes } from "@bcts/dcbor";
+import type { Spec } from "@bcts/sskr";
 
 /**
  * SSKR format handler.
@@ -45,33 +45,33 @@ export class SSKRFormat implements InputFormat, OutputFormat {
 // Output Helpers
 //
 
-function outputSskrSeed(
-  seed: Seed,
-  spec: import("@bcts/sskr").Spec,
-  format: SSKRFormatKey,
-): string {
+function outputSskrSeed(seed: Seed, spec: Spec, format: SSKRFormatKey): string {
   switch (format) {
-    case "envelope": {
-      const envelope = seed.toEnvelope();
+    case SSKRFormatKey.Envelope: {
+      const seedEnvelope = seed.toEnvelope();
       const contentKey = SymmetricKey.new();
-      const encryptedEnvelope = envelope.wrap().encryptSubject(contentKey);
-      const shareEnvelopes = encryptedEnvelope.sskrSplitFlattened(spec, contentKey);
-      const shareEnvelopesStrings = shareEnvelopes.map((envelope) => envelope.urString());
+      const encryptedEnvelope = seedEnvelope.wrap().encryptSubject(contentKey);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+      const shareEnvelopes: Envelope[] = encryptedEnvelope.sskrSplitFlattened(spec, contentKey);
+       
+      const shareEnvelopesStrings: string[] = shareEnvelopes.map((env: Envelope) => env.urString());
       return shareEnvelopesStrings.join("\n");
     }
-    case "btw": {
+    case SSKRFormatKey.Btw: {
       return makeBytewordsShares(spec, seed, BytewordsStyle.Standard);
     }
-    case "btwm": {
+    case SSKRFormatKey.Btwm: {
       return makeBytewordsShares(spec, seed, BytewordsStyle.Minimal);
     }
-    case "btwu": {
+    case SSKRFormatKey.Btwu: {
       return makeBytewordsShares(spec, seed, BytewordsStyle.Uri);
     }
-    case "ur": {
+    case SSKRFormatKey.Ur: {
       const shares = makeShares(spec, seed);
-      const urStrings = shares.map((share) => {
-        const ur = UR.fromCbor("sskr", toByteString(share.asBytes()));
+      const urStrings: string[] = shares.map((share) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+        const ur: UR = UR.fromCbor("sskr", toByteString(share.asBytes()));
+         
         return ur.toString();
       });
       return urStrings.join("\n");
@@ -79,7 +79,7 @@ function outputSskrSeed(
   }
 }
 
-function makeShares(spec: import("@bcts/sskr").Spec, seed: Seed): SSKRShareCbor[] {
+function makeShares(spec: Spec, seed: Seed): SSKRShareCbor[] {
   const secret = SSKRSecret.new(seed.data());
   const shareGroups = sskrGenerate(spec, secret);
   const flatShares: SSKRShareCbor[] = [];
@@ -91,11 +91,7 @@ function makeShares(spec: import("@bcts/sskr").Spec, seed: Seed): SSKRShareCbor[
   return flatShares;
 }
 
-function makeBytewordsShares(
-  spec: import("@bcts/sskr").Spec,
-  seed: Seed,
-  style: BytewordsStyle,
-): string {
+function makeBytewordsShares(spec: Spec, seed: Seed, style: BytewordsStyle): string {
   const shares = makeShares(spec, seed);
   const cborShares = shares.map((share) =>
     toTaggedValue(SSKR_SHARE.value, toByteString(share.asBytes())),
@@ -125,7 +121,9 @@ function parseEnvelopes(input: string): Seed | null {
       return null;
     }
 
-    const recoveredEnvelope = Envelope.sskrJoin(shareEnvelopes).unwrap();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const recoveredEnvelope: Envelope = Envelope.sskrJoin(shareEnvelopes).unwrap();
+     
     return Seed.fromEnvelope(recoveredEnvelope);
   } catch {
     return null;
@@ -151,8 +149,11 @@ function fromTaggedCborShares(taggedCborDataShares: Uint8Array[]): Seed | null {
       if (tagged.tag !== SSKR_SHARE.value && tagged.tag !== SSKR_SHARE_V1.value) {
         return null;
       }
-      const content = (tagged.value as { buffer?: Uint8Array }) || cbor;
-      const bytes = expectBytes(content as ReturnType<typeof decodeCbor>);
+      const content =
+        tagged.value !== undefined
+          ? (tagged.value as ReturnType<typeof decodeCbor>)
+          : cbor;
+      const bytes = expectBytes(content);
       untaggedShares.push(bytes);
     }
     return fromUntaggedCborShares(untaggedShares);
@@ -214,6 +215,7 @@ function parseUr(input: string, expectedTagValue: number, allowTaggedCbor: boole
 
     // Ensure every UR is of the expected type
     for (const ur of urs) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       if (ur.type() !== expectedType) {
         return null;
       }

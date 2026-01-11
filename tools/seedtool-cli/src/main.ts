@@ -5,13 +5,38 @@
 
 import { Command, Option } from "commander";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
-import { SSKRGroupSpec } from "@bcts/components";
-import { Cli, type InputFormatKey, type OutputFormatKey, type SSKRFormatKey } from "./cli.js";
+import type { SSKRGroupSpec } from "@bcts/components";
+import {
+  Cli,
+  type InputFormatKey,
+  type OutputFormatKey,
+  type SSKRFormatKey,
+} from "./cli.js";
 import { selectInputFormat, selectOutputFormat } from "./formats/index.js";
 import { DeterministicRandomNumberGenerator } from "./random.js";
-import * as fs from "node:fs";
+import fs from "node:fs";
 
 const VERSION = "0.4.0";
+
+/**
+ * CLI options parsed from commander.
+ */
+interface CliOptions {
+  count: string;
+  in: InputFormatKey;
+  out: OutputFormatKey;
+  low: number;
+  high: number;
+  name?: string;
+  note?: string;
+  date?: string;
+  maxFragmentLen: string;
+  additionalParts: string;
+  groups: SSKRGroupSpec[];
+  groupThreshold: number;
+  sskrFormat: SSKRFormatKey;
+  deterministic?: string;
+}
 
 function parseLowInt(value: string): number {
   const num = parseInt(value, 10);
@@ -53,7 +78,7 @@ function parseGroupSpec(value: string, previous: SSKRGroupSpec[]): SSKRGroupSpec
   return [...previous, spec];
 }
 
-async function main(): Promise<void> {
+function main(): void {
   const program = new Command();
 
   program
@@ -159,7 +184,7 @@ async function main(): Promise<void> {
 
   program.parse();
 
-  const options = program.opts();
+  const options = program.opts<CliOptions>();
   const args = program.args;
 
   // Create the CLI state
@@ -168,30 +193,30 @@ async function main(): Promise<void> {
   // Set input from argument or stdin
   if (args.length > 0) {
     cli.input = args[0];
-  } else if (!process.stdin.isTTY) {
+  } else if (process.stdin.isTTY !== true) {
     // Read from stdin if it's piped
-    cli.input = fs.readFileSync(0, "utf-8").trim();
+    cli.input = fs.readFileSync(process.stdin.fd, "utf-8").trim();
   }
 
   // Set options
   cli.count = parseInt(options.count, 10);
-  cli.in = options.in as InputFormatKey;
-  cli.out = options.out as OutputFormatKey;
+  cli.in = options.in;
+  cli.out = options.out;
   cli.low = options.low;
   cli.high = options.high;
   cli.name = options.name;
   cli.note = options.note;
-  if (options.date) {
+  if (options.date !== undefined) {
     cli.date = parseCliDate(options.date);
   }
   cli.maxFragmentLen = parseInt(options.maxFragmentLen, 10);
   cli.additionalParts = parseInt(options.additionalParts, 10);
   cli.groups = options.groups;
   cli.groupThreshold = options.groupThreshold;
-  cli.sskrFormat = options.sskrFormat as SSKRFormatKey;
+  cli.sskrFormat = options.sskrFormat;
 
   // Set up RNG
-  if (options.deterministic) {
+  if (options.deterministic !== undefined) {
     cli.rng = {
       type: "deterministic",
       rng: DeterministicRandomNumberGenerator.newWithSeed(options.deterministic),
@@ -210,7 +235,7 @@ async function main(): Promise<void> {
   // Validate round-trippability
   if (!outputFormat.roundTrippable() && inputFormat.name() !== "random") {
     console.error(`Input for output form "${outputFormat.name()}" must be random.`);
-    process.exit(1);
+    throw new Error("Invalid input format for non-round-trippable output format");
   }
 
   // Process input
@@ -221,7 +246,10 @@ async function main(): Promise<void> {
   console.log(output);
 }
 
-main().catch((error) => {
-  console.error(error.message);
+try {
+  main();
+} catch (error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
   process.exit(1);
-});
+}

@@ -45,6 +45,6 @@ export const styles = {
  * Get styles object for use with commander.js
  * Note: Commander uses different styling API than clap
  */
-export function getStyles() {
+export function getStyles(): typeof styles {
   return styles;
 }

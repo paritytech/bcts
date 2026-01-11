@@ -17,7 +17,7 @@ const SHA256_SIZE = 32;
  * from a seed, with an incrementing salt for each call.
  */
 export class DeterministicRandomNumberGenerator {
-  private seed: Uint8Array;
+  private readonly seed: Uint8Array;
   private salt: bigint;
 
   /**

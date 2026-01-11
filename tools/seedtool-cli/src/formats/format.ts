@@ -3,7 +3,7 @@
  * Ported from seedtool-cli-rust/src/formats/format.rs
  */
 
-import type { Cli, InputFormatKey, OutputFormatKey } from "../cli.js";
+import { InputFormatKey, OutputFormatKey, type Cli } from "../cli.js";
 
 // ============================================================================
 // Format Interfaces (Traits)
@@ -66,40 +66,38 @@ import { BytewordsUriFormat } from "./bytewords-uri.js";
  */
 export function selectInputFormat(key: InputFormatKey): InputFormat {
   switch (key) {
-    case "random":
+    case InputFormatKey.Random:
       return new RandomFormat();
-    case "hex":
+    case InputFormatKey.Hex:
       return new HexFormat();
-    case "btw":
+    case InputFormatKey.Btw:
       return new BytewordsStandardFormat();
-    case "btwu":
+    case InputFormatKey.Btwu:
       return new BytewordsUriFormat();
-    case "btwm":
+    case InputFormatKey.Btwm:
       return new BytewordsMinimalFormat();
-    case "bits":
+    case InputFormatKey.Bits:
       return new BitsFormat();
-    case "cards":
+    case InputFormatKey.Cards:
       return new CardsFormat();
-    case "dice":
+    case InputFormatKey.Dice:
       return new DiceFormat();
-    case "base6":
+    case InputFormatKey.Base6:
       return new Base6Format();
-    case "base10":
+    case InputFormatKey.Base10:
       return new Base10Format();
-    case "ints":
+    case InputFormatKey.Ints:
       return new IntsFormat();
-    case "bip39":
+    case InputFormatKey.Bip39:
       return new Bip39Format();
-    case "sskr":
+    case InputFormatKey.Sskr:
       return new SSKRFormat();
-    case "envelope":
+    case InputFormatKey.Envelope:
       return new EnvelopeFormat();
-    case "multipart":
+    case InputFormatKey.Multipart:
       return new MultipartFormat();
-    case "seed":
+    case InputFormatKey.Seed:
       return new SeedFormat();
-    default:
-      throw new Error(`Unknown input format: ${key}`);
   }
 }
 
@@ -109,37 +107,35 @@ export function selectInputFormat(key: InputFormatKey): InputFormat {
  */
 export function selectOutputFormat(key: OutputFormatKey): OutputFormat {
   switch (key) {
-    case "hex":
+    case OutputFormatKey.Hex:
       return new HexFormat();
-    case "btw":
+    case OutputFormatKey.Btw:
       return new BytewordsStandardFormat();
-    case "btwu":
+    case OutputFormatKey.Btwu:
       return new BytewordsUriFormat();
-    case "btwm":
+    case OutputFormatKey.Btwm:
       return new BytewordsMinimalFormat();
-    case "bits":
+    case OutputFormatKey.Bits:
       return new BitsFormat();
-    case "cards":
+    case OutputFormatKey.Cards:
       return new CardsFormat();
-    case "dice":
+    case OutputFormatKey.Dice:
       return new DiceFormat();
-    case "base6":
+    case OutputFormatKey.Base6:
       return new Base6Format();
-    case "base10":
+    case OutputFormatKey.Base10:
       return new Base10Format();
-    case "ints":
+    case OutputFormatKey.Ints:
       return new IntsFormat();
-    case "bip39":
+    case OutputFormatKey.Bip39:
       return new Bip39Format();
-    case "sskr":
+    case OutputFormatKey.Sskr:
       return new SSKRFormat();
-    case "envelope":
+    case OutputFormatKey.Envelope:
       return new EnvelopeFormat();
-    case "multipart":
+    case OutputFormatKey.Multipart:
       return new MultipartFormat();
-    case "seed":
+    case OutputFormatKey.Seed:
       return new SeedFormat();
-    default:
-      throw new Error(`Unknown output format: ${key}`);
   }
 }
