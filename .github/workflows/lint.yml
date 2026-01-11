@@ -1,5 +1,4 @@
-name: Code Analysis
-
+name: Continuous Integration
 on:
   push:
     branches: [main]
@@ -12,7 +11,7 @@ permissions:
 
 jobs:
   lint:
-    name: ESLint & Prettier
+    name: Code Analyzer
     runs-on: ubuntu-latest
 
     steps:

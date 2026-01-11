@@ -1,4 +1,4 @@
-name: Links
+name: Continuous Integration
 on:
   pull_request:
     paths:
@@ -7,7 +7,7 @@ on:
 permissions: read-all
 jobs:
   markdown-link-check:
-    name: Check Markdown Links
+    name: Link Checker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
