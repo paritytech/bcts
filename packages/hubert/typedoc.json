@@ -1,0 +1,63 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/index.ts",
+    "src/ipfs/index.ts",
+    "src/mainline/index.ts",
+    "src/server/index.ts",
+    "src/hybrid/index.ts"
+  ],
+  "out": "docs",
+  "name": "Hubert - Distributed Infrastructure for Secure Multiparty Transactions",
+  "includeVersion": true,
+  "readme": "README.md",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/tests/**",
+    "**/node_modules/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": false,
+  "excludeInternal": false,
+  "skipErrorChecking": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Core",
+    "KvStore Interface",
+    "ARID Derivation",
+    "Mainline DHT Backend",
+    "IPFS Backend",
+    "Hybrid Backend",
+    "Server Backend",
+    "Logging",
+    "Errors",
+    "CLI",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "kindSortOrder": [
+    "Function",
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Variable",
+    "Enum"
+  ],
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "searchInComments": true,
+  "cleanOutputDir": true,
+  "gitRevision": "main",
+  "plugin": []
+}
