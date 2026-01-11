@@ -60,4 +60,6 @@ const packagesCount = copyDocsFrom(PACKAGES_DIR, "package");
 const toolsCount = copyDocsFrom(TOOLS_DIR, "tool");
 
 console.log(`\nDocumentation built to: ${OUTPUT_DIR}`);
-console.log(`Total: ${packagesCount + toolsCount} (${packagesCount} packages, ${toolsCount} tools)`);
+console.log(
+  `Total: ${packagesCount + toolsCount} (${packagesCount} packages, ${toolsCount} tools)`,
+);
