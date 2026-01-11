@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Script to bump all package versions
+ * Script to bump all package and tool versions
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
@@ -13,7 +13,7 @@ interface PackageJson {
 }
 
 const ROOT_DIR = join(import.meta.dirname, "..");
-const WORKSPACE_DIRS = ["packages"];
+const WORKSPACE_DIRS = ["packages", "tools"];
 let NEW_VERSION = process.argv[2];
 
 if (!NEW_VERSION) {
@@ -29,7 +29,7 @@ if (NEW_VERSION.startsWith("v")) {
 }
 
 async function main() {
-  console.log(`Bumping all packages to version ${NEW_VERSION}\n`);
+  console.log(`Bumping all packages and tools to version ${NEW_VERSION}\n`);
 
   // Bump root package.json first
   const rootPackageJsonPath = join(ROOT_DIR, "package.json");
@@ -73,7 +73,7 @@ async function main() {
     }
   }
 
-  console.log("\nDone! All packages updated.");
+  console.log("\nDone! All packages and tools updated.");
 }
 
 main().catch(console.error);

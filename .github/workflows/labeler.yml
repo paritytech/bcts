@@ -4,6 +4,7 @@ on:
 
 jobs:
   labeler:
+    name: Add Labels
     permissions:
       contents: read
       pull-requests: write
