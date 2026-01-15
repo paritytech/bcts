@@ -327,4 +327,11 @@ export class ARID implements CborTaggedEncodable, CborTaggedDecodable<ARID>, URE
     const ur = UR.fromURString(urString);
     return ARID.fromUR(ur);
   }
+
+  /**
+   * Alias for fromURString for Rust API compatibility.
+   */
+  static fromUrString(urString: string): ARID {
+    return ARID.fromURString(urString);
+  }
 }

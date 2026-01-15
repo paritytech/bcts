@@ -8,10 +8,11 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   target: "es2022",
-  globalName: "bctsKnownValues",
+  globalName: "bctsLifehash",
   outputOptions: {
     globals: {
       "@bcts/components": "bctsComponents",
+      "@bcts/crypto": "bctsCrypto",
       "@bcts/dcbor": "bctsDcbor",
     },
   },

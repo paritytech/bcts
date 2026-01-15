@@ -1,0 +1,126 @@
+{
+  "name": "@bcts/hubert",
+  "version": "1.0.0-alpha.1",
+  "type": "module",
+  "description": "Hubert - Distributed infrastructure for secure multiparty transactions using Gordian Envelope",
+  "license": "BSD-2-Clause-Patent",
+  "contributors": [
+    {
+      "name": "Leonardo Custodio",
+      "email": "leonardo.custodio@parity.io",
+      "url": "https://github.com/leonardocustodio"
+    },
+    {
+      "name": "Karim Jedda",
+      "email": "karim@parity.io",
+      "url": "https://github.com/KarimJedda"
+    }
+  ],
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonardocustodio/bcts",
+    "directory": "packages/hubert"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/bcts/issues"
+  },
+  "bin": {
+    "hubert": "./dist/bin/hubert.mjs"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "browser": "dist/index.iife.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./ipfs": {
+      "types": "./dist/ipfs/index.d.mts",
+      "import": "./dist/ipfs/index.mjs",
+      "require": "./dist/ipfs/index.cjs"
+    },
+    "./mainline": {
+      "types": "./dist/mainline/index.d.mts",
+      "import": "./dist/mainline/index.mjs",
+      "require": "./dist/mainline/index.cjs"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.mts",
+      "import": "./dist/server/index.mjs",
+      "require": "./dist/server/index.cjs"
+    },
+    "./hybrid": {
+      "types": "./dist/hybrid/index.d.mts",
+      "import": "./dist/hybrid/index.mjs",
+      "require": "./dist/hybrid/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "hubert",
+    "blockchain-commons",
+    "gordian-envelope",
+    "distributed-storage",
+    "dht",
+    "mainline",
+    "ipfs",
+    "frost",
+    "threshold-signatures",
+    "multiparty",
+    "arid",
+    "key-value-store"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@bcts/components": "workspace:*",
+    "@bcts/crypto": "workspace:*",
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/envelope": "workspace:*",
+    "@bcts/known-values": "workspace:*",
+    "@bcts/rand": "workspace:*",
+    "@noble/ciphers": "^1.2.1",
+    "@noble/curves": "^1.8.2",
+    "better-sqlite3": "^11.10.0",
+    "bittorrent-dht": "^11.0.7",
+    "commander": "^13.1.0",
+    "fastify": "^5.2.2",
+    "kubo-rpc-client": "^5.0.2"
+  },
+  "devDependencies": {
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@eslint/js": "^9.39.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.0.6",
+    "eslint": "^9.39.2",
+    "globals": "^17.0.0",
+    "prettier": "^3.7.4",
+    "ts-node": "^10.9.2",
+    "tsdown": "^0.18.4",
+    "typedoc": "^0.28.15",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
