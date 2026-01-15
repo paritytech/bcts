@@ -71,11 +71,13 @@ export class ServerParseError extends ServerError {
  */
 export class SqliteError extends ServerError {
   /** The underlying error */
-  readonly cause?: Error;
+  override readonly cause?: Error;
 
   constructor(message: string, cause?: Error) {
     super(`SQLite error: ${message}`);
     this.name = "SqliteError";
-    this.cause = cause;
+    if (cause !== undefined) {
+      this.cause = cause;
+    }
   }
 }

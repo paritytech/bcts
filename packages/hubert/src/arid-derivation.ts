@@ -33,7 +33,7 @@ import { chacha20 } from "@noble/ciphers/chacha";
  * ```
  */
 export function deriveKey(salt: Uint8Array, arid: ARID, outputLen: number): Uint8Array {
-  const aridBytes = arid.data;
+  const aridBytes = arid.data();
   // Note: @bcts/crypto hkdfHmacSha256 takes (keyMaterial, salt, keyLen)
   // Rust bc-crypto takes (salt, ikm, keyLen)
   return hkdfHmacSha256(aridBytes, salt, outputLen);

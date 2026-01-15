@@ -20,13 +20,13 @@ import {
  * Known value for dereferenceVia predicate.
  * @internal
  */
-const DEREFERENCE_VIA = KnownValue.fromValue(8);
+const DEREFERENCE_VIA = new KnownValue(8);
 
 /**
  * Known value for id predicate.
  * @internal
  */
-const ID = KnownValue.fromValue(2);
+const ID = new KnownValue(2);
 
 /**
  * Creates a reference envelope that points to content stored in IPFS.
@@ -79,7 +79,7 @@ export function isReferenceEnvelope(envelope: Envelope): boolean {
     return false;
   }
 
-  const assertions = envelope.assertions;
+  const assertions = envelope.assertions();
 
   // Check for dereferenceVia: "ipfs" assertion
   let hasDereferenceVia = false;
@@ -87,17 +87,17 @@ export function isReferenceEnvelope(envelope: Envelope): boolean {
 
   for (const assertion of assertions) {
     try {
-      const predicate = assertion.predicate;
+      const predicate = assertion.predicate();
 
       // Check if predicate is a known value
-      const predicateSubject = predicate.subject;
+      const predicateSubject = predicate.subject();
       if (predicateSubject instanceof KnownValue) {
         const kv = predicateSubject;
 
         // Check for dereferenceVia
         if (kv.value === DEREFERENCE_VIA.value) {
-          const object = assertion.object;
-          const objectSubject = object?.subject;
+          const object = assertion.object();
+          const objectSubject = object.subject();
           if (typeof objectSubject === "string" && objectSubject === "ipfs") {
             hasDereferenceVia = true;
           }
@@ -135,21 +135,21 @@ export function extractReferenceArid(envelope: Envelope): ARID {
     throw new NotReferenceEnvelopeError();
   }
 
-  const assertions = envelope.assertions;
+  const assertions = envelope.assertions();
 
   // Find the id assertion and extract the ARID
   for (const assertion of assertions) {
     try {
-      const predicate = assertion.predicate;
-      const predicateSubject = predicate.subject;
+      const predicate = assertion.predicate();
+      const predicateSubject = predicate.subject();
 
       if (predicateSubject instanceof KnownValue) {
         const kv = predicateSubject;
 
         // Check for id
         if (kv.value === ID.value) {
-          const object = assertion.object;
-          const objectSubject = object?.subject;
+          const object = assertion.object();
+          const objectSubject = object.subject();
 
           if (objectSubject instanceof ARID) {
             return objectSubject;

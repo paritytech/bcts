@@ -7,7 +7,7 @@
  */
 
 import { type ARID } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
+import { type Envelope, EnvelopeDecoder } from "@bcts/envelope";
 import { create, type KuboRPCClient } from "kubo-rpc-client";
 
 import { AlreadyExistsError } from "../error.js";
@@ -218,10 +218,11 @@ export class IpfsKv implements KvStore {
 
     try {
       // Publish to IPNS
-      await this.client.name.publish(`/ipfs/${cid}`, {
-        key: keyName,
-        lifetime,
-      });
+      const publishOptions: { key: string; lifetime?: string } = { key: keyName };
+      if (lifetime !== undefined) {
+        publishOptions.lifetime = lifetime;
+      }
+      await this.client.name.publish(`/ipfs/${cid}`, publishOptions);
     } catch (error) {
       throw new IpfsDaemonError(error instanceof Error ? error.message : String(error));
     }
@@ -299,7 +300,7 @@ export class IpfsKv implements KvStore {
     }
 
     // Serialize envelope
-    const bytes = envelope.cborData;
+    const bytes = envelope.taggedCborData();
 
     if (verbose) {
       verbosePrintln(`Envelope size: ${bytes.length} bytes`);
@@ -423,7 +424,7 @@ export class IpfsKv implements KvStore {
       }
 
       // Deserialize envelope from deobfuscated data
-      const envelope = Envelope.fromCborData(deobfuscated);
+      const envelope = EnvelopeDecoder.tryFromCborData(deobfuscated);
 
       if (verbose) {
         verbosePrintln("IPFS get operation completed");

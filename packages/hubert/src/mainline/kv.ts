@@ -8,7 +8,8 @@
 
 import crypto from "node:crypto";
 import { type ARID } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
+import { type Envelope, EnvelopeDecoder } from "@bcts/envelope";
+// @ts-expect-error - bittorrent-dht has no type declarations
 import DHT from "bittorrent-dht";
 import { ed25519 } from "@noble/curves/ed25519";
 
@@ -66,7 +67,7 @@ export class MainlineDhtKv implements KvStore {
   private readonly dht: DHT;
   private maxValueSize: number;
   private salt: Uint8Array | undefined;
-  private bootstrapped: boolean;
+  private _isBootstrapped: boolean;
 
   /**
    * Private constructor - use `create()` factory method.
@@ -75,7 +76,14 @@ export class MainlineDhtKv implements KvStore {
     this.dht = dht;
     this.maxValueSize = 1000; // DHT protocol limit
     this.salt = undefined;
-    this.bootstrapped = false;
+    this._isBootstrapped = false;
+  }
+
+  /**
+   * Check if the DHT is bootstrapped.
+   */
+  get isBootstrapped(): boolean {
+    return this._isBootstrapped;
   }
 
   /**
@@ -96,7 +104,7 @@ export class MainlineDhtKv implements KvStore {
 
       dht.on("ready", () => {
         clearTimeout(timeout);
-        instance.bootstrapped = true;
+        instance._isBootstrapped = true;
         resolve();
       });
 
@@ -253,7 +261,7 @@ export class MainlineDhtKv implements KvStore {
     }
 
     // Serialize envelope
-    const bytes = envelope.cborData;
+    const bytes = envelope.taggedCborData();
 
     if (verbose) {
       verbosePrintln(`Envelope size: ${bytes.length} bytes`);
@@ -348,7 +356,7 @@ export class MainlineDhtKv implements KvStore {
         }
 
         // Deserialize envelope from deobfuscated data
-        const envelope = Envelope.fromCborData(deobfuscated);
+        const envelope = EnvelopeDecoder.tryFromCborData(deobfuscated);
 
         if (verbose) {
           verbosePrintln("Mainline DHT get operation completed");

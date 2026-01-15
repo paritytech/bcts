@@ -101,9 +101,13 @@ export class MemoryKv implements KvStore {
     }
 
     const expiresAt = ttlSeconds !== undefined ? Date.now() + ttlSeconds * 1000 : undefined;
-    const envelopeCbor = envelope.cborData;
+    const envelopeCbor = envelope.taggedCborData();
 
-    this.storage.set(key, { envelopeCbor, expiresAt });
+    const entry: StorageEntry = { envelopeCbor };
+    if (expiresAt !== undefined) {
+      entry.expiresAt = expiresAt;
+    }
+    this.storage.set(key, entry);
 
     if (verbose) {
       const ttlMsg = ttlSeconds !== undefined ? ` (TTL ${ttlSeconds}s)` : "";
@@ -125,7 +129,7 @@ export class MemoryKv implements KvStore {
     const key = arid.urString();
 
     // Dynamic import to avoid circular dependencies
-    const { Envelope } = await import("@bcts/envelope");
+    const { EnvelopeDecoder } = await import("@bcts/envelope");
 
     while (true) {
       const entry = this.storage.get(key);
@@ -143,7 +147,7 @@ export class MemoryKv implements KvStore {
 
         // Parse CBOR bytes back to Envelope
         try {
-          const envelope = Envelope.fromCborData(entry.envelopeCbor);
+          const envelope = EnvelopeDecoder.tryFromCborData(entry.envelopeCbor);
           if (verbose) {
             verbosePrintln(`GET ${key} OK (Memory)`);
           }

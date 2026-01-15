@@ -17,11 +17,14 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { ARID } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
 import { testBasicRoundtrip, testWriteOnce, testNonexistentArid } from "./common/kv-tests.js";
+import type { IpfsKv } from "../src/ipfs/index.js";
+import type { MainlineDhtKv } from "../src/mainline/index.js";
+import type { HybridKv } from "../src/hybrid/index.js";
 
 // Check environment variables to enable tests
-const ENABLE_IPFS_TESTS = process.env.HUBERT_TEST_IPFS === "1";
-const ENABLE_MAINLINE_TESTS = process.env.HUBERT_TEST_MAINLINE === "1";
-const ENABLE_HYBRID_TESTS = process.env.HUBERT_TEST_HYBRID === "1";
+const ENABLE_IPFS_TESTS = process.env["HUBERT_TEST_IPFS"] === "1";
+const ENABLE_MAINLINE_TESTS = process.env["HUBERT_TEST_MAINLINE"] === "1";
+const ENABLE_HYBRID_TESTS = process.env["HUBERT_TEST_HYBRID"] === "1";
 
 // Helper to conditionally run tests
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
@@ -63,16 +66,15 @@ describeIf(ENABLE_IPFS_TESTS)("IPFS KvStore Integration", () => {
 });
 
 describeIf(ENABLE_MAINLINE_TESTS)("Mainline DHT KvStore Integration", () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  let MainlineDhtKv: typeof import("../src/mainline/index.js").MainlineDhtKv;
-  let store: InstanceType<typeof MainlineDhtKv>;
+  let MainlineDhtKvClass: typeof import("../src/mainline/index.js").MainlineDhtKv;
+  let store: MainlineDhtKv;
 
   beforeAll(async () => {
     const mainlineModule = await import("../src/mainline/index.js");
-    MainlineDhtKv = mainlineModule.MainlineDhtKv;
+    MainlineDhtKvClass = mainlineModule.MainlineDhtKv;
 
     // Create DHT store - this connects to the real Mainline network
-    store = await MainlineDhtKv.create();
+    store = await MainlineDhtKvClass.create();
   }, 120000);
 
   afterAll(async () => {
@@ -108,8 +110,8 @@ describeIf(ENABLE_MAINLINE_TESTS)("Mainline DHT KvStore Integration", () => {
     const envelope = Envelope.new("Test with salt");
 
     // Create two stores with different salts
-    const store1 = await MainlineDhtKv.create();
-    const store2 = (await MainlineDhtKv.create()).withSalt(new Uint8Array([1, 2, 3, 4, 5]));
+    const store1 = await MainlineDhtKvClass.create();
+    const store2 = (await MainlineDhtKvClass.create()).withSalt(new Uint8Array([1, 2, 3, 4, 5]));
 
     // Store in first store
     await store1.put(arid, envelope);
@@ -125,16 +127,15 @@ describeIf(ENABLE_MAINLINE_TESTS)("Mainline DHT KvStore Integration", () => {
 });
 
 describeIf(ENABLE_HYBRID_TESTS)("Hybrid KvStore Integration", () => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  let HybridKv: typeof import("../src/hybrid/index.js").HybridKv;
-  let store: InstanceType<typeof HybridKv>;
+  let HybridKvClass: typeof import("../src/hybrid/index.js").HybridKv;
+  let store: HybridKv;
 
   beforeAll(async () => {
     const hybridModule = await import("../src/hybrid/index.js");
-    HybridKv = hybridModule.HybridKv;
+    HybridKvClass = hybridModule.HybridKv;
 
     // Create hybrid store
-    store = await HybridKv.create("http://127.0.0.1:5001");
+    store = await HybridKvClass.create("http://127.0.0.1:5001");
   }, 120000);
 
   afterAll(async () => {
@@ -156,7 +157,7 @@ describeIf(ENABLE_HYBRID_TESTS)("Hybrid KvStore Integration", () => {
     const result = await store.get(arid, 60);
     expect(result).not.toBeNull();
     if (result) {
-      expect(result.extractSubject()).toBe("Small");
+      expect(result.extractString()).toBe("Small");
     }
   }, 120000);
 
@@ -174,8 +175,8 @@ describeIf(ENABLE_HYBRID_TESTS)("Hybrid KvStore Integration", () => {
 
     // Should retrieve original large data
     if (result) {
-      const subject = result.extractSubject() as string;
-      expect(subject.length).toBe(2000);
+      const subject = result.extractString();
+      expect(subject?.length).toBe(2000);
     }
   }, 180000);
 

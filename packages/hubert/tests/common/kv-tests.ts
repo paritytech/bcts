@@ -7,7 +7,7 @@
  */
 
 import { expect } from "vitest";
-import type { ARID, SecureRandomNumberGenerator } from "@bcts/components";
+import type { ARID } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
 import type { KvStore } from "../../src/kv-store.js";
 
@@ -15,14 +15,10 @@ import type { KvStore } from "../../src/kv-store.js";
  * Create a new ARID for testing.
  *
  * @param ARIDClass - ARID class with new() method
- * @param rng - Random number generator
  * @returns New ARID instance
  */
-export function createTestArid(
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
-  rng?: SecureRandomNumberGenerator,
-): ARID {
-  return ARIDClass.new(rng);
+export function createTestArid(ARIDClass: { new: () => ARID }): ARID {
+  return ARIDClass.new();
 }
 
 /**
@@ -46,7 +42,7 @@ export function createTestEnvelope(subject: string): Envelope {
  */
 export async function testBasicRoundtrip(
   store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
+  ARIDClass: { new: () => ARID },
 ): Promise<void> {
   const arid = createTestArid(ARIDClass);
   const envelope = createTestEnvelope("Test");
@@ -64,7 +60,7 @@ export async function testBasicRoundtrip(
   const retrieved = await store.get(arid, 30);
   expect(retrieved).not.toBeNull();
   if (retrieved) {
-    expect(retrieved.toCBOR()).toEqual(envelope.toCBOR());
+    expect(retrieved.toCbor()).toEqual(envelope.toCbor());
   }
 }
 
@@ -73,10 +69,7 @@ export async function testBasicRoundtrip(
  *
  * Verifies that putting to the same ARID twice fails.
  */
-export async function testWriteOnce(
-  store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
-): Promise<void> {
+export async function testWriteOnce(store: KvStore, ARIDClass: { new: () => ARID }): Promise<void> {
   const arid = createTestArid(ARIDClass);
 
   // First put should succeed
@@ -95,7 +88,7 @@ export async function testWriteOnce(
  */
 export async function testNonexistentArid(
   store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
+  ARIDClass: { new: () => ARID },
 ): Promise<void> {
   const arid = createTestArid(ARIDClass);
 
@@ -110,7 +103,7 @@ export async function testNonexistentArid(
  */
 export async function testMultipleArids(
   store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
+  ARIDClass: { new: () => ARID },
 ): Promise<void> {
   const arids = Array.from({ length: 5 }, () => createTestArid(ARIDClass));
 
@@ -126,7 +119,7 @@ export async function testMultipleArids(
 
     // Extract subject and verify
     if (retrieved) {
-      const subject = retrieved.extractSubject();
+      const subject = retrieved.extractString();
       expect(subject).toBe(`Msg ${i}`);
     }
   }
@@ -139,7 +132,7 @@ export async function testMultipleArids(
  */
 export async function testSizeLimit(
   store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
+  ARIDClass: { new: () => ARID },
   maxSize: number,
 ): Promise<void> {
   const arid = createTestArid(ARIDClass);
@@ -156,7 +149,7 @@ export async function testSizeLimit(
  */
 export async function testConcurrentOperations(
   store: KvStore,
-  ARIDClass: { new: (rng?: SecureRandomNumberGenerator) => ARID },
+  ARIDClass: { new: () => ARID },
 ): Promise<void> {
   const testData = [
     { subject: "Alice's data", body: "Secret from Alice" },
@@ -184,7 +177,7 @@ export async function testConcurrentOperations(
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
     if (result) {
-      const subject = result.extractSubject();
+      const subject = result.extractString();
       expect(subject).toBe(testData[i].subject);
     }
   }

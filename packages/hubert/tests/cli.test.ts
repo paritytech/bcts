@@ -155,7 +155,6 @@ describe("CLI Server Operations", () => {
 
   beforeAll(async () => {
     const config: ServerConfig = {
-      host: "127.0.0.1",
       port,
       maxTtl: 86400,
       verbose: false,

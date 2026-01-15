@@ -13,8 +13,9 @@
 import { Command } from "commander";
 import path from "path";
 
-import { ARID, randomData, ByteString } from "@bcts/components";
+import { ARID } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
+import { randomData } from "@bcts/rand";
 
 import {
   verbosePrintln,
@@ -70,8 +71,8 @@ function parseEnvelope(s: string): Envelope {
  */
 function generateRandomEnvelope(size: number): Envelope {
   const randomBytes = randomData(size);
-  const byteString = ByteString.fromData(randomBytes);
-  return Envelope.new(byteString);
+  // Pass raw Uint8Array directly - Envelope.new accepts it as EnvelopeEncodableValue
+  return Envelope.new(randomBytes);
 }
 
 // =============================================================================
@@ -401,7 +402,7 @@ program
         pin: boolean;
       },
     ) => {
-      const verbose = program.opts().verbose as boolean;
+      const verbose = program.opts()["verbose"] as boolean;
       const storage = options.storage;
       const port = options.port ? parseInt(options.port, 10) : undefined;
       const ttl = options.ttl ? parseInt(options.ttl, 10) : undefined;
@@ -493,7 +494,7 @@ program
         timeout: string;
       },
     ) => {
-      const verbose = program.opts().verbose as boolean;
+      const verbose = program.opts()["verbose"] as boolean;
       const storage = options.storage;
       const port = options.port ? parseInt(options.port, 10) : undefined;
       const timeout = parseInt(options.timeout, 10);
@@ -618,7 +619,7 @@ program
   .option("--port <port>", "Port for the server to listen on", "45678")
   .option("--sqlite <path>", "SQLite database file path for persistent storage")
   .action(async (options: { port: string; sqlite?: string }) => {
-    const verbose = program.opts().verbose as boolean;
+    const verbose = program.opts()["verbose"] as boolean;
     const port = parseInt(options.port, 10);
 
     try {

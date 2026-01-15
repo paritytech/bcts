@@ -99,7 +99,7 @@ describe("Server Module", () => {
       const retrieved = await client.get(arid, 30);
       expect(retrieved).not.toBeNull();
       if (retrieved) {
-        expect(retrieved.toCBOR()).toEqual(envelope.toCBOR());
+        expect(retrieved.toCbor()).toEqual(envelope.toCbor());
       }
     });
 
@@ -144,7 +144,6 @@ describe("Server Module", () => {
       // Create server with short max_ttl
       const shortTtlPort = getTestPort();
       const shortTtlConfig: ServerConfig = {
-        host: "127.0.0.1",
         port: shortTtlPort,
         maxTtl: 2, // 2 seconds max
         verbose: false,

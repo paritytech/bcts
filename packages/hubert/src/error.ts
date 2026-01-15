@@ -77,11 +77,13 @@ export class InvalidAridError extends HubertError {
  */
 export class IoError extends HubertError {
   /** The underlying error */
-  readonly cause?: Error;
+  override readonly cause?: Error;
 
   constructor(message: string, cause?: Error) {
     super(`IO error: ${message}`);
     this.name = "IoError";
-    this.cause = cause;
+    if (cause !== undefined) {
+      this.cause = cause;
+    }
   }
 }
