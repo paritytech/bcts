@@ -17,9 +17,13 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { ARID } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
 import { testBasicRoundtrip, testWriteOnce, testNonexistentArid } from "./common/kv-tests.js";
-import type { IpfsKv } from "../src/ipfs/index.js";
-import type { MainlineDhtKv } from "../src/mainline/index.js";
-import type { HybridKv } from "../src/hybrid/index.js";
+import type * as IpfsModule from "../src/ipfs/index.js";
+import type * as MainlineModule from "../src/mainline/index.js";
+import type * as HybridModule from "../src/hybrid/index.js";
+
+type IpfsKv = IpfsModule.IpfsKv;
+type MainlineDhtKv = MainlineModule.MainlineDhtKv;
+type HybridKv = HybridModule.HybridKv;
 
 // Check environment variables to enable tests
 const ENABLE_IPFS_TESTS = process.env["HUBERT_TEST_IPFS"] === "1";
@@ -31,14 +35,13 @@ const describeIf = (condition: boolean) => (condition ? describe : describe.skip
 
 describeIf(ENABLE_IPFS_TESTS)("IPFS KvStore Integration", () => {
   // Dynamic import to avoid errors when module is not available
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
-  let IpfsKv: typeof import("../src/ipfs/index.js").IpfsKv;
-  let store: InstanceType<typeof IpfsKv>;
+  let IpfsKvClass: typeof IpfsModule.IpfsKv;
+  let store: IpfsKv;
 
   beforeAll(async () => {
     const ipfsModule = await import("../src/ipfs/index.js");
-    IpfsKv = ipfsModule.IpfsKv;
-    store = new IpfsKv("http://127.0.0.1:5001");
+    IpfsKvClass = ipfsModule.IpfsKv;
+    store = new IpfsKvClass("http://127.0.0.1:5001");
   });
 
   it("should pass basic roundtrip test", async () => {
@@ -55,7 +58,7 @@ describeIf(ENABLE_IPFS_TESTS)("IPFS KvStore Integration", () => {
 
   it("should enforce size limits", async () => {
     const arid = ARID.new();
-    const largeStore = new IpfsKv("http://127.0.0.1:5001").withMaxSize(100);
+    const largeStore = new IpfsKvClass("http://127.0.0.1:5001").withMaxSize(100);
 
     // Create envelope larger than max size
     const largeData = "x".repeat(200);
@@ -66,7 +69,7 @@ describeIf(ENABLE_IPFS_TESTS)("IPFS KvStore Integration", () => {
 });
 
 describeIf(ENABLE_MAINLINE_TESTS)("Mainline DHT KvStore Integration", () => {
-  let MainlineDhtKvClass: typeof import("../src/mainline/index.js").MainlineDhtKv;
+  let MainlineDhtKvClass: typeof MainlineModule.MainlineDhtKv;
   let store: MainlineDhtKv;
 
   beforeAll(async () => {
@@ -127,7 +130,7 @@ describeIf(ENABLE_MAINLINE_TESTS)("Mainline DHT KvStore Integration", () => {
 });
 
 describeIf(ENABLE_HYBRID_TESTS)("Hybrid KvStore Integration", () => {
-  let HybridKvClass: typeof import("../src/hybrid/index.js").HybridKv;
+  let HybridKvClass: typeof HybridModule.HybridKv;
   let store: HybridKv;
 
   beforeAll(async () => {
