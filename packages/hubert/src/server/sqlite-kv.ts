@@ -32,7 +32,7 @@ import { SqliteError } from "./error.js";
  * ```typescript
  * const store = new SqliteKv("./hubert.db");
  * const arid = ARID.new();
- * const envelope = Envelope.wrap("Hello, SQLite!");
+ * const envelope = Envelope.new("Hello, SQLite!");
  *
  * await store.put(arid, envelope, 3600); // 1 hour TTL
  * const result = await store.get(arid);
@@ -42,8 +42,8 @@ import { SqliteError } from "./error.js";
  * ```
  */
 export class SqliteKv implements KvStore {
-  private db: Database.Database;
-  private dbPath: string;
+  private readonly db: Database.Database;
+  private readonly dbPath: string;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   /**
@@ -94,37 +94,34 @@ export class SqliteKv implements KvStore {
    * @internal
    */
   private startCleanupTask(): void {
-    this.cleanupInterval = setInterval(
-      () => {
-        const now = Math.floor(Date.now() / 1000);
+    this.cleanupInterval = setInterval(() => {
+      const now = Math.floor(Date.now() / 1000);
 
-        try {
-          // First collect the ARIDs that will be deleted
-          const selectStmt = this.db.prepare(
-            "SELECT arid FROM hubert_store WHERE expires_at IS NOT NULL AND expires_at <= ?",
+      try {
+        // First collect the ARIDs that will be deleted
+        const selectStmt = this.db.prepare(
+          "SELECT arid FROM hubert_store WHERE expires_at IS NOT NULL AND expires_at <= ?",
+        );
+        const rows = selectStmt.all(now) as { arid: string }[];
+        const arids = rows.map((row) => row.arid);
+
+        if (arids.length > 0) {
+          // Now delete them
+          const deleteStmt = this.db.prepare(
+            "DELETE FROM hubert_store WHERE expires_at IS NOT NULL AND expires_at <= ?",
           );
-          const rows = selectStmt.all(now) as Array<{ arid: string }>;
-          const arids = rows.map((row) => row.arid);
+          deleteStmt.run(now);
 
-          if (arids.length > 0) {
-            // Now delete them
-            const deleteStmt = this.db.prepare(
-              "DELETE FROM hubert_store WHERE expires_at IS NOT NULL AND expires_at <= ?",
-            );
-            deleteStmt.run(now);
-
-            const count = arids.length;
-            const aridList = arids.join(" ");
-            verbosePrintln(
-              `Pruned ${count} expired ${count === 1 ? "entry" : "entries"}: ${aridList}`,
-            );
-          }
-        } catch {
-          // Silently ignore cleanup errors
+          const count = arids.length;
+          const aridList = arids.join(" ");
+          verbosePrintln(
+            `Pruned ${count} expired ${count === 1 ? "entry" : "entries"}: ${aridList}`,
+          );
         }
-      },
-      60 * 1000,
-    ); // Every 60 seconds
+      } catch {
+        // Silently ignore cleanup errors
+      }
+    }, 60 * 1000); // Every 60 seconds
   }
 
   /**
@@ -135,7 +132,7 @@ export class SqliteKv implements KvStore {
    * @internal
    */
   private checkExists(arid: ARID): boolean {
-    const aridStr = arid.urString;
+    const aridStr = arid.urString();
     const now = Math.floor(Date.now() / 1000);
 
     try {
@@ -163,6 +160,7 @@ export class SqliteKv implements KvStore {
    *
    * Port of `KvStore::put()` implementation from server/sqlite_kv.rs lines 175-236.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async put(
     arid: ARID,
     envelope: Envelope,
@@ -172,16 +170,15 @@ export class SqliteKv implements KvStore {
     // Check if already exists
     if (this.checkExists(arid)) {
       if (verbose) {
-        verbosePrintln(`PUT ${arid.urString} ALREADY_EXISTS`);
+        verbosePrintln(`PUT ${arid.urString()} ALREADY_EXISTS`);
       }
-      throw new AlreadyExistsError(arid.urString);
+      throw new AlreadyExistsError(arid.urString());
     }
 
-    const aridStr = arid.urString;
-    const envelopeStr = envelope.urString;
+    const aridStr = arid.urString();
+    const envelopeStr = envelope.urString();
 
-    const expiresAt =
-      ttlSeconds !== undefined ? Math.floor(Date.now() / 1000) + ttlSeconds : null;
+    const expiresAt = ttlSeconds !== undefined ? Math.floor(Date.now() / 1000) + ttlSeconds : null;
 
     try {
       const stmt = this.db.prepare(
@@ -212,12 +209,11 @@ export class SqliteKv implements KvStore {
     const timeout = timeoutSeconds ?? 30;
     const start = Date.now();
     let firstAttempt = true;
-    const aridStr = arid.urString;
+    const aridStr = arid.urString();
 
     // Dynamic import to avoid circular dependencies
     const { Envelope } = await import("@bcts/envelope");
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const now = Math.floor(Date.now() / 1000);
 
@@ -225,7 +221,9 @@ export class SqliteKv implements KvStore {
         const stmt = this.db.prepare(
           "SELECT envelope, expires_at FROM hubert_store WHERE arid = ?",
         );
-        const row = stmt.get(aridStr) as { envelope: string; expires_at: number | null } | undefined;
+        const row = stmt.get(aridStr) as
+          | { envelope: string; expires_at: number | null }
+          | undefined;
 
         if (row) {
           // Check if expired
@@ -279,6 +277,7 @@ export class SqliteKv implements KvStore {
    *
    * Port of `KvStore::exists()` implementation from server/sqlite_kv.rs lines 356-359.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async exists(arid: ARID): Promise<boolean> {
     return this.checkExists(arid);
   }

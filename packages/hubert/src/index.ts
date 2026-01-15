@@ -19,7 +19,7 @@
  * const arid = ARID.new();
  *
  * // Create an envelope
- * const envelope = Envelope.wrap("Hello, Hubert!");
+ * const envelope = Envelope.new("Hello, Hubert!");
  *
  * // Use any KvStore implementation to store/retrieve
  * async function example(store: KvStore) {
@@ -90,15 +90,56 @@ export {
 } from "./server/index.js";
 
 // =============================================================================
-// Re-exports from submodules (for convenience)
-// These will be populated as submodules are implemented
+// IPFS Module
 // =============================================================================
 
-// IPFS module exports (will be added in Phase 3)
-// export { IpfsKv } from "./ipfs/index.js";
+export {
+  // Error types
+  IpfsError,
+  EnvelopeTooLargeError,
+  IpfsDaemonError,
+  IpfsTimeoutError,
+  UnexpectedIpnsPathFormatError,
+  // IPFS value helpers
+  addBytes,
+  catBytes,
+  pinCid,
+  // IPFS KvStore implementation
+  IpfsKv,
+} from "./ipfs/index.js";
 
-// Mainline module exports (will be added in Phase 4)
-// export { MainlineDhtKv } from "./mainline/index.js";
+// =============================================================================
+// Mainline Module
+// =============================================================================
 
-// Hybrid module exports (will be added in Phase 5)
-// export { HybridKv } from "./hybrid/index.js";
+export {
+  // Error types
+  MainlineError,
+  ValueTooLargeError,
+  DhtError,
+  PutQueryError,
+  DecodeIdError,
+  PutMutableError,
+  MainlineIoError,
+  // Mainline DHT KvStore implementation
+  MainlineDhtKv,
+} from "./mainline/index.js";
+
+// =============================================================================
+// Hybrid Module
+// =============================================================================
+
+export {
+  // Error types
+  HybridError,
+  ContentNotFoundError,
+  NotReferenceEnvelopeError,
+  InvalidReferenceAridError,
+  NoIdAssertionError,
+  // Reference envelope utilities
+  createReferenceEnvelope,
+  isReferenceEnvelope,
+  extractReferenceArid,
+  // Hybrid KvStore implementation
+  HybridKv,
+} from "./hybrid/index.js";

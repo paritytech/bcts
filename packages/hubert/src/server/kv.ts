@@ -11,11 +11,7 @@ import { Envelope } from "@bcts/envelope";
 
 import { AlreadyExistsError } from "../error.js";
 import { type KvStore } from "../kv-store.js";
-import {
-  verboseNewline,
-  verbosePrintDot,
-  verbosePrintln,
-} from "../logging.js";
+import { verboseNewline, verbosePrintDot, verbosePrintln } from "../logging.js";
 import { ServerGeneralError, ServerNetworkError, ServerParseError } from "./error.js";
 
 /**
@@ -31,7 +27,7 @@ import { ServerGeneralError, ServerNetworkError, ServerParseError } from "./erro
  * ```typescript
  * const store = new ServerKvClient("http://127.0.0.1:45678");
  * const arid = ARID.new();
- * const envelope = Envelope.wrap("Hello, Server!");
+ * const envelope = Envelope.new("Hello, Server!");
  *
  * // Put envelope (write-once)
  * await store.put(arid, envelope);
@@ -41,7 +37,7 @@ import { ServerGeneralError, ServerNetworkError, ServerParseError } from "./erro
  * ```
  */
 export class ServerKvClient implements KvStore {
-  private baseUrl: string;
+  private readonly baseUrl: string;
 
   /**
    * Create a new server KV store client.
@@ -72,9 +68,9 @@ export class ServerKvClient implements KvStore {
     // Format body with optional TTL on third line
     let body: string;
     if (ttlSeconds !== undefined) {
-      body = `${arid.urString}\n${envelope.urString}\n${ttlSeconds}`;
+      body = `${arid.urString()}\n${envelope.urString()}\n${ttlSeconds}`;
     } else {
-      body = `${arid.urString}\n${envelope.urString}`;
+      body = `${arid.urString()}\n${envelope.urString()}`;
     }
 
     if (verbose) {
@@ -99,7 +95,7 @@ export class ServerKvClient implements KvStore {
         if (verbose) {
           verbosePrintln("Server put operation failed");
         }
-        throw new AlreadyExistsError(arid.urString);
+        throw new AlreadyExistsError(arid.urString());
       } else {
         if (verbose) {
           verbosePrintln("Server put operation failed");
@@ -136,9 +132,8 @@ export class ServerKvClient implements KvStore {
       verbosePrintln("Polling server for value");
     }
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
-      const body = arid.urString;
+      const body = arid.urString();
 
       try {
         const response = await fetch(`${this.baseUrl}/get`, {

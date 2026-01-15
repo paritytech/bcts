@@ -4,11 +4,10 @@ export default defineConfig({
   entry: [
     "src/index.ts",
     "src/server/index.ts",
-    // Submodules - will be added as they are implemented:
-    // "src/ipfs/index.ts",
-    // "src/mainline/index.ts",
-    // "src/hybrid/index.ts",
-    // "src/bin/hubert.ts",
+    "src/ipfs/index.ts",
+    "src/mainline/index.ts",
+    "src/hybrid/index.ts",
+    "src/bin/hubert.ts",
   ],
   outDir: "dist",
   format: ["cjs", "esm"],

@@ -38,14 +38,14 @@ interface StorageEntry {
  * ```typescript
  * const store = new MemoryKv();
  * const arid = ARID.new();
- * const envelope = Envelope.wrap("Hello, Memory!");
+ * const envelope = Envelope.new("Hello, Memory!");
  *
  * await store.put(arid, envelope, 3600); // 1 hour TTL
  * const result = await store.get(arid);
  * ```
  */
 export class MemoryKv implements KvStore {
-  private storage: Map<string, StorageEntry>;
+  private readonly storage: Map<string, StorageEntry>;
 
   /**
    * Create a new in-memory key-value store.
@@ -64,7 +64,7 @@ export class MemoryKv implements KvStore {
    * @internal
    */
   private checkExists(arid: ARID): boolean {
-    const key = arid.urString;
+    const key = arid.urString();
     const entry = this.storage.get(key);
 
     if (entry) {
@@ -83,13 +83,14 @@ export class MemoryKv implements KvStore {
    *
    * Port of `KvStore::put()` implementation from server/memory_kv.rs lines 62-102.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async put(
     arid: ARID,
     envelope: Envelope,
     ttlSeconds?: number,
     verbose?: boolean,
   ): Promise<string> {
-    const key = arid.urString;
+    const key = arid.urString();
 
     // Check if already exists
     if (this.storage.has(key)) {
@@ -121,12 +122,11 @@ export class MemoryKv implements KvStore {
     const timeout = timeoutSeconds ?? 30;
     const start = Date.now();
     let firstAttempt = true;
-    const key = arid.urString;
+    const key = arid.urString();
 
     // Dynamic import to avoid circular dependencies
     const { Envelope } = await import("@bcts/envelope");
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const entry = this.storage.get(key);
 
@@ -180,6 +180,7 @@ export class MemoryKv implements KvStore {
    *
    * Port of `KvStore::exists()` implementation from server/memory_kv.rs lines 183-186.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   async exists(arid: ARID): Promise<boolean> {
     return this.checkExists(arid);
   }

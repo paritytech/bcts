@@ -62,7 +62,7 @@ export interface KvStore {
    * @example
    * ```typescript
    * const arid = ARID.new();
-   * const envelope = Envelope.wrap("Hello, Hubert!");
+   * const envelope = Envelope.new("Hello, Hubert!");
    *
    * // Store without TTL
    * const receipt = await store.put(arid, envelope);

@@ -53,7 +53,7 @@ interface KeyInfo {
  * ```typescript
  * const store = new IpfsKv("http://127.0.0.1:5001");
  * const arid = ARID.new();
- * const envelope = Envelope.wrap("Hello, IPFS!");
+ * const envelope = Envelope.new("Hello, IPFS!");
  *
  * // Put envelope (write-once)
  * await store.put(arid, envelope);
@@ -63,8 +63,8 @@ interface KeyInfo {
  * ```
  */
 export class IpfsKv implements KvStore {
-  private client: KuboRPCClient;
-  private keyCache: Map<string, KeyInfo>;
+  private readonly client: KuboRPCClient;
+  private readonly keyCache: Map<string, KeyInfo>;
   private maxEnvelopeSize: number;
   private resolveTimeoutMs: number;
   private pinContent: boolean;
@@ -163,7 +163,7 @@ export class IpfsKv implements KvStore {
   private async isPublished(peerId: string): Promise<boolean> {
     try {
       // Try to resolve the name
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       for await (const _path of this.client.name.resolve(peerId, { recursive: false })) {
         return true;
       }
@@ -198,7 +198,7 @@ export class IpfsKv implements KvStore {
   ): Promise<void> {
     // Check if already published
     if (await this.isPublished(peerId)) {
-      throw new AlreadyExistsError(arid.urString);
+      throw new AlreadyExistsError(arid.urString());
     }
 
     // Convert TTL seconds to lifetime string for IPNS
@@ -243,7 +243,6 @@ export class IpfsKv implements KvStore {
     // Changed to 1000ms for verbose mode polling
     const pollInterval = 1000;
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       try {
         for await (const path of this.client.name.resolve(peerId, { recursive: false })) {

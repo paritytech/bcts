@@ -14,7 +14,7 @@ import { Envelope } from "@bcts/envelope";
 import { verbosePrintln } from "../logging.js";
 import { MemoryKv } from "./memory-kv.js";
 import { type ServerKv, getSync, putSync } from "./server-kv.js";
-import { SqliteKv } from "./sqlite-kv.js";
+import { type SqliteKv } from "./sqlite-kv.js";
 
 /**
  * Package version for health endpoint.
@@ -97,13 +97,13 @@ class ServerState {
 
       if (this.config.verbose) {
         const ipStr = clientIp ? `${clientIp}: ` : "";
-        verbosePrintln(`${ipStr}PUT ${arid.urString} (TTL ${ttl}s) OK`);
+        verbosePrintln(`${ipStr}PUT ${arid.urString()} (TTL ${ttl}s) OK`);
       }
     } catch (error) {
       if (this.config.verbose) {
         const ipStr = clientIp ? `${clientIp}: ` : "";
         const errorMsg = error instanceof Error ? error.message : String(error);
-        verbosePrintln(`${ipStr}PUT ${arid.urString} (TTL ${ttl}s) ERROR: ${errorMsg}`);
+        verbosePrintln(`${ipStr}PUT ${arid.urString()} (TTL ${ttl}s) ERROR: ${errorMsg}`);
       }
       throw error;
     }
@@ -120,7 +120,7 @@ class ServerState {
     if (this.config.verbose) {
       const ipStr = clientIp ? `${clientIp}: ` : "";
       const status = result ? "OK" : "NOT_FOUND";
-      verbosePrintln(`${ipStr}GET ${arid.urString} ${status}`);
+      verbosePrintln(`${ipStr}GET ${arid.urString()} ${status}`);
     }
 
     return result;
@@ -141,9 +141,9 @@ class ServerState {
  * ```
  */
 export class Server {
-  private config: ServerConfig;
-  private state: ServerState;
-  private fastify: FastifyInstance;
+  private readonly config: ServerConfig;
+  private readonly state: ServerState;
+  private readonly fastify: FastifyInstance;
 
   /**
    * Create a new server with the given configuration and storage backend.
@@ -197,6 +197,7 @@ export class Server {
    *
    * Port of `handle_health()` from server/server.rs lines 179-187.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await
   private async handleHealth(_request: FastifyRequest, reply: FastifyReply): Promise<void> {
     reply.send({
       server: "hubert",
@@ -311,7 +312,7 @@ export class Server {
       const envelope = await this.state.get(arid, clientIp);
 
       if (envelope) {
-        reply.status(200).send(envelope.urString);
+        reply.status(200).send(envelope.urString());
       } else {
         reply.status(404).send("Not found");
       }

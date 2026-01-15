@@ -11,7 +11,7 @@ import { type Envelope } from "@bcts/envelope";
 
 import { type KvStore } from "../kv-store.js";
 import { MemoryKv } from "./memory-kv.js";
-import { SqliteKv } from "./sqlite-kv.js";
+import { type SqliteKv } from "./sqlite-kv.js";
 
 /**
  * Server-side key-value storage backend.
