@@ -456,16 +456,20 @@ program
         switch (storage) {
           case "mainline":
             await putMainline(arid, envelope, verbose);
+            console.log("Stored in Mainline DHT");
             break;
           case "ipfs":
             await putIpfs(arid, envelope, port ?? 5001, options.pin, verbose);
+            console.log("Stored in IPFS");
             break;
           case "hybrid":
             await putHybrid(arid, envelope, port ?? 5001, options.pin, verbose);
+            console.log("Stored in Hybrid storage");
             break;
           case "server": {
             const host = options.host ?? "127.0.0.1";
             await putServer(host, port ?? 45678, arid, envelope, ttl, verbose);
+            console.log("Stored in server");
             break;
           }
         }

@@ -17,8 +17,8 @@ import { Server, type ServerConfig } from "../src/server/index.js";
  */
 async function runCli(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Use bun to run the compiled CLI
-    const child = spawn("bun", ["run", "dist/bin/hubert.js", ...args], {
+    // Use bun to run the CLI source directly (no build required)
+    const child = spawn("bun", ["run", "src/bin/hubert.ts", ...args], {
       cwd: process.cwd(),
     });
 

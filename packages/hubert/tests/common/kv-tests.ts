@@ -60,7 +60,8 @@ export async function testBasicRoundtrip(
   const retrieved = await store.get(arid, 30);
   expect(retrieved).not.toBeNull();
   if (retrieved) {
-    expect(retrieved.toCbor()).toEqual(envelope.toCbor());
+    // Compare using taggedCborData() for byte-level comparison
+    expect(retrieved.taggedCborData()).toEqual(envelope.taggedCborData());
   }
 }
 

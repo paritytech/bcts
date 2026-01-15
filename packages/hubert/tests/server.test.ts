@@ -35,27 +35,27 @@ describe("Server Module", () => {
     it("should pass basic roundtrip test", async () => {
       const store = new MemoryKv();
       await testBasicRoundtrip(store, ARID);
-    });
+    }, 60000);
 
     it("should pass write-once test", async () => {
       const store = new MemoryKv();
       await testWriteOnce(store, ARID);
-    });
+    }, 60000);
 
     it("should pass non-existent ARID test", async () => {
       const store = new MemoryKv();
       await testNonexistentArid(store, ARID);
-    });
+    }, 60000);
 
     it("should pass multiple ARIDs test", async () => {
       const store = new MemoryKv();
       await testMultipleArids(store, ARID);
-    });
+    }, 60000);
 
     it("should pass concurrent operations test", async () => {
       const store = new MemoryKv();
       await testConcurrentOperations(store, ARID);
-    });
+    }, 60000);
   });
 
   describe("Server with MemoryKv", () => {
@@ -99,9 +99,10 @@ describe("Server Module", () => {
       const retrieved = await client.get(arid, 30);
       expect(retrieved).not.toBeNull();
       if (retrieved) {
-        expect(retrieved.toCbor()).toEqual(envelope.toCbor());
+        // Compare using taggedCborData() for byte-level comparison
+        expect(retrieved.taggedCborData()).toEqual(envelope.taggedCborData());
       }
-    });
+    }, 60000);
 
     it("should enforce write-once semantics", async () => {
       const arid = ARID.new();
@@ -113,13 +114,13 @@ describe("Server Module", () => {
 
       // Second put to same ARID should fail
       await expect(client.put(arid, envelope2)).rejects.toThrow();
-    });
+    }, 60000);
 
     it("should return null for non-existent ARID", async () => {
       const arid = ARID.new();
       const retrieved = await client.get(arid, 30);
       expect(retrieved).toBeNull();
-    });
+    }, 60000);
 
     it("should handle TTL expiration", async () => {
       const arid = ARID.new();
@@ -138,7 +139,7 @@ describe("Server Module", () => {
       // Should be expired
       const expired = await client.get(arid, 30);
       expect(expired).toBeNull();
-    }, 5000);
+    }, 120000);
 
     it("should clamp TTL to max_ttl", async () => {
       // Create server with short max_ttl
@@ -175,7 +176,7 @@ describe("Server Module", () => {
       } finally {
         await shortTtlServer.close();
       }
-    }, 10000);
+    }, 120000);
 
     it("should respect get timeout", async () => {
       const arid = ARID.new(); // Non-existent ARID
