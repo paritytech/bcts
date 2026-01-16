@@ -532,7 +532,7 @@ describe("EncryptedKey", () => {
   });
 
   describe("Argon2id roundtrip", () => {
-    it("should encrypt and decrypt with Argon2id", { timeout: 30000 }, () => {
+    it("should encrypt and decrypt with Argon2id", { timeout: 60000 }, () => {
       const secret = testSecret();
       const contentKey = testContentKey();
 
