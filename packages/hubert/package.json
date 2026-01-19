@@ -102,11 +102,11 @@
     "@bcts/rand": "workspace:*",
     "@noble/ciphers": "^1.2.1",
     "@noble/curves": "^1.8.2",
-    "better-sqlite3": "^11.10.0",
+    "better-sqlite3": "^12.6.2",
     "bittorrent-dht": "^11.0.7",
     "commander": "^13.1.0",
     "fastify": "^5.2.2",
-    "kubo-rpc-client": "^5.0.2"
+    "kubo-rpc-client": "^6.0.2"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
