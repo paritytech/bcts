@@ -85,9 +85,15 @@ export async function round1(
     // Create rejection envelope
     const requestId = parseAridUr(receiveState.request_id);
 
-    const response: SealedResponse = SealedResponse.newFailure(requestId, recipient).withError(reason);
+    const response: SealedResponse = SealedResponse.newFailure(requestId, recipient).withError(
+      reason,
+    );
 
-    const envelope: Envelope = response.toEnvelope(undefined, recipient.inceptionPrivateKeys(), undefined);
+    const envelope: Envelope = response.toEnvelope(
+      undefined,
+      recipient.inceptionPrivateKeys(),
+      undefined,
+    );
 
     await putWithIndicator(
       client,
@@ -118,7 +124,11 @@ export async function round1(
   // TODO: Add commitment package to response
   // response = response.withParameter("commitment", commitmentPackage);
 
-  const envelope: Envelope = response.toEnvelope(undefined, recipient.inceptionPrivateKeys(), undefined);
+  const envelope: Envelope = response.toEnvelope(
+    undefined,
+    recipient.inceptionPrivateKeys(),
+    undefined,
+  );
 
   await putWithIndicator(
     client,

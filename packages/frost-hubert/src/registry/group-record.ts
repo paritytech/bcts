@@ -40,10 +40,10 @@ export class GroupParticipant {
  * Port of `struct ContributionPaths` from group_record.rs lines 21-29.
  */
 export class ContributionPaths {
-  round1Secret?: string;
-  round1Package?: string;
-  round2Secret?: string;
-  keyPackage?: string;
+  round1Secret?: string | undefined;
+  round1Package?: string | undefined;
+  round2Secret?: string | undefined;
+  keyPackage?: string | undefined;
 
   constructor(init?: Partial<ContributionPaths>) {
     if (init !== undefined) {
@@ -82,19 +82,19 @@ export class ContributionPaths {
 
   toJSON(): Record<string, string> {
     const obj: Record<string, string> = {};
-    if (this.round1Secret !== undefined) obj.round1_secret = this.round1Secret;
-    if (this.round1Package !== undefined) obj.round1_package = this.round1Package;
-    if (this.round2Secret !== undefined) obj.round2_secret = this.round2Secret;
-    if (this.keyPackage !== undefined) obj.key_package = this.keyPackage;
+    if (this.round1Secret !== undefined) obj["round1_secret"] = this.round1Secret;
+    if (this.round1Package !== undefined) obj["round1_package"] = this.round1Package;
+    if (this.round2Secret !== undefined) obj["round2_secret"] = this.round2Secret;
+    if (this.keyPackage !== undefined) obj["key_package"] = this.keyPackage;
     return obj;
   }
 
   static fromJSON(json: Record<string, string>): ContributionPaths {
     return new ContributionPaths({
-      round1Secret: json.round1_secret,
-      round1Package: json.round1_package,
-      round2Secret: json.round2_secret,
-      keyPackage: json.key_package,
+      round1Secret: json["round1_secret"],
+      round1Package: json["round1_package"],
+      round2Secret: json["round2_secret"],
+      keyPackage: json["key_package"],
     });
   }
 }
@@ -104,7 +104,7 @@ export class ContributionPaths {
  */
 interface PendingRequestEntry {
   participant: XID;
-  sendToArid?: ARID;
+  sendToArid?: ARID | undefined;
   collectFromArid: ARID;
 }
 
@@ -220,12 +220,12 @@ export class PendingRequests {
   static fromJSON(json: unknown[]): PendingRequests {
     const pr = new PendingRequests();
     for (const entry of json as Record<string, string>[]) {
-      const participant = XID.fromURString(entry.participant);
+      const participant = XID.fromURString(entry["participant"]);
       const sendToArid =
-        entry.send_to_arid !== undefined && entry.send_to_arid !== ""
-          ? ARID.fromURString(entry.send_to_arid)
+        entry["send_to_arid"] !== undefined && entry["send_to_arid"] !== ""
+          ? ARID.fromURString(entry["send_to_arid"])
           : undefined;
-      const collectFromArid = ARID.fromURString(entry.collect_from_arid);
+      const collectFromArid = ARID.fromURString(entry["collect_from_arid"]);
       pr.requests.push({ participant, sendToArid, collectFromArid });
     }
     return pr;
@@ -243,9 +243,9 @@ export class GroupRecord {
   private readonly _coordinator: GroupParticipant;
   private readonly _participants: GroupParticipant[];
   private _contributions: ContributionPaths;
-  private _listeningAtArid?: ARID;
+  private _listeningAtArid?: ARID | undefined;
   private _pendingRequests: PendingRequests;
-  private _verifyingKey?: SigningPublicKey;
+  private _verifyingKey?: SigningPublicKey | undefined;
 
   constructor(
     charter: string,
@@ -348,41 +348,43 @@ export class GroupRecord {
       participants: this._participants.map((p) => p.toJSON()),
     };
     if (!this._contributions.isEmpty()) {
-      obj.contributions = this._contributions.toJSON();
+      obj["contributions"] = this._contributions.toJSON();
     }
     if (this._listeningAtArid !== undefined) {
-      obj.listening_at_arid = this._listeningAtArid.urString();
+      obj["listening_at_arid"] = this._listeningAtArid.urString();
     }
     if (!this._pendingRequests.isEmpty()) {
-      obj.pending_requests = this._pendingRequests.toJSON();
+      obj["pending_requests"] = this._pendingRequests.toJSON();
     }
     if (this._verifyingKey !== undefined) {
-      obj.verifying_key = this._verifyingKey.urString();
+      obj["verifying_key"] = this._verifyingKey.urString();
     }
     return obj;
   }
 
   static fromJSON(json: Record<string, unknown>): GroupRecord {
-    const charter = json.charter as string;
-    const minSigners = json.min_signers as number;
-    const coordinator = GroupParticipant.fromJSON(json.coordinator as string);
-    const participants = (json.participants as string[]).map((p) => GroupParticipant.fromJSON(p));
+    const charter = json["charter"] as string;
+    const minSigners = json["min_signers"] as number;
+    const coordinator = GroupParticipant.fromJSON(json["coordinator"] as string);
+    const participants = (json["participants"] as string[]).map((p) =>
+      GroupParticipant.fromJSON(p),
+    );
 
     const record = new GroupRecord(charter, minSigners, coordinator, participants);
 
-    if (json.contributions !== undefined) {
+    if (json["contributions"] !== undefined) {
       record._contributions = ContributionPaths.fromJSON(
-        json.contributions as Record<string, string>,
+        json["contributions"] as Record<string, string>,
       );
     }
-    if (json.listening_at_arid !== undefined) {
-      record._listeningAtArid = ARID.fromURString(json.listening_at_arid as string);
+    if (json["listening_at_arid"] !== undefined) {
+      record._listeningAtArid = ARID.fromURString(json["listening_at_arid"] as string);
     }
-    if (json.pending_requests !== undefined) {
-      record._pendingRequests = PendingRequests.fromJSON(json.pending_requests as unknown[]);
+    if (json["pending_requests"] !== undefined) {
+      record._pendingRequests = PendingRequests.fromJSON(json["pending_requests"] as unknown[]);
     }
-    if (json.verifying_key !== undefined) {
-      record._verifyingKey = SigningPublicKey.fromURString(json.verifying_key as string);
+    if (json["verifying_key"] !== undefined) {
+      record._verifyingKey = SigningPublicKey.fromURString(json["verifying_key"] as string);
     }
 
     return record;

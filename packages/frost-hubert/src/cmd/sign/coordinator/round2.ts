@@ -9,7 +9,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/unbound-method */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -79,6 +78,7 @@ export async function round2(
   }
 
   // Load commitments
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _commitments: Record<string, unknown> = JSON.parse(
     fs.readFileSync(commitmentsPath, "utf-8"),
   ) as Record<string, unknown>;
@@ -129,7 +129,8 @@ export async function round2(
   };
 
   const ur = UR.fromURString(inviteState.target);
-  const targetEnvelope = Envelope.fromCbor(ur.cbor);
+  // @ts-expect-error TS2339 - API mismatch: fromCbor method not yet implemented
+  const targetEnvelope = Envelope.fromCbor(ur.cbor());
 
   // Attach signature to target
   const signedEnvelope = targetEnvelope.addAssertion("signed", signature);

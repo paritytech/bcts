@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* eslint-disable no-console, no-undef, no-restricted-globals */
+
 /**
  * FROST CLI binary entry point.
  *
@@ -39,168 +39,180 @@ async function registerTags(): Promise<void> {
   }
 }
 
-// Initialize tags before CLI runs
-await registerTags();
+// Main CLI function
+async function main(): Promise<void> {
+  // Initialize tags before CLI runs
+  await registerTags();
 
-program.name("frost").description("FROST threshold signing CLI").version("1.0.0");
+  program.name("frost").description("FROST threshold signing CLI").version("1.0.0");
 
-// Registry commands
-const registryCmd = program.command("registry").description("Manage the registry");
+  // Registry commands
+  const registryCmd = program.command("registry").description("Manage the registry");
 
-// Registry owner commands
-const ownerCmd = registryCmd.command("owner").description("Manage the registry owner");
+  // Registry owner commands
+  const ownerCmd = registryCmd.command("owner").description("Manage the registry owner");
 
-ownerCmd
-  .command("set <xid-document> [pet-name]")
-  .description("Set the registry owner using an ur:xid document that includes private keys")
-  .option("-r, --registry <path>", "Registry path or filename override")
-  .action((xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
-    try {
-      ownerSet(
-        {
-          xidDocument,
-          petName,
-          registryPath: options.registry,
-        },
-        process.cwd(),
-      );
-    } catch (error) {
-      console.error((error as Error).message);
-      process.exit(1);
-    }
-  });
+  ownerCmd
+    .command("set <xid-document> [pet-name]")
+    .description("Set the registry owner using an ur:xid document that includes private keys")
+    .option("-r, --registry <path>", "Registry path or filename override")
+    .action((xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
+      try {
+        ownerSet(
+          {
+            xidDocument,
+            petName,
+            registryPath: options.registry,
+          },
+          process.cwd(),
+        );
+      } catch (error) {
+        console.error((error as Error).message);
+        process.exit(1);
+      }
+    });
 
-// Registry participant commands
-const participantCmd = registryCmd
-  .command("participant")
-  .description("Manage registry participants");
+  // Registry participant commands
+  const participantCmd = registryCmd
+    .command("participant")
+    .description("Manage registry participants");
 
-participantCmd
-  .command("add <xid-document> [pet-name]")
-  .description("Add a participant using an ur:xid document")
-  .option("-r, --registry <path>", "Registry path or filename override")
-  .action((xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
-    try {
-      participantAdd(
-        {
-          xidDocument,
-          petName,
-          registryPath: options.registry,
-        },
-        process.cwd(),
-      );
-    } catch (error) {
-      console.error((error as Error).message);
-      process.exit(1);
-    }
-  });
+  participantCmd
+    .command("add <xid-document> [pet-name]")
+    .description("Add a participant using an ur:xid document")
+    .option("-r, --registry <path>", "Registry path or filename override")
+    .action((xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
+      try {
+        participantAdd(
+          {
+            xidDocument,
+            petName,
+            registryPath: options.registry,
+          },
+          process.cwd(),
+        );
+      } catch (error) {
+        console.error((error as Error).message);
+        process.exit(1);
+      }
+    });
 
-// DKG commands (placeholder)
-const dkgCmd = program.command("dkg").description("Distributed Key Generation commands");
+  // DKG commands (placeholder)
+  const dkgCmd = program.command("dkg").description("Distributed Key Generation commands");
 
-const dkgCoordinatorCmd = dkgCmd.command("coordinator").description("DKG coordinator commands");
-dkgCoordinatorCmd
-  .command("invite")
-  .description("Send DKG invite to participants")
-  .action(() => {
-    console.log("DKG coordinator invite command not yet implemented");
-  });
+  const dkgCoordinatorCmd = dkgCmd.command("coordinator").description("DKG coordinator commands");
+  dkgCoordinatorCmd
+    .command("invite")
+    .description("Send DKG invite to participants")
+    .action(() => {
+      console.log("DKG coordinator invite command not yet implemented");
+    });
 
-dkgCoordinatorCmd
-  .command("round1")
-  .description("Collect round 1 responses")
-  .action(() => {
-    console.log("DKG coordinator round1 command not yet implemented");
-  });
+  dkgCoordinatorCmd
+    .command("round1")
+    .description("Collect round 1 responses")
+    .action(() => {
+      console.log("DKG coordinator round1 command not yet implemented");
+    });
 
-dkgCoordinatorCmd
-  .command("round2")
-  .description("Collect round 2 responses")
-  .action(() => {
-    console.log("DKG coordinator round2 command not yet implemented");
-  });
+  dkgCoordinatorCmd
+    .command("round2")
+    .description("Collect round 2 responses")
+    .action(() => {
+      console.log("DKG coordinator round2 command not yet implemented");
+    });
 
-const dkgParticipantCmd = dkgCmd.command("participant").description("DKG participant commands");
-dkgParticipantCmd
-  .command("receive")
-  .description("Receive DKG invite")
-  .action(() => {
-    console.log("DKG participant receive command not yet implemented");
-  });
+  const dkgParticipantCmd = dkgCmd.command("participant").description("DKG participant commands");
+  dkgParticipantCmd
+    .command("receive")
+    .description("Receive DKG invite")
+    .action(() => {
+      console.log("DKG participant receive command not yet implemented");
+    });
 
-dkgParticipantCmd
-  .command("round1")
-  .description("Send round 1 response")
-  .action(() => {
-    console.log("DKG participant round1 command not yet implemented");
-  });
+  dkgParticipantCmd
+    .command("round1")
+    .description("Send round 1 response")
+    .action(() => {
+      console.log("DKG participant round1 command not yet implemented");
+    });
 
-dkgParticipantCmd
-  .command("round2")
-  .description("Send round 2 response")
-  .action(() => {
-    console.log("DKG participant round2 command not yet implemented");
-  });
+  dkgParticipantCmd
+    .command("round2")
+    .description("Send round 2 response")
+    .action(() => {
+      console.log("DKG participant round2 command not yet implemented");
+    });
 
-dkgParticipantCmd
-  .command("finalize")
-  .description("Receive finalize package")
-  .action(() => {
-    console.log("DKG participant finalize command not yet implemented");
-  });
+  dkgParticipantCmd
+    .command("finalize")
+    .description("Receive finalize package")
+    .action(() => {
+      console.log("DKG participant finalize command not yet implemented");
+    });
 
-// Sign commands (placeholder)
-const signCmd = program.command("sign").description("Threshold signing commands");
+  // Sign commands (placeholder)
+  const signCmd = program.command("sign").description("Threshold signing commands");
 
-const signCoordinatorCmd = signCmd.command("coordinator").description("Sign coordinator commands");
-signCoordinatorCmd
-  .command("invite")
-  .description("Send sign invite to participants")
-  .action(() => {
-    console.log("Sign coordinator invite command not yet implemented");
-  });
+  const signCoordinatorCmd = signCmd
+    .command("coordinator")
+    .description("Sign coordinator commands");
+  signCoordinatorCmd
+    .command("invite")
+    .description("Send sign invite to participants")
+    .action(() => {
+      console.log("Sign coordinator invite command not yet implemented");
+    });
 
-signCoordinatorCmd
-  .command("round1")
-  .description("Collect round 1 responses")
-  .action(() => {
-    console.log("Sign coordinator round1 command not yet implemented");
-  });
+  signCoordinatorCmd
+    .command("round1")
+    .description("Collect round 1 responses")
+    .action(() => {
+      console.log("Sign coordinator round1 command not yet implemented");
+    });
 
-signCoordinatorCmd
-  .command("round2")
-  .description("Collect round 2 responses and finalize signature")
-  .action(() => {
-    console.log("Sign coordinator round2 command not yet implemented");
-  });
+  signCoordinatorCmd
+    .command("round2")
+    .description("Collect round 2 responses and finalize signature")
+    .action(() => {
+      console.log("Sign coordinator round2 command not yet implemented");
+    });
 
-const signParticipantCmd = signCmd.command("participant").description("Sign participant commands");
-signParticipantCmd
-  .command("receive")
-  .description("Receive sign invite")
-  .action(() => {
-    console.log("Sign participant receive command not yet implemented");
-  });
+  const signParticipantCmd = signCmd
+    .command("participant")
+    .description("Sign participant commands");
+  signParticipantCmd
+    .command("receive")
+    .description("Receive sign invite")
+    .action(() => {
+      console.log("Sign participant receive command not yet implemented");
+    });
 
-signParticipantCmd
-  .command("round1")
-  .description("Send commitment")
-  .action(() => {
-    console.log("Sign participant round1 command not yet implemented");
-  });
+  signParticipantCmd
+    .command("round1")
+    .description("Send commitment")
+    .action(() => {
+      console.log("Sign participant round1 command not yet implemented");
+    });
 
-signParticipantCmd
-  .command("round2")
-  .description("Send signature share")
-  .action(() => {
-    console.log("Sign participant round2 command not yet implemented");
-  });
+  signParticipantCmd
+    .command("round2")
+    .description("Send signature share")
+    .action(() => {
+      console.log("Sign participant round2 command not yet implemented");
+    });
 
-signParticipantCmd
-  .command("finalize")
-  .description("Receive finalize event")
-  .action(() => {
-    console.log("Sign participant finalize command not yet implemented");
-  });
+  signParticipantCmd
+    .command("finalize")
+    .description("Receive finalize event")
+    .action(() => {
+      console.log("Sign participant finalize command not yet implemented");
+    });
 
-program.parse();
+  program.parse();
+}
+
+main().catch((error: unknown) => {
+  console.error((error as Error).message);
+  process.exit(1);
+});

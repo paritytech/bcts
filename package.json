@@ -1,6 +1,6 @@
 {
   "name": "bcts",
-  "version": "1.0.0-alpha.16",
+  "version": "1.0.0-alpha.17",
   "private": true,
   "description": "TypeScript implementations of Blockchain Commons specifications including dCBOR, Gordian Envelopes, Uniform Resources, SSKR, and other cryptographic standards",
   "contributors": [
@@ -60,7 +60,7 @@
     "turbo": "^2.7.6",
     "typescript": "^5.9.3"
   },
-  "packageManager": "bun@1.2.22",
+  "packageManager": "bun@1.3.6",
   "workspaces": [
     "apps/*",
     "packages/*",

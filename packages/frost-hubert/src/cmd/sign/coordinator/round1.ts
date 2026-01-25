@@ -6,9 +6,6 @@
  * @module
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -81,7 +78,7 @@ export async function round1(
   // Build targets for parallel fetch
   const targets: { xid: XID; arid: ARID }[] = inviteState.participants.map(
     (p: { xid: string; responseArid: string }) => ({
-      xid: XIDClass.fromUrString(p.xid),
+      xid: XIDClass.fromURString(p.xid),
       arid: parseAridUr(p.responseArid),
     }),
   );

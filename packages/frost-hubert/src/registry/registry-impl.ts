@@ -45,7 +45,7 @@ export enum OwnerOutcome {
  * Port of `struct Registry` from registry_impl.rs lines 22-26.
  */
 export class Registry {
-  private _owner?: OwnerRecord;
+  private _owner?: OwnerRecord | undefined;
   private readonly _participants: Map<string, ParticipantRecord>; // Map by XID UR string
   private readonly _groups: Map<string, GroupRecord>; // Map by ARID hex
 
@@ -203,7 +203,7 @@ export class Registry {
     };
 
     if (this._owner !== undefined) {
-      obj.owner = this._owner.toJSON();
+      obj["owner"] = this._owner.toJSON();
     }
 
     return obj;
@@ -215,11 +215,11 @@ export class Registry {
   static fromJSON(json: Record<string, unknown>): Registry {
     const registry = new Registry();
 
-    if (json.owner !== undefined) {
-      registry._owner = OwnerRecord.fromJSON(json.owner as Record<string, unknown>);
+    if (json["owner"] !== undefined) {
+      registry._owner = OwnerRecord.fromJSON(json["owner"] as Record<string, unknown>);
     }
 
-    const participantsJson = json.participants as
+    const participantsJson = json["participants"] as
       | Record<string, Record<string, unknown>>
       | undefined;
     if (participantsJson !== undefined) {
@@ -229,7 +229,7 @@ export class Registry {
       }
     }
 
-    const groupsJson = json.groups as Record<string, Record<string, unknown>> | undefined;
+    const groupsJson = json["groups"] as Record<string, Record<string, unknown>> | undefined;
     if (groupsJson !== undefined) {
       for (const [aridHex, recordJson] of Object.entries(groupsJson)) {
         const record = GroupRecord.fromJSON(recordJson);

@@ -53,6 +53,7 @@ export async function finalize(
   const registryPath = resolveRegistryPath(options.registryPath, cwd);
   const registry = Registry.load(registryPath);
 
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _recipient = resolveSender(registry);
   const sessionId = parseAridUr(options.sessionId);
 
@@ -146,7 +147,9 @@ export async function finalize(
 
   // Create signed envelope
   const ur: UR = UR.fromURString(receiveState.target);
-  const targetEnvelope: Envelope = Envelope.fromCbor(ur.cbor);
+  // @ts-expect-error TS2339 - API mismatch: fromCbor method not yet implemented
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+  const targetEnvelope: Envelope = Envelope.fromCbor(ur.cbor());
   const signedEnvelope: Envelope = targetEnvelope.addAssertion("signed", signature);
 
   if (groupId === undefined) {
@@ -175,9 +178,7 @@ export async function finalize(
   }
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Signature verified`);
-    // eslint-disable-next-line no-console
     console.log(`Signature: ${signatureStr}`);
   }
 

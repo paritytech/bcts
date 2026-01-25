@@ -74,7 +74,7 @@ export async function round1(
 
   // Build targets for parallel fetch
   const targets: { xid: XID; arid: ARID }[] = inviteState.participants.map((p) => ({
-    xid: XID.fromUrString(p.xid),
+    xid: XID.fromURString(p.xid),
     arid: parseAridUr(p.response_arid),
   }));
 
@@ -108,13 +108,9 @@ export async function round1(
   registry.save(registryPath);
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Collected ${responses.successes.size} commitment packages`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.rejections.size} rejections`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.errors.size} errors`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.timeouts.length} timeouts`);
   }
 

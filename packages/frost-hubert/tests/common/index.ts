@@ -44,13 +44,18 @@ export function assertActualExpected<T>(actual: T, expected: T): void {
   }
 }
 
+// Type for modules that may have registerTags
+interface TagModule {
+  registerTags?: () => void;
+}
+
 /**
  * Register CBOR tags for all BC packages.
  */
 export async function registerTags(): Promise<void> {
-  const components = await import("@bcts/components");
-  const envelope = await import("@bcts/envelope");
-  const provenanceMark = await import("@bcts/provenance-mark");
+  const components = (await import("@bcts/components")) as TagModule;
+  const envelope = (await import("@bcts/envelope")) as TagModule;
+  const provenanceMark = (await import("@bcts/provenance-mark")) as TagModule;
 
   if (typeof components.registerTags === "function") {
     components.registerTags();

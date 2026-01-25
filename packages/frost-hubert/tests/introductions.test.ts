@@ -49,10 +49,10 @@ function loadUsers(): Users {
 
   /* eslint-disable @typescript-eslint/no-non-null-assertion */
   return {
-    alice: users.Alice!,
-    bob: users.Bob!,
-    carol: users.Carol!,
-    dan: users.Dan!,
+    alice: users["Alice"]!,
+    bob: users["Bob"]!,
+    carol: users["Carol"]!,
+    dan: users["Dan"]!,
   };
   /* eslint-enable @typescript-eslint/no-non-null-assertion */
 }

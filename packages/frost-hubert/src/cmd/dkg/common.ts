@@ -11,7 +11,7 @@ import * as path from "node:path";
 import { type ARID, type XID } from "@bcts/components";
 import { type Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
-import { XIDDocument } from "@bcts/xid";
+import { type XIDDocument } from "@bcts/xid";
 
 import { type Registry } from "../../registry/index.js";
 
@@ -23,12 +23,14 @@ import { type Registry } from "../../registry/index.js";
 export function parseAridUr(urString: string): ARID {
   const ur = UR.fromURString(urString.trim());
 
-  if (ur.type !== "arid") {
-    throw new Error(`Expected ur:arid, found ur:${ur.type}`);
+  if (ur.urTypeStr() !== "arid") {
+    throw new Error(`Expected ur:arid, found ur:${ur.urTypeStr()}`);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, no-undef
   const { ARID: ARIDClass } = require("@bcts/components");
-  return ARIDClass.fromCbor(ur.cbor);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  return ARIDClass.fromCbor(ur.cbor());
 }
 
 /**
@@ -39,12 +41,14 @@ export function parseAridUr(urString: string): ARID {
 export function parseEnvelopeUr(urString: string): Envelope {
   const ur = UR.fromURString(urString.trim());
 
-  if (ur.type !== "envelope") {
-    throw new Error(`Expected ur:envelope, found ur:${ur.type}`);
+  if (ur.urTypeStr() !== "envelope") {
+    throw new Error(`Expected ur:envelope, found ur:${ur.urTypeStr()}`);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, no-undef
   const { Envelope: EnvelopeClass } = require("@bcts/envelope");
-  return EnvelopeClass.fromCbor(ur.cbor);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  return EnvelopeClass.fromCbor(ur.cbor());
 }
 
 /**
@@ -69,13 +73,13 @@ export function resolveSender(registry: Registry): XIDDocument {
  */
 export function formatNameWithOwnerMarker(xid: XID, registry: Registry, petName?: string): string {
   const owner = registry.owner();
-  const isOwner = owner && owner.xid().toString() === xid.toString();
+  const isOwner = owner?.xid().toString() === xid.toString();
 
   if (petName) {
     return isOwner ? `${petName} (you)` : petName;
   }
 
-  const shortXid = xid.urString().slice(0, 20) + "...";
+  const shortXid = `${xid.urString().slice(0, 20)}...`;
   return isOwner ? `${shortXid} (you)` : shortXid;
 }
 
@@ -95,6 +99,8 @@ export function dkgStateDir(registryPath: string, groupIdHex: string): string {
  * Port of `signing_key_from_verifying()` from cmd/dkg/common.rs.
  */
 export function signingKeyFromVerifying(verifyingKeyBytes: Uint8Array): unknown {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, no-undef
   const { SigningPublicKey: SigningPublicKeyClass } = require("@bcts/components");
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   return SigningPublicKeyClass.fromBytes(verifyingKeyBytes);
 }

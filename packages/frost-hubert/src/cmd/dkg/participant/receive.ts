@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { Date as BCDate, type Date as BCDateType } from "@bcts/components";
+import { CborDate } from "@bcts/dcbor";
 
 import { DkgInvitation } from "../../../dkg/index.js";
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
@@ -81,16 +81,14 @@ export async function receive(
   }
 
   // Parse the invitation
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  const now: BCDateType = BCDate.now() as BCDateType;
-  /* eslint-disable @typescript-eslint/no-unsafe-argument */
+  const now = CborDate.now().datetime();
+
   const invitation = DkgInvitation.fromInvite(
     inviteEnvelope,
     now,
     undefined, // No expected sender validation
     recipient,
   );
-  /* eslint-enable @typescript-eslint/no-unsafe-argument */
 
   // Save receive state
   const stateDir = dkgStateDir(registryPath, invitation.groupId().hex());
@@ -117,7 +115,9 @@ export async function receive(
     console.log(`Response ARID: ${invitation.responseArid().urString()}`);
   }
 
-  const resultValidUntilStr: string = (invitation.validUntil() as { toString(): string }).toString();
+  const resultValidUntilStr: string = (
+    invitation.validUntil() as { toString(): string }
+  ).toString();
   return {
     groupId: invitation.groupId().urString(),
     requestId: invitation.requestId().urString(),

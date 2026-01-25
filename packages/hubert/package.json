@@ -1,6 +1,6 @@
 {
   "name": "@bcts/hubert",
-  "version": "1.0.0-alpha.16",
+  "version": "1.0.0-alpha.17",
   "type": "module",
   "description": "Hubert - Distributed infrastructure for secure multiparty transactions using Gordian Envelope",
   "license": "BSD-2-Clause-Patent",
@@ -31,7 +31,6 @@
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.mts",
-  "browser": "dist/index.iife.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",

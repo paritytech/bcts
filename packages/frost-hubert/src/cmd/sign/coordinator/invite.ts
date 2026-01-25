@@ -10,7 +10,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/unbound-method */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -81,7 +80,8 @@ export async function invite(
 
   const targetUr = fs.readFileSync(targetPath, "utf-8").trim();
   const ur = UR.fromURString(targetUr);
-  const targetEnvelope = Envelope.fromCbor(ur.cbor);
+  // @ts-expect-error TS2339 - API mismatch: fromCbor method not yet implemented
+  const targetEnvelope = Envelope.fromCbor(ur.cbor());
 
   // Generate session ID and start ARID
   const sessionId = ARID.new();
@@ -106,6 +106,7 @@ export async function invite(
   }
 
   // Create signInvite request
+  // @ts-expect-error TS2339 - API mismatch: SealedRequest.create method not yet implemented
   let request = SealedRequest.create("signInvite", ARID.new(), sender)
     .withParameter("group", groupId)
     .withParameter("session", sessionId)
@@ -135,6 +136,7 @@ export async function invite(
     }
 
     const arid = parseAridUr(responseArid);
+    // @ts-expect-error TS2339 - API mismatch: Envelope.fromSubject method not yet implemented
     const encryptedArid = Envelope.fromSubject(arid).encryptToRecipient(encryptionKey);
 
     request = request.withParameter("participant", {

@@ -7,6 +7,7 @@
  */
 
 import { type XID } from "@bcts/components";
+import { type Cbor } from "@bcts/dcbor";
 import { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
@@ -90,7 +91,7 @@ export class OwnerRecord {
       xid_document: this._xidDocumentUr,
     };
     if (this._petName !== undefined) {
-      obj.pet_name = this._petName;
+      obj["pet_name"] = this._petName;
     }
     return obj;
   }
@@ -99,8 +100,8 @@ export class OwnerRecord {
    * Deserialize from JSON object.
    */
   static fromJSON(json: Record<string, unknown>): OwnerRecord {
-    const xidDocumentUr = json.xid_document as string;
-    const petName = json.pet_name as string | undefined;
+    const xidDocumentUr = json["xid_document"] as string;
+    const petName = json["pet_name"] as string | undefined;
     return OwnerRecord.fromSignedXidUr(xidDocumentUr, petName);
   }
 }
@@ -114,11 +115,11 @@ function parseRelaxedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
   const sanitized = sanitizeXidUr(xidDocumentUr);
   const ur = UR.fromURString(sanitized);
 
-  if (ur.type !== "xid" && ur.type !== "envelope") {
-    throw new Error(`Expected a ur:xid document, found ur:${ur.type}`);
+  if (ur.urTypeStr() !== "xid" && ur.urTypeStr() !== "envelope") {
+    throw new Error(`Expected a ur:xid document, found ur:${ur.urTypeStr()}`);
   }
 
-  const envelopeCbor = ur.cbor();
+  const envelopeCbor = ur.cbor() as unknown as Cbor;
   let envelope: Envelope;
   try {
     envelope = Envelope.fromTaggedCbor(envelopeCbor);

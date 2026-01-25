@@ -97,7 +97,11 @@ export async function round2(
   const response: SealedResponse = SealedResponse.newSuccess(requestId, recipient);
   // TODO: Add secret shares to response
 
-  const envelope: Envelope = response.toEnvelope(undefined, recipient.inceptionPrivateKeys(), undefined);
+  const envelope: Envelope = response.toEnvelope(
+    undefined,
+    recipient.inceptionPrivateKeys(),
+    undefined,
+  );
 
   await putWithIndicator(
     client,

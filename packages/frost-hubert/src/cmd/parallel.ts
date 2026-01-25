@@ -17,8 +17,8 @@ import { type StorageClient } from "./storage.js";
  * Port of `struct ParallelFetchConfig` from cmd/parallel.rs.
  */
 export interface ParallelFetchConfig {
-  timeoutSeconds?: number;
-  verbose?: boolean;
+  timeoutSeconds?: number | undefined;
+  verbose?: boolean | undefined;
 }
 
 /**
@@ -52,7 +52,7 @@ export function emptyCollectionResult<T>(): CollectionResult<T> {
  */
 export async function parallelFetch<T>(
   client: StorageClient,
-  targets: Array<{ xid: XID; arid: ARID }>,
+  targets: { xid: XID; arid: ARID }[],
   parser: (envelope: Envelope, xid: XID) => T | { rejected: string },
   config: ParallelFetchConfig,
 ): Promise<CollectionResult<T>> {
@@ -69,10 +69,10 @@ export async function parallelFetch<T>(
 
       const parsed = parser(envelope, xid);
 
-      if (typeof parsed === "object" && "rejected" in parsed) {
+      if (parsed !== null && typeof parsed === "object" && "rejected" in parsed) {
         result.rejections.set(xid.urString(), parsed.rejected);
       } else {
-        result.successes.set(xid.urString(), parsed as T);
+        result.successes.set(xid.urString(), parsed);
       }
     } catch (error) {
       result.errors.set(xid.urString(), error as Error);
@@ -81,7 +81,7 @@ export async function parallelFetch<T>(
 
   await Promise.all(promises);
 
-  if (config.verbose) {
+  if (config.verbose === true) {
     console.log(`Collected ${result.successes.size} responses`);
     if (result.rejections.size > 0) {
       console.log(`  ${result.rejections.size} rejections`);
@@ -104,7 +104,7 @@ export async function parallelFetch<T>(
  */
 export async function parallelSend(
   client: StorageClient,
-  messages: Array<{ xid: XID; arid: ARID; envelope: Envelope }>,
+  messages: { xid: XID; arid: ARID; envelope: Envelope }[],
   verbose?: boolean,
 ): Promise<{ successes: string[]; errors: Map<string, Error> }> {
   const successes: string[] = [];
@@ -121,7 +121,7 @@ export async function parallelSend(
 
   await Promise.all(promises);
 
-  if (verbose) {
+  if (verbose === true) {
     console.log(`Sent ${successes.length} messages`);
     if (errors.size > 0) {
       console.log(`  ${errors.size} failed`);

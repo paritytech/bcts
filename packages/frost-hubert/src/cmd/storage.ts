@@ -49,16 +49,17 @@ export async function createStorageClient(
 ): Promise<StorageClient> {
   switch (selection) {
     case "server": {
-      const { ServerKv } = await import("@bcts/hubert/server");
-      const client = await ServerKv.create(serverUrl ?? "http://localhost:8080");
+      const { ServerKvClient } = await import("@bcts/hubert/server");
+      const client = new ServerKvClient(serverUrl ?? "http://localhost:8080");
       return {
         async put(arid: ARID, envelope: Envelope): Promise<void> {
           await client.put(arid, envelope);
         },
         async get(arid: ARID, timeoutSeconds?: number): Promise<Envelope | undefined> {
-          return client.get(arid, timeoutSeconds);
+          const result = await client.get(arid, timeoutSeconds);
+          return result ?? undefined;
         },
-        async exists(arid: ARID): Promise<boolean> {
+        exists(arid: ARID): Promise<boolean> {
           return client.exists(arid);
         },
       };
@@ -71,39 +72,42 @@ export async function createStorageClient(
           await client.put(arid, envelope);
         },
         async get(arid: ARID, timeoutSeconds?: number): Promise<Envelope | undefined> {
-          return client.get(arid, timeoutSeconds);
+          const result = await client.get(arid, timeoutSeconds);
+          return result ?? undefined;
         },
-        async exists(arid: ARID): Promise<boolean> {
+        exists(arid: ARID): Promise<boolean> {
           return client.exists(arid);
         },
       };
     }
     case "ipfs": {
       const { IpfsKv } = await import("@bcts/hubert/ipfs");
-      const client = await IpfsKv.create();
+      const client = new IpfsKv("http://127.0.0.1:5001");
       return {
         async put(arid: ARID, envelope: Envelope): Promise<void> {
           await client.put(arid, envelope);
         },
         async get(arid: ARID, timeoutSeconds?: number): Promise<Envelope | undefined> {
-          return client.get(arid, timeoutSeconds);
+          const result = await client.get(arid, timeoutSeconds);
+          return result ?? undefined;
         },
-        async exists(arid: ARID): Promise<boolean> {
+        exists(arid: ARID): Promise<boolean> {
           return client.exists(arid);
         },
       };
     }
     case "hybrid": {
       const { HybridKv } = await import("@bcts/hubert/hybrid");
-      const client = await HybridKv.create();
+      const client = await HybridKv.create("http://127.0.0.1:5001");
       return {
         async put(arid: ARID, envelope: Envelope): Promise<void> {
           await client.put(arid, envelope);
         },
         async get(arid: ARID, timeoutSeconds?: number): Promise<Envelope | undefined> {
-          return client.get(arid, timeoutSeconds);
+          const result = await client.get(arid, timeoutSeconds);
+          return result ?? undefined;
         },
-        async exists(arid: ARID): Promise<boolean> {
+        exists(arid: ARID): Promise<boolean> {
           return client.exists(arid);
         },
       };

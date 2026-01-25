@@ -16,9 +16,9 @@ export interface OwnerSetOptions {
   /** Signed ur:xid document containing the owner's XID document (must include private keys) */
   xidDocument: string;
   /** Optional human readable alias for the owner */
-  petName?: string;
+  petName?: string | undefined;
   /** Optional registry path or filename override */
-  registryPath?: string;
+  registryPath?: string | undefined;
 }
 
 /**

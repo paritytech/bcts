@@ -6,7 +6,8 @@
  * @module
  */
 
-import { type ARID } from "@bcts/components";
+import { ARID } from "@bcts/components";
+import { CborDate } from "@bcts/dcbor";
 import { Envelope, Function as EnvelopeFunction } from "@bcts/envelope";
 import { SealedRequest, SealedResponse } from "@bcts/gstp";
 import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
@@ -161,7 +162,7 @@ export class DkgInvite {
       .withParameter("minSigners", BigInt(this.minSigners()))
       .withParameter("charter", this.charter())
       .withDate(this.date())
-      .withParameter("validUntil", this.validUntil());
+      .withParameter("validUntil", CborDate.fromDatetime(this.validUntil()));
 
     for (const participant of this.participants()) {
       const xidDocumentEnvelope = participant.xidDocumentEnvelope();
@@ -350,10 +351,7 @@ export class DkgInvitation {
       recipientPrivateKeys,
     );
 
-    if (
-      expectedSender !== undefined &&
-      sealedRequest.sender().xid() !== expectedSender.xid()
-    ) {
+    if (expectedSender !== undefined && sealedRequest.sender().xid() !== expectedSender.xid()) {
       throw new Error("Invite sender does not match expected sender");
     }
 
@@ -395,7 +393,9 @@ export class DkgInvitation {
 
       const encryptedResponseArid = participant.objectForPredicate("response_arid");
       const responseAridEnvelope = encryptedResponseArid.decryptToRecipient(recipientPrivateKeys);
-      const responseArid: ARID = responseAridEnvelope.extractSubject();
+      const responseArid: ARID = responseAridEnvelope.extractSubject((cbor) =>
+        ARID.fromTaggedCbor(cbor),
+      );
 
       return new DkgInvitation(
         responseArid,

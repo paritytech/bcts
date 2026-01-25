@@ -16,9 +16,9 @@ export interface ParticipantAddOptions {
   /** Signed ur:xid document containing the participant's XID document */
   xidDocument: string;
   /** Optional human readable alias */
-  petName?: string;
+  petName?: string | undefined;
   /** Optional registry path or filename override */
-  registryPath?: string;
+  registryPath?: string | undefined;
 }
 
 /**

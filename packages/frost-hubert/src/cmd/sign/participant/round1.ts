@@ -63,6 +63,7 @@ export async function round1(
 
   if (options.groupId !== undefined && options.groupId !== "") {
     groupId = parseAridUr(options.groupId);
+
     stateDir = signingStateDir(registryPath, groupId.hex(), sessionId.hex());
     receiveStatePath = path.join(stateDir, "sign_receive.json");
   } else {
@@ -138,10 +139,15 @@ export async function round1(
       undefined,
     );
 
-    await putWithIndicator(client, responseArid, envelope, "Sending rejection", options.verbose ?? false);
+    await putWithIndicator(
+      client,
+      responseArid,
+      envelope,
+      "Sending rejection",
+      options.verbose ?? false,
+    );
 
     if (options.verbose === true) {
-      // eslint-disable-next-line no-console
       console.log(`Rejected sign invite: ${reason}`);
     }
 
@@ -174,11 +180,7 @@ export async function round1(
         requestId: ARID,
         recipient: unknown,
       ) => {
-        toEnvelope: (
-          senderXid: unknown,
-          recipientPrivateKeys: unknown,
-          extra: unknown,
-        ) => Envelope;
+        toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
       };
     };
   };
@@ -206,6 +208,7 @@ export async function round1(
   }
 
   // Save round 1 state
+
   const groupIdStr: string = groupId.urString();
   const commitState = {
     session: sessionId.urString(),
@@ -224,9 +227,7 @@ export async function round1(
   }
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Sent signing commitment`);
-    // eslint-disable-next-line no-console
     console.log(`Listening at: ${listeningArid.urString()}`);
   }
 

@@ -9,7 +9,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { type ARID, Date as BCDate, type Date as BCDateType, type XID } from "@bcts/components";
+import { type ARID, type XID } from "@bcts/components";
+import { CborDate } from "@bcts/dcbor";
 import type { Envelope } from "@bcts/envelope";
 
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
@@ -88,7 +89,7 @@ export async function receive(
       tryFromEnvelope: (
         envelope: Envelope,
         expectedSender: XID | undefined,
-        now: BCDate,
+        now: CborDate,
         recipientPrivateKeys: unknown,
       ) => SealedRequestInstance;
     };
@@ -113,7 +114,7 @@ export async function receive(
     };
   }
 
-  const now: BCDateType = BCDate.now() as BCDateType;
+  const now: CborDate = CborDate.now();
   const sealedRequest: SealedRequestInstance = SealedRequestClass.tryFromEnvelope(
     inviteEnvelope,
     undefined,
@@ -135,7 +136,7 @@ export async function receive(
   const groupId = sealedRequest.request().extractObjectForParameter("group") as ARID;
   const sessionId = sealedRequest.request().extractObjectForParameter("session") as ARID;
   const targetEnvelope = sealedRequest.request().extractObjectForParameter("target") as Envelope;
-  const validUntil = sealedRequest.request().extractObjectForParameter("validUntil") as BCDateType;
+  const validUntil = sealedRequest.request().extractObjectForParameter("validUntil") as CborDate;
 
   if (validUntil <= now) {
     throw new Error("Sign invite has expired");
@@ -172,7 +173,7 @@ export async function receive(
   const groupIdStr: string = groupId.urString();
   const responseAridStr: string = responseArid.urString();
   const targetStr: string = targetEnvelope.urString();
-  const validUntilStr: string = (validUntil as { toString(): string }).toString();
+  const validUntilStr: string = validUntil.toString();
   const coordinatorStr: string = sealedRequest.sender().xid().urString();
   const groupRecord = registry.group(groupId);
 
@@ -190,11 +191,8 @@ export async function receive(
   fs.writeFileSync(path.join(stateDir, "sign_receive.json"), JSON.stringify(receiveState, null, 2));
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Session ID: ${sessionIdStr}`);
-    // eslint-disable-next-line no-console
     console.log(`Group ID: ${groupIdStr}`);
-    // eslint-disable-next-line no-console
     console.log(`Response ARID: ${responseAridStr}`);
   }
 

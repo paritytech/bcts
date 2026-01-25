@@ -1,6 +1,6 @@
 {
   "name": "@bcts/envelope-cli",
-  "version": "1.0.0-alpha.16",
+  "version": "1.0.0-alpha.17",
   "type": "module",
   "description": "Gordian Envelope command line tool",
   "license": "BSD-2-Clause-Patent",

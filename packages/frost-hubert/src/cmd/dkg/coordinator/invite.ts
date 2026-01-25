@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { ARID, Date as BCDate } from "@bcts/components";
+import { ARID } from "@bcts/components";
 
 import { DkgInvite } from "../../../dkg/index.js";
 import {
@@ -92,10 +92,8 @@ export async function invite(
   const requestId = ARID.new();
 
   // Calculate dates
-  const now: BCDate = BCDate.now();
-  const validUntil: BCDate = BCDate.fromDate(
-    new Date(Date.now() + options.validDays * 24 * 60 * 60 * 1000),
-  );
+  const now = new Date();
+  const validUntil = new Date(Date.now() + options.validDays * 24 * 60 * 60 * 1000);
 
   // Create the invite
   const dkgInvite = DkgInvite.create(
@@ -168,9 +166,7 @@ export async function invite(
   fs.writeFileSync(path.join(stateDir, "invite.json"), JSON.stringify(inviteState, null, 2));
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Group ID: ${groupId.urString()}`);
-    // eslint-disable-next-line no-console
     console.log(`Start ARID: ${startArid.urString()}`);
   }
 

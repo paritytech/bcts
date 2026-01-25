@@ -69,6 +69,7 @@ export async function round2(
   }
 
   // Load round 1 state to get commitment packages
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _round1State: unknown = JSON.parse(fs.readFileSync(round1StatePath, "utf-8"));
 
   // Build targets for parallel fetch (from pending requests)
@@ -112,13 +113,9 @@ export async function round2(
   registry.save(registryPath);
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Collected ${responses.successes.size} secret shares`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.rejections.size} rejections`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.errors.size} errors`);
-    // eslint-disable-next-line no-console
     console.log(`  ${responses.timeouts.length} timeouts`);
   }
 

@@ -66,6 +66,7 @@ export async function finalize(
   }
 
   // Load round 2 state
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _round2State: unknown = JSON.parse(fs.readFileSync(round2StatePath, "utf-8"));
 
   // TODO: Load or generate public key package
@@ -89,6 +90,7 @@ export async function finalize(
   // Update registry with verifying key
   // TODO: Extract verifying key from public key package
   const verifyingKeyBytes = new Uint8Array(32); // Placeholder
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _verifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
   // groupRecord.setVerifyingKey(_verifyingKey);
 
@@ -104,10 +106,8 @@ export async function finalize(
   fs.writeFileSync(path.join(stateDir, "finalize.json"), JSON.stringify(finalizeState, null, 2));
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Dispatched ${result.successes.length} finalize packages`);
     if (result.errors.size > 0) {
-      // eslint-disable-next-line no-console
       console.log(`  ${result.errors.size} failed`);
     }
   }

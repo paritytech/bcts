@@ -2,7 +2,6 @@
   "extends": "@bcts/tsconfig/library.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "skipLibCheck": true,
     "types": ["vitest/globals"]
   },
   "include": [

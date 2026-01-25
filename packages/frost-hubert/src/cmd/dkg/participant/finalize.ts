@@ -84,6 +84,7 @@ export async function finalize(
 
   // Placeholder verifying key
   const verifyingKeyBytes = new Uint8Array(32);
+  // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _verifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
 
   // Save key package

@@ -61,6 +61,7 @@ export async function round2(
 
   if (options.groupId !== undefined && options.groupId !== "") {
     groupId = parseAridUr(options.groupId);
+
     stateDir = signingStateDir(registryPath, groupId.hex(), sessionId.hex());
     commitStatePath = path.join(stateDir, "commit.json");
   } else {
@@ -137,11 +138,7 @@ export async function round2(
         requestId: ARID,
         recipient: unknown,
       ) => {
-        toEnvelope: (
-          senderXid: unknown,
-          recipientPrivateKeys: unknown,
-          extra: unknown,
-        ) => Envelope;
+        toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
       };
     };
   };
@@ -156,7 +153,13 @@ export async function round2(
     undefined,
   );
 
-  await putWithIndicator(client, responseArid, envelope, "Sending signature share", options.verbose ?? false);
+  await putWithIndicator(
+    client,
+    responseArid,
+    envelope,
+    "Sending signature share",
+    options.verbose ?? false,
+  );
 
   if (groupId === undefined) {
     throw new Error("Group ID not found");
@@ -167,6 +170,7 @@ export async function round2(
   }
 
   // Save share state
+
   const groupIdStr: string = groupId.urString();
   const shareState = {
     session: sessionId.urString(),
@@ -185,9 +189,7 @@ export async function round2(
   }
 
   if (options.verbose === true) {
-    // eslint-disable-next-line no-console
     console.log(`Sent signature share`);
-    // eslint-disable-next-line no-console
     console.log(`Listening at: ${newListeningArid.urString()}`);
   }
 
