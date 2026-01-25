@@ -8,7 +8,7 @@
 
 import { type ARID } from "@bcts/components";
 import { hkdfHmacSha256 } from "@bcts/crypto";
-import { chacha20 } from "@noble/ciphers/chacha";
+import { chacha20 } from "@noble/ciphers/chacha.js";
 
 /**
  * Derive a deterministic key from an ARID using a specific salt.

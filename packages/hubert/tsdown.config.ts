@@ -20,6 +20,7 @@ export default defineConfig({
     "@bcts/crypto",
     "@bcts/envelope",
     "@noble/ciphers",
+    "@noble/curves",
     "better-sqlite3",
     "bittorrent-dht",
     "commander",

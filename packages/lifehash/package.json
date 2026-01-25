@@ -75,12 +75,12 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.6",
+    "@types/node": "^25.0.10",
     "eslint": "^9.39.2",
     "ts-node": "^10.9.2",
-    "typedoc": "^0.28.15",
-    "tsdown": "^0.19.0",
+    "typedoc": "^0.28.16",
+    "tsdown": "^0.20.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.18"
   }
 }
