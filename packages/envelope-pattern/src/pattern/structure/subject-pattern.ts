@@ -34,10 +34,10 @@ export type SubjectPatternType =
  * Corresponds to the Rust `SubjectPattern` enum in subject_pattern.rs
  */
 export class SubjectPattern implements Matcher {
-  readonly #pattern: SubjectPatternType;
+  private readonly _pattern: SubjectPatternType;
 
   private constructor(pattern: SubjectPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -58,26 +58,26 @@ export class SubjectPattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): SubjectPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the inner pattern if this is a Pattern type, undefined otherwise.
    */
   innerPattern(): Pattern | undefined {
-    return this.#pattern.type === "Pattern" ? this.#pattern.pattern : undefined;
+    return this._pattern.type === "Pattern" ? this._pattern.pattern : undefined;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     const subject = haystack.subject();
     let paths: Path[];
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         paths = [[subject]];
         break;
       case "Pattern": {
-        const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+        const innerMatcher = this._pattern.pattern as unknown as Matcher;
         if (innerMatcher.matches(subject)) {
           paths = [[subject]];
         } else {
@@ -99,7 +99,7 @@ export class SubjectPattern implements Matcher {
   }
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         code.push({ type: "NavigateSubject" });
         break;
@@ -108,7 +108,7 @@ export class SubjectPattern implements Matcher {
         code.push({ type: "NavigateSubject" });
         // Save the path and run the inner pattern relative to the subject
         code.push({ type: "ExtendTraversal" });
-        (this.#pattern.pattern as unknown as Matcher).compile(code, literals, captures);
+        (this._pattern.pattern as unknown as Matcher).compile(code, literals, captures);
         code.push({ type: "CombineTraversal" });
         break;
     }
@@ -119,11 +119,11 @@ export class SubjectPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "subj";
       case "Pattern":
-        return `subj(${(this.#pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `subj(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
     }
   }
 
@@ -131,15 +131,15 @@ export class SubjectPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: SubjectPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    if (this.#pattern.type === "Any") {
+    if (this._pattern.type === "Any") {
       return true;
     }
     // For Pattern type, compare the inner patterns
-    const thisPattern = (this.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
-    const otherPattern = (other.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const thisPattern = (this._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const otherPattern = (other._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
     return thisPattern === otherPattern; // Reference equality for now
   }
 
@@ -147,6 +147,6 @@ export class SubjectPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#pattern.type === "Any" ? 0 : 1;
+    return this._pattern.type === "Any" ? 0 : 1;
   }
 }

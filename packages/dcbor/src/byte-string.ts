@@ -44,7 +44,7 @@ import { CborError } from "./error";
  * ```
  */
 export class ByteString {
-  #data: Uint8Array;
+  private _data: Uint8Array;
 
   /**
    * Creates a new `ByteString` from a Uint8Array or array of bytes.
@@ -62,9 +62,9 @@ export class ByteString {
    */
   constructor(data: Uint8Array | number[]) {
     if (Array.isArray(data)) {
-      this.#data = new Uint8Array(data);
+      this._data = new Uint8Array(data);
     } else {
-      this.#data = new Uint8Array(data);
+      this._data = new Uint8Array(data);
     }
   }
 
@@ -103,7 +103,7 @@ export class ByteString {
    * ```
    */
   data(): Uint8Array {
-    return this.#data;
+    return this._data;
   }
 
   /**
@@ -121,7 +121,7 @@ export class ByteString {
    * ```
    */
   len(): number {
-    return this.#data.length;
+    return this._data.length;
   }
 
   /**
@@ -139,7 +139,7 @@ export class ByteString {
    * ```
    */
   isEmpty(): boolean {
-    return this.#data.length === 0;
+    return this._data.length === 0;
   }
 
   /**
@@ -160,10 +160,10 @@ export class ByteString {
    */
   extend(other: Uint8Array | number[]): void {
     const otherArray = Array.isArray(other) ? new Uint8Array(other) : other;
-    const newData = new Uint8Array(this.#data.length + otherArray.length);
-    newData.set(this.#data, 0);
-    newData.set(otherArray, this.#data.length);
-    this.#data = newData;
+    const newData = new Uint8Array(this._data.length + otherArray.length);
+    newData.set(this._data, 0);
+    newData.set(otherArray, this._data.length);
+    this._data = newData;
   }
 
   /**
@@ -184,7 +184,7 @@ export class ByteString {
    * ```
    */
   toUint8Array(): Uint8Array {
-    return new Uint8Array(this.#data);
+    return new Uint8Array(this._data);
   }
 
   /**
@@ -211,7 +211,7 @@ export class ByteString {
    * ```
    */
   iter(): Iterator<number> {
-    return this.#data.values();
+    return this._data.values();
   }
 
   /**
@@ -233,7 +233,7 @@ export class ByteString {
    * ```
    */
   toCbor(): Cbor {
-    return toCbor(this.#data);
+    return toCbor(this._data);
   }
 
   /**
@@ -272,7 +272,7 @@ export class ByteString {
    * @returns Byte at index or undefined
    */
   at(index: number): number | undefined {
-    return this.#data[index];
+    return this._data[index];
   }
 
   /**
@@ -282,9 +282,9 @@ export class ByteString {
    * @returns true if equal
    */
   equals(other: ByteString): boolean {
-    if (this.#data.length !== other.#data.length) return false;
-    for (let i = 0; i < this.#data.length; i++) {
-      if (this.#data[i] !== other.#data[i]) return false;
+    if (this._data.length !== other._data.length) return false;
+    for (let i = 0; i < this._data.length; i++) {
+      if (this._data[i] !== other._data[i]) return false;
     }
     return true;
   }

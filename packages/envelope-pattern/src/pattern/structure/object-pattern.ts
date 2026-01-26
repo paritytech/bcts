@@ -34,10 +34,10 @@ export type ObjectPatternType =
  * Corresponds to the Rust `ObjectPattern` enum in object_pattern.rs
  */
 export class ObjectPattern implements Matcher {
-  readonly #pattern: ObjectPatternType;
+  private readonly _pattern: ObjectPatternType;
 
   private constructor(pattern: ObjectPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -58,14 +58,14 @@ export class ObjectPattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): ObjectPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the inner pattern if this is a Pattern type, undefined otherwise.
    */
   innerPattern(): Pattern | undefined {
-    return this.#pattern.type === "Pattern" ? this.#pattern.pattern : undefined;
+    return this._pattern.type === "Pattern" ? this._pattern.pattern : undefined;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -77,12 +77,12 @@ export class ObjectPattern implements Matcher {
 
     let paths: Path[];
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         paths = [[object]];
         break;
       case "Pattern": {
-        const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+        const innerMatcher = this._pattern.pattern as unknown as Matcher;
         if (innerMatcher.matches(object)) {
           paths = [[object]];
         } else {
@@ -117,11 +117,11 @@ export class ObjectPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "obj";
       case "Pattern":
-        return `obj(${(this.#pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `obj(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
     }
   }
 
@@ -129,14 +129,14 @@ export class ObjectPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: ObjectPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    if (this.#pattern.type === "Any") {
+    if (this._pattern.type === "Any") {
       return true;
     }
-    const thisPattern = (this.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
-    const otherPattern = (other.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const thisPattern = (this._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const otherPattern = (other._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
     return thisPattern === otherPattern;
   }
 
@@ -144,6 +144,6 @@ export class ObjectPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#pattern.type === "Any" ? 0 : 1;
+    return this._pattern.type === "Any" ? 0 : 1;
   }
 }

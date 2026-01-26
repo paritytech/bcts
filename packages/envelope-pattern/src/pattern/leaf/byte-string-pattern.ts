@@ -39,10 +39,10 @@ export function registerByteStringPatternFactory(
  * Corresponds to the Rust `ByteStringPattern` struct in byte_string_pattern.rs
  */
 export class ByteStringPattern implements Matcher {
-  readonly #inner: DCBORByteStringPattern;
+  private readonly _inner: DCBORByteStringPattern;
 
   private constructor(inner: DCBORByteStringPattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -77,7 +77,7 @@ export class ByteStringPattern implements Matcher {
    * Gets the underlying dcbor-pattern ByteStringPattern.
    */
   get inner(): DCBORByteStringPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -85,7 +85,7 @@ export class ByteStringPattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborByteStringPatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborByteStringPatternPaths(this._inner, cbor);
 
       // For simple leaf patterns, if dcbor-pattern found matches, return the envelope
       if (dcborPaths.length > 0) {
@@ -117,22 +117,22 @@ export class ByteStringPattern implements Matcher {
   }
 
   toString(): string {
-    return byteStringPatternDisplay(this.#inner);
+    return byteStringPatternDisplay(this._inner);
   }
 
   /**
    * Equality comparison.
    */
   equals(other: ByteStringPattern): boolean {
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return true;
       case "Value": {
-        const a = (this.#inner as { value: Uint8Array }).value;
-        const b = (other.#inner as { value: Uint8Array }).value;
+        const a = (this._inner as { value: Uint8Array }).value;
+        const b = (other._inner as { value: Uint8Array }).value;
         if (a.length !== b.length) return false;
         for (let i = 0; i < a.length; i++) {
           if (a[i] !== b[i]) return false;
@@ -141,8 +141,8 @@ export class ByteStringPattern implements Matcher {
       }
       case "BinaryRegex":
         return (
-          (this.#inner as { pattern: RegExp }).pattern.source ===
-          (other.#inner as { pattern: RegExp }).pattern.source
+          (this._inner as { pattern: RegExp }).pattern.source ===
+          (other._inner as { pattern: RegExp }).pattern.source
         );
     }
   }
@@ -152,19 +152,19 @@ export class ByteStringPattern implements Matcher {
    */
   hashCode(): number {
     let hash = 0;
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         hash = 1;
         break;
       case "Value": {
-        const val = (this.#inner as { value: Uint8Array }).value;
+        const val = (this._inner as { value: Uint8Array }).value;
         for (const byte of val) {
           hash = hash * 31 + byte;
         }
         break;
       }
       case "BinaryRegex":
-        hash = 3 * 31 + (this.#inner as { pattern: RegExp }).pattern.source.length;
+        hash = 3 * 31 + (this._inner as { pattern: RegExp }).pattern.source.length;
         break;
     }
     return hash;

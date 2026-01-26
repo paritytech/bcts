@@ -44,14 +44,14 @@ export interface MapEntry {
  * encoded CBOR representation, ensuring deterministic encoding.
  */
 export class CborMap {
-  #dict: SortedMap<MapKey, MapEntry>;
+  private _dict: SortedMap<MapKey, MapEntry>;
 
   /**
    * Creates a new, empty CBOR Map.
    * Optionally initializes from a JavaScript Map.
    */
   constructor(map?: Map<unknown, unknown>) {
-    this.#dict = new SortedMap(null, areBytesEqual, lexicographicallyCompareBytes);
+    this._dict = new SortedMap(null, areBytesEqual, lexicographicallyCompareBytes);
 
     if (map !== undefined) {
       for (const [key, value] of map.entries()) {
@@ -76,7 +76,7 @@ export class CborMap {
     const keyCbor = cbor(key);
     const valueCbor = cbor(value);
     const keyData = cborData(keyCbor);
-    this.#dict.set(keyData, { key: keyCbor, value: valueCbor });
+    this._dict.set(keyData, { key: keyCbor, value: valueCbor });
   }
 
   /**
@@ -86,7 +86,7 @@ export class CborMap {
     this.set(key, value);
   }
 
-  #makeKey<K extends CborInput>(key: K): MapKey {
+  private _makeKey<K extends CborInput>(key: K): MapKey {
     const keyCbor = cbor(key);
     return cborData(keyCbor);
   }
@@ -97,8 +97,8 @@ export class CborMap {
    * Matches Rust's Map::get().
    */
   get<K extends CborInput, V>(key: K): V | undefined {
-    const keyData = this.#makeKey(key);
-    const value = this.#dict.get(keyData);
+    const keyData = this._makeKey(key);
+    const value = this._dict.get(keyData);
     if (value === undefined) {
       return undefined;
     }
@@ -124,24 +124,24 @@ export class CborMap {
    * Matches Rust's Map::contains_key().
    */
   containsKey<K extends CborInput>(key: K): boolean {
-    const keyData = this.#makeKey(key);
-    return this.#dict.has(keyData);
+    const keyData = this._makeKey(key);
+    return this._dict.has(keyData);
   }
 
   delete<K extends CborInput>(key: K): boolean {
-    const keyData = this.#makeKey(key);
-    const existed = this.#dict.has(keyData);
-    this.#dict.delete(keyData);
+    const keyData = this._makeKey(key);
+    const existed = this._dict.has(keyData);
+    this._dict.delete(keyData);
     return existed;
   }
 
   has<K extends CborInput>(key: K): boolean {
-    const keyData = this.#makeKey(key);
-    return this.#dict.has(keyData);
+    const keyData = this._makeKey(key);
+    return this._dict.has(keyData);
   }
 
   clear(): void {
-    this.#dict = new SortedMap(null, areBytesEqual, lexicographicallyCompareBytes);
+    this._dict = new SortedMap(null, areBytesEqual, lexicographicallyCompareBytes);
   }
 
   /**
@@ -149,7 +149,7 @@ export class CborMap {
    * Matches Rust's Map::len().
    */
   get length(): number {
-    return this.#dict.length;
+    return this._dict.length;
   }
 
   /**
@@ -157,7 +157,7 @@ export class CborMap {
    * Also matches Rust's Map::len().
    */
   get size(): number {
-    return this.#dict.length;
+    return this._dict.length;
   }
 
   /**
@@ -165,7 +165,7 @@ export class CborMap {
    * Matches Rust's Map::len().
    */
   len(): number {
-    return this.#dict.length;
+    return this._dict.length;
   }
 
   /**
@@ -173,7 +173,7 @@ export class CborMap {
    * Matches Rust's Map::is_empty().
    */
   isEmpty(): boolean {
-    return this.#dict.length === 0;
+    return this._dict.length === 0;
   }
 
   /**
@@ -181,7 +181,7 @@ export class CborMap {
    * Keys are sorted in lexicographic order of their encoded CBOR bytes.
    */
   get entriesArray(): MapEntry[] {
-    return this.#dict.map((value: MapEntry, _key: MapKey) => ({
+    return this._dict.map((value: MapEntry, _key: MapKey) => ({
       key: value.key,
       value: value.value,
     }));
@@ -213,21 +213,21 @@ export class CborMap {
    * Matches Rust's Map::insert_next().
    */
   setNext<K extends CborInput, V extends CborInput>(key: K, value: V): void {
-    const lastEntry = this.#dict.max();
+    const lastEntry = this._dict.max();
     if (lastEntry === undefined) {
       this.set(key, value);
       return;
     }
     const keyCbor = cbor(key);
     const newKey = cborData(keyCbor);
-    if (this.#dict.has(newKey)) {
+    if (this._dict.has(newKey)) {
       throw new CborError({ type: "DuplicateMapKey" });
     }
-    const lastEntryKey = this.#makeKey(lastEntry.key);
+    const lastEntryKey = this._makeKey(lastEntry.key);
     if (lexicographicallyCompareBytes(newKey, lastEntryKey) <= 0) {
       throw new CborError({ type: "MisorderedMapKey" });
     }
-    this.#dict.set(newKey, { key: keyCbor, value: cbor(value) });
+    this._dict.set(newKey, { key: keyCbor, value: cbor(value) });
   }
 
   get debug(): string {

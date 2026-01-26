@@ -89,9 +89,9 @@ export interface TagsStoreTrait {
  * Stores tags with their names and optional summarizer functions.
  */
 export class TagsStore implements TagsStoreTrait {
-  readonly #tagsByValue = new Map<string, Tag>();
-  readonly #tagsByName = new Map<string, Tag>();
-  readonly #summarizers = new Map<string, CborSummarizer>();
+  private readonly _tagsByValue = new Map<string, Tag>();
+  private readonly _tagsByName = new Map<string, Tag>();
+  private readonly _summarizers = new Map<string, CborSummarizer>();
 
   constructor() {
     // Start with empty store, matching Rust's Default implementation
@@ -123,8 +123,8 @@ export class TagsStore implements TagsStoreTrait {
       throw new Error(`Tag ${tag.value} must have a non-empty name`);
     }
 
-    const key = this.#valueKey(tag.value);
-    const existing = this.#tagsByValue.get(key);
+    const key = this._valueKey(tag.value);
+    const existing = this._tagsByValue.get(key);
 
     // Rust: if old_name != name { panic!(...) }
     if (existing?.name !== undefined && existing.name !== name) {
@@ -133,8 +133,8 @@ export class TagsStore implements TagsStoreTrait {
       );
     }
 
-    this.#tagsByValue.set(key, tag);
-    this.#tagsByName.set(name, tag);
+    this._tagsByValue.set(key, tag);
+    this._tagsByName.set(name, tag);
   }
 
   /**
@@ -173,13 +173,13 @@ export class TagsStore implements TagsStoreTrait {
    * ```
    */
   setSummarizer(tagValue: CborNumber, summarizer: CborSummarizer): void {
-    const key = this.#valueKey(tagValue);
-    this.#summarizers.set(key, summarizer);
+    const key = this._valueKey(tagValue);
+    this._summarizers.set(key, summarizer);
   }
 
   assignedNameForTag(tag: Tag): string | undefined {
-    const key = this.#valueKey(tag.value);
-    const stored = this.#tagsByValue.get(key);
+    const key = this._valueKey(tag.value);
+    const stored = this._tagsByValue.get(key);
     return stored?.name;
   }
 
@@ -188,12 +188,12 @@ export class TagsStore implements TagsStoreTrait {
   }
 
   tagForValue(value: CborNumber): Tag | undefined {
-    const key = this.#valueKey(value);
-    return this.#tagsByValue.get(key);
+    const key = this._valueKey(value);
+    return this._tagsByValue.get(key);
   }
 
   tagForName(name: string): Tag | undefined {
-    return this.#tagsByName.get(name);
+    return this._tagsByName.get(name);
   }
 
   nameForValue(value: CborNumber): string {
@@ -202,8 +202,8 @@ export class TagsStore implements TagsStoreTrait {
   }
 
   summarizer(tag: CborNumber): CborSummarizer | undefined {
-    const key = this.#valueKey(tag);
-    return this.#summarizers.get(key);
+    const key = this._valueKey(tag);
+    return this._summarizers.get(key);
   }
 
   /**
@@ -212,7 +212,7 @@ export class TagsStore implements TagsStoreTrait {
    *
    * @private
    */
-  #valueKey(value: CborNumber): string {
+  private _valueKey(value: CborNumber): string {
     return value.toString();
   }
 }

@@ -183,31 +183,31 @@ function isHexDigit(ch: string): boolean {
  * Lexer for Gordian Envelope pattern syntax.
  */
 export class Lexer {
-  readonly #source: string;
-  #position = 0;
-  #tokenStart = 0;
-  #peekedToken: { token: Token; span: Span } | undefined = undefined;
+  private readonly _source: string;
+  private _position = 0;
+  private _tokenStart = 0;
+  private _peekedToken: { token: Token; span: Span } | undefined = undefined;
 
   constructor(source: string) {
-    this.#source = source;
+    this._source = source;
   }
 
   /**
    * Gets the current position in the source.
    */
   get position(): number {
-    return this.#position;
+    return this._position;
   }
 
   /**
    * Peeks at the next token without consuming it.
    */
   peekToken(): { token: Token; span: Span } | undefined {
-    if (this.#peekedToken !== undefined) {
-      return this.#peekedToken;
+    if (this._peekedToken !== undefined) {
+      return this._peekedToken;
     }
     const result = this.next();
-    this.#peekedToken = result;
+    this._peekedToken = result;
     return result;
   }
 
@@ -215,51 +215,51 @@ export class Lexer {
    * Gets the current span (from token start to current position).
    */
   span(): Span {
-    return { start: this.#tokenStart, end: this.#position };
+    return { start: this._tokenStart, end: this._position };
   }
 
   /**
    * Gets the remaining source string.
    */
   remainder(): string {
-    return this.#source.slice(this.#position);
+    return this._source.slice(this._position);
   }
 
   /**
    * Peeks at the current character without consuming it.
    */
   peek(): string | undefined {
-    if (this.#position >= this.#source.length) {
+    if (this._position >= this._source.length) {
       return undefined;
     }
-    return this.#source[this.#position];
+    return this._source[this._position];
   }
 
   /**
    * Peeks at the next character without consuming current.
    */
   peekNext(): string | undefined {
-    if (this.#position + 1 >= this.#source.length) {
+    if (this._position + 1 >= this._source.length) {
       return undefined;
     }
-    return this.#source[this.#position + 1];
+    return this._source[this._position + 1];
   }
 
   /**
    * Advances the position by n characters.
    */
   bump(n = 1): void {
-    this.#position = Math.min(this.#position + n, this.#source.length);
+    this._position = Math.min(this._position + n, this._source.length);
   }
 
   /**
    * Skips whitespace.
    */
-  #skipWhitespace(): void {
-    while (this.#position < this.#source.length) {
-      const ch = this.#source[this.#position];
+  private _skipWhitespace(): void {
+    while (this._position < this._source.length) {
+      const ch = this._source[this._position];
       if (ch !== undefined && isWhitespace(ch)) {
-        this.#position++;
+        this._position++;
       } else {
         break;
       }
@@ -269,7 +269,7 @@ export class Lexer {
   /**
    * Parses a string literal (after the opening quote).
    */
-  #parseStringLiteral(): Result<string> {
+  private _parseStringLiteral(): Result<string> {
     const src = this.remainder();
     let escape = false;
     let content = "";
@@ -323,7 +323,7 @@ export class Lexer {
   /**
    * Parses a regex pattern (after the opening slash).
    */
-  #parseRegex(): Result<string> {
+  private _parseRegex(): Result<string> {
     const src = this.remainder();
     let escape = false;
 
@@ -358,7 +358,7 @@ export class Lexer {
   /**
    * Parses a hex pattern (after h').
    */
-  #parseHexPattern(): Result<Uint8Array> {
+  private _parseHexPattern(): Result<Uint8Array> {
     const src = this.remainder();
 
     for (let i = 0; i < src.length; i++) {
@@ -397,7 +397,7 @@ export class Lexer {
   /**
    * Parses a hex binary regex (after h'/).
    */
-  #parseHexBinaryRegex(): Result<string> {
+  private _parseHexBinaryRegex(): Result<string> {
     const src = this.remainder();
     let escape = false;
 
@@ -436,7 +436,7 @@ export class Lexer {
   /**
    * Parses a date pattern (after date').
    */
-  #parseDatePattern(): Result<string> {
+  private _parseDatePattern(): Result<string> {
     const src = this.remainder();
 
     for (let i = 0; i < src.length; i++) {
@@ -455,7 +455,7 @@ export class Lexer {
   /**
    * Parses a range pattern (after {).
    */
-  #parseRange(): Result<Quantifier> {
+  private _parseRange(): Result<Quantifier> {
     const src = this.remainder();
     let pos = 0;
 
@@ -554,7 +554,7 @@ export class Lexer {
   /**
    * Parses a single quoted pattern (after ').
    */
-  #parseSingleQuotedPattern(): Result<string> {
+  private _parseSingleQuotedPattern(): Result<string> {
     const src = this.remainder();
 
     for (let i = 0; i < src.length; i++) {
@@ -573,7 +573,7 @@ export class Lexer {
   /**
    * Parses a single quoted regex (after '/).
    */
-  #parseSingleQuotedRegex(): Result<string> {
+  private _parseSingleQuotedRegex(): Result<string> {
     const src = this.remainder();
     let escape = false;
 
@@ -612,8 +612,8 @@ export class Lexer {
   /**
    * Parses a number (integer or float).
    */
-  #parseNumber(): Token {
-    const startPos = this.#position;
+  private _parseNumber(): Token {
+    const startPos = this._position;
     let isFloat = false;
     let isNegative = false;
 
@@ -662,7 +662,7 @@ export class Lexer {
       }
     }
 
-    const numStr = this.#source.slice(startPos, this.#position);
+    const numStr = this._source.slice(startPos, this._position);
 
     if (isFloat) {
       const value = parseFloat(numStr);
@@ -688,25 +688,25 @@ export class Lexer {
    */
   next(): { token: Token; span: Span } | undefined {
     // Return peeked token if available
-    if (this.#peekedToken !== undefined) {
-      const peeked = this.#peekedToken;
-      this.#peekedToken = undefined;
+    if (this._peekedToken !== undefined) {
+      const peeked = this._peekedToken;
+      this._peekedToken = undefined;
       return peeked;
     }
 
-    this.#skipWhitespace();
-    this.#tokenStart = this.#position;
+    this._skipWhitespace();
+    this._tokenStart = this._position;
 
-    if (this.#position >= this.#source.length) {
+    if (this._position >= this._source.length) {
       return undefined;
     }
 
-    const ch = this.#source[this.#position];
+    const ch = this._source[this._position];
     if (ch === undefined) return undefined;
 
     // Check for two-character operators first
-    const twoChar = this.#source.slice(this.#position, this.#position + 2);
-    const threeChar = this.#source.slice(this.#position, this.#position + 3);
+    const twoChar = this._source.slice(this._position, this._position + 2);
+    const threeChar = this._source.slice(this._position, this._position + 3);
 
     // Check for ... (ellipsis)
     if (threeChar === "...") {
@@ -715,7 +715,7 @@ export class Lexer {
     }
 
     // Check for -Infinity
-    if (this.#source.slice(this.#position, this.#position + 9) === "-Infinity") {
+    if (this._source.slice(this._position, this._position + 9) === "-Infinity") {
       this.bump(9);
       return { token: { type: "NegativeInfinity" }, span: this.span() };
     }
@@ -755,16 +755,16 @@ export class Lexer {
         if (this.peek() === "/") {
           this.bump(1);
           return {
-            token: { type: "HexBinaryRegex", value: this.#parseHexBinaryRegex() },
+            token: { type: "HexBinaryRegex", value: this._parseHexBinaryRegex() },
             span: this.span(),
           };
         }
-        return { token: { type: "HexPattern", value: this.#parseHexPattern() }, span: this.span() };
+        return { token: { type: "HexPattern", value: this._parseHexPattern() }, span: this.span() };
       }
       case "'/":
         this.bump(2);
         return {
-          token: { type: "SingleQuotedRegex", value: this.#parseSingleQuotedRegex() },
+          token: { type: "SingleQuotedRegex", value: this._parseSingleQuotedRegex() },
           span: this.span(),
         };
     }
@@ -813,25 +813,25 @@ export class Lexer {
       case '"':
         this.bump(1);
         return {
-          token: { type: "StringLiteral", value: this.#parseStringLiteral() },
+          token: { type: "StringLiteral", value: this._parseStringLiteral() },
           span: this.span(),
         };
       case "/":
         this.bump(1);
-        return { token: { type: "Regex", value: this.#parseRegex() }, span: this.span() };
+        return { token: { type: "Regex", value: this._parseRegex() }, span: this.span() };
       case "{":
         this.bump(1);
-        return { token: { type: "Range", value: this.#parseRange() }, span: this.span() };
+        return { token: { type: "Range", value: this._parseRange() }, span: this.span() };
       case "'":
         this.bump(1);
         return {
-          token: { type: "SingleQuotedPattern", value: this.#parseSingleQuotedPattern() },
+          token: { type: "SingleQuotedPattern", value: this._parseSingleQuotedPattern() },
           span: this.span(),
         };
       case "@": {
         // Group name
         this.bump(1);
-        const start = this.#position;
+        const start = this._position;
         let gc = this.peek();
         if (gc !== undefined && isIdentStart(gc)) {
           gc = this.peek();
@@ -839,7 +839,7 @@ export class Lexer {
             this.bump(1);
             gc = this.peek();
           }
-          const name = this.#source.slice(start, this.#position);
+          const name = this._source.slice(start, this._position);
           return { token: { type: "GroupName", name }, span: this.span() };
         }
         // Invalid group name, return as error token
@@ -848,26 +848,26 @@ export class Lexer {
     }
 
     // Check for date' pattern
-    if (this.#source.slice(this.#position, this.#position + 5) === "date'") {
+    if (this._source.slice(this._position, this._position + 5) === "date'") {
       this.bump(5);
-      return { token: { type: "DatePattern", value: this.#parseDatePattern() }, span: this.span() };
+      return { token: { type: "DatePattern", value: this._parseDatePattern() }, span: this.span() };
     }
 
     // Check for number (including negative)
     const nextChar = this.peekNext();
     if (isDigit(ch) || (ch === "-" && nextChar !== undefined && isDigit(nextChar))) {
-      return { token: this.#parseNumber(), span: this.span() };
+      return { token: this._parseNumber(), span: this.span() };
     }
 
     // Check for identifier/keyword
     if (isIdentStart(ch)) {
-      const start = this.#position;
+      const start = this._position;
       let ic = this.peek();
       while (ic !== undefined && isIdentContinue(ic)) {
         this.bump(1);
         ic = this.peek();
       }
-      const ident = this.#source.slice(start, this.#position);
+      const ident = this._source.slice(start, this._position);
 
       // Check for keywords
       const keyword = KEYWORDS.get(ident);

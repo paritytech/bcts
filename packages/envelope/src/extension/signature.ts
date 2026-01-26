@@ -58,7 +58,7 @@ export const NOTE = "note";
  * Metadata that can be attached to a signature.
  */
 export class SignatureMetadata {
-  readonly #assertions: [string, unknown][] = [];
+  private readonly _assertions: [string, unknown][] = [];
 
   /**
    * Creates a new SignatureMetadata instance.
@@ -79,8 +79,8 @@ export class SignatureMetadata {
    */
   withAssertion(predicate: string, object: unknown): SignatureMetadata {
     const metadata = new SignatureMetadata();
-    metadata.#assertions.push(...this.#assertions);
-    metadata.#assertions.push([predicate, object]);
+    metadata._assertions.push(...this._assertions);
+    metadata._assertions.push([predicate, object]);
     return metadata;
   }
 
@@ -88,7 +88,7 @@ export class SignatureMetadata {
    * Returns all assertions in this metadata.
    */
   assertions(): readonly [string, unknown][] {
-    return this.#assertions;
+    return this._assertions;
   }
 }
 

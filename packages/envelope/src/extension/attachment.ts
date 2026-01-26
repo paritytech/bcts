@@ -40,7 +40,7 @@ export const CONFORMS_TO = "conformsTo";
  * to envelopes without modifying their core structure.
  */
 export class Attachments {
-  readonly #envelopes = new Map<string, Envelope>();
+  private readonly _envelopes = new Map<string, Envelope>();
 
   /**
    * Creates a new empty attachments container.
@@ -57,7 +57,7 @@ export class Attachments {
    */
   add(payload: EnvelopeEncodableValue, vendor: string, conformsTo?: string): void {
     const attachment = Envelope.newAttachment(payload, vendor, conformsTo);
-    this.#envelopes.set(attachment.digest().hex(), attachment);
+    this._envelopes.set(attachment.digest().hex(), attachment);
   }
 
   /**
@@ -67,7 +67,7 @@ export class Attachments {
    * @returns The envelope if found, or undefined
    */
   get(digest: Digest): Envelope | undefined {
-    return this.#envelopes.get(digest.hex());
+    return this._envelopes.get(digest.hex());
   }
 
   /**
@@ -77,8 +77,8 @@ export class Attachments {
    * @returns The removed envelope if found, or undefined
    */
   remove(digest: Digest): Envelope | undefined {
-    const envelope = this.#envelopes.get(digest.hex());
-    this.#envelopes.delete(digest.hex());
+    const envelope = this._envelopes.get(digest.hex());
+    this._envelopes.delete(digest.hex());
     return envelope;
   }
 
@@ -86,14 +86,14 @@ export class Attachments {
    * Removes all attachments from the container.
    */
   clear(): void {
-    this.#envelopes.clear();
+    this._envelopes.clear();
   }
 
   /**
    * Returns whether the container has any attachments.
    */
   isEmpty(): boolean {
-    return this.#envelopes.size === 0;
+    return this._envelopes.size === 0;
   }
 
   /**
@@ -104,7 +104,7 @@ export class Attachments {
    */
   addToEnvelope(envelope: Envelope): Envelope {
     let result = envelope;
-    for (const attachment of this.#envelopes.values()) {
+    for (const attachment of this._envelopes.values()) {
       result = result.addAssertion(ATTACHMENT, attachment);
     }
     return result;
@@ -121,7 +121,7 @@ export class Attachments {
     const attachmentEnvelopes = envelope.attachments();
 
     for (const attachment of attachmentEnvelopes) {
-      attachments.#envelopes.set(attachment.digest().hex(), attachment);
+      attachments._envelopes.set(attachment.digest().hex(), attachment);
     }
 
     return attachments;

@@ -19,18 +19,18 @@ import { GenericBacktracker, BooleanBacktrackState, AssignmentBacktrackState } f
  * collection.
  */
 export class SequenceAssigner {
-  readonly #patterns: Pattern[];
-  readonly #arr: Cbor[];
-  readonly #matchFn: (pattern: Pattern, value: Cbor) => boolean;
+  private readonly _patterns: Pattern[];
+  private readonly _arr: Cbor[];
+  private readonly _matchFn: (pattern: Pattern, value: Cbor) => boolean;
 
   constructor(
     patterns: Pattern[],
     arr: Cbor[],
     matchFn: (pattern: Pattern, value: Cbor) => boolean,
   ) {
-    this.#patterns = patterns;
-    this.#arr = arr;
-    this.#matchFn = matchFn;
+    this._patterns = patterns;
+    this._arr = arr;
+    this._matchFn = matchFn;
   }
 
   /**
@@ -38,21 +38,21 @@ export class SequenceAssigner {
    */
   canMatch(): boolean {
     // Simple case: if no patterns, then empty array should match
-    if (this.#patterns.length === 0) {
-      return this.#arr.length === 0;
+    if (this._patterns.length === 0) {
+      return this._arr.length === 0;
     }
 
     // Check if we have any repeat patterns that require backtracking
-    const hasRepeatPatterns = hasRepeatPatternsInSlice(this.#patterns);
+    const hasRepeatPatterns = hasRepeatPatternsInSlice(this._patterns);
 
     // Simple case: if pattern count equals element count AND no repeat patterns
-    if (this.#patterns.length === this.#arr.length && !hasRepeatPatterns) {
+    if (this._patterns.length === this._arr.length && !hasRepeatPatterns) {
       // Try one-to-one matching
-      return this.#patterns.every((pattern, i) => this.#matchFn(pattern, this.#arr[i]));
+      return this._patterns.every((pattern, i) => this._matchFn(pattern, this._arr[i]));
     }
 
     // Complex case: use generic backtracking framework
-    const backtracker = new GenericBacktracker(this.#patterns, this.#arr, this.#matchFn);
+    const backtracker = new GenericBacktracker(this._patterns, this._arr, this._matchFn);
     const state = new BooleanBacktrackState();
     return backtracker.backtrack(state, 0, 0);
   }
@@ -62,20 +62,20 @@ export class SequenceAssigner {
    */
   findAssignments(): [number, number][] | undefined {
     // Simple case: if no patterns, then empty array should match
-    if (this.#patterns.length === 0) {
-      return this.#arr.length === 0 ? [] : undefined;
+    if (this._patterns.length === 0) {
+      return this._arr.length === 0 ? [] : undefined;
     }
 
     // Check if we have any repeat patterns that require backtracking
-    const hasRepeatPatterns = hasRepeatPatternsInSlice(this.#patterns);
+    const hasRepeatPatterns = hasRepeatPatternsInSlice(this._patterns);
 
     // Simple case: if pattern count equals element count AND no repeat patterns
-    if (this.#patterns.length === this.#arr.length && !hasRepeatPatterns) {
+    if (this._patterns.length === this._arr.length && !hasRepeatPatterns) {
       const assignments: [number, number][] = [];
-      for (let patternIdx = 0; patternIdx < this.#patterns.length; patternIdx++) {
-        const pattern = this.#patterns[patternIdx];
-        const element = this.#arr[patternIdx];
-        if (this.#matchFn(pattern, element)) {
+      for (let patternIdx = 0; patternIdx < this._patterns.length; patternIdx++) {
+        const pattern = this._patterns[patternIdx];
+        const element = this._arr[patternIdx];
+        if (this._matchFn(pattern, element)) {
           assignments.push([patternIdx, patternIdx]);
         } else {
           return undefined; // Pattern doesn't match its corresponding element
@@ -85,7 +85,7 @@ export class SequenceAssigner {
     }
 
     // Complex case: use generic backtracking framework
-    const backtracker = new GenericBacktracker(this.#patterns, this.#arr, this.#matchFn);
+    const backtracker = new GenericBacktracker(this._patterns, this._arr, this._matchFn);
     const state = new AssignmentBacktrackState();
     if (backtracker.backtrack(state, 0, 0)) {
       return state.assignments;

@@ -25,9 +25,9 @@ import { CborMap } from "@bcts/dcbor";
 /// instead use `Envelope.newAssertion()`, or the various functions
 /// on `Envelope` that create assertions.
 export class Assertion implements DigestProvider {
-  readonly #predicate: Envelope;
-  readonly #object: Envelope;
-  readonly #digest: Digest;
+  private readonly _predicate: Envelope;
+  private readonly _object: Envelope;
+  private readonly _digest: Digest;
 
   /// Creates a new assertion and calculates its digest.
   ///
@@ -57,9 +57,9 @@ export class Assertion implements DigestProvider {
   /// const person = Envelope.new("person").addAssertion("name", "Alice");
   /// ```
   constructor(predicate: EnvelopeEncodable | Envelope, object: EnvelopeEncodable | Envelope) {
-    this.#predicate = predicate instanceof Envelope ? predicate : Envelope.new(predicate);
-    this.#object = object instanceof Envelope ? object : Envelope.new(object);
-    this.#digest = Digest.fromDigests([this.#predicate.digest(), this.#object.digest()]);
+    this._predicate = predicate instanceof Envelope ? predicate : Envelope.new(predicate);
+    this._object = object instanceof Envelope ? object : Envelope.new(object);
+    this._digest = Digest.fromDigests([this._predicate.digest(), this._object.digest()]);
   }
 
   /// Returns the predicate of the assertion.
@@ -69,7 +69,7 @@ export class Assertion implements DigestProvider {
   ///
   /// @returns A clone of the assertion's predicate envelope.
   predicate(): Envelope {
-    return this.#predicate;
+    return this._predicate;
   }
 
   /// Returns the object of the assertion.
@@ -79,7 +79,7 @@ export class Assertion implements DigestProvider {
   ///
   /// @returns A clone of the assertion's object envelope.
   object(): Envelope {
-    return this.#object;
+    return this._object;
   }
 
   /// Returns the digest of this assertion.
@@ -88,7 +88,7 @@ export class Assertion implements DigestProvider {
   ///
   /// @returns The assertion's digest
   digest(): Digest {
-    return this.#digest;
+    return this._digest;
   }
 
   /// Checks if two assertions are equal based on digest equality.
@@ -99,7 +99,7 @@ export class Assertion implements DigestProvider {
   /// @param other - The other assertion to compare with
   /// @returns `true` if the assertions are equal, `false` otherwise
   equals(other: Assertion): boolean {
-    return this.#digest.equals(other.#digest);
+    return this._digest.equals(other._digest);
   }
 
   /// Converts this assertion to CBOR.
@@ -111,7 +111,7 @@ export class Assertion implements DigestProvider {
   /// @returns A CBOR representation of this assertion
   toCbor(): Cbor {
     const map = new CborMap();
-    map.set(this.#predicate.untaggedCbor(), this.#object.untaggedCbor());
+    map.set(this._predicate.untaggedCbor(), this._object.untaggedCbor());
     return map as unknown as Cbor;
   }
 
@@ -164,7 +164,7 @@ export class Assertion implements DigestProvider {
   ///
   /// @returns A string representation
   toString(): string {
-    return `Assertion(${String(this.#predicate)}: ${String(this.#object)})`;
+    return `Assertion(${String(this._predicate)}: ${String(this._object)})`;
   }
 
   /// Creates a copy of this assertion.

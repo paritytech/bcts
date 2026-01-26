@@ -47,10 +47,10 @@ import { CborError } from "./error";
  * ```
  */
 export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet> {
-  readonly #map: CborMap;
+  private readonly _map: CborMap;
 
   constructor() {
-    this.#map = new CborMap();
+    this._map = new CborMap();
   }
 
   // =========================================================================
@@ -127,7 +127,7 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
   insert(value: CborInput): void {
     const cborValue = encodeCborValue(value);
     // In a set, key and value are the same
-    this.#map.set(cborValue, cborValue);
+    this._map.set(cborValue, cborValue);
   }
 
   /**
@@ -145,7 +145,7 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
    */
   contains(value: CborInput): boolean {
     const cborValue = encodeCborValue(value);
-    return this.#map.has(cborValue);
+    return this._map.has(cborValue);
   }
 
   /**
@@ -163,14 +163,14 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
    */
   delete(value: CborInput): boolean {
     const cborValue = encodeCborValue(value);
-    return this.#map.delete(cborValue);
+    return this._map.delete(cborValue);
   }
 
   /**
    * Remove all elements from the set.
    */
   clear(): void {
-    this.#map.clear();
+    this._map.clear();
   }
 
   /**
@@ -179,7 +179,7 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
    * @returns Number of elements
    */
   get size(): number {
-    return this.#map.size;
+    return this._map.size;
   }
 
   /**
@@ -188,7 +188,7 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
    * @returns true if set has no elements
    */
   isEmpty(): boolean {
-    return this.#map.size === 0;
+    return this._map.size === 0;
   }
 
   // =========================================================================
@@ -313,7 +313,7 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
    * ```
    */
   *[Symbol.iterator](): Iterator<Cbor> {
-    for (const [_, value] of this.#map) {
+    for (const [_, value] of this._map) {
       yield value;
     }
   }

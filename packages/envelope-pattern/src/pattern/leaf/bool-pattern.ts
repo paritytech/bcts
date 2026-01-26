@@ -36,10 +36,10 @@ export function registerBoolPatternFactory(factory: (pattern: BoolPattern) => Pa
  * Corresponds to the Rust `BoolPattern` struct in bool_pattern.rs
  */
 export class BoolPattern implements Matcher {
-  readonly #inner: DCBORBoolPattern;
+  private readonly _inner: DCBORBoolPattern;
 
   private constructor(inner: DCBORBoolPattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -67,7 +67,7 @@ export class BoolPattern implements Matcher {
    * Gets the underlying dcbor-pattern BoolPattern.
    */
   get inner(): DCBORBoolPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -75,7 +75,7 @@ export class BoolPattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborBoolPatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborBoolPatternPaths(this._inner, cbor);
 
       // For simple leaf patterns, if dcbor-pattern found matches, return the envelope
       if (dcborPaths.length > 0) {
@@ -109,7 +109,7 @@ export class BoolPattern implements Matcher {
   }
 
   toString(): string {
-    return boolPatternDisplay(this.#inner);
+    return boolPatternDisplay(this._inner);
   }
 
   /**
@@ -117,11 +117,11 @@ export class BoolPattern implements Matcher {
    */
   equals(other: BoolPattern): boolean {
     // Compare by variant and value
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    if (this.#inner.variant === "Value" && other.#inner.variant === "Value") {
-      return this.#inner.value === other.#inner.value;
+    if (this._inner.variant === "Value" && other._inner.variant === "Value") {
+      return this._inner.value === other._inner.value;
     }
     return true;
   }
@@ -131,9 +131,9 @@ export class BoolPattern implements Matcher {
    */
   hashCode(): number {
     // Simple hash based on variant and value
-    let hash = this.#inner.variant === "Any" ? 0 : 1;
-    if (this.#inner.variant === "Value") {
-      hash = hash * 31 + (this.#inner.value ? 1 : 0);
+    let hash = this._inner.variant === "Any" ? 0 : 1;
+    if (this._inner.variant === "Value") {
+      hash = hash * 31 + (this._inner.value ? 1 : 0);
     }
     return hash;
   }

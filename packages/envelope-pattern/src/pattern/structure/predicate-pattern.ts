@@ -36,10 +36,10 @@ export type PredicatePatternType =
  * Corresponds to the Rust `PredicatePattern` enum in predicate_pattern.rs
  */
 export class PredicatePattern implements Matcher {
-  readonly #pattern: PredicatePatternType;
+  private readonly _pattern: PredicatePatternType;
 
   private constructor(pattern: PredicatePatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -60,14 +60,14 @@ export class PredicatePattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): PredicatePatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the inner pattern if this is a Pattern type, undefined otherwise.
    */
   innerPattern(): Pattern | undefined {
-    return this.#pattern.type === "Pattern" ? this.#pattern.pattern : undefined;
+    return this._pattern.type === "Pattern" ? this._pattern.pattern : undefined;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -79,12 +79,12 @@ export class PredicatePattern implements Matcher {
 
     let paths: Path[];
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         paths = [[predicate]];
         break;
       case "Pattern": {
-        const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+        const innerMatcher = this._pattern.pattern as unknown as Matcher;
         if (innerMatcher.matches(predicate)) {
           paths = [[predicate]];
         } else {
@@ -119,11 +119,11 @@ export class PredicatePattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "pred";
       case "Pattern":
-        return `pred(${(this.#pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `pred(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
     }
   }
 
@@ -131,14 +131,14 @@ export class PredicatePattern implements Matcher {
    * Equality comparison.
    */
   equals(other: PredicatePattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    if (this.#pattern.type === "Any") {
+    if (this._pattern.type === "Any") {
       return true;
     }
-    const thisPattern = (this.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
-    const otherPattern = (other.#pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const thisPattern = (this._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
+    const otherPattern = (other._pattern as { type: "Pattern"; pattern: Pattern }).pattern;
     return thisPattern === otherPattern;
   }
 
@@ -146,6 +146,6 @@ export class PredicatePattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#pattern.type === "Any" ? 0 : 1;
+    return this._pattern.type === "Any" ? 0 : 1;
   }
 }

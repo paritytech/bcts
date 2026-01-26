@@ -180,12 +180,12 @@ const hexToBytes = (hex: string): Uint8Array | undefined => {
  * Lexer state for tokenizing dCBOR pattern expressions.
  */
 export class Lexer {
-  readonly #input: string;
-  #position: number;
+  private readonly _input: string;
+  private _position: number;
 
   constructor(input: string) {
-    this.#input = input;
-    this.#position = 0;
+    this._input = input;
+    this._position = 0;
   }
 
   /**
@@ -199,44 +199,44 @@ export class Lexer {
    * Returns the input string.
    */
   input(): string {
-    return this.#input;
+    return this._input;
   }
 
   /**
    * Returns the current position in the input.
    */
   position(): number {
-    return this.#position;
+    return this._position;
   }
 
   /**
    * Returns the remaining input.
    */
   remainder(): string {
-    return this.#input.slice(this.#position);
+    return this._input.slice(this._position);
   }
 
   /**
    * Peeks at the current character without consuming it.
    */
   peek(): string | undefined {
-    return this.#input[this.#position];
+    return this._input[this._position];
   }
 
   /**
    * Peeks at the character at offset from current position.
    */
   peekAt(offset: number): string | undefined {
-    return this.#input[this.#position + offset];
+    return this._input[this._position + offset];
   }
 
   /**
    * Consumes and returns the current character.
    */
   advance(): string | undefined {
-    const ch = this.#input[this.#position];
+    const ch = this._input[this._position];
     if (ch !== undefined) {
-      this.#position++;
+      this._position++;
     }
     return ch;
   }
@@ -245,22 +245,22 @@ export class Lexer {
    * Advances by n characters.
    */
   bump(n: number): void {
-    this.#position += n;
+    this._position += n;
   }
 
   /**
    * Creates a span from start to current position.
    */
   spanFrom(start: number): Span {
-    return span(start, this.#position);
+    return span(start, this._position);
   }
 
   /**
    * Skips whitespace characters.
    */
   skipWhitespace(): void {
-    while (this.#position < this.#input.length && isWhitespace(this.#input[this.#position])) {
-      this.#position++;
+    while (this._position < this._input.length && isWhitespace(this._input[this._position])) {
+      this._position++;
     }
   }
 
@@ -268,7 +268,7 @@ export class Lexer {
    * Checks if the remainder starts with the given string.
    */
   startsWith(s: string): boolean {
-    return this.#input.slice(this.#position).startsWith(s);
+    return this._input.slice(this._position).startsWith(s);
   }
 
   /**
@@ -277,11 +277,11 @@ export class Lexer {
   next(): Result<SpannedToken> | undefined {
     this.skipWhitespace();
 
-    if (this.#position >= this.#input.length) {
+    if (this._position >= this._input.length) {
       return undefined;
     }
 
-    const start = this.#position;
+    const start = this._position;
     const ch = this.peek() ?? "";
 
     // Try multi-character operators first
@@ -536,18 +536,18 @@ export class Lexer {
     this.skipWhitespace();
 
     // Parse first number
-    const minStart = this.#position;
+    const minStart = this._position;
     let peeked = this.peek();
     while (peeked !== undefined && isDigit(peeked)) {
       this.advance();
       peeked = this.peek();
     }
 
-    if (this.#position === minStart) {
+    if (this._position === minStart) {
       return Err({ type: "InvalidRange", span: this.spanFrom(start) });
     }
 
-    const min = parseInt(this.#input.slice(minStart, this.#position), 10);
+    const min = parseInt(this._input.slice(minStart, this._position), 10);
 
     this.skipWhitespace();
 
@@ -565,13 +565,13 @@ export class Lexer {
         max = undefined;
       } else if (afterComma !== undefined && isDigit(afterComma)) {
         // Bounded: {n,m}
-        const maxStart = this.#position;
+        const maxStart = this._position;
         let maxPeeked = this.peek();
         while (maxPeeked !== undefined && isDigit(maxPeeked)) {
           this.advance();
           maxPeeked = this.peek();
         }
-        max = parseInt(this.#input.slice(maxStart, this.#position), 10);
+        max = parseInt(this._input.slice(maxStart, this._position), 10);
 
         this.skipWhitespace();
         if (this.peek() !== "}") {
@@ -620,7 +620,7 @@ export class Lexer {
     let result = "";
     let escape = false;
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (escape) {
@@ -665,7 +665,7 @@ export class Lexer {
     let result = "";
     let escape = false;
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (escape) {
@@ -710,7 +710,7 @@ export class Lexer {
     let pattern = "";
     let escape = false;
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (escape) {
@@ -739,7 +739,7 @@ export class Lexer {
    * Parse a group name.
    */
   private parseGroupName(start: number): Result<SpannedToken> {
-    const nameStart = this.#position;
+    const nameStart = this._position;
 
     // First char must be identifier start
     if (!isIdentStart(this.peek() ?? "")) {
@@ -752,7 +752,7 @@ export class Lexer {
       identCh = this.peek();
     }
 
-    const name = this.#input.slice(nameStart, this.#position);
+    const name = this._input.slice(nameStart, this._position);
     return Ok({ token: { type: "GroupName", name }, span: this.spanFrom(start) });
   }
 
@@ -762,7 +762,7 @@ export class Lexer {
   private parseHexString(start: number): Result<SpannedToken> {
     let hex = "";
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.peek() ?? "";
 
       if (ch === "'") {
@@ -790,7 +790,7 @@ export class Lexer {
     let pattern = "";
     let escape = false;
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (escape) {
@@ -824,7 +824,7 @@ export class Lexer {
    * Parse a number literal using dcbor-parse for consistency with dCBOR.
    */
   private parseNumber(start: number): Result<SpannedToken> {
-    const numStart = this.#position;
+    const numStart = this._position;
 
     // Optional negative sign
     if (this.peek() === "-") {
@@ -867,7 +867,7 @@ export class Lexer {
       }
     }
 
-    const numStr = this.#input.slice(numStart, this.#position);
+    const numStr = this._input.slice(numStart, this._position);
 
     // Use dcbor-parse for dCBOR-compliant number parsing
     const parseResult = parseDcborItemPartial(numStr);
@@ -896,7 +896,7 @@ export class Lexer {
    * Parse an identifier or keyword.
    */
   private parseIdentifierOrKeyword(start: number): Result<SpannedToken> {
-    const identStart = this.#position;
+    const identStart = this._position;
 
     let identCh = this.peek();
     while (identCh !== undefined && isIdentCont(identCh)) {
@@ -904,7 +904,7 @@ export class Lexer {
       identCh = this.peek();
     }
 
-    const ident = this.#input.slice(identStart, this.#position);
+    const ident = this._input.slice(identStart, this._position);
 
     // Check for special quoted patterns
     if (ident === "date" && this.peek() === "'") {
@@ -933,7 +933,7 @@ export class Lexer {
   private parseDateQuoted(start: number): Result<SpannedToken> {
     let content = "";
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (ch === "'") {
@@ -954,7 +954,7 @@ export class Lexer {
   private parseDigestQuoted(start: number): Result<SpannedToken> {
     let content = "";
 
-    while (this.#position < this.#input.length) {
+    while (this._position < this._input.length) {
       const ch = this.advance() ?? "";
 
       if (ch === "'") {
@@ -978,9 +978,9 @@ export class Lexer {
    * Returns a Result with the token or undefined if at end of input.
    */
   peekToken(): Result<Token> | undefined {
-    const savedPosition = this.#position;
+    const savedPosition = this._position;
     const result = this.next();
-    this.#position = savedPosition;
+    this._position = savedPosition;
 
     if (result === undefined) {
       return undefined;
@@ -997,7 +997,7 @@ export class Lexer {
    * Returns the current span (position to position).
    */
   span(): Span {
-    return span(this.#position, this.#position);
+    return span(this._position, this._position);
   }
 
   /**
@@ -1005,7 +1005,7 @@ export class Lexer {
    */
   lastSpan(): Span {
     // This is a simplification - in reality we'd track the last span
-    return span(this.#position, this.#position);
+    return span(this._position, this._position);
   }
 }
 

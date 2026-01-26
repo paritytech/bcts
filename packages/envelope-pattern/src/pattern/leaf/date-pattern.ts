@@ -42,10 +42,10 @@ export function registerDatePatternFactory(factory: (pattern: DatePattern) => Pa
  * Corresponds to the Rust `DatePattern` struct in date_pattern.rs
  */
 export class DatePattern implements Matcher {
-  readonly #inner: DCBORDatePattern;
+  private readonly _inner: DCBORDatePattern;
 
   private constructor(inner: DCBORDatePattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -109,7 +109,7 @@ export class DatePattern implements Matcher {
    * Gets the underlying dcbor-pattern DatePattern.
    */
   get inner(): DCBORDatePattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -117,7 +117,7 @@ export class DatePattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborDatePatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborDatePatternPaths(this._inner, cbor);
 
       // For simple leaf patterns, if dcbor-pattern found matches, return the envelope
       if (dcborPaths.length > 0) {
@@ -149,18 +149,18 @@ export class DatePattern implements Matcher {
   }
 
   toString(): string {
-    return datePatternDisplay(this.#inner);
+    return datePatternDisplay(this._inner);
   }
 
   /**
    * Equality comparison.
    */
   equals(other: DatePattern): boolean {
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
     // Simplified equality - compare variant names
-    return JSON.stringify(this.#inner) === JSON.stringify(other.#inner);
+    return JSON.stringify(this._inner) === JSON.stringify(other._inner);
   }
 
   /**
@@ -169,7 +169,7 @@ export class DatePattern implements Matcher {
   hashCode(): number {
     // Simple hash based on variant
     let hash = 0;
-    const str = this.#inner.variant;
+    const str = this._inner.variant;
     for (let i = 0; i < str.length; i++) {
       hash = hash * 31 + str.charCodeAt(i);
     }

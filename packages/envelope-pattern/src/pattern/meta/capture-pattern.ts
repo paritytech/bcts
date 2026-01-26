@@ -25,12 +25,12 @@ export function registerCapturePatternFactory(factory: (pattern: CapturePattern)
  * Corresponds to the Rust `CapturePattern` struct in capture_pattern.rs
  */
 export class CapturePattern implements Matcher {
-  readonly #name: string;
-  readonly #pattern: Pattern;
+  private readonly _name: string;
+  private readonly _pattern: Pattern;
 
   private constructor(name: string, pattern: Pattern) {
-    this.#name = name;
-    this.#pattern = pattern;
+    this._name = name;
+    this._pattern = pattern;
   }
 
   /**
@@ -44,23 +44,23 @@ export class CapturePattern implements Matcher {
    * Gets the name of the capture.
    */
   name(): string {
-    return this.#name;
+    return this._name;
   }
 
   /**
    * Gets the inner pattern.
    */
   pattern(): Pattern {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const matcher = this.#pattern as unknown as Matcher;
+    const matcher = this._pattern as unknown as Matcher;
     const [paths, caps] = matcher.pathsWithCaptures(haystack);
 
     if (paths.length > 0) {
-      const existing = caps.get(this.#name) ?? [];
-      caps.set(this.#name, [...existing, ...paths]);
+      const existing = caps.get(this._name) ?? [];
+      caps.set(this._name, [...existing, ...paths]);
     }
 
     return [paths, caps];
@@ -76,9 +76,9 @@ export class CapturePattern implements Matcher {
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     const id = captures.length;
-    captures.push(this.#name);
+    captures.push(this._name);
     code.push({ type: "CaptureStart", captureIndex: id });
-    const matcher = this.#pattern as unknown as Matcher;
+    const matcher = this._pattern as unknown as Matcher;
     matcher.compile(code, literals, captures);
     code.push({ type: "CaptureEnd", captureIndex: id });
   }
@@ -88,14 +88,14 @@ export class CapturePattern implements Matcher {
   }
 
   toString(): string {
-    return `@${this.#name}(${(this.#pattern as unknown as { toString(): string }).toString()})`;
+    return `@${this._name}(${(this._pattern as unknown as { toString(): string }).toString()})`;
   }
 
   /**
    * Equality comparison.
    */
   equals(other: CapturePattern): boolean {
-    return this.#name === other.#name && this.#pattern === other.#pattern;
+    return this._name === other._name && this._pattern === other._pattern;
   }
 
   /**
@@ -103,7 +103,7 @@ export class CapturePattern implements Matcher {
    */
   hashCode(): number {
     let hash = 0;
-    for (const char of this.#name) {
+    for (const char of this._name) {
       hash = (hash * 31 + char.charCodeAt(0)) | 0;
     }
     return hash;

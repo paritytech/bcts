@@ -88,10 +88,10 @@ export const DEFAULT_FORMAT_OPTS: FormatPathsOpts = {
  * Creates formatting options with builder pattern.
  */
 export class FormatPathsOptsBuilder {
-  #opts: FormatPathsOpts;
+  private _opts: FormatPathsOpts;
 
   constructor() {
-    this.#opts = { ...DEFAULT_FORMAT_OPTS };
+    this._opts = { ...DEFAULT_FORMAT_OPTS };
   }
 
   /**
@@ -105,7 +105,7 @@ export class FormatPathsOptsBuilder {
    * Sets whether to indent each path element.
    */
   indent(indent: boolean): FormatPathsOptsBuilder {
-    this.#opts = { ...this.#opts, indent };
+    this._opts = { ...this._opts, indent };
     return this;
   }
 
@@ -113,7 +113,7 @@ export class FormatPathsOptsBuilder {
    * Sets the format for each path element.
    */
   elementFormat(format: PathElementFormat): FormatPathsOptsBuilder {
-    this.#opts = { ...this.#opts, elementFormat: format };
+    this._opts = { ...this._opts, elementFormat: format };
     return this;
   }
 
@@ -121,7 +121,7 @@ export class FormatPathsOptsBuilder {
    * Sets the maximum length for element representation.
    */
   maxLength(length: number | undefined): FormatPathsOptsBuilder {
-    this.#opts = { ...this.#opts, maxLength: length };
+    this._opts = { ...this._opts, maxLength: length };
     return this;
   }
 
@@ -129,7 +129,7 @@ export class FormatPathsOptsBuilder {
    * Sets whether to format only the last element of each path.
    */
   lastElementOnly(lastOnly: boolean): FormatPathsOptsBuilder {
-    this.#opts = { ...this.#opts, lastElementOnly: lastOnly };
+    this._opts = { ...this._opts, lastElementOnly: lastOnly };
     return this;
   }
 
@@ -137,7 +137,7 @@ export class FormatPathsOptsBuilder {
    * Builds the options object.
    */
   build(): FormatPathsOpts {
-    return this.#opts;
+    return this._opts;
   }
 }
 

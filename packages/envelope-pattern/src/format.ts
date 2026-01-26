@@ -97,15 +97,15 @@ export function defaultFormatPathsOpts(): FormatPathsOpts {
  * Builder for FormatPathsOpts.
  */
 export class FormatPathsOptsBuilder {
-  #indent = true;
-  #elementFormat: PathElementFormat = defaultPathElementFormat();
-  #lastElementOnly = false;
+  private _indent = true;
+  private _elementFormat: PathElementFormat = defaultPathElementFormat();
+  private _lastElementOnly = false;
 
   /**
    * Sets whether to indent each path element.
    */
   indent(indent: boolean): this {
-    this.#indent = indent;
+    this._indent = indent;
     return this;
   }
 
@@ -113,7 +113,7 @@ export class FormatPathsOptsBuilder {
    * Sets the format for each path element.
    */
   elementFormat(format: PathElementFormat): this {
-    this.#elementFormat = format;
+    this._elementFormat = format;
     return this;
   }
 
@@ -121,7 +121,7 @@ export class FormatPathsOptsBuilder {
    * Sets whether to format only the last element of each path.
    */
   lastElementOnly(lastElementOnly: boolean): this {
-    this.#lastElementOnly = lastElementOnly;
+    this._lastElementOnly = lastElementOnly;
     return this;
   }
 
@@ -130,9 +130,9 @@ export class FormatPathsOptsBuilder {
    */
   build(): FormatPathsOpts {
     return {
-      indent: this.#indent,
-      elementFormat: this.#elementFormat,
-      lastElementOnly: this.#lastElementOnly,
+      indent: this._indent,
+      elementFormat: this._elementFormat,
+      lastElementOnly: this._lastElementOnly,
     };
   }
 }

@@ -25,10 +25,10 @@ export function registerSearchPatternFactory(factory: (pattern: SearchPattern) =
  * Corresponds to the Rust `SearchPattern` struct in search_pattern.rs
  */
 export class SearchPattern implements Matcher {
-  readonly #pattern: Pattern;
+  private readonly _pattern: Pattern;
 
   private constructor(pattern: Pattern) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -42,15 +42,15 @@ export class SearchPattern implements Matcher {
    * Gets the inner pattern.
    */
   pattern(): Pattern {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     const resultPaths: Path[] = [];
-    const matcher = this.#pattern as unknown as Matcher;
+    const matcher = this._pattern as unknown as Matcher;
 
     // Walk the envelope tree
-    this.#walkEnvelope(haystack, [], (currentEnvelope, pathToCurrent) => {
+    this._walkEnvelope(haystack, [], (currentEnvelope, pathToCurrent) => {
       // Create the path to this node
       const newPath: Envelope[] = [...pathToCurrent, currentEnvelope];
 
@@ -92,7 +92,7 @@ export class SearchPattern implements Matcher {
   /**
    * Walk the envelope tree recursively.
    */
-  #walkEnvelope(
+  private _walkEnvelope(
     envelope: Envelope,
     pathToCurrent: Envelope[],
     visitor: (envelope: Envelope, path: Envelope[]) => void,
@@ -106,24 +106,24 @@ export class SearchPattern implements Matcher {
 
     // Walk subject if it's different from this envelope
     if (!subject.digest().equals(envelope.digest())) {
-      this.#walkEnvelope(subject, newPath, visitor);
+      this._walkEnvelope(subject, newPath, visitor);
     }
 
     // Walk assertions
     for (const assertion of envelope.assertions()) {
-      this.#walkEnvelope(assertion, newPath, visitor);
+      this._walkEnvelope(assertion, newPath, visitor);
 
       // Walk predicate and object if available
       const predicate = assertion.asPredicate?.();
       if (predicate !== undefined) {
         const assertionPath = [...newPath, assertion];
-        this.#walkEnvelope(predicate, assertionPath, visitor);
+        this._walkEnvelope(predicate, assertionPath, visitor);
       }
 
       const object = assertion.asObject?.();
       if (object !== undefined) {
         const assertionPath = [...newPath, assertion];
-        this.#walkEnvelope(object, assertionPath, visitor);
+        this._walkEnvelope(object, assertionPath, visitor);
       }
     }
 
@@ -131,7 +131,7 @@ export class SearchPattern implements Matcher {
     if (subject.isWrapped()) {
       const unwrapped = subject.tryUnwrap?.();
       if (unwrapped !== undefined) {
-        this.#walkEnvelope(unwrapped, newPath, visitor);
+        this._walkEnvelope(unwrapped, newPath, visitor);
       }
     }
   }
@@ -146,11 +146,11 @@ export class SearchPattern implements Matcher {
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     const idx = literals.length;
-    literals.push(this.#pattern);
+    literals.push(this._pattern);
 
     // Collect capture names from inner pattern
     const innerNames: string[] = [];
-    collectCaptureNames(this.#pattern, innerNames);
+    collectCaptureNames(this._pattern, innerNames);
 
     const captureMap: [string, number][] = [];
     for (const name of innerNames) {
@@ -170,14 +170,14 @@ export class SearchPattern implements Matcher {
   }
 
   toString(): string {
-    return `search(${(this.#pattern as unknown as { toString(): string }).toString()})`;
+    return `search(${(this._pattern as unknown as { toString(): string }).toString()})`;
   }
 
   /**
    * Equality comparison.
    */
   equals(other: SearchPattern): boolean {
-    return this.#pattern === other.#pattern;
+    return this._pattern === other._pattern;
   }
 
   /**

@@ -26,12 +26,12 @@ export function registerGroupPatternFactory(factory: (pattern: GroupPattern) => 
  * Corresponds to the Rust `GroupPattern` struct in repeat_pattern.rs
  */
 export class GroupPattern implements Matcher {
-  readonly #pattern: Pattern;
-  readonly #quantifier: Quantifier;
+  private readonly _pattern: Pattern;
+  private readonly _quantifier: Quantifier;
 
   private constructor(pattern: Pattern, quantifier: Quantifier) {
-    this.#pattern = pattern;
-    this.#quantifier = quantifier;
+    this._pattern = pattern;
+    this._quantifier = quantifier;
   }
 
   /**
@@ -52,14 +52,14 @@ export class GroupPattern implements Matcher {
    * Gets the sub-pattern of this group pattern.
    */
   pattern(): Pattern {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the quantifier of this group pattern.
    */
   quantifier(): Quantifier {
-    return this.#quantifier;
+    return this._quantifier;
   }
 
   pathsWithCaptures(_haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -74,14 +74,14 @@ export class GroupPattern implements Matcher {
 
   matches(haystack: Envelope): boolean {
     // GroupPattern needs VM execution
-    const matcher = this.#pattern as unknown as Matcher;
+    const matcher = this._pattern as unknown as Matcher;
     return matcher.matches(haystack);
   }
 
   compile(code: Instr[], literals: Pattern[], _captures: string[]): void {
     const idx = literals.length;
-    literals.push(this.#pattern);
-    code.push({ type: "Repeat", patternIndex: idx, quantifier: this.#quantifier });
+    literals.push(this._pattern);
+    code.push({ type: "Repeat", patternIndex: idx, quantifier: this._quantifier });
   }
 
   isComplex(): boolean {
@@ -89,15 +89,15 @@ export class GroupPattern implements Matcher {
   }
 
   toString(): string {
-    const formattedRange = this.#quantifier.toString();
-    return `(${(this.#pattern as unknown as { toString(): string }).toString()})${formattedRange}`;
+    const formattedRange = this._quantifier.toString();
+    return `(${(this._pattern as unknown as { toString(): string }).toString()})${formattedRange}`;
   }
 
   /**
    * Equality comparison.
    */
   equals(other: GroupPattern): boolean {
-    return this.#pattern === other.#pattern && this.#quantifier.equals(other.#quantifier);
+    return this._pattern === other._pattern && this._quantifier.equals(other._quantifier);
   }
 
   /**
@@ -105,6 +105,6 @@ export class GroupPattern implements Matcher {
    */
   hashCode(): number {
     // Simple hash based on quantifier min/max
-    return this.#quantifier.min() * 31 + (this.#quantifier.max() ?? 0);
+    return this._quantifier.min() * 31 + (this._quantifier.max() ?? 0);
   }
 }

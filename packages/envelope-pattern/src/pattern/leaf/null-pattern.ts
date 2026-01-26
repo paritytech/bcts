@@ -34,26 +34,26 @@ export function registerNullPatternFactory(factory: (pattern: NullPattern) => Pa
  * Corresponds to the Rust `NullPattern` struct in null_pattern.rs
  */
 export class NullPattern implements Matcher {
-  readonly #inner: DCBORNullPattern;
-  static readonly #instance = new NullPattern();
+  private readonly _inner: DCBORNullPattern;
+  private static readonly _instance = new NullPattern();
 
   private constructor() {
     // Create the NullPattern directly - it's just { variant: "Null" }
-    this.#inner = { variant: "Null" };
+    this._inner = { variant: "Null" };
   }
 
   /**
    * Creates a new NullPattern (returns singleton).
    */
   static new(): NullPattern {
-    return NullPattern.#instance;
+    return NullPattern._instance;
   }
 
   /**
    * Gets the underlying dcbor-pattern NullPattern.
    */
   get inner(): DCBORNullPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -61,7 +61,7 @@ export class NullPattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborNullPatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborNullPatternPaths(this._inner, cbor);
 
       if (dcborPaths.length > 0) {
         return [[[haystack]], new Map<string, Path[]>()];
@@ -91,7 +91,7 @@ export class NullPattern implements Matcher {
   }
 
   toString(): string {
-    return nullPatternDisplay(this.#inner);
+    return nullPatternDisplay(this._inner);
   }
 
   /**

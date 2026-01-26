@@ -43,10 +43,10 @@ export type CBORPatternType =
  * Corresponds to the Rust `CBORPattern` enum in cbor_pattern.rs
  */
 export class CBORPattern implements Matcher {
-  readonly #pattern: CBORPatternType;
+  private readonly _pattern: CBORPatternType;
 
   private constructor(pattern: CBORPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -81,13 +81,13 @@ export class CBORPattern implements Matcher {
    * Gets the pattern type.
    */
   get pattern(): CBORPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Convert dcbor captures to envelope captures.
    */
-  #convertDcborCapturesToEnvelopeCaptures(
+  private _convertDcborCapturesToEnvelopeCaptures(
     dcborCaptures: Map<string, Cbor[][]>,
     baseEnvelope: Envelope,
     baseCbor: Cbor,
@@ -96,7 +96,7 @@ export class CBORPattern implements Matcher {
 
     for (const [captureName, dcborCapturePaths] of dcborCaptures) {
       const envelopeCapturePaths: Path[] = dcborCapturePaths.map((dcborPath) =>
-        this.#convertDcborPathToEnvelopePath(dcborPath, baseEnvelope, baseCbor),
+        this._convertDcborPathToEnvelopePath(dcborPath, baseEnvelope, baseCbor),
       );
       envelopeCaptures.set(captureName, envelopeCapturePaths);
     }
@@ -107,7 +107,7 @@ export class CBORPattern implements Matcher {
   /**
    * Convert a single dcbor path to an envelope path.
    */
-  #convertDcborPathToEnvelopePath(
+  private _convertDcborPathToEnvelopePath(
     dcborPath: Cbor[],
     baseEnvelope: Envelope,
     baseCbor: Cbor,
@@ -131,7 +131,7 @@ export class CBORPattern implements Matcher {
   /**
    * Collect capture names from a dcbor pattern.
    */
-  #collectDcborCaptureNames(dcborPattern: DCBORPattern, names: string[]): void {
+  private _collectDcborCaptureNames(dcborPattern: DCBORPattern, names: string[]): void {
     // Parse the pattern string to extract capture names
     const patternStr = dcborPatternDisplay(dcborPattern);
 
@@ -163,19 +163,19 @@ export class CBORPattern implements Matcher {
       const knownValue = envCase.value;
       const knownValueCbor = knownValue.taggedCbor();
 
-      switch (this.#pattern.type) {
+      switch (this._pattern.type) {
         case "Any":
           return [[[haystack]], new Map<string, Path[]>()];
         case "Value": {
           // Compare using diagnostic representation
-          if (knownValueCbor.toDiagnostic() === this.#pattern.cbor.toDiagnostic()) {
+          if (knownValueCbor.toDiagnostic() === this._pattern.cbor.toDiagnostic()) {
             return [[[haystack]], new Map<string, Path[]>()];
           }
           return [[], new Map<string, Path[]>()];
         }
         case "Pattern": {
           const { paths: dcborPaths, captures: dcborCaptures } = dcborPatternPathsWithCaptures(
-            this.#pattern.pattern,
+            this._pattern.pattern,
             knownValueCbor,
           );
 
@@ -193,7 +193,7 @@ export class CBORPattern implements Matcher {
               return extendedPath;
             });
 
-            const envelopeCaptures = this.#convertDcborCapturesToEnvelopeCaptures(
+            const envelopeCaptures = this._convertDcborCapturesToEnvelopeCaptures(
               dcborCaptures,
               haystack,
               knownValueCbor,
@@ -211,20 +211,20 @@ export class CBORPattern implements Matcher {
       return [[], new Map<string, Path[]>()];
     }
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return [[[haystack]], new Map<string, Path[]>()];
 
       case "Value":
         // Compare using diagnostic representation
-        if (leafCbor.toDiagnostic() === this.#pattern.cbor.toDiagnostic()) {
+        if (leafCbor.toDiagnostic() === this._pattern.cbor.toDiagnostic()) {
           return [[[haystack]], new Map<string, Path[]>()];
         }
         return [[], new Map<string, Path[]>()];
 
       case "Pattern": {
         const { paths: dcborPaths, captures: dcborCaptures } = dcborPatternPathsWithCaptures(
-          this.#pattern.pattern,
+          this._pattern.pattern,
           leafCbor,
         );
 
@@ -245,7 +245,7 @@ export class CBORPattern implements Matcher {
             return extendedPath;
           });
 
-          const envelopeCaptures = this.#convertDcborCapturesToEnvelopeCaptures(
+          const envelopeCaptures = this._convertDcborCapturesToEnvelopeCaptures(
             dcborCaptures,
             haystack,
             leafCbor,
@@ -267,9 +267,9 @@ export class CBORPattern implements Matcher {
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     // Register any capture names from this CBOR pattern
-    if (this.#pattern.type === "Pattern") {
+    if (this._pattern.type === "Pattern") {
       const captureNames: string[] = [];
-      this.#collectDcborCaptureNames(this.#pattern.pattern, captureNames);
+      this._collectDcborCaptureNames(this._pattern.pattern, captureNames);
       for (const name of captureNames) {
         if (!captures.includes(name)) {
           captures.push(name);
@@ -288,13 +288,13 @@ export class CBORPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "cbor";
       case "Value":
-        return `cbor(${this.#pattern.cbor.toDiagnostic()})`;
+        return `cbor(${this._pattern.cbor.toDiagnostic()})`;
       case "Pattern":
-        return `cbor(/${dcborPatternDisplay(this.#pattern.pattern)}/)`;
+        return `cbor(/${dcborPatternDisplay(this._pattern.pattern)}/)`;
     }
   }
 
@@ -302,24 +302,24 @@ export class CBORPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: CBORPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return true;
       case "Value":
         // Compare using diagnostic representation
         return (
-          this.#pattern.cbor.toDiagnostic() ===
-          (other.#pattern as { type: "Value"; cbor: Cbor }).cbor.toDiagnostic()
+          this._pattern.cbor.toDiagnostic() ===
+          (other._pattern as { type: "Value"; cbor: Cbor }).cbor.toDiagnostic()
         );
       case "Pattern":
         // Compare using display representation
         return (
-          dcborPatternDisplay(this.#pattern.pattern) ===
+          dcborPatternDisplay(this._pattern.pattern) ===
           dcborPatternDisplay(
-            (other.#pattern as { type: "Pattern"; pattern: DCBORPattern }).pattern,
+            (other._pattern as { type: "Pattern"; pattern: DCBORPattern }).pattern,
           )
         );
     }
@@ -329,15 +329,15 @@ export class CBORPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "Value":
         // Simple hash based on diagnostic string
-        return simpleStringHash(this.#pattern.cbor.toDiagnostic());
+        return simpleStringHash(this._pattern.cbor.toDiagnostic());
       case "Pattern":
         // Simple hash based on display string
-        return simpleStringHash(dcborPatternDisplay(this.#pattern.pattern));
+        return simpleStringHash(dcborPatternDisplay(this._pattern.pattern));
     }
   }
 }

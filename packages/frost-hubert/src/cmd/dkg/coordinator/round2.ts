@@ -64,7 +64,7 @@ export interface DkgRound2Result {
  *
  * Port of `struct Round2ResponseData` from round2.rs lines 601-604.
  */
-interface Round2ResponseData {
+export interface Round2ResponseData {
   packages: [XID, unknown][];
   nextResponseArid: ARID;
 }

@@ -91,16 +91,16 @@ export interface EventBehavior<T extends EnvelopeEncodableValue> {
 export class Event<T extends EnvelopeEncodableValue>
   implements EventBehavior<T>, EnvelopeEncodable
 {
-  readonly #content: T;
-  readonly #id: ARID;
-  #note: string;
-  #date: Date | undefined;
+  private readonly _content: T;
+  private readonly _id: ARID;
+  private _note: string;
+  private _date: Date | undefined;
 
   private constructor(content: T, id: ARID, note = "", date?: Date) {
-    this.#content = content;
-    this.#id = id;
-    this.#note = note;
-    this.#date = date;
+    this._content = content;
+    this._id = id;
+    this._note = note;
+    this._date = date;
   }
 
   /**
@@ -114,36 +114,36 @@ export class Event<T extends EnvelopeEncodableValue>
    * Returns a human-readable summary of the event.
    */
   summary(): string {
-    const contentEnvelope = Envelope.new(this.#content);
-    return `id: ${this.#id.shortDescription()}, content: ${contentEnvelope.formatFlat()}`;
+    const contentEnvelope = Envelope.new(this._content);
+    return `id: ${this._id.shortDescription()}, content: ${contentEnvelope.formatFlat()}`;
   }
 
   // EventBehavior implementation
 
   withNote(note: string): Event<T> {
-    this.#note = note;
+    this._note = note;
     return this;
   }
 
   withDate(date: Date): Event<T> {
-    this.#date = date;
+    this._date = date;
     return this;
   }
 
   content(): T {
-    return this.#content;
+    return this._content;
   }
 
   id(): ARID {
-    return this.#id;
+    return this._id;
   }
 
   note(): string {
-    return this.#note;
+    return this._note;
   }
 
   date(): Date | undefined {
-    return this.#date;
+    return this._date;
   }
 
   /**
@@ -154,17 +154,17 @@ export class Event<T extends EnvelopeEncodableValue>
    * (if present).
    */
   toEnvelope(): Envelope {
-    const taggedArid = toTaggedValue(TAG_EVENT, this.#id.untaggedCbor());
-    const contentEnvelope = Envelope.new(this.#content);
+    const taggedArid = toTaggedValue(TAG_EVENT, this._id.untaggedCbor());
+    const contentEnvelope = Envelope.new(this._content);
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(CONTENT, contentEnvelope);
 
-    if (this.#note !== "") {
-      envelope = envelope.addAssertion(NOTE, this.#note);
+    if (this._note !== "") {
+      envelope = envelope.addAssertion(NOTE, this._note);
     }
 
-    if (this.#date !== undefined) {
-      envelope = envelope.addAssertion(DATE, this.#date.toISOString());
+    if (this._date !== undefined) {
+      envelope = envelope.addAssertion(DATE, this._date.toISOString());
     }
 
     return envelope;
@@ -253,9 +253,9 @@ export class Event<T extends EnvelopeEncodableValue>
    */
   equals(other: Event<T>): boolean {
     return (
-      this.#id.equals(other.#id) &&
-      this.#note === other.#note &&
-      this.#date?.getTime() === other.#date?.getTime()
+      this._id.equals(other._id) &&
+      this._note === other._note &&
+      this._date?.getTime() === other._date?.getTime()
     );
   }
 }

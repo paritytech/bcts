@@ -84,10 +84,10 @@ export { PrivateKeys as PrivateKeyBase } from "@bcts/components";
  * both X25519 and MLKEM encryption schemes.
  */
 export class SealedMessage {
-  readonly #inner: ComponentsSealedMessage;
+  private readonly _inner: ComponentsSealedMessage;
 
   constructor(sealedMessage: ComponentsSealedMessage) {
-    this.#inner = sealedMessage;
+    this._inner = sealedMessage;
   }
 
   /**
@@ -123,21 +123,21 @@ export class SealedMessage {
    */
   decrypt(recipient: Decrypter): Uint8Array {
     const encapsulationPrivateKey = recipient.encapsulationPrivateKey();
-    return this.#inner.decrypt(encapsulationPrivateKey);
+    return this._inner.decrypt(encapsulationPrivateKey);
   }
 
   /**
    * Returns the underlying SealedMessage from components.
    */
   inner(): ComponentsSealedMessage {
-    return this.#inner;
+    return this._inner;
   }
 
   /**
    * Returns the CBOR-encoded data of this sealed message.
    */
   data(): Uint8Array {
-    return this.#inner.taggedCborData();
+    return this._inner.taggedCborData();
   }
 
   /**

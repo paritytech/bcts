@@ -25,10 +25,10 @@ export function registerOrPatternFactory(factory: (pattern: OrPattern) => Patter
  * Corresponds to the Rust `OrPattern` struct in or_pattern.rs
  */
 export class OrPattern implements Matcher {
-  readonly #patterns: Pattern[];
+  private readonly _patterns: Pattern[];
 
   private constructor(patterns: Pattern[]) {
-    this.#patterns = patterns;
+    this._patterns = patterns;
   }
 
   /**
@@ -42,11 +42,11 @@ export class OrPattern implements Matcher {
    * Gets the patterns.
    */
   patterns(): Pattern[] {
-    return this.#patterns;
+    return this._patterns;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const anyMatch = this.#patterns.some((pattern) => matchPattern(pattern, haystack));
+    const anyMatch = this._patterns.some((pattern) => matchPattern(pattern, haystack));
 
     const paths = anyMatch ? [[haystack]] : [];
     return [paths, new Map<string, Path[]>()];
@@ -61,7 +61,7 @@ export class OrPattern implements Matcher {
   }
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
-    if (this.#patterns.length === 0) {
+    if (this._patterns.length === 0) {
       return;
     }
 
@@ -69,7 +69,7 @@ export class OrPattern implements Matcher {
     const splits: number[] = [];
 
     // Generate splits for all but the last pattern
-    for (let i = 0; i < this.#patterns.length - 1; i++) {
+    for (let i = 0; i < this._patterns.length - 1; i++) {
       splits.push(code.length);
       code.push({ type: "Split", a: 0, b: 0 }); // Placeholder
     }
@@ -78,11 +78,11 @@ export class OrPattern implements Matcher {
     const jumps: number[] = [];
 
     // Now fill in the actual split targets
-    for (let i = 0; i < this.#patterns.length; i++) {
+    for (let i = 0; i < this._patterns.length; i++) {
       const patternStart = code.length;
 
       // Compile this pattern
-      const pattern = this.#patterns[i];
+      const pattern = this._patterns[i];
       const matcher = pattern as unknown as Matcher;
       matcher.compile(code, literals, captures);
 
@@ -92,7 +92,7 @@ export class OrPattern implements Matcher {
       jumps.push(jumpPastAll);
 
       // If there's a next pattern, update the split to point here
-      if (i < this.#patterns.length - 1) {
+      if (i < this._patterns.length - 1) {
         const nextPattern = code.length;
         code[splits[i]] = { type: "Split", a: patternStart, b: nextPattern };
       }
@@ -109,12 +109,12 @@ export class OrPattern implements Matcher {
     // The pattern is complex if it contains more than one pattern, or if
     // the one pattern is complex itself.
     return (
-      this.#patterns.length > 1 || this.#patterns.some((p) => (p as unknown as Matcher).isComplex())
+      this._patterns.length > 1 || this._patterns.some((p) => (p as unknown as Matcher).isComplex())
     );
   }
 
   toString(): string {
-    return this.#patterns
+    return this._patterns
       .map((p) => (p as unknown as { toString(): string }).toString())
       .join(" | ");
   }
@@ -123,11 +123,11 @@ export class OrPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: OrPattern): boolean {
-    if (this.#patterns.length !== other.#patterns.length) {
+    if (this._patterns.length !== other._patterns.length) {
       return false;
     }
-    for (let i = 0; i < this.#patterns.length; i++) {
-      if (this.#patterns[i] !== other.#patterns[i]) {
+    for (let i = 0; i < this._patterns.length; i++) {
+      if (this._patterns[i] !== other._patterns[i]) {
         return false;
       }
     }
@@ -138,6 +138,6 @@ export class OrPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#patterns.length;
+    return this._patterns.length;
   }
 }

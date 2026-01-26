@@ -55,59 +55,59 @@ export const formatContextCustom = (context: FormatContext): FormatContextOpt =>
 /// functions, and parameters that are used to annotate the output of envelope
 /// formatting functions.
 export class FormatContext implements TagsStoreTrait {
-  readonly #tags: TagsStore;
-  readonly #knownValues: KnownValuesStore;
+  private readonly _tags: TagsStore;
+  private readonly _knownValues: KnownValuesStore;
 
   constructor(tags?: TagsStore, knownValues?: KnownValuesStore) {
-    this.#tags = tags ?? new TagsStoreClass();
-    this.#knownValues = knownValues ?? new KnownValuesStoreClass();
+    this._tags = tags ?? new TagsStoreClass();
+    this._knownValues = knownValues ?? new KnownValuesStoreClass();
   }
 
   /// Returns a reference to the CBOR tags registry.
   tags(): TagsStore {
-    return this.#tags;
+    return this._tags;
   }
 
   /// Returns a reference to the known values registry.
   knownValues(): KnownValuesStore {
-    return this.#knownValues;
+    return this._knownValues;
   }
 
   // Implement TagsStoreTrait by delegating to internal tags store
   assignedNameForTag(tag: Tag): string | undefined {
-    return this.#tags.assignedNameForTag(tag);
+    return this._tags.assignedNameForTag(tag);
   }
 
   nameForTag(tag: Tag): string {
-    return this.#tags.nameForTag(tag);
+    return this._tags.nameForTag(tag);
   }
 
   tagForValue(value: CborNumber): Tag | undefined {
-    return this.#tags.tagForValue(value);
+    return this._tags.tagForValue(value);
   }
 
   tagForName(name: string): Tag | undefined {
-    return this.#tags.tagForName(name);
+    return this._tags.tagForName(name);
   }
 
   nameForValue(value: CborNumber): string {
-    return this.#tags.nameForValue(value);
+    return this._tags.nameForValue(value);
   }
 
   summarizer(tag: CborNumber): CborSummarizer | undefined {
-    return this.#tags.summarizer(tag);
+    return this._tags.summarizer(tag);
   }
 
   /// Register a tag with a name
   registerTag(value: number | bigint, name: string): void {
-    this.#tags.insert({ value: BigInt(value), name });
+    this._tags.insert({ value: BigInt(value), name });
   }
 
   /// Create a clone of this context
   clone(): FormatContext {
     // Note: This creates a shallow copy - tags and knownValues are shared
     // For a full deep copy, we would need to clone the stores
-    return new FormatContext(this.#tags, this.#knownValues);
+    return new FormatContext(this._tags, this._knownValues);
   }
 }
 

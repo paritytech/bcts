@@ -37,10 +37,10 @@ export function registerTextPatternFactory(factory: (pattern: TextPattern) => Pa
  * Corresponds to the Rust `TextPattern` struct in text_pattern.rs
  */
 export class TextPattern implements Matcher {
-  readonly #inner: DCBORTextPattern;
+  private readonly _inner: DCBORTextPattern;
 
   private constructor(inner: DCBORTextPattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -75,7 +75,7 @@ export class TextPattern implements Matcher {
    * Gets the underlying dcbor-pattern TextPattern.
    */
   get inner(): DCBORTextPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -83,7 +83,7 @@ export class TextPattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborTextPatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborTextPatternPaths(this._inner, cbor);
 
       // For simple leaf patterns, if dcbor-pattern found matches, return the envelope
       if (dcborPaths.length > 0) {
@@ -115,27 +115,27 @@ export class TextPattern implements Matcher {
   }
 
   toString(): string {
-    return textPatternDisplay(this.#inner);
+    return textPatternDisplay(this._inner);
   }
 
   /**
    * Equality comparison.
    */
   equals(other: TextPattern): boolean {
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return true;
       case "Value":
         return (
-          (this.#inner as { value: string }).value === (other.#inner as { value: string }).value
+          (this._inner as { value: string }).value === (other._inner as { value: string }).value
         );
       case "Regex":
         return (
-          (this.#inner as { pattern: RegExp }).pattern.source ===
-          (other.#inner as { pattern: RegExp }).pattern.source
+          (this._inner as { pattern: RegExp }).pattern.source ===
+          (other._inner as { pattern: RegExp }).pattern.source
         );
     }
   }
@@ -145,19 +145,19 @@ export class TextPattern implements Matcher {
    */
   hashCode(): number {
     let hash = 0;
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         hash = 1;
         break;
       case "Value": {
-        const val = (this.#inner as { value: string }).value;
+        const val = (this._inner as { value: string }).value;
         for (let i = 0; i < val.length; i++) {
           hash = hash * 31 + val.charCodeAt(i);
         }
         break;
       }
       case "Regex":
-        hash = 3 * 31 + (this.#inner as { pattern: RegExp }).pattern.source.length;
+        hash = 3 * 31 + (this._inner as { pattern: RegExp }).pattern.source.length;
         break;
     }
     return hash;

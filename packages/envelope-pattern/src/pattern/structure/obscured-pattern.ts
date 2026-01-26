@@ -39,10 +39,10 @@ export type ObscuredPatternType =
  * Corresponds to the Rust `ObscuredPattern` enum in obscured_pattern.rs
  */
 export class ObscuredPattern implements Matcher {
-  readonly #pattern: ObscuredPatternType;
+  private readonly _pattern: ObscuredPatternType;
 
   private constructor(pattern: ObscuredPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -77,13 +77,13 @@ export class ObscuredPattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): ObscuredPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     let isHit = false;
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         isHit = haystack.isObscured();
         break;
@@ -122,7 +122,7 @@ export class ObscuredPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "obscured";
       case "Elided":
@@ -138,14 +138,14 @@ export class ObscuredPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: ObscuredPattern): boolean {
-    return this.#pattern.type === other.#pattern.type;
+    return this._pattern.type === other._pattern.type;
   }
 
   /**
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "Elided":

@@ -73,7 +73,7 @@ export interface SignRound1ResponseData {
  *
  * Port of `struct StartParticipant` from cmd/sign/coordinator/round1.rs.
  */
-interface StartParticipant {
+export interface StartParticipant {
   commitArid: ARID;
   shareArid: ARID;
 }
@@ -83,7 +83,7 @@ interface StartParticipant {
  *
  * Port of `struct StartState` from cmd/sign/coordinator/round1.rs.
  */
-interface StartState {
+export interface StartState {
   groupId: ARID;
   targetUr: string;
   participants: Map<string, StartParticipant>; // Map by XID UR string
