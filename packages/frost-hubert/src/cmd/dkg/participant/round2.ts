@@ -23,11 +23,20 @@ import {
   serializeDkgRound2Package,
   identifierFromU16,
   identifierToHex,
+  hexToBytes,
+  bytesToHex,
   type SerializedDkgRound1Package,
   type DkgRound1Package,
   type DkgRound1SecretPackage,
 } from "../../../frost/index.js";
-import { keys, Ed25519Sha512 } from "@frosts/ed25519";
+
+// Import classes directly from @frosts/core
+import {
+  round1,
+  CoefficientCommitment,
+  VerifiableSecretSharingCommitment,
+} from "@frosts/core";
+import { Ed25519Sha512 } from "@frosts/ed25519";
 
 /**
  * Options for the DKG round2 command.
@@ -112,10 +121,8 @@ export async function round2(
   }
 
   // Extract data from the round 2 request envelope
-  // For now, we'll assume it's in a standard format
   let round2RequestData: Round2RequestData;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const resultStr = (round2Request as { result?: () => string }).result?.() ?? "{}";
     round2RequestData = JSON.parse(resultStr) as Round2RequestData;
   } catch {
@@ -123,25 +130,23 @@ export async function round2(
   }
 
   // Reconstruct the secret package from saved state
-  const { hexToBytes } = await import("../../../frost/index.js");
-
   const savedSecret = round1State.secret_package;
-  const coefficients: (typeof Ed25519Sha512)["Scalar"][] = savedSecret.coefficients.map((hex) =>
+  const coefficients = savedSecret.coefficients.map((hex) =>
     Ed25519Sha512.deserializeScalar(hexToBytes(hex)),
   );
 
   const coefficientCommitments = savedSecret.commitment.coefficients.map((hex) =>
-    keys.CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
+    CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
   );
 
-  const commitment = keys.VerifiableSecretSharingCommitment.fromCoefficients(
+  const commitment = new VerifiableSecretSharingCommitment(
     Ed25519Sha512,
     coefficientCommitments,
   );
 
   const identifier = identifierFromU16(savedSecret.identifier);
 
-  const secretPackage: DkgRound1SecretPackage = new keys.dkg.round1.SecretPackage(
+  const secretPackage: DkgRound1SecretPackage = new round1.SecretPackage(
     Ed25519Sha512,
     identifier,
     coefficients,
@@ -202,12 +207,7 @@ export async function round2(
   const round2SecretData = {
     identifier: round1State.participant_index,
     commitment: savedSecret.commitment,
-    secretShare: (() => {
-      const { bytesToHex } = require("../../../frost/index.js") as {
-        bytesToHex: (bytes: Uint8Array) => string;
-      };
-      return bytesToHex(Ed25519Sha512.serializeScalar(round2SecretPackage.secretShare()));
-    })(),
+    secretShare: bytesToHex(Ed25519Sha512.serializeScalar(round2SecretPackage.secretShare())),
     minSigners: round2SecretPackage.minSigners,
     maxSigners: round2SecretPackage.maxSigners,
   };

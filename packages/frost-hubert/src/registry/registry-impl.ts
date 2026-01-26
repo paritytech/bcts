@@ -40,6 +40,18 @@ export enum OwnerOutcome {
 }
 
 /**
+ * Outcome of recording a group in the registry.
+ *
+ * Port of `enum GroupOutcome` from registry_impl.rs.
+ */
+export enum GroupOutcome {
+  /** Group was successfully inserted as new */
+  Inserted = "inserted",
+  /** Group already existed and was updated (contributions merged) */
+  Updated = "updated",
+}
+
+/**
  * Registry for managing participants and groups.
  *
  * Port of `struct Registry` from registry_impl.rs lines 22-26.
@@ -66,18 +78,45 @@ export class Registry {
    * Set the owner record.
    *
    * Returns the outcome indicating whether the owner was already present or newly inserted.
+   *
+   * Port of `Registry::set_owner()` from registry_impl.rs.
    */
   setOwner(owner: OwnerRecord): OwnerOutcome {
-    if (this._owner !== undefined) {
-      const existingXid = this._owner.xid();
-      const newXid = owner.xid();
-      if (existingXid.urString() === newXid.urString()) {
-        return OwnerOutcome.AlreadyPresent;
+    // Check for pet name conflicts with participants
+    const petName = owner.petName();
+    if (petName !== undefined) {
+      const conflicting = this.participantByPetName(petName);
+      if (conflicting?.[1].petName() === petName) {
+        throw new Error(`Pet name '${petName}' already used by a participant`);
       }
     }
 
-    this._owner = owner;
-    return OwnerOutcome.Inserted;
+    if (this._owner === undefined) {
+      this._owner = owner;
+      return OwnerOutcome.Inserted;
+    }
+
+    const existing = this._owner;
+    const existingXidUr = existing.xid().urString();
+    const ownerXidUr = owner.xid().urString();
+
+    if (
+      existingXidUr === ownerXidUr &&
+      existing.xidDocumentUr() === owner.xidDocumentUr() &&
+      existing.petName() === owner.petName()
+    ) {
+      return OwnerOutcome.AlreadyPresent;
+    }
+
+    if (existingXidUr === ownerXidUr) {
+      if (existing.xidDocumentUr() !== owner.xidDocumentUr()) {
+        throw new Error("Owner already exists with different keys");
+      }
+      this._owner = owner;
+      return OwnerOutcome.Inserted;
+    }
+
+    throw new Error(`Owner already recorded for ${existing.xid().toString()}`);
   }
 
   /**
@@ -130,6 +169,20 @@ export class Registry {
   }
 
   /**
+   * Find a participant by pet name.
+   *
+   * Port of `Registry::participant_by_pet_name()` from registry_impl.rs.
+   */
+  participantByPetName(petName: string): [XID, ParticipantRecord] | undefined {
+    for (const record of this._participants.values()) {
+      if (record.petName() === petName) {
+        return [record.xid(), record];
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Get all groups.
    */
   groups(): Map<string, GroupRecord> {
@@ -151,7 +204,54 @@ export class Registry {
   }
 
   /**
-   * Add a group.
+   * Record a group in the registry.
+   *
+   * If the group already exists:
+   * - Validates that the config matches
+   * - Merges contributions from the new record
+   * - Updates verifying key if not already set
+   *
+   * Port of `Registry::record_group()` from registry_impl.rs.
+   */
+  recordGroup(groupId: ARID, record: GroupRecord): GroupOutcome {
+    const key = groupId.hex();
+    const existing = this._groups.get(key);
+
+    if (existing !== undefined) {
+      // Validate config matches
+      if (!existing.configMatches(record)) {
+        throw new Error(
+          `Group ${groupId.hex()} already exists with a different configuration`,
+        );
+      }
+
+      // Merge contributions
+      existing.mergeContributions(record.contributions());
+
+      // Update verifying key if not already set
+      if (existing.verifyingKey() === undefined && record.verifyingKey() !== undefined) {
+        existing.setVerifyingKey(record.verifyingKey()!);
+      } else if (
+        existing.verifyingKey() !== undefined &&
+        record.verifyingKey() !== undefined &&
+        existing.verifyingKey()!.urString() !== record.verifyingKey()!.urString()
+      ) {
+        throw new Error(
+          `Group ${groupId.hex()} already exists with a different verifying key`,
+        );
+      }
+
+      return GroupOutcome.Updated;
+    }
+
+    this._groups.set(key, record);
+    return GroupOutcome.Inserted;
+  }
+
+  /**
+   * Add a group (simple variant without merge logic).
+   *
+   * @deprecated Use recordGroup() for proper merge behavior.
    */
   addGroup(arid: ARID, record: GroupRecord): void {
     this._groups.set(arid.hex(), record);

@@ -72,18 +72,20 @@ export async function round2(
   // @ts-expect-error TS6133 - intentionally unused, will be implemented
   const _round1State: unknown = JSON.parse(fs.readFileSync(round1StatePath, "utf-8"));
 
-  // Build targets for parallel fetch (from pending requests)
+  // Build targets for parallel fetch (from pending requests) - tuples of [xid, arid, name]
   const pendingRequests = groupRecord.pendingRequests();
-  const targets: { xid: XID; arid: ARID }[] = [];
+  const requests: [XID, ARID, string][] = [];
 
   for (const [xid, arid] of pendingRequests.iterCollect()) {
-    targets.push({ xid, arid });
+    const participant = registry.participant(xid);
+    const name = participant?.name() ?? xid.urString();
+    requests.push([xid, arid, name]);
   }
 
   // Collect responses
   const responses: CollectionResult<unknown> = await parallelFetch(
     client,
-    targets,
+    requests,
     (envelope: Envelope, xid: XID) => {
       // Parse the response envelope
       // Extract secret share from response
@@ -99,8 +101,8 @@ export async function round2(
   const collectedPath = path.join(stateDir, "collected_round2.json");
   const collected: Record<string, unknown> = {};
 
-  for (const [xidUr, data] of responses.successes) {
-    collected[xidUr] = data;
+  for (const [xid, data] of responses.successes) {
+    collected[xid.urString()] = data;
   }
 
   fs.writeFileSync(collectedPath, JSON.stringify(collected, null, 2));
@@ -113,16 +115,16 @@ export async function round2(
   registry.save(registryPath);
 
   if (options.verbose === true) {
-    console.log(`Collected ${responses.successes.size} secret shares`);
-    console.log(`  ${responses.rejections.size} rejections`);
-    console.log(`  ${responses.errors.size} errors`);
+    console.log(`Collected ${responses.successes.length} secret shares`);
+    console.log(`  ${responses.rejections.length} rejections`);
+    console.log(`  ${responses.errors.length} errors`);
     console.log(`  ${responses.timeouts.length} timeouts`);
   }
 
   return {
-    accepted: responses.successes.size,
-    rejected: responses.rejections.size,
-    errors: responses.errors.size,
+    accepted: responses.successes.length,
+    rejected: responses.rejections.length,
+    errors: responses.errors.length,
     timeouts: responses.timeouts.length,
   };
 }

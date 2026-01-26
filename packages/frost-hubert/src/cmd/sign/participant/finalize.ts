@@ -130,7 +130,6 @@ export async function finalize(
 
   let finalizeData: FinalizeEventData;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const resultStr = (finalizeEnvelope as { result?: () => string }).result?.() ?? "{}";
     finalizeData = JSON.parse(resultStr) as FinalizeEventData;
   } catch {

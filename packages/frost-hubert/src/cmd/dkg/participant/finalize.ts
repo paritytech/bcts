@@ -22,13 +22,21 @@ import {
   serializeKeyPackage,
   serializePublicKeyPackage,
   hexToBytes,
+  bytesToHex,
   type SerializedDkgRound1Package,
   type SerializedDkgRound2Package,
   type DkgRound1Package,
   type DkgRound2Package,
   type DkgRound2SecretPackage,
 } from "../../../frost/index.js";
-import { keys, Ed25519Sha512 } from "@frosts/ed25519";
+
+// Import classes directly from @frosts/core
+import {
+  round2,
+  CoefficientCommitment,
+  VerifiableSecretSharingCommitment,
+} from "@frosts/core";
+import { Ed25519Sha512 } from "@frosts/ed25519";
 
 /**
  * Options for the DKG finalize command.
@@ -111,7 +119,6 @@ export async function finalize(
 
   let finalizeData: FinalizeData;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const resultStr = (finalizeEnvelope as { result?: () => string }).result?.() ?? "{}";
     finalizeData = JSON.parse(resultStr) as FinalizeData;
   } catch {
@@ -123,17 +130,17 @@ export async function finalize(
   const identifier = identifierFromU16(savedSecret.identifier);
 
   const coefficientCommitments = savedSecret.commitment.coefficients.map((hex) =>
-    keys.CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
+    CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
   );
 
-  const commitment = keys.VerifiableSecretSharingCommitment.fromCoefficients(
+  const commitment = new VerifiableSecretSharingCommitment(
     Ed25519Sha512,
     coefficientCommitments,
   );
 
   const secretShareScalar = Ed25519Sha512.deserializeScalar(hexToBytes(savedSecret.secretShare));
 
-  const round2SecretPackage: DkgRound2SecretPackage = new keys.dkg.round2.SecretPackage(
+  const round2SecretPackage: DkgRound2SecretPackage = new round2.SecretPackage(
     Ed25519Sha512,
     identifier,
     commitment,
@@ -197,7 +204,8 @@ export async function finalize(
   );
 
   // Get the verifying key bytes for registry update
-  const verifyingKeyBytes = keyPackage.verifyingKey.serialize();
+  // verifyingKey is already a Uint8Array (Ed25519Point type)
+  const verifyingKeyBytes = keyPackage.verifyingKey as Uint8Array;
   const verifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
 
   // Update registry with verifying key
@@ -211,10 +219,8 @@ export async function finalize(
     registry.save(registryPath);
   }
 
-  // Create UR string for verifying key
-  const verifyingKeyHex = Array.from(verifyingKeyBytes)
-    .map((b: number) => b.toString(16).padStart(2, "0"))
-    .join("");
+  // Create hex string for verifying key
+  const verifyingKeyHex = bytesToHex(verifyingKeyBytes);
 
   if (options.verbose === true) {
     console.log(`Saved key package to: ${keyPackagePath}`);

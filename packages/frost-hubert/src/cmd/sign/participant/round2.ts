@@ -30,9 +30,11 @@ import {
   type SerializedSigningCommitments,
   type FrostIdentifier,
   type Ed25519SigningCommitments,
-  type Ed25519SigningNonces,
 } from "../../../frost/index.js";
-import { keys, Ed25519Sha512 } from "@frosts/ed25519";
+
+// Import classes directly from @frosts/core
+import { Nonce, SigningNonces } from "@frosts/core";
+import { Ed25519Sha512 } from "@frosts/ed25519";
 
 /**
  * Options for the sign round2 command.
@@ -157,7 +159,6 @@ export async function round2(
 
   let round2RequestData: Round2RequestData;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     const resultStr = (round2Request as { result?: () => string }).result?.() ?? "{}";
     round2RequestData = JSON.parse(resultStr) as Round2RequestData;
   } catch {
@@ -182,27 +183,10 @@ export async function round2(
 
   // Reconstruct our nonces from saved state
   const savedNonces = commitState.nonces;
-  const hidingNonce = keys.Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.hiding));
-  const bindingNonce = keys.Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.binding));
-  const hidingCommitment = keys.NonceCommitment.deserialize(
-    Ed25519Sha512,
-    hexToBytes(savedNonces.commitments.hiding),
-  );
-  const bindingCommitment = keys.NonceCommitment.deserialize(
-    Ed25519Sha512,
-    hexToBytes(savedNonces.commitments.binding),
-  );
-  const ourCommitments = new keys.SigningCommitments(
-    Ed25519Sha512,
-    hidingCommitment,
-    bindingCommitment,
-  );
-  const nonces: Ed25519SigningNonces = new keys.SigningNonces(
-    Ed25519Sha512,
-    hidingNonce,
-    bindingNonce,
-    ourCommitments,
-  );
+  const hidingNonce = Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.hiding));
+  const bindingNonce = Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.binding));
+  // Use fromNonces factory method which computes commitments internally
+  const nonces = SigningNonces.fromNonces(Ed25519Sha512, hidingNonce, bindingNonce);
 
   // Build commitments map from all participants
   const allCommitments = new Map<FrostIdentifier, Ed25519SigningCommitments>();

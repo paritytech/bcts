@@ -30,6 +30,7 @@ import {
   deserializePublicKeyPackage,
   identifierFromU16,
   hexToBytes,
+  serializeSignature,
   serializeSignatureHex,
   type SerializedPublicKeyPackage,
   type SerializedSigningCommitments,
@@ -93,12 +94,13 @@ export async function round2(
   }
 
   // Load commitments collected in round 1
-  interface CommitmentsFile {
-    [xidUr: string]: {
+  type CommitmentsFile = Record<
+    string,
+    {
       commitment: SerializedSigningCommitments;
       participant_index: number;
-    };
-  }
+    }
+  >;
 
   const commitmentsFile = JSON.parse(
     fs.readFileSync(commitmentsPath, "utf-8"),
@@ -198,8 +200,8 @@ export async function round2(
   const aggregatedSignature = aggregateSignatures(signingPackage, sharesMap, publicKeyPackage);
 
   // Serialize the aggregated signature
-  const signatureBytes = aggregatedSignature.serialize();
   const signatureHex = serializeSignatureHex(aggregatedSignature);
+  const signatureBytes = serializeSignature(aggregatedSignature);
   const signature = Signature.ed25519FromData(signatureBytes);
 
   // Load target envelope (reuse inviteState loaded earlier)

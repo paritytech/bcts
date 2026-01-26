@@ -1,8 +1,14 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": [
+    "src/index.ts",
+    "src/frost/index.ts",
+    "src/dkg/index.ts",
+    "src/registry/index.ts",
+    "src/cmd/index.ts"
+  ],
   "out": "docs",
-  "name": "Blockchain Commons GSTP TypeScript Library",
+  "name": "FROST Hubert TypeScript Library",
   "includeVersion": true,
   "readme": "README.md",
   "exclude": [
@@ -23,10 +29,11 @@
   "categorizeByGroup": true,
   "defaultCategory": "Other",
   "categoryOrder": [
-    "Protocol",
-    "Messages",
-    "State Management",
-    "Encryption",
+    "FROST Cryptography",
+    "DKG Operations",
+    "Signing Operations",
+    "Registry",
+    "Commands",
     "Utilities",
     "*"
   ],

@@ -22,8 +22,10 @@ import {
   identifierFromU16,
   serializeDkgRound1Package,
   createRng,
+  bytesToHex,
   type SerializedDkgRound1Package,
 } from "../../../frost/index.js";
+import { Ed25519Sha512 } from "@frosts/ed25519";
 
 /**
  * Options for the DKG round1 command.
@@ -132,7 +134,7 @@ export async function round1(
   let participantIndex = 0;
   for (let i = 0; i < participants.length; i++) {
     const p = participants[i];
-    if (p !== undefined && p.xid().toString() === ourXid.toString()) {
+    if (p?.xid().toString() === ourXid.toString()) {
       participantIndex = i + 1; // FROST uses 1-indexed identifiers
       break;
     }
@@ -179,16 +181,10 @@ export async function round1(
   // Note: In production, the secret package should be encrypted at rest
   const secretPackageData = {
     identifier: participantIndex,
-    coefficients: secretPackage.coefficients().map((c: unknown) => {
+    coefficients: secretPackage.coefficients().map((c: unknown) =>
       // Convert scalar to hex string for storage
-      const { bytesToHex } = require("../../../frost/index.js") as {
-        bytesToHex: (bytes: Uint8Array) => string;
-      };
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      const { Ed25519Sha512 } = require("@frosts/ed25519");
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      return bytesToHex(Ed25519Sha512.serializeScalar(c) as Uint8Array);
-    }),
+      bytesToHex(Ed25519Sha512.serializeScalar(c as Parameters<typeof Ed25519Sha512.serializeScalar>[0])),
+    ),
     minSigners: secretPackage.minSigners,
     maxSigners: secretPackage.maxSigners,
     commitment: serializedPackage.commitment,

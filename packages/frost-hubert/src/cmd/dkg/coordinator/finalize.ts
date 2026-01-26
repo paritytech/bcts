@@ -79,13 +79,13 @@ export async function finalize(
 
   const publicKeyPackage: unknown = JSON.parse(fs.readFileSync(publicKeyPackagePath, "utf-8"));
 
-  // Build finalize envelopes for each participant
-  const messages: { xid: XID; arid: ARID; envelope: Envelope }[] = [];
+  // Build finalize envelopes for each participant - tuples of [xid, arid, envelope, name]
+  const messages: [XID, ARID, Envelope, string][] = [];
 
   // TODO: Create finalize envelopes with public key package
 
   // Send finalize packages
-  const result = await parallelSend(client, messages, options.verbose);
+  const sendResults = await parallelSend(client, messages, options.verbose);
 
   // Update registry with verifying key
   // TODO: Extract verifying key from public key package

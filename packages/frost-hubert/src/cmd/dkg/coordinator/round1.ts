@@ -72,16 +72,19 @@ export async function round1(
     participants: { xid: string; response_arid: string }[];
   };
 
-  // Build targets for parallel fetch
-  const targets: { xid: XID; arid: ARID }[] = inviteState.participants.map((p) => ({
-    xid: XID.fromURString(p.xid),
-    arid: parseAridUr(p.response_arid),
-  }));
+  // Build targets for parallel fetch - tuples of [xid, arid, name]
+  const requests: [XID, ARID, string][] = inviteState.participants.map((p) => {
+    const xid = XID.fromURString(p.xid);
+    const arid = parseAridUr(p.response_arid);
+    const participant = registry.participant(xid);
+    const name = participant?.name() ?? xid.urString();
+    return [xid, arid, name];
+  });
 
   // Collect responses
   const responses: CollectionResult<unknown> = await parallelFetch(
     client,
-    targets,
+    requests,
     (envelope: Envelope, xid: XID) => {
       // Parse the response envelope
       // Extract commitment package from response
@@ -98,8 +101,8 @@ export async function round1(
   const collectedPath = path.join(stateDir, "collected_round1.json");
   const collected: Record<string, unknown> = {};
 
-  for (const [xidUr, data] of responses.successes) {
-    collected[xidUr] = data;
+  for (const [xid, data] of responses.successes) {
+    collected[xid.urString()] = data;
   }
 
   fs.writeFileSync(collectedPath, JSON.stringify(collected, null, 2));
@@ -108,16 +111,16 @@ export async function round1(
   registry.save(registryPath);
 
   if (options.verbose === true) {
-    console.log(`Collected ${responses.successes.size} commitment packages`);
-    console.log(`  ${responses.rejections.size} rejections`);
-    console.log(`  ${responses.errors.size} errors`);
+    console.log(`Collected ${responses.successes.length} commitment packages`);
+    console.log(`  ${responses.rejections.length} rejections`);
+    console.log(`  ${responses.errors.length} errors`);
     console.log(`  ${responses.timeouts.length} timeouts`);
   }
 
   return {
-    accepted: responses.successes.size,
-    rejected: responses.rejections.size,
-    errors: responses.errors.size,
+    accepted: responses.successes.length,
+    rejected: responses.rejections.length,
+    errors: responses.errors.length,
     timeouts: responses.timeouts.length,
   };
 }

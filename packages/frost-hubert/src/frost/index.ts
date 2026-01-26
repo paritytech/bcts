@@ -57,7 +57,7 @@ export type DkgRound2SecretPackage = keys.dkg.round2.SecretPackage;
  */
 export class SecureRng implements RandomSource {
   fill(array: Uint8Array): void {
-    crypto.getRandomValues(array);
+    globalThis.crypto.getRandomValues(array);
   }
 }
 
@@ -299,7 +299,8 @@ export function serializePublicKeyPackage(pkg: FrostPublicKeyPackage): Serialize
   return {
     verifyingKey: json.verifying_key,
     verifyingShares: json.verifying_shares,
-    minSigners: json.min_signers,
+    // minSigners may be undefined in older packages
+    ...(json.min_signers !== undefined ? { minSigners: json.min_signers } : {}),
   };
 }
 
@@ -383,14 +384,14 @@ export function deserializeSignatureShare(hex: string): Ed25519SignatureShare {
  * Serialize a signature to bytes.
  */
 export function serializeSignature(sig: Ed25519Signature): Uint8Array {
-  return sig.serialize();
+  return sig.serialize(Ed25519Sha512);
 }
 
 /**
  * Serialize a signature to hex string.
  */
 export function serializeSignatureHex(sig: Ed25519Signature): string {
-  return bytesToHex(sig.serialize());
+  return bytesToHex(sig.serialize(Ed25519Sha512));
 }
 
 // =============================================================================
