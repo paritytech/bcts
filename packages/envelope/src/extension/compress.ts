@@ -37,13 +37,13 @@ import { cborData, decodeCbor } from "@bcts/dcbor";
 
 /// Represents compressed data with optional digest
 export class Compressed {
-  readonly #compressedData: Uint8Array;
-  readonly #digest?: Digest;
+  private readonly _compressedData: Uint8Array;
+  private readonly _digest?: Digest;
 
   constructor(compressedData: Uint8Array, digest?: Digest) {
-    this.#compressedData = compressedData;
+    this._compressedData = compressedData;
     if (digest !== undefined) {
-      this.#digest = digest;
+      this._digest = digest;
     }
   }
 
@@ -55,17 +55,17 @@ export class Compressed {
 
   /// Returns the compressed data
   compressedData(): Uint8Array {
-    return this.#compressedData;
+    return this._compressedData;
   }
 
   /// Returns the optional digest
   digestOpt(): Digest | undefined {
-    return this.#digest;
+    return this._digest;
   }
 
   /// Decompresses the data
   decompress(): Uint8Array {
-    return pako.inflate(this.#compressedData);
+    return pako.inflate(this._compressedData);
   }
 }
 

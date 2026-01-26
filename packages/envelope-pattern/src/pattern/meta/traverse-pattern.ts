@@ -27,12 +27,12 @@ export function registerTraversePatternFactory(
  * Corresponds to the Rust `TraversePattern` struct in traverse_pattern.rs
  */
 export class TraversePattern implements Matcher {
-  readonly #first: Pattern;
-  readonly #rest: TraversePattern | undefined;
+  private readonly _first: Pattern;
+  private readonly _rest: TraversePattern | undefined;
 
   private constructor(first: Pattern, rest: TraversePattern | undefined) {
-    this.#first = first;
-    this.#rest = rest;
+    this._first = first;
+    this._rest = rest;
   }
 
   /**
@@ -53,19 +53,19 @@ export class TraversePattern implements Matcher {
    * Gets all patterns in this traversal.
    */
   patterns(): Pattern[] {
-    const result: Pattern[] = [this.#first];
-    if (this.#rest !== undefined) {
-      result.push(...this.#rest.patterns());
+    const result: Pattern[] = [this._first];
+    if (this._rest !== undefined) {
+      result.push(...this._rest.patterns());
     }
     return result;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const firstMatcher = this.#first as unknown as Matcher;
+    const firstMatcher = this._first as unknown as Matcher;
     const headPaths = firstMatcher.paths(haystack);
 
     // If there's no further traversal, return head paths
-    if (this.#rest === undefined) {
+    if (this._rest === undefined) {
       return [headPaths, new Map<string, Path[]>()];
     }
 
@@ -74,7 +74,7 @@ export class TraversePattern implements Matcher {
       const lastEnv = path[path.length - 1];
       if (lastEnv !== undefined) {
         // Recursively match the rest of the traversal
-        const tailPaths = this.#rest.paths(lastEnv);
+        const tailPaths = this._rest.paths(lastEnv);
         for (const tailPath of tailPaths) {
           const combined = [...path, ...tailPath];
           result.push(combined);
@@ -95,14 +95,14 @@ export class TraversePattern implements Matcher {
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     // Compile the first pattern
-    const firstMatcher = this.#first as unknown as Matcher;
+    const firstMatcher = this._first as unknown as Matcher;
     firstMatcher.compile(code, literals, captures);
 
-    if (this.#rest !== undefined) {
+    if (this._rest !== undefined) {
       // Save the current path and switch to last envelope
       code.push({ type: "ExtendTraversal" });
       // Compile the rest of the traversal
-      this.#rest.compile(code, literals, captures);
+      this._rest.compile(code, literals, captures);
       // Combine the paths correctly
       code.push({ type: "CombineTraversal" });
     }
@@ -110,8 +110,8 @@ export class TraversePattern implements Matcher {
 
   isComplex(): boolean {
     // A traversal is complex if `first` is complex, or it has more than one pattern
-    const firstMatcher = this.#first as unknown as Matcher;
-    return firstMatcher.isComplex() || this.#rest !== undefined;
+    const firstMatcher = this._first as unknown as Matcher;
+    return firstMatcher.isComplex() || this._rest !== undefined;
   }
 
   toString(): string {

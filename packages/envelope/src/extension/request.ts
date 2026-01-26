@@ -106,16 +106,16 @@ export interface RequestBehavior {
  * ```
  */
 export class Request implements RequestBehavior, EnvelopeEncodable {
-  readonly #body: Expression;
-  readonly #id: ARID;
-  #note: string;
-  #date: Date | undefined;
+  private readonly _body: Expression;
+  private readonly _id: ARID;
+  private _note: string;
+  private _date: Date | undefined;
 
   private constructor(body: Expression, id: ARID, note = "", date?: Date) {
-    this.#body = body;
-    this.#id = id;
-    this.#note = note;
-    this.#date = date;
+    this._body = body;
+    this._id = id;
+    this._note = note;
+    this._date = date;
   }
 
   /**
@@ -145,48 +145,48 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
    * Returns a human-readable summary of the request.
    */
   summary(): string {
-    return `id: ${this.#id.shortDescription()}, body: ${this.#body.envelope().formatFlat()}`;
+    return `id: ${this._id.shortDescription()}, body: ${this._body.envelope().formatFlat()}`;
   }
 
   // RequestBehavior implementation
 
   withParameter(param: ParameterID, value: EnvelopeEncodableValue): Request {
-    this.#body.withParameter(param, value);
+    this._body.withParameter(param, value);
     return this;
   }
 
   withNote(note: string): Request {
-    this.#note = note;
+    this._note = note;
     return this;
   }
 
   withDate(date: Date): Request {
-    this.#date = date;
+    this._date = date;
     return this;
   }
 
   body(): Expression {
-    return this.#body;
+    return this._body;
   }
 
   id(): ARID {
-    return this.#id;
+    return this._id;
   }
 
   note(): string {
-    return this.#note;
+    return this._note;
   }
 
   date(): Date | undefined {
-    return this.#date;
+    return this._date;
   }
 
   function(): Function {
-    return this.#body.function();
+    return this._body.function();
   }
 
   expressionEnvelope(): Envelope {
-    return this.#body.envelope();
+    return this._body.envelope();
   }
 
   /**
@@ -197,16 +197,16 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
    */
   toEnvelope(): Envelope {
     // Create the tagged ARID as the subject
-    const taggedArid = toTaggedValue(TAG_REQUEST, this.#id.untaggedCbor());
+    const taggedArid = toTaggedValue(TAG_REQUEST, this._id.untaggedCbor());
 
-    let envelope = Envelope.newLeaf(taggedArid).addAssertion(BODY, this.#body.envelope());
+    let envelope = Envelope.newLeaf(taggedArid).addAssertion(BODY, this._body.envelope());
 
-    if (this.#note !== "") {
-      envelope = envelope.addAssertion(NOTE, this.#note);
+    if (this._note !== "") {
+      envelope = envelope.addAssertion(NOTE, this._note);
     }
 
-    if (this.#date !== undefined) {
-      envelope = envelope.addAssertion(DATE, this.#date.toISOString());
+    if (this._date !== undefined) {
+      envelope = envelope.addAssertion(DATE, this._date.toISOString());
     }
 
     return envelope;
@@ -290,9 +290,9 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
    */
   equals(other: Request): boolean {
     return (
-      this.#id.equals(other.#id) &&
-      this.#note === other.#note &&
-      this.#date?.getTime() === other.#date?.getTime()
+      this._id.equals(other._id) &&
+      this._note === other._note &&
+      this._date?.getTime() === other._date?.getTime()
     );
   }
 }

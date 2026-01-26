@@ -44,10 +44,10 @@ export type ArrayPatternType =
  * Corresponds to the Rust `ArrayPattern` struct in array_pattern.rs
  */
 export class ArrayPattern implements Matcher {
-  readonly #pattern: ArrayPatternType;
+  private readonly _pattern: ArrayPatternType;
 
   private constructor(pattern: ArrayPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -93,7 +93,7 @@ export class ArrayPattern implements Matcher {
    * Gets the pattern type.
    */
   get pattern(): ArrayPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -109,13 +109,13 @@ export class ArrayPattern implements Matcher {
       return [[], new Map<string, Path[]>()];
     }
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return [[[haystack]], new Map<string, Path[]>()];
 
       case "Interval": {
         const length = array.length;
-        if (this.#pattern.interval.contains(length)) {
+        if (this._pattern.interval.contains(length)) {
           return [[[haystack]], new Map<string, Path[]>()];
         }
         return [[], new Map<string, Path[]>()];
@@ -124,7 +124,7 @@ export class ArrayPattern implements Matcher {
       case "DCBORPattern": {
         // Delegate to dcbor-pattern for matching
         const { paths: dcborPaths, captures: dcborCaptures } = dcborPatternPathsWithCaptures(
-          this.#pattern.pattern,
+          this._pattern.pattern,
           cbor,
         );
 
@@ -167,7 +167,7 @@ export class ArrayPattern implements Matcher {
       case "WithPatterns":
         // For envelope patterns, match if array length equals patterns count
         // Full element-by-element matching would require additional implementation
-        if (array.length === this.#pattern.patterns.length) {
+        if (array.length === this._pattern.patterns.length) {
           return [[[haystack]], new Map<string, Path[]>()];
         }
         return [[], new Map<string, Path[]>()];
@@ -194,15 +194,15 @@ export class ArrayPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "[*]";
       case "Interval":
-        return `[{${this.#pattern.interval.toString()}}]`;
+        return `[{${this._pattern.interval.toString()}}]`;
       case "DCBORPattern":
-        return dcborPatternDisplay(this.#pattern.pattern);
+        return dcborPatternDisplay(this._pattern.pattern);
       case "WithPatterns":
-        return `[${this.#pattern.patterns.map(String).join(", ")}]`;
+        return `[${this._pattern.patterns.map(String).join(", ")}]`;
     }
   }
 
@@ -210,30 +210,30 @@ export class ArrayPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: ArrayPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return true;
       case "Interval":
-        return this.#pattern.interval.equals(
-          (other.#pattern as { type: "Interval"; interval: Interval }).interval,
+        return this._pattern.interval.equals(
+          (other._pattern as { type: "Interval"; interval: Interval }).interval,
         );
       case "DCBORPattern":
         // Compare using display representation
         return (
-          dcborPatternDisplay(this.#pattern.pattern) ===
+          dcborPatternDisplay(this._pattern.pattern) ===
           dcborPatternDisplay(
-            (other.#pattern as { type: "DCBORPattern"; pattern: DCBORPattern }).pattern,
+            (other._pattern as { type: "DCBORPattern"; pattern: DCBORPattern }).pattern,
           )
         );
       case "WithPatterns": {
-        const otherPatterns = (other.#pattern as { type: "WithPatterns"; patterns: Pattern[] })
+        const otherPatterns = (other._pattern as { type: "WithPatterns"; patterns: Pattern[] })
           .patterns;
-        if (this.#pattern.patterns.length !== otherPatterns.length) return false;
-        for (let i = 0; i < this.#pattern.patterns.length; i++) {
-          if (this.#pattern.patterns[i] !== otherPatterns[i]) return false;
+        if (this._pattern.patterns.length !== otherPatterns.length) return false;
+        for (let i = 0; i < this._pattern.patterns.length; i++) {
+          if (this._pattern.patterns[i] !== otherPatterns[i]) return false;
         }
         return true;
       }
@@ -244,17 +244,17 @@ export class ArrayPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "Interval":
         // Simple hash based on min/max
-        return this.#pattern.interval.min() * 31 + (this.#pattern.interval.max() ?? 0);
+        return this._pattern.interval.min() * 31 + (this._pattern.interval.max() ?? 0);
       case "DCBORPattern":
         // Simple hash based on display string
-        return simpleStringHash(dcborPatternDisplay(this.#pattern.pattern));
+        return simpleStringHash(dcborPatternDisplay(this._pattern.pattern));
       case "WithPatterns":
-        return this.#pattern.patterns.length;
+        return this._pattern.patterns.length;
     }
   }
 }

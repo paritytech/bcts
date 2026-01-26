@@ -11,7 +11,7 @@ import { type ARID } from "@bcts/components";
 import { type Envelope, EnvelopeDecoder } from "@bcts/envelope";
 // @ts-expect-error - bittorrent-dht has no type declarations
 import DHT from "bittorrent-dht";
-import { ed25519 } from "@noble/curves/ed25519";
+import { ed25519 } from "@noble/curves/ed25519.js";
 
 import { AlreadyExistsError } from "../error.js";
 import { type KvStore } from "../kv-store.js";

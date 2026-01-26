@@ -164,13 +164,13 @@ import { EncryptedMessage } from "../extension/encrypt";
 /// assert(person.digest().equals(redacted.digest()));
 /// ```
 export class Envelope implements DigestProvider {
-  readonly #case: EnvelopeCase;
+  private readonly _case: EnvelopeCase;
 
   /// Private constructor. Use static factory methods to create envelopes.
   ///
   /// @param envelopeCase - The envelope case variant
   private constructor(envelopeCase: EnvelopeCase) {
-    this.#case = envelopeCase;
+    this._case = envelopeCase;
   }
 
   /// Returns a reference to the underlying envelope case.
@@ -182,7 +182,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns The `EnvelopeCase` that defines this envelope's structure.
   case(): EnvelopeCase {
-    return this.#case;
+    return this._case;
   }
 
   /// Creates an envelope with a subject, which can be any value that
@@ -429,7 +429,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns The envelope's digest
   digest(): Digest {
-    const c = this.#case;
+    const c = this._case;
     switch (c.type) {
       case "node":
       case "leaf":
@@ -466,7 +466,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns The subject envelope
   subject(): Envelope {
-    const c = this.#case;
+    const c = this._case;
     switch (c.type) {
       case "node":
         return c.subject;
@@ -485,14 +485,14 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns `true` if the subject is an assertion, `false` otherwise
   isSubjectAssertion(): boolean {
-    return this.#case.type === "assertion";
+    return this._case.type === "assertion";
   }
 
   /// Checks if the envelope's subject is obscured (elided, encrypted, or compressed).
   ///
   /// @returns `true` if the subject is obscured, `false` otherwise
   isSubjectObscured(): boolean {
-    const t = this.#case.type;
+    const t = this._case.type;
     return t === "elided" || t === "encrypted" || t === "compressed";
   }
 
@@ -524,7 +524,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns The untagged CBOR
   untaggedCbor(): Cbor {
-    const c = this.#case;
+    const c = this._case;
     switch (c.type) {
       case "node": {
         // Array with subject followed by assertions
@@ -742,7 +742,7 @@ export class Envelope implements DigestProvider {
   /// @param assertion - The assertion envelope
   /// @returns A new envelope with the assertion added
   addAssertionEnvelope(assertion: Envelope): Envelope {
-    const c = this.#case;
+    const c = this._case;
 
     // If this is already a node, add to existing assertions
     if (c.type === "node") {
@@ -757,7 +757,7 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns A string representation
   toString(): string {
-    return `Envelope(${this.#case.type})`;
+    return `Envelope(${this._case.type})`;
   }
 
   /// Creates a shallow copy of this envelope.

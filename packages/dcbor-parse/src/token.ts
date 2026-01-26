@@ -123,30 +123,30 @@ export const token = {
  * Corresponds to the Rust `logos::Lexer` used in parse.rs
  */
 export class Lexer {
-  readonly #source: string;
-  #position: number;
-  #tokenStart: number;
-  #tokenEnd: number;
+  private readonly _source: string;
+  private _position: number;
+  private _tokenStart: number;
+  private _tokenEnd: number;
 
   constructor(source: string) {
-    this.#source = source;
-    this.#position = 0;
-    this.#tokenStart = 0;
-    this.#tokenEnd = 0;
+    this._source = source;
+    this._position = 0;
+    this._tokenStart = 0;
+    this._tokenEnd = 0;
   }
 
   /**
    * Gets the current span (position range of the last token).
    */
   span(): Span {
-    return span(this.#tokenStart, this.#tokenEnd);
+    return span(this._tokenStart, this._tokenEnd);
   }
 
   /**
    * Gets the slice of source corresponding to the last token.
    */
   slice(): string {
-    return this.#source.slice(this.#tokenStart, this.#tokenEnd);
+    return this._source.slice(this._tokenStart, this._tokenEnd);
   }
 
   /**
@@ -154,67 +154,67 @@ export class Lexer {
    * Returns a Result to handle lexing errors.
    */
   next(): ParseResult<Token> | undefined {
-    this.#skipWhitespaceAndComments();
+    this._skipWhitespaceAndComments();
 
-    if (this.#position >= this.#source.length) {
+    if (this._position >= this._source.length) {
       return undefined;
     }
 
-    this.#tokenStart = this.#position;
+    this._tokenStart = this._position;
 
     // Try to match tokens in order of specificity
     const result =
-      this.#tryMatchKeyword() ??
-      this.#tryMatchDateLiteral() ??
-      this.#tryMatchTagValueOrNumber() ??
-      this.#tryMatchTagName() ??
-      this.#tryMatchString() ??
-      this.#tryMatchByteStringHex() ??
-      this.#tryMatchByteStringBase64() ??
-      this.#tryMatchKnownValue() ??
-      this.#tryMatchUR() ??
-      this.#tryMatchPunctuation();
+      this._tryMatchKeyword() ??
+      this._tryMatchDateLiteral() ??
+      this._tryMatchTagValueOrNumber() ??
+      this._tryMatchTagName() ??
+      this._tryMatchString() ??
+      this._tryMatchByteStringHex() ??
+      this._tryMatchByteStringBase64() ??
+      this._tryMatchKnownValue() ??
+      this._tryMatchUR() ??
+      this._tryMatchPunctuation();
 
     if (result === undefined) {
       // Unrecognized token - consume one character
-      this.#position++;
-      this.#tokenEnd = this.#position;
+      this._position++;
+      this._tokenEnd = this._position;
       return err(PE.unrecognizedToken(this.span()));
     }
 
     return result;
   }
 
-  #skipWhitespaceAndComments(): void {
-    while (this.#position < this.#source.length) {
-      const ch = this.#source[this.#position];
+  private _skipWhitespaceAndComments(): void {
+    while (this._position < this._source.length) {
+      const ch = this._source[this._position];
 
       // Skip whitespace
       if (ch === " " || ch === "\t" || ch === "\r" || ch === "\n" || ch === "\f") {
-        this.#position++;
+        this._position++;
         continue;
       }
 
       // Skip inline comments: /.../ (not preceded by another /)
       if (
         ch === "/" &&
-        this.#position + 1 < this.#source.length &&
-        this.#source[this.#position + 1] !== "/"
+        this._position + 1 < this._source.length &&
+        this._source[this._position + 1] !== "/"
       ) {
-        this.#position++; // Skip opening /
-        while (this.#position < this.#source.length && this.#source[this.#position] !== "/") {
-          this.#position++;
+        this._position++; // Skip opening /
+        while (this._position < this._source.length && this._source[this._position] !== "/") {
+          this._position++;
         }
-        if (this.#position < this.#source.length) {
-          this.#position++; // Skip closing /
+        if (this._position < this._source.length) {
+          this._position++; // Skip closing /
         }
         continue;
       }
 
       // Skip end-of-line comments: #...
       if (ch === "#") {
-        while (this.#position < this.#source.length && this.#source[this.#position] !== "\n") {
-          this.#position++;
+        while (this._position < this._source.length && this._source[this._position] !== "\n") {
+          this._position++;
         }
         continue;
       }
@@ -223,7 +223,7 @@ export class Lexer {
     }
   }
 
-  #tryMatchKeyword(): ParseResult<Token> | undefined {
+  private _tryMatchKeyword(): ParseResult<Token> | undefined {
     const keywords: [string, Token][] = [
       ["true", token.bool(true)],
       ["false", token.bool(false)],
@@ -235,31 +235,31 @@ export class Lexer {
     ];
 
     for (const [keyword, tok] of keywords) {
-      if (this.#matchLiteral(keyword)) {
+      if (this._matchLiteral(keyword)) {
         // Make sure it's not part of a longer identifier
-        const nextChar = this.#source[this.#position];
-        if (nextChar === undefined || !this.#isIdentifierChar(nextChar)) {
-          this.#tokenEnd = this.#position;
+        const nextChar = this._source[this._position];
+        if (nextChar === undefined || !this._isIdentifierChar(nextChar)) {
+          this._tokenEnd = this._position;
           return ok(tok);
         }
         // Reset position if it was a partial match
-        this.#position = this.#tokenStart;
+        this._position = this._tokenStart;
       }
     }
 
     return undefined;
   }
 
-  #tryMatchDateLiteral(): ParseResult<Token> | undefined {
+  private _tryMatchDateLiteral(): ParseResult<Token> | undefined {
     // ISO-8601 date: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS...
     const dateRegex = /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?)?/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = dateRegex.exec(remaining);
 
     if (match !== null) {
       const dateStr = match[0];
-      this.#position += dateStr.length;
-      this.#tokenEnd = this.#position;
+      this._position += dateStr.length;
+      this._tokenEnd = this._position;
 
       // Validate date components before parsing to match Rust's strict behavior
       if (!isValidDateString(dateStr)) {
@@ -277,16 +277,16 @@ export class Lexer {
     return undefined;
   }
 
-  #tryMatchTagValueOrNumber(): ParseResult<Token> | undefined {
+  private _tryMatchTagValueOrNumber(): ParseResult<Token> | undefined {
     // Check for tag value: integer followed by (
     // Or just a number
     const numberRegex = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = numberRegex.exec(remaining);
 
     if (match !== null) {
       const numStr = match[0];
-      const nextChar = this.#source[this.#position + numStr.length];
+      const nextChar = this._source[this._position + numStr.length];
 
       // Check if this is a tag value (integer followed by parenthesis)
       if (
@@ -297,13 +297,13 @@ export class Lexer {
         !numStr.startsWith("-")
       ) {
         // It's a tag value
-        this.#position += numStr.length + 1; // Include the (
-        this.#tokenEnd = this.#position;
+        this._position += numStr.length + 1; // Include the (
+        this._tokenEnd = this._position;
 
         const tagValue = parseInt(numStr, 10);
         if (!Number.isSafeInteger(tagValue) || tagValue < 0) {
           return err(
-            PE.invalidTagValue(numStr, span(this.#tokenStart, this.#tokenStart + numStr.length)),
+            PE.invalidTagValue(numStr, span(this._tokenStart, this._tokenStart + numStr.length)),
           );
         }
 
@@ -311,8 +311,8 @@ export class Lexer {
       }
 
       // It's a regular number
-      this.#position += numStr.length;
-      this.#tokenEnd = this.#position;
+      this._position += numStr.length;
+      this._tokenEnd = this._position;
 
       const num = parseFloat(numStr);
       return ok(token.number(num));
@@ -321,17 +321,17 @@ export class Lexer {
     return undefined;
   }
 
-  #tryMatchTagName(): ParseResult<Token> | undefined {
+  private _tryMatchTagName(): ParseResult<Token> | undefined {
     // Tag name: identifier followed by (
     const tagNameRegex = /^[a-zA-Z_][a-zA-Z0-9_-]*\(/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = tagNameRegex.exec(remaining);
 
     if (match !== null) {
       const fullMatch = match[0];
       const name = fullMatch.slice(0, -1); // Remove trailing (
-      this.#position += fullMatch.length;
-      this.#tokenEnd = this.#position;
+      this._position += fullMatch.length;
+      this._tokenEnd = this._position;
 
       return ok(token.tagName(name));
     }
@@ -339,64 +339,64 @@ export class Lexer {
     return undefined;
   }
 
-  #tryMatchString(): ParseResult<Token> | undefined {
-    if (this.#source[this.#position] !== '"') {
+  private _tryMatchString(): ParseResult<Token> | undefined {
+    if (this._source[this._position] !== '"') {
       return undefined;
     }
 
     // JavaScript-style string with escape sequences
     // eslint-disable-next-line no-control-regex
     const stringRegex = /^"([^"\\\x00-\x1F]|\\(["\\bnfrt/]|u[a-fA-F0-9]{4}))*"/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = stringRegex.exec(remaining);
 
     if (match !== null) {
       const fullMatch = match[0];
-      this.#position += fullMatch.length;
-      this.#tokenEnd = this.#position;
+      this._position += fullMatch.length;
+      this._tokenEnd = this._position;
 
       // Return the full string including quotes
       return ok(token.string(fullMatch));
     }
 
     // Invalid string - try to find where it ends for better error reporting
-    this.#position++;
-    while (this.#position < this.#source.length) {
-      const ch = this.#source[this.#position];
+    this._position++;
+    while (this._position < this._source.length) {
+      const ch = this._source[this._position];
       if (ch === '"' || ch === "\n") {
-        if (ch === '"') this.#position++;
+        if (ch === '"') this._position++;
         break;
       }
       if (ch === "\\") {
-        this.#position += 2;
+        this._position += 2;
       } else {
-        this.#position++;
+        this._position++;
       }
     }
-    this.#tokenEnd = this.#position;
+    this._tokenEnd = this._position;
     return err(PE.unrecognizedToken(this.span()));
   }
 
-  #tryMatchByteStringHex(): ParseResult<Token> | undefined {
+  private _tryMatchByteStringHex(): ParseResult<Token> | undefined {
     // h'...'
-    if (!this.#matchLiteral("h'")) {
+    if (!this._matchLiteral("h'")) {
       return undefined;
     }
 
     const hexRegex = /^[0-9a-fA-F]*/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = hexRegex.exec(remaining);
     const hexPart = match !== null ? match[0] : "";
 
-    this.#position += hexPart.length;
+    this._position += hexPart.length;
 
-    if (this.#source[this.#position] !== "'") {
-      this.#tokenEnd = this.#position;
+    if (this._source[this._position] !== "'") {
+      this._tokenEnd = this._position;
       return err(PE.invalidHexString(this.span()));
     }
 
-    this.#position++; // Skip closing '
-    this.#tokenEnd = this.#position;
+    this._position++; // Skip closing '
+    this._tokenEnd = this._position;
 
     // Check that hex string has even length
     if (hexPart.length % 2 !== 0) {
@@ -408,26 +408,26 @@ export class Lexer {
     return ok(token.byteStringHex(bytes));
   }
 
-  #tryMatchByteStringBase64(): ParseResult<Token> | undefined {
+  private _tryMatchByteStringBase64(): ParseResult<Token> | undefined {
     // b64'...'
-    if (!this.#matchLiteral("b64'")) {
+    if (!this._matchLiteral("b64'")) {
       return undefined;
     }
 
     const base64Regex = /^[A-Za-z0-9+/=]*/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = base64Regex.exec(remaining);
     const base64Part = match !== null ? match[0] : "";
 
-    this.#position += base64Part.length;
+    this._position += base64Part.length;
 
-    if (this.#source[this.#position] !== "'") {
-      this.#tokenEnd = this.#position;
+    if (this._source[this._position] !== "'") {
+      this._tokenEnd = this._position;
       return err(PE.invalidBase64String(this.span()));
     }
 
-    this.#position++; // Skip closing '
-    this.#tokenEnd = this.#position;
+    this._position++; // Skip closing '
+    this._tokenEnd = this._position;
 
     // Check minimum length requirement (2 characters)
     if (base64Part.length < 2) {
@@ -443,32 +443,32 @@ export class Lexer {
     }
   }
 
-  #tryMatchKnownValue(): ParseResult<Token> | undefined {
-    if (this.#source[this.#position] !== "'") {
+  private _tryMatchKnownValue(): ParseResult<Token> | undefined {
+    if (this._source[this._position] !== "'") {
       return undefined;
     }
 
     // Check for empty string '' (Unit)
-    if (this.#source[this.#position + 1] === "'") {
-      this.#position += 2;
-      this.#tokenEnd = this.#position;
+    if (this._source[this._position + 1] === "'") {
+      this._position += 2;
+      this._tokenEnd = this._position;
       return ok(token.knownValueName(""));
     }
 
     // Check for numeric known value: '0' or '[1-9][0-9]*'
     const numericRegex = /^'(0|[1-9][0-9]*)'/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     let match = numericRegex.exec(remaining);
 
     if (match !== null) {
       const fullMatch = match[0];
       const numStr = match[1];
-      this.#position += fullMatch.length;
-      this.#tokenEnd = this.#position;
+      this._position += fullMatch.length;
+      this._tokenEnd = this._position;
 
       const value = parseInt(numStr, 10);
       if (!Number.isSafeInteger(value) || value < 0) {
-        return err(PE.invalidKnownValue(numStr, span(this.#tokenStart + 1, this.#tokenEnd - 1)));
+        return err(PE.invalidKnownValue(numStr, span(this._tokenStart + 1, this._tokenEnd - 1)));
       }
 
       return ok(token.knownValueNumber(value));
@@ -481,34 +481,34 @@ export class Lexer {
     if (match !== null) {
       const fullMatch = match[0];
       const name = match[1];
-      this.#position += fullMatch.length;
-      this.#tokenEnd = this.#position;
+      this._position += fullMatch.length;
+      this._tokenEnd = this._position;
 
       return ok(token.knownValueName(name));
     }
 
     // Invalid known value
-    this.#position++;
-    while (this.#position < this.#source.length && this.#source[this.#position] !== "'") {
-      this.#position++;
+    this._position++;
+    while (this._position < this._source.length && this._source[this._position] !== "'") {
+      this._position++;
     }
-    if (this.#position < this.#source.length) {
-      this.#position++;
+    if (this._position < this._source.length) {
+      this._position++;
     }
-    this.#tokenEnd = this.#position;
+    this._tokenEnd = this._position;
     return err(PE.unrecognizedToken(this.span()));
   }
 
-  #tryMatchUR(): ParseResult<Token> | undefined {
+  private _tryMatchUR(): ParseResult<Token> | undefined {
     // ur:type/data
     const urRegex = /^ur:([a-zA-Z0-9][a-zA-Z0-9-]*)\/([a-zA-Z]{8,})/;
-    const remaining = this.#source.slice(this.#position);
+    const remaining = this._source.slice(this._position);
     const match = urRegex.exec(remaining);
 
     if (match !== null) {
       const fullMatch = match[0];
-      this.#position += fullMatch.length;
-      this.#tokenEnd = this.#position;
+      this._position += fullMatch.length;
+      this._tokenEnd = this._position;
 
       try {
         const ur = UR.fromURString(fullMatch);
@@ -522,8 +522,8 @@ export class Lexer {
     return undefined;
   }
 
-  #tryMatchPunctuation(): ParseResult<Token> | undefined {
-    const ch = this.#source[this.#position];
+  private _tryMatchPunctuation(): ParseResult<Token> | undefined {
+    const ch = this._source[this._position];
 
     const punctuation: Record<string, Token> = {
       "{": token.braceOpen(),
@@ -538,23 +538,23 @@ export class Lexer {
 
     const matched = punctuation[ch];
     if (matched !== undefined) {
-      this.#position++;
-      this.#tokenEnd = this.#position;
+      this._position++;
+      this._tokenEnd = this._position;
       return ok(matched);
     }
 
     return undefined;
   }
 
-  #matchLiteral(literal: string): boolean {
-    if (this.#source.slice(this.#position, this.#position + literal.length) === literal) {
-      this.#position += literal.length;
+  private _matchLiteral(literal: string): boolean {
+    if (this._source.slice(this._position, this._position + literal.length) === literal) {
+      this._position += literal.length;
       return true;
     }
     return false;
   }
 
-  #isIdentifierChar(ch: string): boolean {
+  private _isIdentifierChar(ch: string): boolean {
     return /[a-zA-Z0-9_-]/.test(ch);
   }
 }

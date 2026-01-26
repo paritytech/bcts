@@ -9,7 +9,6 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "bctsUniformResources",
-  noExternal: ["@bcts/dcbor"],
   outputOptions: {
     globals: {
       "@bcts/crypto": "bctsCrypto",

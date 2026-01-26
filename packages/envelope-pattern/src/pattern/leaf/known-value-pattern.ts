@@ -41,10 +41,10 @@ export function registerKnownValuePatternFactory(
  * Corresponds to the Rust `KnownValuePattern` struct in known_value_pattern.rs
  */
 export class KnownValuePattern implements Matcher {
-  readonly #inner: DCBORKnownValuePattern;
+  private readonly _inner: DCBORKnownValuePattern;
 
   private constructor(inner: DCBORKnownValuePattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -86,7 +86,7 @@ export class KnownValuePattern implements Matcher {
    * Gets the underlying dcbor-pattern KnownValuePattern.
    */
   get inner(): DCBORKnownValuePattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -96,7 +96,7 @@ export class KnownValuePattern implements Matcher {
     if (envCase.type === "knownValue") {
       // Get the KnownValue and create CBOR for pattern matching
       const knownValueCbor = envCase.value.taggedCbor();
-      if (knownValuePatternMatches(this.#inner, knownValueCbor)) {
+      if (knownValuePatternMatches(this._inner, knownValueCbor)) {
         return [[[haystack]], new Map<string, Path[]>()];
       }
     }
@@ -104,7 +104,7 @@ export class KnownValuePattern implements Matcher {
     // Also try matching as a leaf (for tagged CBOR containing known values)
     const leafCbor = haystack.asLeaf();
     if (leafCbor !== undefined) {
-      if (knownValuePatternMatches(this.#inner, leafCbor)) {
+      if (knownValuePatternMatches(this._inner, leafCbor)) {
         return [[[haystack]], new Map<string, Path[]>()];
       }
     }
@@ -132,7 +132,7 @@ export class KnownValuePattern implements Matcher {
   }
 
   toString(): string {
-    return knownValuePatternDisplay(this.#inner);
+    return knownValuePatternDisplay(this._inner);
   }
 
   /**
@@ -140,23 +140,23 @@ export class KnownValuePattern implements Matcher {
    */
   equals(other: KnownValuePattern): boolean {
     // Compare by variant type and values
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return true;
       case "Value":
         return (
-          this.#inner.value.valueBigInt() ===
-          (other.#inner as { variant: "Value"; value: KnownValue }).value.valueBigInt()
+          this._inner.value.valueBigInt() ===
+          (other._inner as { variant: "Value"; value: KnownValue }).value.valueBigInt()
         );
       case "Named":
-        return this.#inner.name === (other.#inner as { variant: "Named"; name: string }).name;
+        return this._inner.name === (other._inner as { variant: "Named"; name: string }).name;
       case "Regex":
         return (
-          this.#inner.pattern.source ===
-          (other.#inner as { variant: "Regex"; pattern: RegExp }).pattern.source
+          this._inner.pattern.source ===
+          (other._inner as { variant: "Regex"; pattern: RegExp }).pattern.source
         );
     }
   }
@@ -165,15 +165,15 @@ export class KnownValuePattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return 0;
       case "Value":
-        return Number(this.#inner.value.valueBigInt() & BigInt(0xffffffff));
+        return Number(this._inner.value.valueBigInt() & BigInt(0xffffffff));
       case "Named":
-        return simpleStringHash(this.#inner.name);
+        return simpleStringHash(this._inner.name);
       case "Regex":
-        return simpleStringHash(this.#inner.pattern.source);
+        return simpleStringHash(this._inner.pattern.source);
     }
   }
 }

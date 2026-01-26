@@ -37,10 +37,10 @@ export type NodePatternType =
  * Corresponds to the Rust `NodePattern` enum in node_pattern.rs
  */
 export class NodePattern implements Matcher {
-  readonly #pattern: NodePatternType;
+  private readonly _pattern: NodePatternType;
 
   private constructor(pattern: NodePatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -76,14 +76,14 @@ export class NodePattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): NodePatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the subject pattern if this is a WithSubject type, undefined otherwise.
    */
   subjectPattern(): Pattern | undefined {
-    return this.#pattern.type === "WithSubject" ? this.#pattern.subjectPattern : undefined;
+    return this._pattern.type === "WithSubject" ? this._pattern.subjectPattern : undefined;
   }
 
   /**
@@ -101,12 +101,12 @@ export class NodePattern implements Matcher {
 
     let isHit = false;
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         isHit = true;
         break;
       case "AssertionsInterval":
-        isHit = this.#pattern.interval.contains(haystack.assertions().length);
+        isHit = this._pattern.interval.contains(haystack.assertions().length);
         break;
       case "WithSubject":
         // For WithSubject, we match if the node exists (subject pattern matching done at higher level)
@@ -138,13 +138,13 @@ export class NodePattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "node";
       case "AssertionsInterval":
-        return `node(${this.#pattern.interval.toString()})`;
+        return `node(${this._pattern.interval.toString()})`;
       case "WithSubject":
-        return `node(${(this.#pattern.subjectPattern as unknown as { toString(): string }).toString()})`;
+        return `node(${(this._pattern.subjectPattern as unknown as { toString(): string }).toString()})`;
     }
   }
 
@@ -152,21 +152,21 @@ export class NodePattern implements Matcher {
    * Equality comparison.
    */
   equals(other: NodePattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return true;
       case "AssertionsInterval":
-        return this.#pattern.interval.equals(
-          (other.#pattern as { type: "AssertionsInterval"; interval: Interval }).interval,
+        return this._pattern.interval.equals(
+          (other._pattern as { type: "AssertionsInterval"; interval: Interval }).interval,
         );
       case "WithSubject":
         // Simple reference equality for pattern (could be improved with deep equality)
         return (
-          this.#pattern.subjectPattern ===
-          (other.#pattern as { type: "WithSubject"; subjectPattern: Pattern }).subjectPattern
+          this._pattern.subjectPattern ===
+          (other._pattern as { type: "WithSubject"; subjectPattern: Pattern }).subjectPattern
         );
     }
   }
@@ -175,12 +175,12 @@ export class NodePattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "AssertionsInterval":
         // Simple hash based on interval min/max
-        return this.#pattern.interval.min() * 31 + (this.#pattern.interval.max() ?? 0);
+        return this._pattern.interval.min() * 31 + (this._pattern.interval.max() ?? 0);
       case "WithSubject":
         return 1;
     }

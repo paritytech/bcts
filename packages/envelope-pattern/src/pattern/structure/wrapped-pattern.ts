@@ -34,10 +34,10 @@ export type WrappedPatternType =
  * Corresponds to the Rust `WrappedPattern` enum in wrapped_pattern.rs
  */
 export class WrappedPattern implements Matcher {
-  readonly #pattern: WrappedPatternType;
+  private readonly _pattern: WrappedPatternType;
 
   private constructor(pattern: WrappedPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -69,14 +69,14 @@ export class WrappedPattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): WrappedPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the inner pattern if this is an Unwrap type, undefined otherwise.
    */
   innerPattern(): Pattern | undefined {
-    return this.#pattern.type === "Unwrap" ? this.#pattern.pattern : undefined;
+    return this._pattern.type === "Unwrap" ? this._pattern.pattern : undefined;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -88,7 +88,7 @@ export class WrappedPattern implements Matcher {
 
     let paths: Path[];
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         // Just match the wrapped envelope itself, don't descend
         paths = [[haystack]];
@@ -97,7 +97,7 @@ export class WrappedPattern implements Matcher {
         // Match the content of the wrapped envelope
         const unwrapped = subject.tryUnwrap?.();
         if (unwrapped !== undefined) {
-          const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+          const innerMatcher = this._pattern.pattern as unknown as Matcher;
           const innerPaths = innerMatcher.paths(unwrapped);
           paths = innerPaths.map((path) => {
             // Add the current envelope to the path
@@ -126,7 +126,7 @@ export class WrappedPattern implements Matcher {
       throw new Error("WrappedPattern factory not registered");
     }
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any": {
         // Just match the wrapped envelope itself, don't descend
         const idx = literals.length;
@@ -145,7 +145,7 @@ export class WrappedPattern implements Matcher {
         code.push({ type: "PushAxis", axis });
 
         // Then match the pattern
-        const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+        const innerMatcher = this._pattern.pattern as unknown as Matcher;
         innerMatcher.compile(code, literals, captures);
         break;
       }
@@ -157,12 +157,12 @@ export class WrappedPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "wrapped";
       case "Unwrap": {
         // Check if it's the "any" pattern by string comparison
-        const patternStr = (this.#pattern.pattern as unknown as { toString(): string }).toString();
+        const patternStr = (this._pattern.pattern as unknown as { toString(): string }).toString();
         if (patternStr === "*") {
           return "unwrap";
         }
@@ -175,14 +175,14 @@ export class WrappedPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: WrappedPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    if (this.#pattern.type === "Any") {
+    if (this._pattern.type === "Any") {
       return true;
     }
-    const thisPattern = (this.#pattern as { type: "Unwrap"; pattern: Pattern }).pattern;
-    const otherPattern = (other.#pattern as { type: "Unwrap"; pattern: Pattern }).pattern;
+    const thisPattern = (this._pattern as { type: "Unwrap"; pattern: Pattern }).pattern;
+    const otherPattern = (other._pattern as { type: "Unwrap"; pattern: Pattern }).pattern;
     return thisPattern === otherPattern;
   }
 
@@ -190,6 +190,6 @@ export class WrappedPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#pattern.type === "Any" ? 0 : 1;
+    return this._pattern.type === "Any" ? 0 : 1;
   }
 }

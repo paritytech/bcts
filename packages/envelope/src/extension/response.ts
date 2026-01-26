@@ -119,10 +119,10 @@ export interface ResponseBehavior {
  * ```
  */
 export class Response implements ResponseBehavior, EnvelopeEncodable {
-  #result: ResponseResult;
+  private _result: ResponseResult;
 
   private constructor(result: ResponseResult) {
-    this.#result = result;
+    this._result = result;
   }
 
   /**
@@ -185,24 +185,24 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
    * Returns a human-readable summary of the response.
    */
   summary(): string {
-    if (this.#result.ok) {
-      return `id: ${this.#result.id.shortDescription()}, result: ${this.#result.result.formatFlat()}`;
+    if (this._result.ok) {
+      return `id: ${this._result.id.shortDescription()}, result: ${this._result.result.formatFlat()}`;
     } else {
       const idStr =
-        this.#result.id !== undefined ? this.#result.id.shortDescription() : "'Unknown'";
-      return `id: ${idStr}, error: ${this.#result.error.formatFlat()}`;
+        this._result.id !== undefined ? this._result.id.shortDescription() : "'Unknown'";
+      return `id: ${idStr}, error: ${this._result.error.formatFlat()}`;
     }
   }
 
   // ResponseBehavior implementation
 
   withResult(result: EnvelopeEncodableValue): Response {
-    if (!this.#result.ok) {
+    if (!this._result.ok) {
       throw new Error("Cannot set result on a failed response");
     }
-    this.#result = {
+    this._result = {
       ok: true,
-      id: this.#result.id,
+      id: this._result.id,
       result: Envelope.new(result),
     };
     return this;
@@ -216,12 +216,12 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
   }
 
   withError(error: EnvelopeEncodableValue): Response {
-    if (this.#result.ok) {
+    if (this._result.ok) {
       throw new Error("Cannot set error on a successful response");
     }
-    this.#result = {
+    this._result = {
       ok: false,
-      id: this.#result.id,
+      id: this._result.id,
       error: Envelope.new(error),
     };
     return this;
@@ -235,15 +235,15 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
   }
 
   isOk(): boolean {
-    return this.#result.ok;
+    return this._result.ok;
   }
 
   isErr(): boolean {
-    return !this.#result.ok;
+    return !this._result.ok;
   }
 
   id(): ARID | undefined {
-    return this.#result.id;
+    return this._result.id;
   }
 
   expectId(): ARID {
@@ -255,17 +255,17 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
   }
 
   result(): Envelope {
-    if (!this.#result.ok) {
+    if (!this._result.ok) {
       throw EnvelopeError.general("Cannot get result from failed response");
     }
-    return this.#result.result;
+    return this._result.result;
   }
 
   error(): Envelope {
-    if (this.#result.ok) {
+    if (this._result.ok) {
       throw EnvelopeError.general("Cannot get error from successful response");
     }
-    return this.#result.error;
+    return this._result.error;
   }
 
   /**
@@ -290,19 +290,19 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
    * as the subject and an 'error' assertion.
    */
   toEnvelope(): Envelope {
-    if (this.#result.ok) {
-      const taggedArid = toTaggedValue(TAG_RESPONSE, this.#result.id.untaggedCbor());
-      return Envelope.newLeaf(taggedArid).addAssertion(RESULT, this.#result.result);
+    if (this._result.ok) {
+      const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.untaggedCbor());
+      return Envelope.newLeaf(taggedArid).addAssertion(RESULT, this._result.result);
     } else {
       let subject: Envelope;
-      if (this.#result.id !== undefined) {
-        const taggedArid = toTaggedValue(TAG_RESPONSE, this.#result.id.untaggedCbor());
+      if (this._result.id !== undefined) {
+        const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.untaggedCbor());
         subject = Envelope.newLeaf(taggedArid);
       } else {
         const taggedUnknown = toTaggedValue(TAG_RESPONSE, UNKNOWN_VALUE.untaggedCbor());
         subject = Envelope.newLeaf(taggedUnknown);
       }
-      return subject.addAssertion(ERROR, this.#result.error);
+      return subject.addAssertion(ERROR, this._result.error);
     }
   }
 
@@ -390,18 +390,18 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
    * Checks equality with another response.
    */
   equals(other: Response): boolean {
-    if (this.#result.ok !== other.#result.ok) return false;
+    if (this._result.ok !== other._result.ok) return false;
 
-    if (this.#result.ok && other.#result.ok) {
-      return this.#result.id.equals(other.#result.id);
+    if (this._result.ok && other._result.ok) {
+      return this._result.id.equals(other._result.id);
     }
 
-    if (!this.#result.ok && !other.#result.ok) {
-      if (this.#result.id === undefined && other.#result.id === undefined) {
+    if (!this._result.ok && !other._result.ok) {
+      if (this._result.id === undefined && other._result.id === undefined) {
         return true;
       }
-      if (this.#result.id !== undefined && other.#result.id !== undefined) {
-        return this.#result.id.equals(other.#result.id);
+      if (this._result.id !== undefined && other._result.id !== undefined) {
+        return this._result.id.equals(other._result.id);
       }
       return false;
     }

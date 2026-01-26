@@ -25,10 +25,10 @@ export function registerAndPatternFactory(factory: (pattern: AndPattern) => Patt
  * Corresponds to the Rust `AndPattern` struct in and_pattern.rs
  */
 export class AndPattern implements Matcher {
-  readonly #patterns: Pattern[];
+  private readonly _patterns: Pattern[];
 
   private constructor(patterns: Pattern[]) {
-    this.#patterns = patterns;
+    this._patterns = patterns;
   }
 
   /**
@@ -42,11 +42,11 @@ export class AndPattern implements Matcher {
    * Gets the patterns.
    */
   patterns(): Pattern[] {
-    return this.#patterns;
+    return this._patterns;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const allMatch = this.#patterns.every((pattern) => matchPattern(pattern, haystack));
+    const allMatch = this._patterns.every((pattern) => matchPattern(pattern, haystack));
 
     const paths = allMatch ? [[haystack]] : [];
     return [paths, new Map<string, Path[]>()];
@@ -62,7 +62,7 @@ export class AndPattern implements Matcher {
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     // Each pattern must match at this position
-    for (const pattern of this.#patterns) {
+    for (const pattern of this._patterns) {
       const matcher = pattern as unknown as Matcher;
       matcher.compile(code, literals, captures);
     }
@@ -72,12 +72,12 @@ export class AndPattern implements Matcher {
     // The pattern is complex if it contains more than one pattern, or if
     // the one pattern is complex itself.
     return (
-      this.#patterns.length > 1 || this.#patterns.some((p) => (p as unknown as Matcher).isComplex())
+      this._patterns.length > 1 || this._patterns.some((p) => (p as unknown as Matcher).isComplex())
     );
   }
 
   toString(): string {
-    return this.#patterns
+    return this._patterns
       .map((p) => (p as unknown as { toString(): string }).toString())
       .join(" & ");
   }
@@ -86,11 +86,11 @@ export class AndPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: AndPattern): boolean {
-    if (this.#patterns.length !== other.#patterns.length) {
+    if (this._patterns.length !== other._patterns.length) {
       return false;
     }
-    for (let i = 0; i < this.#patterns.length; i++) {
-      if (this.#patterns[i] !== other.#patterns[i]) {
+    for (let i = 0; i < this._patterns.length; i++) {
+      if (this._patterns[i] !== other._patterns[i]) {
         return false;
       }
     }
@@ -101,6 +101,6 @@ export class AndPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    return this.#patterns.length;
+    return this._patterns.length;
   }
 }

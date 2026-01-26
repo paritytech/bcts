@@ -30,8 +30,8 @@ import { type Reluctance, DEFAULT_RELUCTANCE, reluctanceSuffix } from "./relucta
  * ```
  */
 export class Quantifier {
-  readonly #interval: Interval;
-  readonly #reluctance: Reluctance;
+  private readonly _interval: Interval;
+  private readonly _reluctance: Reluctance;
 
   /**
    * Creates a new Quantifier.
@@ -40,8 +40,8 @@ export class Quantifier {
    * @param reluctance - The matching strategy (default: Greedy)
    */
   constructor(interval: Interval, reluctance: Reluctance = DEFAULT_RELUCTANCE) {
-    this.#interval = interval;
-    this.#reluctance = reluctance;
+    this._interval = interval;
+    this._reluctance = reluctance;
   }
 
   /**
@@ -112,42 +112,42 @@ export class Quantifier {
    * Returns the minimum number of occurrences.
    */
   min(): number {
-    return this.#interval.min();
+    return this._interval.min();
   }
 
   /**
    * Returns the maximum number of occurrences, or undefined if unbounded.
    */
   max(): number | undefined {
-    return this.#interval.max();
+    return this._interval.max();
   }
 
   /**
    * Returns the interval.
    */
   interval(): Interval {
-    return this.#interval;
+    return this._interval;
   }
 
   /**
    * Returns the reluctance (matching strategy).
    */
   reluctance(): Reluctance {
-    return this.#reluctance;
+    return this._reluctance;
   }
 
   /**
    * Checks if the given count is within the quantifier's range.
    */
   contains(count: number): boolean {
-    return this.#interval.contains(count);
+    return this._interval.contains(count);
   }
 
   /**
    * Checks if the quantifier is unbounded (no maximum).
    */
   isUnbounded(): boolean {
-    return this.#interval.isUnbounded();
+    return this._interval.isUnbounded();
   }
 
   /**
@@ -161,21 +161,21 @@ export class Quantifier {
    * ```
    */
   toString(): string {
-    return `${this.#interval.shorthandNotation()}${reluctanceSuffix(this.#reluctance)}`;
+    return `${this._interval.shorthandNotation()}${reluctanceSuffix(this._reluctance)}`;
   }
 
   /**
    * Checks equality with another Quantifier.
    */
   equals(other: Quantifier): boolean {
-    return this.#interval.equals(other.#interval) && this.#reluctance === other.#reluctance;
+    return this._interval.equals(other._interval) && this._reluctance === other._reluctance;
   }
 
   /**
    * Converts to an Interval (discarding reluctance).
    */
   toInterval(): Interval {
-    return this.#interval;
+    return this._interval;
   }
 }
 

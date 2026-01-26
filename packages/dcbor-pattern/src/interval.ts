@@ -28,8 +28,8 @@
  * ```
  */
 export class Interval {
-  readonly #min: number;
-  readonly #max: number | undefined;
+  private readonly _min: number;
+  private readonly _max: number | undefined;
 
   /**
    * Creates a new Interval.
@@ -38,8 +38,8 @@ export class Interval {
    * @param max - The maximum value (inclusive), or undefined for unbounded
    */
   constructor(min: number, max?: number) {
-    this.#min = min;
-    this.#max = max;
+    this._min = min;
+    this._max = max;
   }
 
   /**
@@ -114,14 +114,14 @@ export class Interval {
    * Returns the minimum value of the interval.
    */
   min(): number {
-    return this.#min;
+    return this._min;
   }
 
   /**
    * Returns the maximum value of the interval, or `undefined` if unbounded.
    */
   max(): number | undefined {
-    return this.#max;
+    return this._max;
   }
 
   /**
@@ -131,21 +131,21 @@ export class Interval {
    * @returns true if count is within the interval
    */
   contains(count: number): boolean {
-    return count >= this.#min && (this.#max === undefined || count <= this.#max);
+    return count >= this._min && (this._max === undefined || count <= this._max);
   }
 
   /**
    * Checks if the interval represents a single value (i.e., min equals max).
    */
   isSingle(): boolean {
-    return this.#max !== undefined && this.#min === this.#max;
+    return this._max !== undefined && this._min === this._max;
   }
 
   /**
    * Checks if the interval is unbounded (i.e., has no maximum value).
    */
   isUnbounded(): boolean {
-    return this.#max === undefined;
+    return this._max === undefined;
   }
 
   /**
@@ -161,13 +161,13 @@ export class Interval {
    * ```
    */
   rangeNotation(): string {
-    if (this.#max !== undefined && this.#min === this.#max) {
-      return `{${this.#min}}`;
+    if (this._max !== undefined && this._min === this._max) {
+      return `{${this._min}}`;
     }
-    if (this.#max !== undefined) {
-      return `{${this.#min},${this.#max}}`;
+    if (this._max !== undefined) {
+      return `{${this._min},${this._max}}`;
     }
-    return `{${this.#min},}`;
+    return `{${this._min},}`;
   }
 
   /**
@@ -186,27 +186,27 @@ export class Interval {
    */
   shorthandNotation(): string {
     // Check for optional (?)
-    if (this.#min === 0 && this.#max === 1) {
+    if (this._min === 0 && this._max === 1) {
       return "?";
     }
     // Check for single value
-    if (this.#max !== undefined && this.#min === this.#max) {
-      return `{${this.#min}}`;
+    if (this._max !== undefined && this._min === this._max) {
+      return `{${this._min}}`;
     }
     // Check for bounded range
-    if (this.#max !== undefined) {
-      return `{${this.#min},${this.#max}}`;
+    if (this._max !== undefined) {
+      return `{${this._min},${this._max}}`;
     }
     // Check for zero or more (*)
-    if (this.#min === 0) {
+    if (this._min === 0) {
       return "*";
     }
     // Check for one or more (+)
-    if (this.#min === 1) {
+    if (this._min === 1) {
       return "+";
     }
     // General unbounded case
-    return `{${this.#min},}`;
+    return `{${this._min},}`;
   }
 
   /**
@@ -220,7 +220,7 @@ export class Interval {
    * Checks equality with another Interval.
    */
   equals(other: Interval): boolean {
-    return this.#min === other.#min && this.#max === other.#max;
+    return this._min === other._min && this._max === other._max;
   }
 }
 

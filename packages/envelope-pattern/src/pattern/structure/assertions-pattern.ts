@@ -42,10 +42,10 @@ export type AssertionsPatternType =
  * Corresponds to the Rust `AssertionsPattern` enum in assertions_pattern.rs
  */
 export class AssertionsPattern implements Matcher {
-  readonly #pattern: AssertionsPatternType;
+  private readonly _pattern: AssertionsPatternType;
 
   private constructor(pattern: AssertionsPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -83,18 +83,18 @@ export class AssertionsPattern implements Matcher {
    * Gets the pattern type.
    */
   get patternType(): AssertionsPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   /**
    * Gets the predicate pattern if this has one, undefined otherwise.
    */
   predicatePattern(): Pattern | undefined {
-    if (this.#pattern.type === "WithPredicate") {
-      return this.#pattern.pattern;
+    if (this._pattern.type === "WithPredicate") {
+      return this._pattern.pattern;
     }
-    if (this.#pattern.type === "WithBoth") {
-      return this.#pattern.predicatePattern;
+    if (this._pattern.type === "WithBoth") {
+      return this._pattern.predicatePattern;
     }
     return undefined;
   }
@@ -103,11 +103,11 @@ export class AssertionsPattern implements Matcher {
    * Gets the object pattern if this has one, undefined otherwise.
    */
   objectPattern(): Pattern | undefined {
-    if (this.#pattern.type === "WithObject") {
-      return this.#pattern.pattern;
+    if (this._pattern.type === "WithObject") {
+      return this._pattern.pattern;
     }
-    if (this.#pattern.type === "WithBoth") {
-      return this.#pattern.objectPattern;
+    if (this._pattern.type === "WithBoth") {
+      return this._pattern.objectPattern;
     }
     return undefined;
   }
@@ -116,14 +116,14 @@ export class AssertionsPattern implements Matcher {
     const paths: Path[] = [];
 
     for (const assertion of haystack.assertions()) {
-      switch (this.#pattern.type) {
+      switch (this._pattern.type) {
         case "Any":
           paths.push([assertion]);
           break;
         case "WithPredicate": {
           const predicate = assertion.asPredicate?.();
           if (predicate !== undefined) {
-            const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+            const innerMatcher = this._pattern.pattern as unknown as Matcher;
             if (innerMatcher.matches(predicate)) {
               paths.push([assertion]);
             }
@@ -133,7 +133,7 @@ export class AssertionsPattern implements Matcher {
         case "WithObject": {
           const object = assertion.asObject?.();
           if (object !== undefined) {
-            const innerMatcher = this.#pattern.pattern as unknown as Matcher;
+            const innerMatcher = this._pattern.pattern as unknown as Matcher;
             if (innerMatcher.matches(object)) {
               paths.push([assertion]);
             }
@@ -144,8 +144,8 @@ export class AssertionsPattern implements Matcher {
           const predicate = assertion.asPredicate?.();
           const object = assertion.asObject?.();
           if (predicate !== undefined && object !== undefined) {
-            const predMatcher = this.#pattern.predicatePattern as unknown as Matcher;
-            const objMatcher = this.#pattern.objectPattern as unknown as Matcher;
+            const predMatcher = this._pattern.predicatePattern as unknown as Matcher;
+            const objMatcher = this._pattern.objectPattern as unknown as Matcher;
             if (predMatcher.matches(predicate) && objMatcher.matches(object)) {
               paths.push([assertion]);
             }
@@ -180,15 +180,15 @@ export class AssertionsPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "assert";
       case "WithPredicate":
-        return `assertpred(${(this.#pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `assertpred(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
       case "WithObject":
-        return `assertobj(${(this.#pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `assertobj(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
       case "WithBoth":
-        return `assert(${(this.#pattern.predicatePattern as unknown as { toString(): string }).toString()}, ${(this.#pattern.objectPattern as unknown as { toString(): string }).toString()})`;
+        return `assert(${(this._pattern.predicatePattern as unknown as { toString(): string }).toString()}, ${(this._pattern.objectPattern as unknown as { toString(): string }).toString()})`;
     }
   }
 
@@ -196,31 +196,31 @@ export class AssertionsPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: AssertionsPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return true;
       case "WithPredicate":
       case "WithObject": {
         const thisPattern = (
-          this.#pattern as { type: "WithPredicate" | "WithObject"; pattern: Pattern }
+          this._pattern as { type: "WithPredicate" | "WithObject"; pattern: Pattern }
         ).pattern;
         const otherPattern = (
-          other.#pattern as { type: "WithPredicate" | "WithObject"; pattern: Pattern }
+          other._pattern as { type: "WithPredicate" | "WithObject"; pattern: Pattern }
         ).pattern;
         return thisPattern === otherPattern;
       }
       case "WithBoth": {
-        const otherBoth = other.#pattern as {
+        const otherBoth = other._pattern as {
           type: "WithBoth";
           predicatePattern: Pattern;
           objectPattern: Pattern;
         };
         return (
-          this.#pattern.predicatePattern === otherBoth.predicatePattern &&
-          this.#pattern.objectPattern === otherBoth.objectPattern
+          this._pattern.predicatePattern === otherBoth.predicatePattern &&
+          this._pattern.objectPattern === otherBoth.objectPattern
         );
       }
     }
@@ -230,7 +230,7 @@ export class AssertionsPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "WithPredicate":

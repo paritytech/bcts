@@ -81,46 +81,46 @@ function decryptWithDigest(key: SymmetricKey, message: EncryptedMessage): Uint8A
 /// Represents an encrypted message with nonce, auth tag, and optional AAD digest
 /// Matches bc-components-rust/src/symmetric/encrypted_message.rs
 export class EncryptedMessage {
-  readonly #ciphertext: Uint8Array;
-  readonly #nonce: Uint8Array;
-  readonly #authTag: Uint8Array;
-  readonly #aadDigest?: Digest;
+  private readonly _ciphertext: Uint8Array;
+  private readonly _nonce: Uint8Array;
+  private readonly _authTag: Uint8Array;
+  private readonly _aadDigest?: Digest;
 
   constructor(ciphertext: Uint8Array, nonce: Uint8Array, authTag: Uint8Array, aadDigest?: Digest) {
-    this.#ciphertext = ciphertext;
-    this.#nonce = nonce;
-    this.#authTag = authTag;
+    this._ciphertext = ciphertext;
+    this._nonce = nonce;
+    this._authTag = authTag;
     if (aadDigest !== undefined) {
-      this.#aadDigest = aadDigest;
+      this._aadDigest = aadDigest;
     }
   }
 
   /// Returns the ciphertext
   ciphertext(): Uint8Array {
-    return this.#ciphertext;
+    return this._ciphertext;
   }
 
   /// Returns the nonce
   nonce(): Uint8Array {
-    return this.#nonce;
+    return this._nonce;
   }
 
   /// Returns the authentication tag
   authTag(): Uint8Array {
-    return this.#authTag;
+    return this._authTag;
   }
 
   /// Returns the optional AAD digest
   aadDigest(): Digest | undefined {
-    return this.#aadDigest;
+    return this._aadDigest;
   }
 
   /// Returns the digest of this encrypted message (the AAD digest)
   digest(): Digest {
-    if (this.#aadDigest === undefined) {
+    if (this._aadDigest === undefined) {
       throw new Error("Encrypted message missing AAD digest");
     }
-    return this.#aadDigest;
+    return this._aadDigest;
   }
 }
 

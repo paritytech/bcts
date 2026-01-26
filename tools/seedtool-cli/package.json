@@ -1,6 +1,6 @@
 {
   "name": "@bcts/seedtool-cli",
-  "version": "1.0.0-alpha.16",
+  "version": "1.0.0-alpha.17",
   "type": "module",
   "description": "A command-line tool for generating and transforming cryptographic seeds.",
   "license": "BSD-2-Clause-Patent",
@@ -87,13 +87,13 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.6",
+    "@types/node": "^25.0.10",
     "eslint": "^9.39.2",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.19.0",
-    "typedoc": "^0.28.15",
+    "tsdown": "^0.20.1",
+    "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.18"
   }
 }

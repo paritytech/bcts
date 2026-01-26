@@ -37,10 +37,10 @@ export type MapPatternType =
  * Corresponds to the Rust `MapPattern` struct in map_pattern.rs
  */
 export class MapPattern implements Matcher {
-  readonly #pattern: MapPatternType;
+  private readonly _pattern: MapPatternType;
 
   private constructor(pattern: MapPatternType) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -62,7 +62,7 @@ export class MapPattern implements Matcher {
    * Gets the pattern type.
    */
   get pattern(): MapPatternType {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -78,13 +78,13 @@ export class MapPattern implements Matcher {
       return [[], new Map<string, Path[]>()];
     }
 
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return [[[haystack]], new Map<string, Path[]>()];
 
       case "Interval": {
         const size = map.size;
-        if (this.#pattern.interval.contains(size)) {
+        if (this._pattern.interval.contains(size)) {
           return [[[haystack]], new Map<string, Path[]>()];
         }
         return [[], new Map<string, Path[]>()];
@@ -112,11 +112,11 @@ export class MapPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return "{*}";
       case "Interval":
-        return `{{${this.#pattern.interval.toString()}}}`;
+        return `{{${this._pattern.interval.toString()}}}`;
     }
   }
 
@@ -124,15 +124,15 @@ export class MapPattern implements Matcher {
    * Equality comparison.
    */
   equals(other: MapPattern): boolean {
-    if (this.#pattern.type !== other.#pattern.type) {
+    if (this._pattern.type !== other._pattern.type) {
       return false;
     }
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return true;
       case "Interval":
-        return this.#pattern.interval.equals(
-          (other.#pattern as { type: "Interval"; interval: Interval }).interval,
+        return this._pattern.interval.equals(
+          (other._pattern as { type: "Interval"; interval: Interval }).interval,
         );
     }
   }
@@ -141,12 +141,12 @@ export class MapPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#pattern.type) {
+    switch (this._pattern.type) {
       case "Any":
         return 0;
       case "Interval":
         // Simple hash based on interval min/max
-        return this.#pattern.interval.min() * 31 + (this.#pattern.interval.max() ?? 0);
+        return this._pattern.interval.min() * 31 + (this._pattern.interval.max() ?? 0);
     }
   }
 }

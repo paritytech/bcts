@@ -25,10 +25,10 @@ export function registerNotPatternFactory(factory: (pattern: NotPattern) => Patt
  * Corresponds to the Rust `NotPattern` struct in not_pattern.rs
  */
 export class NotPattern implements Matcher {
-  readonly #pattern: Pattern;
+  private readonly _pattern: Pattern;
 
   private constructor(pattern: Pattern) {
-    this.#pattern = pattern;
+    this._pattern = pattern;
   }
 
   /**
@@ -42,12 +42,12 @@ export class NotPattern implements Matcher {
    * Gets the inner pattern.
    */
   pattern(): Pattern {
-    return this.#pattern;
+    return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     // If the inner pattern doesn't match, then we return the current envelope as a match
-    const paths = !matchPattern(this.#pattern, haystack) ? [[haystack]] : [];
+    const paths = !matchPattern(this._pattern, haystack) ? [[haystack]] : [];
     return [paths, new Map<string, Path[]>()];
   }
 
@@ -62,7 +62,7 @@ export class NotPattern implements Matcher {
   compile(code: Instr[], literals: Pattern[], _captures: string[]): void {
     // NOT = check that pattern doesn't match
     const idx = literals.length;
-    literals.push(this.#pattern);
+    literals.push(this._pattern);
     code.push({ type: "NotMatch", patternIndex: idx });
   }
 
@@ -71,14 +71,14 @@ export class NotPattern implements Matcher {
   }
 
   toString(): string {
-    return `!${(this.#pattern as unknown as { toString(): string }).toString()}`;
+    return `!${(this._pattern as unknown as { toString(): string }).toString()}`;
   }
 
   /**
    * Equality comparison.
    */
   equals(other: NotPattern): boolean {
-    return this.#pattern === other.#pattern;
+    return this._pattern === other._pattern;
   }
 
   /**

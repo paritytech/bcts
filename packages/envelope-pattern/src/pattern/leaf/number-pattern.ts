@@ -44,10 +44,10 @@ export function registerNumberPatternFactory(factory: (pattern: NumberPattern) =
  * Corresponds to the Rust `NumberPattern` struct in number_pattern.rs
  */
 export class NumberPattern implements Matcher {
-  readonly #inner: DCBORNumberPattern;
+  private readonly _inner: DCBORNumberPattern;
 
   private constructor(inner: DCBORNumberPattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -131,7 +131,7 @@ export class NumberPattern implements Matcher {
    * Gets the underlying dcbor-pattern NumberPattern.
    */
   get inner(): DCBORNumberPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -139,7 +139,7 @@ export class NumberPattern implements Matcher {
     const cbor = haystack.asLeaf();
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const dcborPaths = dcborNumberPatternPaths(this.#inner, cbor);
+      const dcborPaths = dcborNumberPatternPaths(this._inner, cbor);
 
       // For simple leaf patterns, if dcbor-pattern found matches, return the envelope
       if (dcborPaths.length > 0) {
@@ -171,7 +171,7 @@ export class NumberPattern implements Matcher {
   }
 
   toString(): string {
-    return numberPatternDisplay(this.#inner);
+    return numberPatternDisplay(this._inner);
   }
 
   /**
@@ -179,10 +179,10 @@ export class NumberPattern implements Matcher {
    */
   equals(other: NumberPattern): boolean {
     // Compare by variant and values
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
       case "NaN":
       case "Infinity":
@@ -194,14 +194,14 @@ export class NumberPattern implements Matcher {
       case "LessThan":
       case "LessThanOrEqual":
         return (
-          (this.#inner as { value: number }).value === (other.#inner as { value: number }).value
+          (this._inner as { value: number }).value === (other._inner as { value: number }).value
         );
       case "Range":
         return (
-          (this.#inner as { min: number; max: number }).min ===
-            (other.#inner as { min: number; max: number }).min &&
-          (this.#inner as { min: number; max: number }).max ===
-            (other.#inner as { min: number; max: number }).max
+          (this._inner as { min: number; max: number }).min ===
+            (other._inner as { min: number; max: number }).min &&
+          (this._inner as { min: number; max: number }).max ===
+            (other._inner as { min: number; max: number }).max
         );
     }
   }
@@ -211,27 +211,27 @@ export class NumberPattern implements Matcher {
    */
   hashCode(): number {
     let hash = 0;
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         hash = 1;
         break;
       case "Value":
-        hash = 2 * 31 + (this.#inner as { value: number }).value;
+        hash = 2 * 31 + (this._inner as { value: number }).value;
         break;
       case "Range":
-        hash = 3 * 31 + (this.#inner as { min: number }).min + (this.#inner as { max: number }).max;
+        hash = 3 * 31 + (this._inner as { min: number }).min + (this._inner as { max: number }).max;
         break;
       case "GreaterThan":
-        hash = 4 * 31 + (this.#inner as { value: number }).value;
+        hash = 4 * 31 + (this._inner as { value: number }).value;
         break;
       case "GreaterThanOrEqual":
-        hash = 5 * 31 + (this.#inner as { value: number }).value;
+        hash = 5 * 31 + (this._inner as { value: number }).value;
         break;
       case "LessThan":
-        hash = 6 * 31 + (this.#inner as { value: number }).value;
+        hash = 6 * 31 + (this._inner as { value: number }).value;
         break;
       case "LessThanOrEqual":
-        hash = 7 * 31 + (this.#inner as { value: number }).value;
+        hash = 7 * 31 + (this._inner as { value: number }).value;
         break;
       case "NaN":
         hash = 8;

@@ -95,14 +95,14 @@ type FunctionVariant = "known" | "named";
 ///
 /// When encoded in CBOR, functions are tagged with #6.40006.
 export class Function implements EnvelopeEncodable {
-  readonly #variant: FunctionVariant;
-  readonly #value: number; // Only used for 'known' variant
-  readonly #name: string | undefined;
+  private readonly _variant: FunctionVariant;
+  private readonly _value: number; // Only used for 'known' variant
+  private readonly _name: string | undefined;
 
   private constructor(variant: FunctionVariant, value: number, name?: string) {
-    this.#variant = variant;
-    this.#value = value;
-    this.#name = name;
+    this._variant = variant;
+    this._value = value;
+    this._name = name;
   }
 
   /// Creates a new known function with a numeric ID and optional name.
@@ -127,29 +127,29 @@ export class Function implements EnvelopeEncodable {
 
   /// Returns true if this is a known (numeric) function.
   isKnown(): boolean {
-    return this.#variant === "known";
+    return this._variant === "known";
   }
 
   /// Returns true if this is a named (string) function.
   isNamed(): boolean {
-    return this.#variant === "named";
+    return this._variant === "named";
   }
 
   /// Returns the numeric value for known functions.
   value(): number | undefined {
-    return this.#variant === "known" ? this.#value : undefined;
+    return this._variant === "known" ? this._value : undefined;
   }
 
   /// Returns the function identifier (number for known, string for named).
   id(): FunctionID {
-    if (this.#variant === "known") {
-      return this.#value;
+    if (this._variant === "known") {
+      return this._value;
     }
     // For named variant, name is always set during construction
-    if (this.#name === undefined) {
+    if (this._name === undefined) {
       throw new Error("Invalid named function: missing name");
     }
-    return this.#name;
+    return this._name;
   }
 
   /// Returns the display name of the function.
@@ -158,36 +158,36 @@ export class Function implements EnvelopeEncodable {
   /// For known functions without a name, returns the numeric ID as a string.
   /// For named functions, returns the name enclosed in quotes.
   name(): string {
-    if (this.#variant === "known") {
-      return this.#name ?? this.#value.toString();
+    if (this._variant === "known") {
+      return this._name ?? this._value.toString();
     } else {
-      return `"${this.#name}"`;
+      return `"${this._name}"`;
     }
   }
 
   /// Returns the raw name for named functions, or undefined for known functions.
   namedName(): string | undefined {
-    return this.#variant === "named" ? this.#name : undefined;
+    return this._variant === "named" ? this._name : undefined;
   }
 
   /// Returns the assigned name if present (for known functions only).
   assignedName(): string | undefined {
-    return this.#variant === "known" ? this.#name : undefined;
+    return this._variant === "known" ? this._name : undefined;
   }
 
   /// Returns true if this is a numeric function ID (legacy compatibility).
   isNumeric(): boolean {
-    return this.#variant === "known";
+    return this._variant === "known";
   }
 
   /// Returns true if this is a string function ID (legacy compatibility).
   isString(): boolean {
-    return this.#variant === "named";
+    return this._variant === "named";
   }
 
   /// Creates an expression envelope with this function as the subject.
   envelope(): Envelope {
-    const functionStr = this.#variant === "known" ? `«${this.#value}»` : `«"${this.#name}"»`;
+    const functionStr = this._variant === "known" ? `«${this._value}»` : `«"${this._name}"»`;
     return Envelope.new(functionStr);
   }
 
@@ -204,23 +204,23 @@ export class Function implements EnvelopeEncodable {
 
   /// Checks equality based on value (for known) or name (for named).
   equals(other: Function): boolean {
-    if (this.#variant !== other.#variant) return false;
-    if (this.#variant === "known") {
-      return this.#value === other.#value;
+    if (this._variant !== other._variant) return false;
+    if (this._variant === "known") {
+      return this._value === other._value;
     } else {
-      return this.#name === other.#name;
+      return this._name === other._name;
     }
   }
 
   /// Returns a hash code for this function.
   hashCode(): number {
-    if (this.#variant === "known") {
-      return this.#value;
+    if (this._variant === "known") {
+      return this._value;
     } else {
       // Simple string hash
       let hash = 0;
-      for (let i = 0; i < (this.#name?.length ?? 0); i++) {
-        hash = (hash * 31 + (this.#name?.charCodeAt(i) ?? 0)) | 0;
+      for (let i = 0; i < (this._name?.length ?? 0); i++) {
+        hash = (hash * 31 + (this._name?.charCodeAt(i) ?? 0)) | 0;
       }
       return hash;
     }
@@ -228,7 +228,7 @@ export class Function implements EnvelopeEncodable {
 
   /// Returns a string representation for display.
   toString(): string {
-    return this.#variant === "known" ? `«${this.#value}»` : `«"${this.#name}"»`;
+    return this._variant === "known" ? `«${this._value}»` : `«"${this._name}"»`;
   }
 }
 
@@ -241,7 +241,7 @@ export class Function implements EnvelopeEncodable {
 /// FunctionsStore maintains a registry of functions and their human-readable
 /// names, which is useful for displaying and debugging expression functions.
 export class FunctionsStore {
-  readonly #dict = new Map<number | string, Function>();
+  private readonly _dict = new Map<number | string, Function>();
 
   /// Creates a new FunctionsStore with the given functions.
   constructor(functions: Iterable<Function> = []) {
@@ -255,12 +255,12 @@ export class FunctionsStore {
     if (func.isKnown()) {
       const value = func.value();
       if (value !== undefined) {
-        this.#dict.set(value, func);
+        this._dict.set(value, func);
       }
     } else {
       const name = func.namedName();
       if (name !== undefined) {
-        this.#dict.set(name, func);
+        this._dict.set(name, func);
       }
     }
   }
@@ -274,7 +274,7 @@ export class FunctionsStore {
       key = func.namedName();
     }
     if (key === undefined) return undefined;
-    const stored = this.#dict.get(key);
+    const stored = this._dict.get(key);
     return stored?.assignedName();
   }
 
@@ -313,10 +313,10 @@ type ParameterVariant = "known" | "named";
 ///
 /// When encoded in CBOR, parameters are tagged with #6.40007.
 export class Parameter implements EnvelopeEncodable {
-  readonly #variant: ParameterVariant;
-  readonly #value: number; // Only used for 'known' variant, or 0 for 'named'
-  readonly #name: string | undefined;
-  readonly #paramValue: Envelope | undefined; // The parameter's value envelope
+  private readonly _variant: ParameterVariant;
+  private readonly _value: number; // Only used for 'known' variant, or 0 for 'named'
+  private readonly _name: string | undefined;
+  private readonly _paramValue: Envelope | undefined; // The parameter's value envelope
 
   private constructor(
     variant: ParameterVariant,
@@ -324,10 +324,10 @@ export class Parameter implements EnvelopeEncodable {
     name?: string,
     paramValue?: Envelope,
   ) {
-    this.#variant = variant;
-    this.#value = value;
-    this.#name = name;
-    this.#paramValue = paramValue;
+    this._variant = variant;
+    this._value = value;
+    this._name = name;
+    this._paramValue = paramValue;
   }
 
   /// Creates a new known parameter with a numeric ID and optional name.
@@ -351,29 +351,29 @@ export class Parameter implements EnvelopeEncodable {
 
   /// Returns true if this is a known (numeric) parameter.
   isKnown(): boolean {
-    return this.#variant === "known";
+    return this._variant === "known";
   }
 
   /// Returns true if this is a named (string) parameter.
   isNamed(): boolean {
-    return this.#variant === "named";
+    return this._variant === "named";
   }
 
   /// Returns the numeric value for known parameters.
   value(): number | undefined {
-    return this.#variant === "known" ? this.#value : undefined;
+    return this._variant === "known" ? this._value : undefined;
   }
 
   /// Returns the parameter identifier (number for known, string for named).
   id(): ParameterID {
-    if (this.#variant === "known") {
-      return this.#value;
+    if (this._variant === "known") {
+      return this._value;
     }
     // For named variant, name is always set during construction
-    if (this.#name === undefined) {
+    if (this._name === undefined) {
       throw new Error("Invalid named parameter: missing name");
     }
-    return this.#name;
+    return this._name;
   }
 
   /// Returns the display name of the parameter.
@@ -382,43 +382,43 @@ export class Parameter implements EnvelopeEncodable {
   /// For known parameters without a name, returns the numeric ID as a string.
   /// For named parameters, returns the name enclosed in quotes.
   name(): string {
-    if (this.#variant === "known") {
-      return this.#name ?? this.#value.toString();
+    if (this._variant === "known") {
+      return this._name ?? this._value.toString();
     } else {
-      return `"${this.#name}"`;
+      return `"${this._name}"`;
     }
   }
 
   /// Returns the raw name for named parameters, or undefined for known parameters.
   namedName(): string | undefined {
-    return this.#variant === "named" ? this.#name : undefined;
+    return this._variant === "named" ? this._name : undefined;
   }
 
   /// Returns the assigned name if present (for known parameters only).
   assignedName(): string | undefined {
-    return this.#variant === "known" ? this.#name : undefined;
+    return this._variant === "known" ? this._name : undefined;
   }
 
   /// Returns the parameter value as an envelope, if set.
   paramValue(): Envelope | undefined {
-    return this.#paramValue;
+    return this._paramValue;
   }
 
   /// Returns true if this is a numeric parameter ID (legacy compatibility).
   isNumeric(): boolean {
-    return this.#variant === "known";
+    return this._variant === "known";
   }
 
   /// Returns true if this is a string parameter ID (legacy compatibility).
   isString(): boolean {
-    return this.#variant === "named";
+    return this._variant === "named";
   }
 
   /// Creates a parameter envelope.
   envelope(): Envelope {
-    const paramStr = this.#variant === "known" ? `❰${this.#value}❱` : `❰"${this.#name}"❱`;
-    if (this.#paramValue !== undefined) {
-      return Envelope.newAssertion(paramStr, this.#paramValue);
+    const paramStr = this._variant === "known" ? `❰${this._value}❱` : `❰"${this._name}"❱`;
+    if (this._paramValue !== undefined) {
+      return Envelope.newAssertion(paramStr, this._paramValue);
     }
     return Envelope.new(paramStr);
   }
@@ -430,22 +430,22 @@ export class Parameter implements EnvelopeEncodable {
 
   /// Checks equality based on value (for known) or name (for named).
   equals(other: Parameter): boolean {
-    if (this.#variant !== other.#variant) return false;
-    if (this.#variant === "known") {
-      return this.#value === other.#value;
+    if (this._variant !== other._variant) return false;
+    if (this._variant === "known") {
+      return this._value === other._value;
     } else {
-      return this.#name === other.#name;
+      return this._name === other._name;
     }
   }
 
   /// Returns a hash code for this parameter.
   hashCode(): number {
-    if (this.#variant === "known") {
-      return this.#value;
+    if (this._variant === "known") {
+      return this._value;
     } else {
       let hash = 0;
-      for (let i = 0; i < (this.#name?.length ?? 0); i++) {
-        hash = (hash * 31 + (this.#name?.charCodeAt(i) ?? 0)) | 0;
+      for (let i = 0; i < (this._name?.length ?? 0); i++) {
+        hash = (hash * 31 + (this._name?.charCodeAt(i) ?? 0)) | 0;
       }
       return hash;
     }
@@ -453,9 +453,9 @@ export class Parameter implements EnvelopeEncodable {
 
   /// Returns a string representation for display.
   toString(): string {
-    const idStr = this.#variant === "known" ? `❰${this.#value}❱` : `❰"${this.#name}"❱`;
-    if (this.#paramValue !== undefined) {
-      return `${idStr}: ${this.#paramValue.asText()}`;
+    const idStr = this._variant === "known" ? `❰${this._value}❱` : `❰"${this._name}"❱`;
+    if (this._paramValue !== undefined) {
+      return `${idStr}: ${this._paramValue.asText()}`;
     }
     return idStr;
   }
@@ -483,7 +483,7 @@ export class Parameter implements EnvelopeEncodable {
 /// ParametersStore maintains a registry of parameters and their human-readable
 /// names, which is useful for displaying and debugging expression parameters.
 export class ParametersStore {
-  readonly #dict = new Map<number | string, Parameter>();
+  private readonly _dict = new Map<number | string, Parameter>();
 
   /// Creates a new ParametersStore with the given parameters.
   constructor(parameters: Iterable<Parameter> = []) {
@@ -497,12 +497,12 @@ export class ParametersStore {
     if (param.isKnown()) {
       const value = param.value();
       if (value !== undefined) {
-        this.#dict.set(value, param);
+        this._dict.set(value, param);
       }
     } else {
       const name = param.namedName();
       if (name !== undefined) {
-        this.#dict.set(name, param);
+        this._dict.set(name, param);
       }
     }
   }
@@ -516,7 +516,7 @@ export class ParametersStore {
       key = param.namedName();
     }
     if (key === undefined) return undefined;
-    const stored = this.#dict.get(key);
+    const stored = this._dict.get(key);
     return stored?.assignedName();
   }
 
@@ -594,16 +594,16 @@ export const RHS_VALUE = PARAMETER_IDS.RHS;
 
 /// Lazy initialization helper for global stores
 export class LazyStore<T> {
-  #store: T | undefined;
-  readonly #initializer: () => T;
+  private _store: T | undefined;
+  private readonly _initializer: () => T;
 
   constructor(initializer: () => T) {
-    this.#initializer = initializer;
+    this._initializer = initializer;
   }
 
   get(): T {
-    this.#store ??= this.#initializer();
-    return this.#store;
+    this._store ??= this._initializer();
+    return this._store;
   }
 }
 
@@ -621,29 +621,29 @@ export const GLOBAL_PARAMETERS = new LazyStore(() => new ParametersStore([BLANK,
 
 /// Represents a complete expression with function and parameters.
 export class Expression implements EnvelopeEncodable {
-  readonly #function: Function;
-  readonly #parameters = new Map<string, Parameter>();
-  #envelope: Envelope | null = null;
+  private readonly _function: Function;
+  private readonly _parameters = new Map<string, Parameter>();
+  private _envelope: Envelope | null = null;
 
   constructor(func: Function) {
-    this.#function = func;
+    this._function = func;
   }
 
   /// Returns the function.
   function(): Function {
-    return this.#function;
+    return this._function;
   }
 
   /// Returns all parameters.
   parameters(): Parameter[] {
-    return Array.from(this.#parameters.values());
+    return Array.from(this._parameters.values());
   }
 
   /// Adds a parameter to the expression.
   withParameter(param: ParameterID, value: EnvelopeEncodableValue): Expression {
     const key = typeof param === "number" ? param.toString() : param;
-    this.#parameters.set(key, Parameter.withValue(param, Envelope.new(value)));
-    this.#envelope = null; // Invalidate cached envelope
+    this._parameters.set(key, Parameter.withValue(param, Envelope.new(value)));
+    this._envelope = null; // Invalidate cached envelope
     return this;
   }
 
@@ -658,26 +658,26 @@ export class Expression implements EnvelopeEncodable {
   /// Gets a parameter value by ID.
   getParameter(param: ParameterID): Envelope | undefined {
     const key = typeof param === "number" ? param.toString() : param;
-    return this.#parameters.get(key)?.paramValue();
+    return this._parameters.get(key)?.paramValue();
   }
 
   /// Checks if a parameter exists.
   hasParameter(param: ParameterID): boolean {
     const key = typeof param === "number" ? param.toString() : param;
-    return this.#parameters.has(key);
+    return this._parameters.has(key);
   }
 
   /// Converts the expression to an envelope.
   envelope(): Envelope {
-    if (this.#envelope !== null) {
-      return this.#envelope;
+    if (this._envelope !== null) {
+      return this._envelope;
     }
 
     // Start with function envelope
-    let env = this.#function.envelope();
+    let env = this._function.envelope();
 
     // Add all parameters as assertions
-    for (const param of this.#parameters.values()) {
+    for (const param of this._parameters.values()) {
       const paramEnv = param.envelope();
       // The paramEnv is itself an assertion envelope - extract predicate and object directly
       const paramCase = paramEnv.case();
@@ -691,7 +691,7 @@ export class Expression implements EnvelopeEncodable {
       }
     }
 
-    this.#envelope = env;
+    this._envelope = env;
     return env;
   }
 
@@ -754,10 +754,10 @@ export class Expression implements EnvelopeEncodable {
 
   /// Returns a string representation for display.
   toString(): string {
-    const params = Array.from(this.#parameters.values())
+    const params = Array.from(this._parameters.values())
       .map((p) => p.toString())
       .join(", ");
-    return `${this.#function.toString()} [${params}]`;
+    return `${this._function.toString()} [${params}]`;
   }
 }
 

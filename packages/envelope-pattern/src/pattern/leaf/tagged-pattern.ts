@@ -41,10 +41,10 @@ export function registerTaggedPatternFactory(factory: (pattern: TaggedPattern) =
  * Corresponds to the Rust `TaggedPattern` struct in tagged_pattern.rs
  */
 export class TaggedPattern implements Matcher {
-  readonly #inner: DCBORTaggedPattern;
+  private readonly _inner: DCBORTaggedPattern;
 
   private constructor(inner: DCBORTaggedPattern) {
-    this.#inner = inner;
+    this._inner = inner;
   }
 
   /**
@@ -86,7 +86,7 @@ export class TaggedPattern implements Matcher {
    * Gets the underlying dcbor-pattern TaggedPattern.
    */
   get inner(): DCBORTaggedPattern {
-    return this.#inner;
+    return this._inner;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
@@ -96,7 +96,7 @@ export class TaggedPattern implements Matcher {
 
     if (cbor !== undefined) {
       // Delegate to dcbor-pattern for CBOR matching
-      const [dcborPaths, dcborCaptures] = taggedPatternPathsWithCaptures(this.#inner, cbor);
+      const [dcborPaths, dcborCaptures] = taggedPatternPathsWithCaptures(this._inner, cbor);
 
       if (dcborPaths.length > 0) {
         // Convert dcbor paths to envelope paths
@@ -155,7 +155,7 @@ export class TaggedPattern implements Matcher {
   }
 
   toString(): string {
-    return taggedPatternDisplay(this.#inner, patternDisplay);
+    return taggedPatternDisplay(this._inner, patternDisplay);
   }
 
   /**
@@ -163,35 +163,35 @@ export class TaggedPattern implements Matcher {
    */
   equals(other: TaggedPattern): boolean {
     // Compare by variant type and values
-    if (this.#inner.variant !== other.#inner.variant) {
+    if (this._inner.variant !== other._inner.variant) {
       return false;
     }
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return true;
       case "Tag": {
-        const otherTag = other.#inner as { variant: "Tag"; tag: Tag; pattern: DCBORPattern };
+        const otherTag = other._inner as { variant: "Tag"; tag: Tag; pattern: DCBORPattern };
         return (
-          this.#inner.tag.value === otherTag.tag.value &&
-          patternDisplay(this.#inner.pattern) === patternDisplay(otherTag.pattern)
+          this._inner.tag.value === otherTag.tag.value &&
+          patternDisplay(this._inner.pattern) === patternDisplay(otherTag.pattern)
         );
       }
       case "Name": {
-        const otherName = other.#inner as { variant: "Name"; name: string; pattern: DCBORPattern };
+        const otherName = other._inner as { variant: "Name"; name: string; pattern: DCBORPattern };
         return (
-          this.#inner.name === otherName.name &&
-          patternDisplay(this.#inner.pattern) === patternDisplay(otherName.pattern)
+          this._inner.name === otherName.name &&
+          patternDisplay(this._inner.pattern) === patternDisplay(otherName.pattern)
         );
       }
       case "Regex": {
-        const otherRegex = other.#inner as {
+        const otherRegex = other._inner as {
           variant: "Regex";
           regex: RegExp;
           pattern: DCBORPattern;
         };
         return (
-          this.#inner.regex.source === otherRegex.regex.source &&
-          patternDisplay(this.#inner.pattern) === patternDisplay(otherRegex.pattern)
+          this._inner.regex.source === otherRegex.regex.source &&
+          patternDisplay(this._inner.pattern) === patternDisplay(otherRegex.pattern)
         );
       }
     }
@@ -201,15 +201,15 @@ export class TaggedPattern implements Matcher {
    * Hash code for use in Maps/Sets.
    */
   hashCode(): number {
-    switch (this.#inner.variant) {
+    switch (this._inner.variant) {
       case "Any":
         return 0;
       case "Tag":
-        return Number(BigInt(this.#inner.tag.value) & BigInt(0xffffffff));
+        return Number(BigInt(this._inner.tag.value) & BigInt(0xffffffff));
       case "Name":
-        return simpleStringHash(this.#inner.name);
+        return simpleStringHash(this._inner.name);
       case "Regex":
-        return simpleStringHash(this.#inner.regex.source);
+        return simpleStringHash(this._inner.regex.source);
     }
   }
 }

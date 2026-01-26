@@ -1,0 +1,119 @@
+{
+  "name": "@bcts/frost-hubert",
+  "version": "1.0.0-alpha.17",
+  "type": "module",
+  "description": "FROST DKG and signing using Hubert as the distributed substrate",
+  "license": "BSD-2-Clause-Patent",
+  "contributors": [
+    {
+      "name": "Leonardo Custodio",
+      "email": "leonardo.custodio@parity.io",
+      "url": "https://github.com/leonardocustodio"
+    },
+    {
+      "name": "Karim Jedda",
+      "email": "karim@parity.io",
+      "url": "https://github.com/KarimJedda"
+    }
+  ],
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonardocustodio/bcts",
+    "directory": "packages/frost-hubert"
+  },
+  "bugs": {
+    "url": "https://github.com/leonardocustodio/bcts/issues"
+  },
+  "bin": {
+    "frost": "./dist/bin/frost.mjs"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    },
+    "./dkg": {
+      "types": "./dist/dkg/index.d.mts",
+      "import": "./dist/dkg/index.mjs",
+      "require": "./dist/dkg/index.cjs"
+    },
+    "./registry": {
+      "types": "./dist/registry/index.d.mts",
+      "import": "./dist/registry/index.mjs",
+      "require": "./dist/registry/index.cjs"
+    },
+    "./cmd": {
+      "types": "./dist/cmd/index.d.mts",
+      "import": "./dist/cmd/index.mjs",
+      "require": "./dist/cmd/index.cjs"
+    },
+    "./frost": {
+      "types": "./dist/frost/index.d.mts",
+      "import": "./dist/frost/index.mjs",
+      "require": "./dist/frost/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "frost",
+    "frost-ed25519",
+    "threshold-signatures",
+    "dkg",
+    "distributed-key-generation",
+    "blockchain-commons",
+    "hubert",
+    "xid",
+    "envelope"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@bcts/components": "workspace:*",
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/envelope": "workspace:*",
+    "@bcts/gstp": "workspace:*",
+    "@bcts/hubert": "workspace:*",
+    "@bcts/provenance-mark": "workspace:*",
+    "@bcts/uniform-resources": "workspace:*",
+    "@bcts/xid": "workspace:*",
+    "@frosts/core": "0.2.2-alpha.3",
+    "@frosts/ed25519": "0.2.2-alpha.3",
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@bcts/eslint": "workspace:*",
+    "@bcts/rand": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.10",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1",
+    "ts-node": "^10.9.2",
+    "tsdown": "^0.20.1",
+    "typedoc": "^0.28.16",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
