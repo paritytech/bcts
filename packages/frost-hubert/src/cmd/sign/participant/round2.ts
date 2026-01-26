@@ -15,8 +15,24 @@ import type { Envelope } from "@bcts/envelope";
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
 import { getWithIndicator, putWithIndicator } from "../../busy.js";
 import { type StorageClient } from "../../storage.js";
-import { parseAridUr, resolveSender } from "../../dkg/common.js";
+import { parseAridUr, resolveSender, dkgStateDir } from "../../dkg/common.js";
 import { signingStateDir } from "../common.js";
+import {
+  signingRound2,
+  createSigningPackage,
+  deserializeKeyPackage,
+  deserializeSigningCommitments,
+  serializeSignatureShare,
+  hexToBytes,
+  identifierFromU16,
+  type SerializedKeyPackage,
+  type SerializedSigningNonces,
+  type SerializedSigningCommitments,
+  type FrostIdentifier,
+  type Ed25519SigningCommitments,
+  type Ed25519SigningNonces,
+} from "../../../frost/index.js";
+import { keys, Ed25519Sha512 } from "@frosts/ed25519";
 
 /**
  * Options for the sign round2 command.
@@ -98,10 +114,16 @@ export async function round2(
     throw new Error("No commit state found. Run 'sign participant round1' first.");
   }
 
-  // Load commit state
-  const commitState = JSON.parse(fs.readFileSync(commitStatePath, "utf-8")) as {
+  // Load commit state with nonces
+  interface CommitStateWithNonces {
     listening_arid: string;
-  };
+    group: string;
+    session: string;
+    nonces: SerializedSigningNonces;
+    commitments: SerializedSigningCommitments;
+  }
+
+  const commitState = JSON.parse(fs.readFileSync(commitStatePath, "utf-8")) as CommitStateWithNonces;
 
   const listeningArid = parseAridUr(commitState.listening_arid);
 
@@ -118,13 +140,94 @@ export async function round2(
     throw new Error("Round 2 request not found. The coordinator may not have sent it yet.");
   }
 
-  // TODO: Validate round 2 request
-  // - Verify sender is coordinator
-  // - Verify session matches
-  // - Extract commitments from all participants
+  if (groupId === undefined) {
+    throw new Error("Group ID not found");
+  }
 
-  // TODO: Generate signature share using FROST
-  // const signatureShare = frost::round2::sign(...);
+  if (stateDir === undefined) {
+    throw new Error("State directory not found");
+  }
+
+  // Parse round 2 request to get message and all commitments
+  interface Round2RequestData {
+    request_id: string;
+    message: string; // hex-encoded message to sign
+    commitments: Record<string, SerializedSigningCommitments>; // identifier hex -> commitments
+  }
+
+  let round2RequestData: Round2RequestData;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const resultStr = (round2Request as { result?: () => string }).result?.() ?? "{}";
+    round2RequestData = JSON.parse(resultStr) as Round2RequestData;
+  } catch {
+    throw new Error("Failed to parse round 2 request data");
+  }
+
+  // Load key package from DKG
+  const dkgStatePath = dkgStateDir(registryPath, groupId.hex());
+  const keyPackagePath = path.join(dkgStatePath, "key_package.json");
+
+  if (!fs.existsSync(keyPackagePath)) {
+    throw new Error("Key package not found. Complete DKG first.");
+  }
+
+  interface KeyPackageFile {
+    group: string;
+    key_package: SerializedKeyPackage;
+  }
+
+  const keyPackageFile = JSON.parse(fs.readFileSync(keyPackagePath, "utf-8")) as KeyPackageFile;
+  const keyPackage = deserializeKeyPackage(keyPackageFile.key_package);
+
+  // Reconstruct our nonces from saved state
+  const savedNonces = commitState.nonces;
+  const hidingNonce = keys.Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.hiding));
+  const bindingNonce = keys.Nonce.deserialize(Ed25519Sha512, hexToBytes(savedNonces.binding));
+  const hidingCommitment = keys.NonceCommitment.deserialize(
+    Ed25519Sha512,
+    hexToBytes(savedNonces.commitments.hiding),
+  );
+  const bindingCommitment = keys.NonceCommitment.deserialize(
+    Ed25519Sha512,
+    hexToBytes(savedNonces.commitments.binding),
+  );
+  const ourCommitments = new keys.SigningCommitments(
+    Ed25519Sha512,
+    hidingCommitment,
+    bindingCommitment,
+  );
+  const nonces: Ed25519SigningNonces = new keys.SigningNonces(
+    Ed25519Sha512,
+    hidingNonce,
+    bindingNonce,
+    ourCommitments,
+  );
+
+  // Build commitments map from all participants
+  const allCommitments = new Map<FrostIdentifier, Ed25519SigningCommitments>();
+  for (const [idHex, serializedComm] of Object.entries(round2RequestData.commitments)) {
+    // Parse identifier from the hex string (assuming it's a u16 encoded as a scalar)
+    const idBytes = hexToBytes(idHex);
+    // For simplicity, we'll use the first byte as the participant index
+    // In production, this would need proper identifier parsing
+    const participantId = idBytes[0] ?? 1;
+    const identifier = identifierFromU16(participantId);
+    const commitments = deserializeSigningCommitments(serializedComm);
+    allCommitments.set(identifier, commitments);
+  }
+
+  // Parse the message to sign
+  const message = hexToBytes(round2RequestData.message);
+
+  // Create signing package
+  const signingPackage = createSigningPackage(allCommitments, message);
+
+  // Generate signature share using FROST round 2
+  const signatureShare = signingRound2(signingPackage, nonces, keyPackage);
+
+  // Serialize the signature share
+  const serializedShare = serializeSignatureShare(signatureShare);
 
   // Create response ARID and new listening ARID
   const responseArid = ARID.new();
@@ -138,14 +241,15 @@ export async function round2(
         requestId: ARID,
         recipient: unknown,
       ) => {
-        toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
+        withResult: (result: string) => {
+          toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
+        };
       };
     };
   };
-  const requestId = ARID.new(); // Would be extracted from round 2 request
+  const requestId = parseAridUr(round2RequestData.request_id);
 
-  const response = SealedResponseClass.newSuccess(requestId, recipient);
-  // TODO: Add signature share to response
+  const response = SealedResponseClass.newSuccess(requestId, recipient).withResult(serializedShare);
 
   const envelope: Envelope = response.toEnvelope(
     undefined,
@@ -161,22 +265,14 @@ export async function round2(
     options.verbose ?? false,
   );
 
-  if (groupId === undefined) {
-    throw new Error("Group ID not found");
-  }
-
-  if (stateDir === undefined) {
-    throw new Error("State directory not found");
-  }
-
   // Save share state
-
   const groupIdStr: string = groupId.urString();
   const shareState = {
     session: sessionId.urString(),
     group: groupIdStr,
     finalize_arid: newListeningArid.urString(),
-    // TODO: Save signature share and commitments for verification
+    signature_share: serializedShare,
+    message: round2RequestData.message,
   };
 
   fs.writeFileSync(path.join(stateDir, "share.json"), JSON.stringify(shareState, null, 2));

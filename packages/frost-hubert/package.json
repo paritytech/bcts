@@ -52,6 +52,11 @@
       "types": "./dist/cmd/index.d.mts",
       "import": "./dist/cmd/index.mjs",
       "require": "./dist/cmd/index.cjs"
+    },
+    "./frost": {
+      "types": "./dist/frost/index.d.mts",
+      "import": "./dist/frost/index.mjs",
+      "require": "./dist/frost/index.cjs"
     }
   },
   "files": [
@@ -93,8 +98,8 @@
     "@bcts/provenance-mark": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@bcts/xid": "workspace:*",
-    "@noble/ed25519": "^2.2.3",
-    "@substrate-system/frost-dkg": "^0.0.6",
+    "@frosts/core": "0.2.2-alpha.3",
+    "@frosts/ed25519": "0.2.2-alpha.3",
     "commander": "^13.1.0"
   },
   "devDependencies": {

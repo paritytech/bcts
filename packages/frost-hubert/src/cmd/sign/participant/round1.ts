@@ -15,8 +15,18 @@ import type { Envelope } from "@bcts/envelope";
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
 import { putWithIndicator } from "../../busy.js";
 import { type StorageClient } from "../../storage.js";
-import { parseAridUr, resolveSender } from "../../dkg/common.js";
+import { parseAridUr, resolveSender, dkgStateDir } from "../../dkg/common.js";
 import { signingStateDir } from "../common.js";
+import {
+  signingRound1,
+  deserializeKeyPackage,
+  serializeSigningNonces,
+  serializeSigningCommitments,
+  createRng,
+  type SerializedKeyPackage,
+  type SerializedSigningNonces,
+  type SerializedSigningCommitments,
+} from "../../../frost/index.js";
 
 /**
  * Options for the sign round1 command.
@@ -158,17 +168,34 @@ export async function round1(
     throw new Error("State directory not found");
   }
 
+  if (groupId === undefined) {
+    throw new Error("Group ID not found");
+  }
+
   // Load key package from DKG
-  const dkgStateDir = path.join(path.dirname(stateDir), "..", "dkg");
-  const keyPackagePath = path.join(dkgStateDir, "key_package.json");
+  const dkgStatePath = dkgStateDir(registryPath, groupId.hex());
+  const keyPackagePath = path.join(dkgStatePath, "key_package.json");
 
   if (!fs.existsSync(keyPackagePath)) {
     throw new Error("Key package not found. Complete DKG first.");
   }
 
-  // TODO: Generate signing commitment using FROST
-  // const keyPackage = JSON.parse(fs.readFileSync(keyPackagePath, "utf-8"));
-  // const (nonces, commitments) = frost::round1::commit(...);
+  // Load and deserialize the key package
+  interface KeyPackageFile {
+    group: string;
+    key_package: SerializedKeyPackage;
+  }
+
+  const keyPackageFile = JSON.parse(fs.readFileSync(keyPackagePath, "utf-8")) as KeyPackageFile;
+  const keyPackage = deserializeKeyPackage(keyPackageFile.key_package);
+
+  // Generate signing commitment using FROST round 1
+  const rng = createRng();
+  const [nonces, commitments] = signingRound1(keyPackage, rng);
+
+  // Serialize for storage and transmission
+  const serializedNonces = serializeSigningNonces(nonces);
+  const serializedCommitments = serializeSigningCommitments(commitments);
 
   const listeningArid = ARID.new();
 
@@ -180,14 +207,17 @@ export async function round1(
         requestId: ARID,
         recipient: unknown,
       ) => {
-        toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
+        withResult: (result: string) => {
+          toEnvelope: (senderXid: unknown, recipientPrivateKeys: unknown, extra: unknown) => Envelope;
+        };
       };
     };
   };
   const requestId = ARID.new(); // Would be extracted from receive state
 
-  const response = SealedResponseClassAccept.newSuccess(requestId, recipient);
-  // TODO: Add commitment to response
+  const response = SealedResponseClassAccept.newSuccess(requestId, recipient).withResult(
+    JSON.stringify(serializedCommitments),
+  );
 
   const envelope: Envelope = response.toEnvelope(
     undefined,
@@ -203,18 +233,20 @@ export async function round1(
     options.verbose ?? false,
   );
 
-  if (groupId === undefined) {
-    throw new Error("Group ID not found");
-  }
-
-  // Save round 1 state
-
+  // Save round 1 state with nonces for round 2
   const groupIdStr: string = groupId.urString();
-  const commitState = {
+  const commitState: {
+    session: string;
+    group: string;
+    listening_arid: string;
+    nonces: SerializedSigningNonces;
+    commitments: SerializedSigningCommitments;
+  } = {
     session: sessionId.urString(),
     group: groupIdStr,
     listening_arid: listeningArid.urString(),
-    // TODO: Save nonces for round 2
+    nonces: serializedNonces,
+    commitments: serializedCommitments,
   };
 
   fs.writeFileSync(path.join(stateDir, "commit.json"), JSON.stringify(commitState, null, 2));

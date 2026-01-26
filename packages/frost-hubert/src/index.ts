@@ -15,6 +15,9 @@ export * from "./registry/index.js";
 // Re-export command module
 export * from "./cmd/index.js";
 
+// Re-export FROST cryptographic operations
+export * as frost from "./frost/index.js";
+
 // Type for modules that may have registerTags
 interface TagModule {
   registerTags?: () => void;

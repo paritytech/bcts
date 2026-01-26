@@ -6,6 +6,7 @@ export default defineConfig({
     "src/dkg/index.ts",
     "src/registry/index.ts",
     "src/cmd/index.ts",
+    "src/frost/index.ts",
     "src/bin/frost.ts",
   ],
   outDir: "dist",
@@ -23,7 +24,8 @@ export default defineConfig({
     "@bcts/provenance-mark",
     "@bcts/uniform-resources",
     "@bcts/xid",
-    "@noble/ed25519",
+    "@frosts/core",
+    "@frosts/ed25519",
     "commander",
   ],
 });

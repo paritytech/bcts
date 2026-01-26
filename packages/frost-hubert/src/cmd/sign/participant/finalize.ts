@@ -121,15 +121,21 @@ export async function finalize(
     throw new Error("Finalize event not found. The coordinator may not have sent it yet.");
   }
 
-  // TODO: Parse finalize event
-  // - Verify sender is coordinator
-  // - Extract signature shares from all participants
-  // - Extract commitments
+  // Parse finalize event to get the aggregated signature
+  interface FinalizeEventData {
+    signature: string; // hex-encoded 64-byte FROST signature
+    message: string; // hex-encoded message that was signed
+    verifying_key: string; // hex-encoded group verifying key
+  }
 
-  // TODO: Verify and aggregate signature
-  // - Load public key package
-  // - Aggregate signatures
-  // - Verify against target
+  let finalizeData: FinalizeEventData;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const resultStr = (finalizeEnvelope as { result?: () => string }).result?.() ?? "{}";
+    finalizeData = JSON.parse(resultStr) as FinalizeEventData;
+  } catch {
+    throw new Error("Failed to parse finalize event data");
+  }
 
   if (stateDir === undefined) {
     throw new Error("State directory not found");
@@ -141,8 +147,14 @@ export async function finalize(
     target: string;
   };
 
-  // Placeholder signature
-  const signatureBytes = new Uint8Array(64);
+  // Parse the signature bytes from the finalize data
+  const signatureHex = finalizeData.signature;
+  const signatureBytes = new Uint8Array(signatureHex.length / 2);
+  for (let i = 0; i < signatureBytes.length; i++) {
+    signatureBytes[i] = parseInt(signatureHex.slice(i * 2, i * 2 + 2), 16);
+  }
+
+  // Create the Signature object from the aggregated signature bytes
   const signature: Signature = Signature.ed25519FromData(signatureBytes);
 
   // Create signed envelope

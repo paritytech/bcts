@@ -17,6 +17,13 @@ import { Registry, resolveRegistryPath } from "../../../registry/index.js";
 import { putWithIndicator } from "../../busy.js";
 import { type StorageClient } from "../../storage.js";
 import { dkgStateDir, parseAridUr, resolveSender } from "../common.js";
+import {
+  dkgPart1,
+  identifierFromU16,
+  serializeDkgRound1Package,
+  createRng,
+  type SerializedDkgRound1Package,
+} from "../../../frost/index.js";
 
 /**
  * Options for the DKG round1 command.
@@ -111,18 +118,48 @@ export async function round1(
   }
 
   // Generate commitment package using FROST round 1
-  // TODO: Implement actual FROST round1 using frost-ed25519
-  // For now, create a placeholder response
+  const minSigners = receiveState.min_signers;
+
+  // Get participant index from registry
+  const groupRecord = registry.group(groupId);
+  if (groupRecord === null || groupRecord === undefined) {
+    throw new Error(`Group ${options.groupId} not found in registry`);
+  }
+
+  // Find our participant index in the group
+  const participants = groupRecord.participants();
+  const ourXid = recipient.xid();
+  let participantIndex = 0;
+  for (let i = 0; i < participants.length; i++) {
+    const p = participants[i];
+    if (p !== undefined && p.xid().toString() === ourXid.toString()) {
+      participantIndex = i + 1; // FROST uses 1-indexed identifiers
+      break;
+    }
+  }
+
+  if (participantIndex === 0) {
+    throw new Error("Could not find our participant entry in the group");
+  }
+
+  const maxSigners = participants.length;
+  const identifier = identifierFromU16(participantIndex);
+
+  // Execute FROST DKG part1
+  const rng = createRng();
+  const [secretPackage, round1Package] = dkgPart1(identifier, maxSigners, minSigners, rng);
+
+  // Serialize the round 1 package for transmission
+  const serializedPackage = serializeDkgRound1Package(round1Package);
 
   const listeningArid = ARID.new();
 
   // Create acceptance response with commitment package
   const requestId = parseAridUr(receiveState.request_id);
 
-  const response: SealedResponse = SealedResponse.newSuccess(requestId, recipient);
-
-  // TODO: Add commitment package to response
-  // response = response.withParameter("commitment", commitmentPackage);
+  const response: SealedResponse = SealedResponse.newSuccess(requestId, recipient).withResult(
+    JSON.stringify(serializedPackage),
+  );
 
   const envelope: Envelope = response.toEnvelope(
     undefined,
@@ -138,17 +175,42 @@ export async function round1(
     options.verbose ?? false,
   );
 
-  // Save round 1 state
-  const round1State = {
+  // Save round 1 state including secret package for round 2
+  // Note: In production, the secret package should be encrypted at rest
+  const secretPackageData = {
+    identifier: participantIndex,
+    coefficients: secretPackage.coefficients().map((c: unknown) => {
+      // Convert scalar to hex string for storage
+      const { bytesToHex } = require("../../../frost/index.js") as {
+        bytesToHex: (bytes: Uint8Array) => string;
+      };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      const { Ed25519Sha512 } = require("@frosts/ed25519");
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      return bytesToHex(Ed25519Sha512.serializeScalar(c) as Uint8Array);
+    }),
+    minSigners: secretPackage.minSigners,
+    maxSigners: secretPackage.maxSigners,
+    commitment: serializedPackage.commitment,
+  };
+
+  const round1State: {
+    group: string;
+    listening_arid: string;
+    participant_index: number;
+    secret_package: typeof secretPackageData;
+    our_round1_package: SerializedDkgRound1Package;
+  } = {
     group: groupId.urString(),
     listening_arid: listeningArid.urString(),
-    // TODO: Save nonces and commitment for round 2
+    participant_index: participantIndex,
+    secret_package: secretPackageData,
+    our_round1_package: serializedPackage,
   };
 
   fs.writeFileSync(path.join(stateDir, "round1.json"), JSON.stringify(round1State, null, 2));
 
-  // Update registry with listening ARID
-  const groupRecord = registry.group(groupId);
+  // Update registry with listening ARID (groupRecord already defined above)
   if (groupRecord !== null && groupRecord !== undefined) {
     groupRecord.setListeningAtArid(listeningArid);
     registry.save(registryPath);

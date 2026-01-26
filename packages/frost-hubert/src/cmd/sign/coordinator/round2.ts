@@ -20,8 +20,23 @@ import { UR } from "@bcts/uniform-resources";
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
 import { parallelFetch, type CollectionResult } from "../../parallel.js";
 import { type StorageClient } from "../../storage.js";
-import { parseAridUr } from "../../dkg/common.js";
+import { parseAridUr, dkgStateDir } from "../../dkg/common.js";
 import { signingStateDir } from "../common.js";
+import {
+  aggregateSignatures,
+  createSigningPackage,
+  deserializeSigningCommitments,
+  deserializeSignatureShare,
+  deserializePublicKeyPackage,
+  identifierFromU16,
+  hexToBytes,
+  serializeSignatureHex,
+  type SerializedPublicKeyPackage,
+  type SerializedSigningCommitments,
+  type FrostIdentifier,
+  type Ed25519SigningCommitments,
+  type Ed25519SignatureShare,
+} from "../../../frost/index.js";
 
 /**
  * Options for the sign round2 command.
@@ -77,11 +92,17 @@ export async function round2(
     throw new Error("No commitments found. Run 'sign coordinator round1' first.");
   }
 
-  // Load commitments
-  // @ts-expect-error TS6133 - intentionally unused, will be implemented
-  const _commitments: Record<string, unknown> = JSON.parse(
+  // Load commitments collected in round 1
+  interface CommitmentsFile {
+    [xidUr: string]: {
+      commitment: SerializedSigningCommitments;
+      participant_index: number;
+    };
+  }
+
+  const commitmentsFile = JSON.parse(
     fs.readFileSync(commitmentsPath, "utf-8"),
-  ) as Record<string, unknown>;
+  ) as CommitmentsFile;
 
   // Build targets for parallel fetch (from pending requests)
   const pendingRequests = groupRecord.pendingRequests();
@@ -92,19 +113,26 @@ export async function round2(
   }
 
   // Collect signature shares
-  const responses: CollectionResult<{ envelope: Envelope; xid: XID }> = await parallelFetch(
-    client,
-    targets,
-    (envelope: Envelope, xid: XID) => {
-      // Parse the response envelope
-      // Extract signature share from response
-      return { envelope, xid };
-    },
-    {
-      timeoutSeconds: options.timeoutSeconds,
-      verbose: options.verbose,
-    },
-  );
+  const responses: CollectionResult<{ envelope: Envelope; xid: XID; shareHex: string }> =
+    await parallelFetch(
+      client,
+      targets,
+      (envelope: Envelope, xid: XID) => {
+        // Parse the response envelope to extract signature share
+        let shareHex = "";
+        try {
+          const resultStr = (envelope as { result?: () => string }).result?.() ?? "";
+          shareHex = resultStr;
+        } catch {
+          // Failed to parse, will be an empty string
+        }
+        return { envelope, xid, shareHex };
+      },
+      {
+        timeoutSeconds: options.timeoutSeconds,
+        verbose: options.verbose,
+      },
+    );
 
   // Check minimum signers
   const minSigners = groupRecord.minSigners();
@@ -114,19 +142,67 @@ export async function round2(
     );
   }
 
-  // TODO: Aggregate signature using FROST
-  // const publicKeyPackage = loadPublicKeyPackage(registryPath, groupId);
-  // const aggregatedSignature = aggregateSignatures(shares, commitments, publicKeyPackage);
+  // Load public key package from DKG state
+  const dkgStatePath = dkgStateDir(registryPath, groupId.hex());
+  const publicKeyPackagePath = path.join(dkgStatePath, "public_key_package.json");
 
-  // Placeholder signature
-  const signatureBytes = new Uint8Array(64);
-  const signature = Signature.ed25519FromData(signatureBytes);
+  if (!fs.existsSync(publicKeyPackagePath)) {
+    throw new Error("Public key package not found. Complete DKG first.");
+  }
 
-  // Load target envelope
+  interface PublicKeyPackageFile {
+    group: string;
+    public_key_package: SerializedPublicKeyPackage;
+  }
+
+  const publicKeyPackageFile = JSON.parse(
+    fs.readFileSync(publicKeyPackagePath, "utf-8"),
+  ) as PublicKeyPackageFile;
+  const publicKeyPackage = deserializePublicKeyPackage(publicKeyPackageFile.public_key_package);
+
+  // Load the message from invite state
   const inviteStatePath = path.join(stateDir, "invite.json");
   const inviteState = JSON.parse(fs.readFileSync(inviteStatePath, "utf-8")) as {
     target: string;
+    message: string; // hex-encoded message
   };
+
+  const message = hexToBytes(inviteState.message);
+
+  // Build commitments map for signing package
+  const commitmentsMap = new Map<FrostIdentifier, Ed25519SigningCommitments>();
+  for (const [, data] of Object.entries(commitmentsFile)) {
+    const identifier = identifierFromU16(data.participant_index);
+    const commitments = deserializeSigningCommitments(data.commitment);
+    commitmentsMap.set(identifier, commitments);
+  }
+
+  // Create signing package
+  const signingPackage = createSigningPackage(commitmentsMap, message);
+
+  // Build signature shares map
+  const sharesMap = new Map<FrostIdentifier, Ed25519SignatureShare>();
+  for (const [xidUr, data] of responses.successes) {
+    // Find participant index from commitments file
+    const commData = commitmentsFile[xidUr];
+    if (commData === undefined) {
+      console.warn(`Could not find commitment data for ${xidUr}`);
+      continue;
+    }
+    const identifier = identifierFromU16(commData.participant_index);
+    const share = deserializeSignatureShare(data.shareHex);
+    sharesMap.set(identifier, share);
+  }
+
+  // Aggregate signatures using FROST
+  const aggregatedSignature = aggregateSignatures(signingPackage, sharesMap, publicKeyPackage);
+
+  // Serialize the aggregated signature
+  const signatureBytes = aggregatedSignature.serialize();
+  const signatureHex = serializeSignatureHex(aggregatedSignature);
+  const signature = Signature.ed25519FromData(signatureBytes);
+
+  // Load target envelope (reuse inviteState loaded earlier)
 
   const ur = UR.fromURString(inviteState.target);
   // @ts-expect-error TS2339 - API mismatch: fromCbor method not yet implemented
@@ -151,8 +227,11 @@ export async function round2(
     session: sessionId.urString(),
     group: groupId.urString(),
     signature: signature.urString(),
+    signature_hex: signatureHex,
     signed_envelope: signedEnvelope.urString(),
     shares_count: responses.successes.size,
+    message: inviteState.message,
+    verifying_key: publicKeyPackageFile.public_key_package.verifyingKey,
   };
 
   fs.writeFileSync(finalPath, JSON.stringify(finalState, null, 2));
