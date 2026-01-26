@@ -220,25 +220,23 @@ export class Registry {
     if (existing !== undefined) {
       // Validate config matches
       if (!existing.configMatches(record)) {
-        throw new Error(
-          `Group ${groupId.hex()} already exists with a different configuration`,
-        );
+        throw new Error(`Group ${groupId.hex()} already exists with a different configuration`);
       }
 
       // Merge contributions
       existing.mergeContributions(record.contributions());
 
       // Update verifying key if not already set
-      if (existing.verifyingKey() === undefined && record.verifyingKey() !== undefined) {
-        existing.setVerifyingKey(record.verifyingKey()!);
+      const existingKey = existing.verifyingKey();
+      const recordKey = record.verifyingKey();
+      if (existingKey === undefined && recordKey !== undefined) {
+        existing.setVerifyingKey(recordKey);
       } else if (
-        existing.verifyingKey() !== undefined &&
-        record.verifyingKey() !== undefined &&
-        existing.verifyingKey()!.urString() !== record.verifyingKey()!.urString()
+        existingKey !== undefined &&
+        recordKey !== undefined &&
+        existingKey.urString() !== recordKey.urString()
       ) {
-        throw new Error(
-          `Group ${groupId.hex()} already exists with a different verifying key`,
-        );
+        throw new Error(`Group ${groupId.hex()} already exists with a different verifying key`);
       }
 
       return GroupOutcome.Updated;

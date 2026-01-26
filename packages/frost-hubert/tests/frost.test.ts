@@ -22,7 +22,19 @@ import {
   serializeSignature,
   type FrostIdentifier,
   type Ed25519SigningCommitments,
+  type DkgRound2Package,
 } from "../src/frost/index.js";
+
+/**
+ * Helper to get a value from a map, throwing if not found.
+ */
+function getOrThrow<K, V>(map: Map<K, V>, key: K): V {
+  const value = map.get(key);
+  if (value === undefined) {
+    throw new Error(`Key not found in map: ${String(key)}`);
+  }
+  return value;
+}
 
 describe("FROST operations", () => {
   describe("Identifier", () => {
@@ -86,23 +98,35 @@ describe("FROST operations", () => {
       expect(round2PackagesFrom1.size).toBe(2);
 
       // Build round 2 packages map for each participant (packages sent TO them)
-      const round2PackagesFor1 = new Map([
-        [identifierToHex(id2), round2PackagesFrom2.get(identifierToHex(id1))!],
-        [identifierToHex(id3), round2PackagesFrom3.get(identifierToHex(id1))!],
+      const round2PackagesFor1 = new Map<string, DkgRound2Package>([
+        [identifierToHex(id2), getOrThrow(round2PackagesFrom2, identifierToHex(id1))],
+        [identifierToHex(id3), getOrThrow(round2PackagesFrom3, identifierToHex(id1))],
       ]);
-      const round2PackagesFor2 = new Map([
-        [identifierToHex(id1), round2PackagesFrom1.get(identifierToHex(id2))!],
-        [identifierToHex(id3), round2PackagesFrom3.get(identifierToHex(id2))!],
+      const round2PackagesFor2 = new Map<string, DkgRound2Package>([
+        [identifierToHex(id1), getOrThrow(round2PackagesFrom1, identifierToHex(id2))],
+        [identifierToHex(id3), getOrThrow(round2PackagesFrom3, identifierToHex(id2))],
       ]);
-      const round2PackagesFor3 = new Map([
-        [identifierToHex(id1), round2PackagesFrom1.get(identifierToHex(id3))!],
-        [identifierToHex(id2), round2PackagesFrom2.get(identifierToHex(id3))!],
+      const round2PackagesFor3 = new Map<string, DkgRound2Package>([
+        [identifierToHex(id1), getOrThrow(round2PackagesFrom1, identifierToHex(id3))],
+        [identifierToHex(id2), getOrThrow(round2PackagesFrom2, identifierToHex(id3))],
       ]);
 
       // Part 3: Each participant computes their key package
-      const [keyPackage1, publicKeyPackage1] = await dkgPart3(round2Secret1, round1PackagesFor1, round2PackagesFor1);
-      const [_keyPackage2, publicKeyPackage2] = await dkgPart3(round2Secret2, round1PackagesFor2, round2PackagesFor2);
-      const [_keyPackage3, publicKeyPackage3] = await dkgPart3(round2Secret3, round1PackagesFor3, round2PackagesFor3);
+      const [keyPackage1, publicKeyPackage1] = await dkgPart3(
+        round2Secret1,
+        round1PackagesFor1,
+        round2PackagesFor1,
+      );
+      const [_keyPackage2, publicKeyPackage2] = await dkgPart3(
+        round2Secret2,
+        round1PackagesFor2,
+        round2PackagesFor2,
+      );
+      const [_keyPackage3, publicKeyPackage3] = await dkgPart3(
+        round2Secret3,
+        round1PackagesFor3,
+        round2PackagesFor3,
+      );
 
       expect(keyPackage1).toBeDefined();
       expect(publicKeyPackage1).toBeDefined();
@@ -143,21 +167,28 @@ describe("FROST operations", () => {
 
       const [round2Secret1, round2PackagesFrom1] = dkgPart2(secret1, round1PackagesFor1);
       const [round2Secret2, round2PackagesFrom2] = dkgPart2(secret2, round1PackagesFor2);
-      const [, round2PackagesFrom3] = dkgPart2(secret3, new Map([
-        [identifierToHex(id1), round1Package1],
-        [identifierToHex(id2), round1Package2],
-      ]));
+      const [, round2PackagesFrom3] = dkgPart2(
+        secret3,
+        new Map([
+          [identifierToHex(id1), round1Package1],
+          [identifierToHex(id2), round1Package2],
+        ]),
+      );
 
-      const round2PackagesFor1 = new Map([
-        [identifierToHex(id2), round2PackagesFrom2.get(identifierToHex(id1))!],
-        [identifierToHex(id3), round2PackagesFrom3.get(identifierToHex(id1))!],
+      const round2PackagesFor1 = new Map<string, DkgRound2Package>([
+        [identifierToHex(id2), getOrThrow(round2PackagesFrom2, identifierToHex(id1))],
+        [identifierToHex(id3), getOrThrow(round2PackagesFrom3, identifierToHex(id1))],
       ]);
-      const round2PackagesFor2 = new Map([
-        [identifierToHex(id1), round2PackagesFrom1.get(identifierToHex(id2))!],
-        [identifierToHex(id3), round2PackagesFrom3.get(identifierToHex(id2))!],
+      const round2PackagesFor2 = new Map<string, DkgRound2Package>([
+        [identifierToHex(id1), getOrThrow(round2PackagesFrom1, identifierToHex(id2))],
+        [identifierToHex(id3), getOrThrow(round2PackagesFrom3, identifierToHex(id2))],
       ]);
 
-      const [keyPackage1, publicKeyPackage] = await dkgPart3(round2Secret1, round1PackagesFor1, round2PackagesFor1);
+      const [keyPackage1, publicKeyPackage] = await dkgPart3(
+        round2Secret1,
+        round1PackagesFor1,
+        round2PackagesFor1,
+      );
       const [keyPackage2] = await dkgPart3(round2Secret2, round1PackagesFor2, round2PackagesFor2);
 
       // Now perform signing with participants 1 and 2 (threshold of 2)

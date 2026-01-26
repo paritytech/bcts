@@ -66,7 +66,10 @@ export class SignFinalizeContent {
    *
    * Port of `SignFinalizeContent::add_assertion()` from cmd/sign/common.rs.
    */
-  addAssertion(predicate: EnvelopeEncodableValue, object: EnvelopeEncodableValue): SignFinalizeContent {
+  addAssertion(
+    predicate: EnvelopeEncodableValue,
+    object: EnvelopeEncodableValue,
+  ): SignFinalizeContent {
     const newEnvelope = this._envelope.addAssertion(predicate, object);
     return new SignFinalizeContent(newEnvelope);
   }

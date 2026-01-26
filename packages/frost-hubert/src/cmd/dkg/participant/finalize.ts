@@ -9,34 +9,34 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { Registry, resolveRegistryPath } from "../../../registry/index.js";
-import { getWithIndicator } from "../../busy.js";
-import { type StorageClient } from "../../storage.js";
-import { dkgStateDir, parseAridUr, signingKeyFromVerifying } from "../common.js";
+import { ARID, JSON as JSONWrapper, XID } from "@bcts/components";
+import { CborDate } from "@bcts/dcbor";
+import { Envelope, Function as EnvelopeFunction } from "@bcts/envelope";
+import { SealedRequest, SealedResponse } from "@bcts/gstp";
+import type { XIDDocument } from "@bcts/xid";
+
+import { type GroupRecord, Registry, resolveRegistryPath } from "../../../registry/index.js";
+import { getWithIndicator, putWithIndicator } from "../../busy.js";
+import { groupStateDir, isVerbose } from "../../common.js";
+import { createStorageClient, type StorageClient, type StorageSelection } from "../../storage.js";
+import { parseAridUr, signingKeyFromVerifying } from "../common.js";
 import {
   dkgPart3,
-  deserializeDkgRound1Package,
-  deserializeDkgRound2Package,
   identifierFromU16,
   identifierToHex,
-  serializeKeyPackage,
-  serializePublicKeyPackage,
   hexToBytes,
   bytesToHex,
-  type SerializedDkgRound1Package,
-  type SerializedDkgRound2Package,
+  serializeKeyPackage,
+  serializePublicKeyPackage,
   type DkgRound1Package,
   type DkgRound2Package,
   type DkgRound2SecretPackage,
+  type FrostIdentifier,
+  type FrostKeyPackage,
+  type FrostPublicKeyPackage,
 } from "../../../frost/index.js";
-
-// Import classes directly from @frosts/core
-import {
-  round2,
-  CoefficientCommitment,
-  VerifiableSecretSharingCommitment,
-} from "@frosts/core";
-import { Ed25519Sha512 } from "@frosts/ed25519";
+import { Ed25519Sha512, serde } from "@frosts/ed25519";
+import { round2, CoefficientCommitment, VerifiableSecretSharingCommitment } from "@frosts/core";
 
 /**
  * Options for the DKG finalize command.
@@ -45,6 +45,8 @@ export interface DkgFinalizeOptions {
   registryPath?: string;
   groupId: string;
   timeoutSeconds?: number;
+  preview?: boolean;
+  storageSelection?: StorageSelection;
   verbose?: boolean;
 }
 
@@ -54,181 +56,520 @@ export interface DkgFinalizeOptions {
 export interface DkgFinalizeResult {
   verifyingKey: string;
   keyPackagePath: string;
+  publicKeyPackagePath: string;
+}
+
+/**
+ * Persisted round 2 state loaded from disk.
+ */
+interface Round2State {
+  secretPackage: DkgRound2SecretPackage;
+  round1Packages: Map<string, DkgRound1Package>;
+}
+
+/**
+ * Load persisted round 2 state from disk.
+ *
+ * Port of round2_secret loading from cmd/dkg/participant/finalize.rs lines 82-106.
+ */
+function loadRound2State(registryPath: string, groupId: ARID): Round2State {
+  const stateDir = groupStateDir(registryPath, groupId.hex());
+
+  // Load Round 2 secret
+  const round2SecretPath = path.join(stateDir, "round2_secret.json");
+  if (!fs.existsSync(round2SecretPath)) {
+    throw new Error(`Round 2 secret not found at ${round2SecretPath}. Did you run round2?`);
+  }
+
+  const secretJson = JSON.parse(fs.readFileSync(round2SecretPath, "utf-8")) as {
+    identifier: number;
+    commitment: {
+      coefficients: string[];
+    };
+    secretShare: string;
+    minSigners: number;
+    maxSigners: number;
+  };
+
+  // Reconstruct the round 2 secret package
+  const identifier = identifierFromU16(secretJson.identifier);
+
+  const coefficientCommitments = secretJson.commitment.coefficients.map((hex) =>
+    CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
+  );
+
+  const commitment = new VerifiableSecretSharingCommitment(Ed25519Sha512, coefficientCommitments);
+
+  const secretShareScalar = Ed25519Sha512.deserializeScalar(hexToBytes(secretJson.secretShare));
+
+  const secretPackage: DkgRound2SecretPackage = new round2.SecretPackage(
+    Ed25519Sha512,
+    identifier,
+    commitment,
+    secretShareScalar,
+    secretJson.minSigners,
+    secretJson.maxSigners,
+  );
+
+  // Load collected Round 1 packages (from round2 phase)
+  const round1Path = path.join(stateDir, "collected_round1.json");
+  if (!fs.existsSync(round1Path)) {
+    throw new Error(`Round 1 packages not found at ${round1Path}. Did you receive earlier phases?`);
+  }
+
+  const round1Json = JSON.parse(fs.readFileSync(round1Path, "utf-8")) as Record<string, unknown>;
+
+  // Convert to Map<string, DkgRound1Package> - keyed by XID UR string
+  const round1Packages = new Map<string, DkgRound1Package>();
+  for (const [xidStr, value] of Object.entries(round1Json)) {
+    const packageJson = value as {
+      header: { version: number; ciphersuite: string };
+      commitment: string[];
+      proof_of_knowledge: string;
+    };
+    const pkg = serde.round1PackageFromJson(packageJson);
+    round1Packages.set(xidStr, pkg);
+  }
+
+  return { secretPackage, round1Packages };
+}
+
+/**
+ * Validate the finalize request from the coordinator.
+ *
+ * Port of request validation from cmd/dkg/participant/finalize.rs lines 139-161.
+ */
+function validateFinalizeRequest(
+  sealedRequest: SealedRequest,
+  groupId: ARID,
+  expectedCoordinator: XID,
+): ARID {
+  // Validate the request function
+  if (!sealedRequest.function().equals(EnvelopeFunction.fromString("dkgFinalize"))) {
+    throw new Error(`Unexpected request function: ${sealedRequest.function().toString()}`);
+  }
+
+  // Validate the sender is the expected coordinator
+  if (sealedRequest.sender().xid().urString() !== expectedCoordinator.urString()) {
+    throw new Error(
+      `Unexpected request sender: ${sealedRequest.sender().xid().urString()} ` +
+        `(expected coordinator ${expectedCoordinator.urString()})`,
+    );
+  }
+
+  // Validate the group ID matches
+  const requestGroupIdEnvelope = sealedRequest.objectForParameter("group");
+  if (requestGroupIdEnvelope === undefined) {
+    throw new Error("Request missing group parameter");
+  }
+  const requestGroupId = requestGroupIdEnvelope.extractSubject((cbor) => ARID.fromTaggedCbor(cbor));
+  if (requestGroupId.urString() !== groupId.urString()) {
+    throw new Error(
+      `Request group ID ${requestGroupId.urString()} does not match expected ${groupId.urString()}`,
+    );
+  }
+
+  // Extract where we should post our response
+  const responseAridEnvelope = sealedRequest.objectForParameter("responseArid");
+  if (responseAridEnvelope === undefined) {
+    throw new Error("Request missing responseArid parameter");
+  }
+  const responseArid = responseAridEnvelope.extractSubject((cbor) => ARID.fromTaggedCbor(cbor));
+
+  return responseArid;
+}
+
+/**
+ * Extract round 2 packages from the finalize request.
+ *
+ * Port of round2 package extraction from cmd/dkg/participant/finalize.rs lines 209-229.
+ */
+function extractFinalizePackages(
+  request: SealedRequest,
+  groupRecord: GroupRecord,
+  ownerXid: XID,
+): Map<string, DkgRound2Package> {
+  // Build XID -> Identifier mapping based on sorted participant order
+  const sortedXids: XID[] = groupRecord.participants().map((p) => p.xid());
+
+  // Add owner if not already in list
+  const ownerUrString = ownerXid.urString();
+  if (!sortedXids.some((xid) => xid.urString() === ownerUrString)) {
+    sortedXids.push(ownerXid);
+  }
+
+  // Sort by XID UR string
+  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
+
+  // Deduplicate
+  const deduped: XID[] = [];
+  for (const xid of sortedXids) {
+    if (deduped.length === 0 || deduped[deduped.length - 1].urString() !== xid.urString()) {
+      deduped.push(xid);
+    }
+  }
+
+  // Build XID -> Identifier mapping (1-indexed)
+  const xidToIdentifier = new Map<string, FrostIdentifier>();
+  for (let i = 0; i < deduped.length; i++) {
+    const identifier = identifierFromU16(i + 1);
+    xidToIdentifier.set(deduped[i].urString(), identifier);
+  }
+
+  const myXidStr = ownerXid.urString();
+
+  // Extract all round2Package parameters
+  const packages = new Map<string, DkgRound2Package>();
+
+  const packageEnvelopes = request.objectsForParameter("round2Package");
+  for (const packageEnvelope of packageEnvelopes) {
+    // Extract sender XID from the envelope
+    const senderEnvelope = packageEnvelope.objectForPredicate("sender");
+    if (senderEnvelope === undefined) {
+      throw new Error("round2Package missing sender predicate");
+    }
+    const senderXid = senderEnvelope.extractSubject((cbor) => XID.fromTaggedCbor(cbor));
+
+    // Skip our own package
+    if (senderXid.urString() === myXidStr) {
+      continue;
+    }
+
+    // Get the identifier for this sender
+    const identifier = xidToIdentifier.get(senderXid.urString());
+    if (identifier === undefined) {
+      throw new Error(`Unknown sender XID in round2Package: ${senderXid.urString()}`);
+    }
+
+    // Extract the package bytes (stored as JSON tag)
+    const packageJson = packageEnvelope.extractSubject((cbor) => JSONWrapper.fromTaggedCbor(cbor));
+    const packageData = JSON.parse(new TextDecoder().decode(packageJson.toData())) as {
+      header: { version: number; ciphersuite: string };
+      signing_share: string;
+    };
+
+    const pkg = serde.round2PackageFromJson(packageData);
+    packages.set(identifierToHex(identifier), pkg);
+  }
+
+  return packages;
+}
+
+/**
+ * Build the response body for the finalize response.
+ *
+ * Port of `build_response_body()` from cmd/dkg/participant/finalize.rs lines 344-359.
+ */
+function buildResponseBody(
+  groupId: ARID,
+  participantXid: XID,
+  keyPackage: FrostKeyPackage,
+  publicKeyPackage: FrostPublicKeyPackage,
+): Envelope {
+  // Serialize key packages to JSON
+  const keyPackageJson = serializeKeyPackage(keyPackage);
+  const publicKeyPackageJson = serializePublicKeyPackage(publicKeyPackage);
+
+  const keyJsonBytes = new TextEncoder().encode(JSON.stringify(keyPackageJson));
+  const keyJsonWrapper = JSONWrapper.fromData(keyJsonBytes);
+
+  const pubJsonBytes = new TextEncoder().encode(JSON.stringify(publicKeyPackageJson));
+  const pubJsonWrapper = JSONWrapper.fromData(pubJsonBytes);
+
+  return Envelope.unit()
+    .addType("dkgFinalizeResponse")
+    .addAssertion("group", groupId)
+    .addAssertion("participant", participantXid)
+    .addAssertion("key_package", keyJsonWrapper)
+    .addAssertion("public_key_package", pubJsonWrapper);
+}
+
+/**
+ * Persist finalize state (key packages) to disk.
+ *
+ * Port of key package persistence from cmd/dkg/participant/finalize.rs lines 251-257.
+ */
+function persistFinalizeState(
+  registryPath: string,
+  groupId: ARID,
+  keyPackage: FrostKeyPackage,
+  publicKeyPackage: FrostPublicKeyPackage,
+): { keyPackagePath: string; publicKeyPackagePath: string } {
+  const stateDir = groupStateDir(registryPath, groupId.hex());
+  fs.mkdirSync(stateDir, { recursive: true });
+
+  // Serialize and save key package
+  const serializedKeyPackage = serializeKeyPackage(keyPackage);
+  const keyPackagePath = path.join(stateDir, "key_package.json");
+  fs.writeFileSync(keyPackagePath, JSON.stringify(serializedKeyPackage, null, 2));
+
+  // Serialize and save public key package
+  const serializedPublicKeyPackage = serializePublicKeyPackage(publicKeyPackage);
+  const publicKeyPackagePath = path.join(stateDir, "public_key_package.json");
+  fs.writeFileSync(publicKeyPackagePath, JSON.stringify(serializedPublicKeyPackage, null, 2));
+
+  return { keyPackagePath, publicKeyPackagePath };
 }
 
 /**
  * Execute the DKG participant finalize command.
  *
- * Receives the finalize package and saves the key package.
+ * Responds to the finalize request from the coordinator, runs FROST DKG part3
+ * to generate the final key package, and posts the response back.
  *
- * Port of `finalize()` from cmd/dkg/participant/finalize.rs.
+ * Port of `CommandArgs::exec()` from cmd/dkg/participant/finalize.rs lines 52-341.
  */
 export async function finalize(
-  client: StorageClient,
+  _client: StorageClient | undefined,
   options: DkgFinalizeOptions,
   cwd: string,
 ): Promise<DkgFinalizeResult> {
+  if (options.storageSelection === undefined) {
+    throw new Error("Hubert storage is required for finalize respond");
+  }
+
   const registryPath = resolveRegistryPath(options.registryPath, cwd);
   const registry = Registry.load(registryPath);
 
+  const owner = registry.owner();
+  if (owner === undefined) {
+    throw new Error("Registry owner is required");
+  }
+
   const groupId = parseAridUr(options.groupId);
-
-  const stateDir = dkgStateDir(registryPath, groupId.hex());
-  const round2StatePath = path.join(stateDir, "round2.json");
-
-  if (!fs.existsSync(round2StatePath)) {
-    throw new Error("No round 2 state found. Run 'dkg participant round2' first.");
+  const groupRecord = registry.group(groupId);
+  if (groupRecord === undefined) {
+    throw new Error("Group not found in registry");
   }
 
-  // Load round 2 state with secret package and round 1 packages
-  interface Round2StateWithData {
-    listening_arid: string;
-    round2_secret_package: {
-      identifier: number;
-      commitment: {
-        coefficients: string[];
-      };
-      secretShare: string;
-      minSigners: number;
-      maxSigners: number;
-    };
-    round1_packages: Record<string, SerializedDkgRound1Package>;
+  // Get the ARID where we're listening for the finalize request
+  const listeningAtArid = groupRecord.listeningAtArid();
+  if (listeningAtArid === undefined) {
+    throw new Error("No listening ARID for this group. Did you receive finalize send?");
   }
 
-  const round2State = JSON.parse(fs.readFileSync(round2StatePath, "utf-8")) as Round2StateWithData;
+  // Load Round 2 state (secret and collected round1 packages)
+  const round2State = loadRound2State(registryPath, groupId);
 
-  const listeningArid = parseAridUr(round2State.listening_arid);
+  if (isVerbose() || options.verbose === true) {
+    console.error("Fetching finalize request from Hubert...");
+  }
 
-  // Fetch finalize package from coordinator
-  const finalizeEnvelope = await getWithIndicator(
+  const client = await createStorageClient(options.storageSelection);
+
+  // Fetch the finalize request from where we're listening
+  const requestEnvelope = await getWithIndicator(
     client,
-    listeningArid,
-    "Fetching finalize package",
+    listeningAtArid,
+    "Finalize request",
     options.timeoutSeconds,
     options.verbose ?? false,
   );
 
-  if (finalizeEnvelope === null || finalizeEnvelope === undefined) {
-    throw new Error("Finalize package not found. The coordinator may not have sent it yet.");
+  if (requestEnvelope === null || requestEnvelope === undefined) {
+    throw new Error("Finalize request not found in Hubert storage");
   }
 
-  // Parse finalize package to get round 2 packages from all participants
-  interface FinalizeData {
-    round2_packages: Record<string, SerializedDkgRound2Package>;
+  // Decrypt and validate the request
+  const ownerPrivateKeys = owner.xidDocument().inceptionPrivateKeys();
+  if (ownerPrivateKeys === undefined) {
+    throw new Error("Owner XID document has no private keys");
   }
 
-  let finalizeData: FinalizeData;
-  try {
-    const resultStr = (finalizeEnvelope as { result?: () => string }).result?.() ?? "{}";
-    finalizeData = JSON.parse(resultStr) as FinalizeData;
-  } catch {
-    throw new Error("Failed to parse finalize data");
+  const now = CborDate.now().datetime();
+  const sealedRequest = SealedRequest.tryFromEnvelope(
+    requestEnvelope,
+    undefined,
+    now,
+    ownerPrivateKeys,
+  );
+
+  // Validate the request and extract response ARID
+  const expectedCoordinator = groupRecord.coordinator().xid();
+  const responseArid = validateFinalizeRequest(sealedRequest, groupId, expectedCoordinator);
+
+  // Build identifier mapping for round1 packages (XID UR -> Identifier hex)
+  const sortedXids: XID[] = groupRecord.participants().map((p) => p.xid());
+
+  // Add owner if not already in list
+  const ownerUrString = owner.xid().urString();
+  if (!sortedXids.some((xid) => xid.urString() === ownerUrString)) {
+    sortedXids.push(owner.xid());
   }
 
-  // Reconstruct the round 2 secret package
-  const savedSecret = round2State.round2_secret_package;
-  const identifier = identifierFromU16(savedSecret.identifier);
+  // Sort by XID UR string
+  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
 
-  const coefficientCommitments = savedSecret.commitment.coefficients.map((hex) =>
-    CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
-  );
+  // Deduplicate
+  const deduped: XID[] = [];
+  for (const xid of sortedXids) {
+    if (deduped.length === 0 || deduped[deduped.length - 1].urString() !== xid.urString()) {
+      deduped.push(xid);
+    }
+  }
 
-  const commitment = new VerifiableSecretSharingCommitment(
-    Ed25519Sha512,
-    coefficientCommitments,
-  );
+  // Build XID -> Identifier mapping (1-indexed)
+  const xidToIdentifier = new Map<string, FrostIdentifier>();
+  for (let i = 0; i < deduped.length; i++) {
+    const identifier = identifierFromU16(i + 1);
+    xidToIdentifier.set(deduped[i].urString(), identifier);
+  }
 
-  const secretShareScalar = Ed25519Sha512.deserializeScalar(hexToBytes(savedSecret.secretShare));
-
-  const round2SecretPackage: DkgRound2SecretPackage = new round2.SecretPackage(
-    Ed25519Sha512,
-    identifier,
-    commitment,
-    secretShareScalar,
-    savedSecret.minSigners,
-    savedSecret.maxSigners,
-  );
-
-  // Build round 1 packages map
-  const round1Packages = new Map<string, DkgRound1Package>();
-  for (const [idHex, serializedPkg] of Object.entries(round2State.round1_packages)) {
-    const ourIdHex = identifierToHex(identifier);
-    if (idHex === ourIdHex) {
+  // Convert round1 packages from XID-keyed to identifier-keyed (exclude self)
+  const round1PackagesById = new Map<string, DkgRound1Package>();
+  for (const [xidStr, pkg] of round2State.round1Packages) {
+    if (xidStr === ownerUrString) {
       continue;
     }
-    const pkg = deserializeDkgRound1Package(serializedPkg);
-    round1Packages.set(idHex, pkg);
-  }
-
-  // Build round 2 packages map from finalize data (exclude our own)
-  const round2Packages = new Map<string, DkgRound2Package>();
-  for (const [idHex, serializedPkg] of Object.entries(finalizeData.round2_packages)) {
-    const ourIdHex = identifierToHex(identifier);
-    if (idHex === ourIdHex) {
-      continue;
+    const identifier = xidToIdentifier.get(xidStr);
+    if (identifier === undefined) {
+      throw new Error(`Unknown participant XID ${xidStr}`);
     }
-    const pkg = deserializeDkgRound2Package(serializedPkg);
-    round2Packages.set(idHex, pkg);
+    round1PackagesById.set(identifierToHex(identifier), pkg);
   }
 
-  // Execute FROST DKG part3 (finalize)
+  // Extract Round 2 packages from the request (exclude self)
+  const round2PackagesById = extractFinalizePackages(sealedRequest, groupRecord, owner.xid());
+
+  if (isVerbose() || options.verbose === true) {
+    console.error(`Received ${round2PackagesById.size} Round 2 packages. Running DKG part3...`);
+  }
+
+  // Run FROST DKG part3 (finalize)
   const [keyPackage, publicKeyPackage] = await dkgPart3(
-    round2SecretPackage,
-    round1Packages,
-    round2Packages,
+    round2State.secretPackage,
+    round1PackagesById,
+    round2PackagesById,
   );
 
-  // Serialize and save key package
-  const serializedKeyPackage = serializeKeyPackage(keyPackage);
-  const keyPackagePath = path.join(stateDir, "key_package.json");
-  const keyPackageData = {
-    group: groupId.urString(),
-    key_package: serializedKeyPackage,
-  };
+  // Get the group verifying key
+  const verifyingKeyBytes = publicKeyPackage.verifyingKey as Uint8Array;
+  const groupVerifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
 
-  fs.writeFileSync(keyPackagePath, JSON.stringify(keyPackageData, null, 2));
+  if (isVerbose() || options.verbose === true) {
+    console.error("Generated key package and public key package.");
+  }
 
-  // Serialize and save public key package
-  const serializedPublicKeyPackage = serializePublicKeyPackage(publicKeyPackage);
-  const publicKeyPackagePath = path.join(stateDir, "public_key_package.json");
-  fs.writeFileSync(
-    publicKeyPackagePath,
-    JSON.stringify(
-      {
-        group: groupId.urString(),
-        public_key_package: serializedPublicKeyPackage,
-      },
-      null,
-      2,
-    ),
+  // Persist key packages
+  const { keyPackagePath, publicKeyPackagePath } = persistFinalizeState(
+    registryPath,
+    groupId,
+    keyPackage,
+    publicKeyPackage,
   );
 
-  // Get the verifying key bytes for registry update
-  // verifyingKey is already a Uint8Array (Ed25519Point type)
-  const verifyingKeyBytes = keyPackage.verifyingKey as Uint8Array;
-  const verifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
+  // Build response body
+  const responseBody = buildResponseBody(groupId, owner.xid(), keyPackage, publicKeyPackage);
 
-  // Update registry with verifying key
-  const groupRecord = registry.group(groupId);
-  if (groupRecord !== null && groupRecord !== undefined) {
-    groupRecord.clearListeningAtArid();
-    // Set verifying key if the method exists
-    if (typeof (groupRecord as { setVerifyingKey?: (key: unknown) => void }).setVerifyingKey === "function") {
-      (groupRecord as { setVerifyingKey: (key: unknown) => void }).setVerifyingKey(verifyingKey);
+  const signerPrivateKeys = owner.xidDocument().inceptionPrivateKeys();
+  if (signerPrivateKeys === undefined) {
+    throw new Error("Owner XID document has no signing keys");
+  }
+
+  // Get coordinator's XID document for encryption
+  const coordinatorXid = groupRecord.coordinator().xid();
+  const coordinatorRecord = registry.participant(coordinatorXid);
+  let coordinatorDoc: XIDDocument;
+  if (coordinatorRecord !== undefined) {
+    coordinatorDoc = coordinatorRecord.xidDocument();
+  } else {
+    // Check if coordinator is the owner
+    if (owner.xid().urString() === coordinatorXid.urString()) {
+      coordinatorDoc = owner.xidDocument();
+    } else {
+      throw new Error(`Coordinator ${coordinatorXid.urString()} not found in registry`);
     }
+  }
+
+  // Get peer continuation from the request
+  const peerContinuation = sealedRequest.peerContinuation();
+
+  let sealed = SealedResponse.newSuccess(sealedRequest.id(), owner.xidDocument()).withResult(
+    responseBody,
+  );
+
+  if (peerContinuation !== undefined) {
+    sealed = sealed.withPeerContinuation(peerContinuation);
+  }
+
+  if (options.preview === true) {
+    // Show the response envelope structure without encryption
+    if (isVerbose() || options.verbose === true) {
+      // Cast to access urString method
+      const verifyingKeyWithUrString = groupVerifyingKey as { urString?: () => string };
+      if (typeof verifyingKeyWithUrString.urString === "function") {
+        console.error(verifyingKeyWithUrString.urString());
+      }
+    }
+    const unsealedEnvelope = sealed.toEnvelope(
+      undefined, // No expiration for responses
+      signerPrivateKeys,
+      undefined,
+    );
+    console.log(unsealedEnvelope.urString());
+
+    return {
+      verifyingKey: bytesToHex(verifyingKeyBytes),
+      keyPackagePath,
+      publicKeyPackagePath,
+    };
+  }
+
+  const responseEnvelope = sealed.toEnvelope(
+    undefined, // No expiration for responses
+    signerPrivateKeys,
+    coordinatorDoc,
+  );
+
+  // Post the response
+  await putWithIndicator(
+    client,
+    responseArid,
+    responseEnvelope,
+    "Finalize Response",
+    options.verbose ?? false,
+  );
+
+  // Update registry: contributions and verifying key
+  const updatedGroupRecord = registry.group(groupId);
+  if (updatedGroupRecord !== undefined) {
+    const contributions = updatedGroupRecord.contributions();
+    contributions.keyPackage = keyPackagePath;
+    updatedGroupRecord.setContributions(contributions);
+    updatedGroupRecord.clearListeningAtArid();
+
+    // Set verifying key if the method exists
+    const recordWithVerifyingKey = updatedGroupRecord as {
+      setVerifyingKey?: (key: unknown) => void;
+    };
+    if (typeof recordWithVerifyingKey.setVerifyingKey === "function") {
+      recordWithVerifyingKey.setVerifyingKey(groupVerifyingKey);
+    }
+
     registry.save(registryPath);
   }
 
-  // Create hex string for verifying key
+  // Get verifying key for output
   const verifyingKeyHex = bytesToHex(verifyingKeyBytes);
 
-  if (options.verbose === true) {
-    console.log(`Saved key package to: ${keyPackagePath}`);
-    console.log(`Verifying key: ${verifyingKeyHex}`);
+  if (isVerbose() || options.verbose === true) {
+    console.error(`Posted finalize response to ${responseArid.urString()}`);
+    // Cast to access urString method
+    const verifyingKeyWithUrString = groupVerifyingKey as { urString?: () => string };
+    if (typeof verifyingKeyWithUrString.urString === "function") {
+      console.error(verifyingKeyWithUrString.urString());
+    }
+  } else {
+    // Cast to access urString method
+    const verifyingKeyWithUrString = groupVerifyingKey as { urString?: () => string };
+    if (typeof verifyingKeyWithUrString.urString === "function") {
+      console.log(verifyingKeyWithUrString.urString());
+    }
   }
 
   return {
     verifyingKey: verifyingKeyHex,
     keyPackagePath,
+    publicKeyPackagePath,
   };
 }

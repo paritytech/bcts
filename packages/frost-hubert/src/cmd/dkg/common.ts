@@ -86,10 +86,10 @@ export function resolveSender(registry: Registry): XIDDocument {
 export function resolveParticipants(
   registry: Registry,
   inputs: string[],
-): Array<[XID, ParticipantRecord]> {
+): [XID, ParticipantRecord][] {
   const seenArgs = new Set<string>();
   const seenXids = new Set<string>();
-  const resolved: Array<[XID, ParticipantRecord]> = [];
+  const resolved: [XID, ParticipantRecord][] = [];
 
   for (const raw of inputs) {
     const trimmed = raw.trim();
@@ -127,9 +127,7 @@ export function resolveParticipants(
 
     const xidUr = xid.urString();
     if (seenXids.has(xidUr)) {
-      throw new Error(
-        `Duplicate participant specified; multiple inputs resolve to ${xidUr}`,
-      );
+      throw new Error(`Duplicate participant specified; multiple inputs resolve to ${xidUr}`);
     }
     seenXids.add(xidUr);
 
@@ -144,15 +142,12 @@ export function resolveParticipants(
  *
  * Port of `resolve_sender_name()` from cmd/dkg/common.rs lines 96-116.
  */
-export function resolveSenderName(
-  registry: Registry,
-  sender: XIDDocument,
-): string | undefined {
+export function resolveSenderName(registry: Registry, sender: XIDDocument): string | undefined {
   const owner = registry.owner();
   const senderXid = sender.xid();
 
   // Check if sender is the owner
-  if (owner && owner.xidDocument().xid().urString() === senderXid.urString()) {
+  if (owner?.xidDocument().xid().urString() === senderXid.urString()) {
     const name = owner.petName() ?? senderXid.urString();
     return formatNameWithOwnerMarker(name, true);
   }

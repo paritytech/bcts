@@ -107,9 +107,7 @@ export const DEFAULT_TIMEOUT_SECONDS = 600;
 /**
  * Create a config with the specified timeout.
  */
-export function parallelFetchConfigWithTimeout(
-  timeoutSeconds?: number,
-): ParallelFetchConfig {
+export function parallelFetchConfigWithTimeout(timeoutSeconds?: number): ParallelFetchConfig {
   return { timeoutSeconds };
 }
 
@@ -151,10 +149,7 @@ export class CollectionResult<T> {
    */
   total(): number {
     return (
-      this.successes.length +
-      this.rejections.length +
-      this.errors.length +
-      this.timeouts.length
+      this.successes.length + this.rejections.length + this.errors.length + this.timeouts.length
     );
   }
 
@@ -164,11 +159,7 @@ export class CollectionResult<T> {
    * Port of `CollectionResult::all_succeeded()` from cmd/parallel.rs.
    */
   allSucceeded(): boolean {
-    return (
-      this.rejections.length === 0 &&
-      this.errors.length === 0 &&
-      this.timeouts.length === 0
-    );
+    return this.rejections.length === 0 && this.errors.length === 0 && this.timeouts.length === 0;
   }
 }
 
@@ -257,7 +248,7 @@ export async function parallelFetch<T>(
           logProgress(Direction.Get, name, "error", parsed.rejected);
         }
       } else {
-        result.successes.push([xid, parsed as T]);
+        result.successes.push([xid, parsed]);
         if (config.verbose === true) {
           logProgress(Direction.Get, name, "success");
         }

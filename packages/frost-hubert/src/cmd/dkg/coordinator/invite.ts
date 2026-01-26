@@ -9,7 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { ARID } from "@bcts/components";
+import { ARID, type XID } from "@bcts/components";
 
 import { DkgInvite } from "../../../dkg/index.js";
 import {
@@ -21,14 +21,14 @@ import {
 } from "../../../registry/index.js";
 import { putWithIndicator } from "../../busy.js";
 import { type StorageClient } from "../../storage.js";
-import { dkgStateDir, resolveSender } from "../common.js";
+import { dkgStateDir, resolveParticipants, resolveSender } from "../common.js";
 
 /**
  * Options for the DKG invite command.
  */
 export interface DkgInviteOptions {
   registryPath?: string;
-  minSigners: number;
+  minSigners?: number;
   charter: string;
   validDays: number;
   participantNames: string[];
@@ -45,6 +45,81 @@ export interface DkgInviteResult {
 }
 
 /**
+ * Internal data structure for building an invite.
+ *
+ * Port of `InviteData` struct from cmd/dkg/coordinator/invite.rs lines 122-126.
+ */
+interface InviteData {
+  invite: DkgInvite;
+  participantXids: XID[];
+  pendingRequests: PendingRequests;
+}
+
+/**
+ * Build the DKG invite with validation.
+ *
+ * Port of `build_invite()` from cmd/dkg/coordinator/invite.rs lines 128-181.
+ */
+function buildInvite(
+  registry: Registry,
+  minSignersArg: number | undefined,
+  charter: string,
+  participantNames: string[],
+  validDays: number,
+): InviteData {
+  // Resolve participants using the common utility
+  const resolved = resolveParticipants(registry, participantNames);
+  const participantDocs: string[] = resolved.map(([, record]) => record.xidDocumentUr());
+  const participantXids: XID[] = resolved.map(([xid]) => xid);
+
+  // These are the ARIDs where participants will post their invite responses
+  const collectFromArids: ARID[] = participantDocs.map(() => ARID.new());
+
+  // Build pending_requests: coordinator will collect invite responses from these ARIDs
+  const pendingRequests = new PendingRequests();
+  for (let i = 0; i < participantXids.length; i++) {
+    pendingRequests.addCollectOnly(participantXids[i], collectFromArids[i]);
+  }
+
+  // Validate participant count
+  const participantCount = participantDocs.length;
+  if (participantCount < 2) {
+    throw new Error("At least two participants are required for a DKG invite");
+  }
+
+  // Validate and default minSigners
+  const minSigners = minSignersArg ?? participantCount;
+  if (minSigners < 2) {
+    throw new Error("--min-signers must be at least 2");
+  }
+  if (minSigners > participantCount) {
+    throw new Error("--min-signers cannot exceed participant count");
+  }
+
+  // Get sender (registry owner)
+  const sender = resolveSender(registry);
+
+  // Calculate dates
+  const now = new Date();
+  const validUntil = new Date(Date.now() + validDays * 24 * 60 * 60 * 1000);
+
+  // Create the invite
+  const invite = DkgInvite.create(
+    ARID.new(), // requestId
+    sender,
+    ARID.new(), // groupId
+    now,
+    validUntil,
+    minSigners,
+    charter,
+    participantDocs,
+    collectFromArids,
+  );
+
+  return { invite, participantXids, pendingRequests };
+}
+
+/**
  * Execute the DKG invite command.
  *
  * Port of `invite()` from cmd/dkg/coordinator/invite.rs.
@@ -57,56 +132,18 @@ export async function invite(
   const registryPath = resolveRegistryPath(options.registryPath, cwd);
   const registry = Registry.load(registryPath);
 
-  const sender = resolveSender(registry);
-
-  // Resolve participants from registry
-  const participants: string[] = [];
-  for (const name of options.participantNames) {
-    let found = false;
-    for (const record of registry.participants().values()) {
-      if (record.petName() === name) {
-        participants.push(record.xidDocumentUr());
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      throw new Error(`Participant '${name}' not found in registry`);
-    }
-  }
-
-  if (participants.length < options.minSigners) {
-    throw new Error(
-      `Need at least ${options.minSigners} participants, but only ${participants.length} specified`,
-    );
-  }
-
-  // Generate ARIDs for each participant
-  const responseArids: ARID[] = [];
-  for (const _participant of participants) {
-    responseArids.push(ARID.new());
-  }
-
-  // Generate group ID and request ID
-  const groupId = ARID.new();
-  const requestId = ARID.new();
-
-  // Calculate dates
-  const now = new Date();
-  const validUntil = new Date(Date.now() + options.validDays * 24 * 60 * 60 * 1000);
-
-  // Create the invite
-  const dkgInvite = DkgInvite.create(
-    requestId,
-    sender,
-    groupId,
-    now,
-    validUntil,
+  // Build the invite with validation
+  const inviteData = buildInvite(
+    registry,
     options.minSigners,
     options.charter,
-    participants,
-    responseArids,
+    options.participantNames,
+    options.validDays,
   );
+
+  const { invite: dkgInvite, participantXids, pendingRequests } = inviteData;
+  const groupId = dkgInvite.groupId();
+  const requestId = dkgInvite.requestId();
 
   // Create sealed envelope
   const envelope = dkgInvite.toEnvelope();
@@ -122,24 +159,26 @@ export async function invite(
   );
 
   // Save group record to registry
-  const coordinator = new GroupParticipant(sender.xid());
-  const groupParticipants = dkgInvite.participants().map((p) => new GroupParticipant(p.xid()));
+  const owner = registry.owner();
+  if (!owner) {
+    throw new Error("Registry owner is required to issue invites");
+  }
+
+  const coordinator = new GroupParticipant(owner.xid());
+  const groupParticipants = participantXids.map((xid) => new GroupParticipant(xid));
 
   const groupRecord = new GroupRecord(
     options.charter,
-    options.minSigners,
+    dkgInvite.minSigners(),
     coordinator,
     groupParticipants,
   );
 
   // Track pending requests
-  const pendingRequests = new PendingRequests();
-  for (const participant of dkgInvite.participants()) {
-    pendingRequests.addCollectOnly(participant.xid(), participant.responseArid());
-  }
   groupRecord.setPendingRequests(pendingRequests);
 
-  registry.addGroup(groupId, groupRecord);
+  // Use recordGroup() for proper merge behavior
+  registry.recordGroup(groupId, groupRecord);
   registry.save(registryPath);
 
   // Save invite state
@@ -156,7 +195,7 @@ export async function invite(
     group: groupId.urString(),
     request_id: requestId.urString(),
     start_arid: startArid.urString(),
-    valid_until: validUntil.toISOString(),
+    valid_until: dkgInvite.validUntil().toISOString(),
     participants: dkgInvite.participants().map((p) => ({
       xid: p.xid().urString(),
       response_arid: p.responseArid().urString(),
