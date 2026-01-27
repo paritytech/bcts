@@ -21,6 +21,7 @@ This repository includes 19 packages covering deterministic CBOR encoding (dCBOR
 - [BC Developer Docs](https://developer.blockchaincommons.com/) - BC's developer documentation
 - [JSON vs CBOR](https://hackmd.io/@leonardocustodio/json-vs-cbor) - Comparison of JSON and CBOR formats
 - [Deterministic Data: Intro to dCBOR](https://hackmd.io/@leonardocustodio/deterministic-data-intro-to-dcbor) - Introduction to deterministic CBOR
+- [dCBOR Deep Dive](https://hackmd.io/@leonardocustodio/deep-dive-dcbor) - Why "almost" deterministic isn't enough
 
 ## 🎮 Applications
 
@@ -80,7 +81,7 @@ bun playground
 
 ## 👥 Credits
 
-This TypeScript implementation is a direct port from the work of [@ChristopherA](https://github.com/ChristopherA) and [@WolfMcNally](https://github.com/wolfmcnally).
+This TypeScript implementation is a direct port from the work of [@ChristopherA](https://github.com/ChristopherA), [@WolfMcNally](https://github.com/wolfmcnally) and [@shannona](https://github.com/shannona).
 
 Consider visiting [Blockchain Commons](https://www.blockchaincommons.com/) to learn more about the organization and their mission.
 
