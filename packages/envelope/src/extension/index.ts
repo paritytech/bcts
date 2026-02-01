@@ -26,7 +26,7 @@ export {
   SignatureMetadata,
   type Signer,
   type Verifier,
-  VERIFIED_BY,
+  type SigningOptions,
 } from "./signature";
 export { SIGNED, NOTE } from "@bcts/known-values";
 

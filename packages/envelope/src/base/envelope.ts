@@ -29,6 +29,7 @@ import type {
   Verifier,
   Signature,
   SignatureMetadata,
+  SigningOptions,
 } from "../extension";
 import type { UR } from "@bcts/uniform-resources";
 import type { TreeFormatOptions } from "../format/tree";
@@ -1062,37 +1063,45 @@ export class Envelope implements DigestProvider {
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
   declare addSaltInRange: (min: number, max: number) => Envelope;
 
-  // From signature.ts
+  // From signature.ts — matches bc-envelope-rust/src/extension/signature/signature_impl.rs
   declare addSignature: (signer: Signer) => Envelope;
-  declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare addSignatureOpt: (
     signer: Signer,
-    options?: unknown,
+    options?: SigningOptions,
     metadata?: SignatureMetadata,
   ) => Envelope;
+  declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare addSignatures: (signers: Signer[]) => Envelope;
+  declare addSignaturesOpt: (
+    signersWithOptions: {
+      signer: Signer;
+      options?: SigningOptions;
+      metadata?: SignatureMetadata;
+    }[],
+  ) => Envelope;
   declare addSignaturesWithMetadata: (
     signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
   ) => Envelope;
+  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
+  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
+  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
   declare hasSignatureFrom: (verifier: Verifier) => boolean;
-  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
-  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold: number) => boolean;
   declare hasSignatureFromReturningMetadata: (verifier: Verifier) => Envelope | undefined;
   declare verifySignatureFrom: (verifier: Verifier) => Envelope;
+  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
+  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => boolean;
   declare verifySignaturesFrom: (verifiers: Verifier[]) => Envelope;
   declare verifySignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => Envelope;
-  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare signatures: () => Envelope[];
   declare sign: (signer: Signer) => Envelope;
+  declare signOpt: (signer: Signer, options?: SigningOptions) => Envelope;
   declare signWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare verify: (verifier: Verifier) => Envelope;
   declare verifyReturningMetadata: (verifier: Verifier) => {
     envelope: Envelope;
-    metadata?: SignatureMetadata;
+    metadata: Envelope;
   };
-  declare signatures: () => Envelope[];
-  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
-  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
-  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
 
   // From types.ts
   declare addType: (object: EnvelopeEncodableValue) => Envelope;
