@@ -65,6 +65,14 @@ export type { HexFormatOpts } from "./dump";
 export { EdgeType } from "./walk";
 export type { WalkElement, EdgeTypeVariant, Visitor } from "./walk";
 
+// BigNum support
+export {
+  biguintToCbor,
+  bigintToCbor,
+  cborToBiguint,
+  cborToBigint,
+} from "./bignum";
+
 // Error handling
 export type { Error, Result } from "./error";
 export { Ok, Err, errorMsg, errorToString, CborError } from "./error";
