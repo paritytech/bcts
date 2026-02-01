@@ -199,7 +199,7 @@ describe("Crypto Tests", () => {
       const envelope = helloEnvelope().encryptSubject(key).addSignature(alicePriv);
 
       const expectedFormat = `ENCRYPTED [
-    "signed": h'`;
+    'signed': h'`;
       expect(envelope.format().startsWith(expectedFormat.split("h'")[0])).toBe(true);
 
       // Alice -> Cloud -> Bob

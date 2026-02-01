@@ -674,9 +674,8 @@ describe("Edge Extension", () => {
       expect(formatted).toContain("'isA': \"foaf:Person\"");
       expect(formatted).toContain("'source': \"Alice\"");
       expect(formatted).toContain("'target': \"Alice\"");
-      // TS signature extension uses string predicates ("signed") not KnownValue ('signed')
-      // and renders the raw CBOR diagnostic instead of "Signature"
-      expect(formatted).toContain('"signed"');
+      // Signed predicate renders with single quotes (KnownValue)
+      expect(formatted).toContain("'signed'");
     });
 
     it("test_signed_edge_on_document_format", () => {
@@ -691,8 +690,7 @@ describe("Edge Extension", () => {
 
       const formatted = doc.format();
       expect(formatted).toContain("'edge': {");
-      // TS signature extension uses string predicates ("signed") not KnownValue ('signed')
-      expect(formatted).toContain('"signed"');
+      expect(formatted).toContain("'signed'");
       expect(formatted).toContain("'isA': \"foaf:Person\"");
     });
   });
@@ -716,8 +714,8 @@ describe("Edge Extension", () => {
 
       const formatted = doc.format();
       expect(formatted).toContain("'edge'");
-      // TS attachment extension uses string predicates ("attachment") not KnownValue ('attachment')
-      expect(formatted).toContain('"attachment"');
+      // Attachment predicate renders with single quotes (KnownValue)
+      expect(formatted).toContain("'attachment'");
     });
 
     it("test_edge_ur_roundtrip", () => {

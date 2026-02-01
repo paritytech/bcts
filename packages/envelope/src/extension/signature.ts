@@ -14,6 +14,7 @@
 import { Envelope } from "../base/envelope";
 import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
+import { SIGNED as SIGNED_KV, NOTE as NOTE_KV } from "@bcts/known-values";
 
 /**
  * Re-export signing types from @bcts/components for type compatibility.
@@ -40,7 +41,7 @@ import { Signature, type Signer, type Verifier } from "@bcts/components";
  * Known value for the 'signed' predicate.
  * This is the standard predicate used for signature assertions.
  */
-export const SIGNED = "signed";
+export const SIGNED = SIGNED_KV;
 
 /**
  * Known value for the 'verifiedBy' predicate.
@@ -52,13 +53,13 @@ export const VERIFIED_BY = "verifiedBy";
  * Known value for the 'note' predicate.
  * Used for adding notes/comments to signatures.
  */
-export const NOTE = "note";
+export const NOTE = NOTE_KV;
 
 /**
  * Metadata that can be attached to a signature.
  */
 export class SignatureMetadata {
-  private readonly _assertions: [string, unknown][] = [];
+  private readonly _assertions: [EnvelopeEncodableValue, unknown][] = [];
 
   /**
    * Creates a new SignatureMetadata instance.
@@ -77,7 +78,7 @@ export class SignatureMetadata {
   /**
    * Adds an assertion to the metadata.
    */
-  withAssertion(predicate: string, object: unknown): SignatureMetadata {
+  withAssertion(predicate: EnvelopeEncodableValue, object: unknown): SignatureMetadata {
     const metadata = new SignatureMetadata();
     metadata._assertions.push(...this._assertions);
     metadata._assertions.push([predicate, object]);
@@ -87,7 +88,7 @@ export class SignatureMetadata {
   /**
    * Returns all assertions in this metadata.
    */
-  assertions(): readonly [string, unknown][] {
+  assertions(): readonly [EnvelopeEncodableValue, unknown][] {
     return this._assertions;
   }
 }
@@ -259,19 +260,24 @@ Envelope.prototype.verifyReturningMetadata = function (
       if (verifier.verify(signature, digest.data())) {
         // Extract metadata from the signature envelope
         const metadata = new (SignatureMetadata as unknown as new () => SignatureMetadata)();
+        const verifiedByDigest = Envelope.new(VERIFIED_BY).digest();
         for (const metaAssertion of signatureEnvelope.assertions()) {
           try {
             const pred = metaAssertion.tryPredicate();
             const obj = metaAssertion.tryObject();
-            const predValue = pred.tryLeaf() as unknown as string;
-            const objValue = obj.tryLeaf();
-            if (predValue !== VERIFIED_BY) {
-              (
-                metadata as unknown as {
-                  withAssertion: (p: string, o: unknown) => SignatureMetadata;
-                }
-              ).withAssertion(predValue, objValue);
+            // Skip verifiedBy assertions using digest comparison
+            if (pred.digest().equals(verifiedByDigest)) {
+              continue;
             }
+            const kv = pred.asKnownValue();
+            const predText = pred.asText();
+            const predValue: EnvelopeEncodableValue = kv ?? predText ?? pred;
+            const objValue = obj.tryLeaf();
+            (
+              metadata as unknown as {
+                withAssertion: (p: EnvelopeEncodableValue, o: unknown) => SignatureMetadata;
+              }
+            ).withAssertion(predValue, objValue);
           } catch {
             // Skip non-leaf assertions
           }

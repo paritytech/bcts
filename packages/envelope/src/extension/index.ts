@@ -26,13 +26,13 @@ export {
   SignatureMetadata,
   type Signer,
   type Verifier,
-  SIGNED,
   VERIFIED_BY,
-  NOTE,
 } from "./signature";
+export { SIGNED, NOTE } from "@bcts/known-values";
 
 // Attachment support
-export { Attachments, ATTACHMENT, VENDOR, CONFORMS_TO } from "./attachment";
+export { Attachments } from "./attachment";
+export { ATTACHMENT, VENDOR, CONFORMS_TO } from "@bcts/known-values";
 
 // Edge support (BCR-2026-003)
 export { Edges, type Edgeable } from "./edge";

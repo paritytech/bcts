@@ -17,21 +17,26 @@ import { Envelope } from "../base/envelope";
 import { type Digest } from "../base/digest";
 import { EnvelopeError } from "../base/error";
 import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
+import {
+  ATTACHMENT as ATTACHMENT_KV,
+  VENDOR as VENDOR_KV,
+  CONFORMS_TO as CONFORMS_TO_KV,
+} from "@bcts/known-values";
 
 /**
  * Known value for the 'attachment' predicate.
  */
-export const ATTACHMENT = "attachment";
+export const ATTACHMENT = ATTACHMENT_KV;
 
 /**
  * Known value for the 'vendor' predicate.
  */
-export const VENDOR = "vendor";
+export const VENDOR = VENDOR_KV;
 
 /**
  * Known value for the 'conformsTo' predicate.
  */
-export const CONFORMS_TO = "conformsTo";
+export const CONFORMS_TO = CONFORMS_TO_KV;
 
 /**
  * A container for vendor-specific metadata attachments.
@@ -294,10 +299,10 @@ if (Envelope?.prototype) {
       throw EnvelopeError.invalidAttachment("Envelope is not an assertion");
     }
 
-    // Verify predicate is 'attachment'
+    // Verify predicate is 'attachment' (using digest comparison for KnownValue predicates)
     const predicate = c.assertion.predicate();
-    const predicateText = predicate.asText();
-    if (predicateText !== ATTACHMENT) {
+    const expectedPredicate = Envelope.new(ATTACHMENT);
+    if (!predicate.digest().equals(expectedPredicate.digest())) {
       throw EnvelopeError.invalidAttachment("Assertion predicate is not 'attachment'");
     }
 

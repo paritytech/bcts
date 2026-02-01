@@ -81,9 +81,9 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
       // Verify the envelope format shows a signature
       // In Rust: "Hello." [ 'signed': Signature(Ed25519) ]
       // In TypeScript (ECDSA): "Hello." [ 'signed': ... ]
-      const format = envelope.treeFormat();
+      const format = envelope.format();
       expect(format).toContain("Hello.");
-      expect(format).toContain("signed");
+      expect(format).toContain("'signed'");
 
       // Alice -> cloud -> Bob
 
