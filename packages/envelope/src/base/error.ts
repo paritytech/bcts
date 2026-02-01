@@ -26,6 +26,16 @@ export enum ErrorCode {
   NONEXISTENT_ATTACHMENT = "NONEXISTENT_ATTACHMENT",
   AMBIGUOUS_ATTACHMENT = "AMBIGUOUS_ATTACHMENT",
 
+  // Edges Extension
+  EDGE_MISSING_IS_A = "EDGE_MISSING_IS_A",
+  EDGE_MISSING_SOURCE = "EDGE_MISSING_SOURCE",
+  EDGE_MISSING_TARGET = "EDGE_MISSING_TARGET",
+  EDGE_DUPLICATE_IS_A = "EDGE_DUPLICATE_IS_A",
+  EDGE_DUPLICATE_SOURCE = "EDGE_DUPLICATE_SOURCE",
+  EDGE_DUPLICATE_TARGET = "EDGE_DUPLICATE_TARGET",
+  NONEXISTENT_EDGE = "NONEXISTENT_EDGE",
+  AMBIGUOUS_EDGE = "AMBIGUOUS_EDGE",
+
   // Compression Extension
   ALREADY_COMPRESSED = "ALREADY_COMPRESSED",
   NOT_COMPRESSED = "NOT_COMPRESSED",
@@ -219,6 +229,54 @@ export class EnvelopeError extends Error {
   /// it ambiguous which attachment should be returned.
   static ambiguousAttachment(): EnvelopeError {
     return new EnvelopeError(ErrorCode.AMBIGUOUS_ATTACHMENT, "ambiguous attachment");
+  }
+
+  //
+  // Edges Extension
+  /// Returned when an edge is missing the required `'isA'` assertion.
+  static edgeMissingIsA(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.EDGE_MISSING_IS_A, "edge missing 'isA' assertion");
+  }
+
+  /// Returned when an edge is missing the required `'source'` assertion.
+  static edgeMissingSource(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.EDGE_MISSING_SOURCE, "edge missing 'source' assertion");
+  }
+
+  /// Returned when an edge is missing the required `'target'` assertion.
+  static edgeMissingTarget(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.EDGE_MISSING_TARGET, "edge missing 'target' assertion");
+  }
+
+  /// Returned when an edge has duplicate `'isA'` assertions.
+  static edgeDuplicateIsA(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.EDGE_DUPLICATE_IS_A, "edge has duplicate 'isA' assertions");
+  }
+
+  /// Returned when an edge has duplicate `'source'` assertions.
+  static edgeDuplicateSource(): EnvelopeError {
+    return new EnvelopeError(
+      ErrorCode.EDGE_DUPLICATE_SOURCE,
+      "edge has duplicate 'source' assertions",
+    );
+  }
+
+  /// Returned when an edge has duplicate `'target'` assertions.
+  static edgeDuplicateTarget(): EnvelopeError {
+    return new EnvelopeError(
+      ErrorCode.EDGE_DUPLICATE_TARGET,
+      "edge has duplicate 'target' assertions",
+    );
+  }
+
+  /// Returned when an edge is requested but does not exist.
+  static nonexistentEdge(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.NONEXISTENT_EDGE, "nonexistent edge");
+  }
+
+  /// Returned when multiple edges match a single query.
+  static ambiguousEdge(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.AMBIGUOUS_EDGE, "ambiguous edge");
   }
 
   //

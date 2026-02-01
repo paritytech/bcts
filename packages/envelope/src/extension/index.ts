@@ -34,6 +34,10 @@ export {
 // Attachment support
 export { Attachments, ATTACHMENT, VENDOR, CONFORMS_TO } from "./attachment";
 
+// Edge support (BCR-2026-003)
+export { Edges, type Edgeable } from "./edge";
+export { EDGE, SOURCE, TARGET } from "@bcts/known-values";
+
 // Recipient support (public-key encryption)
 // Now uses Encrypter/Decrypter interfaces for PQ support (X25519 and MLKEM)
 export {

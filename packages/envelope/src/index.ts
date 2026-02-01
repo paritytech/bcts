@@ -31,6 +31,9 @@ registerSskrExtension();
 import "./format";
 export * from "./format";
 
+// Import edge module for side effects (registers prototype extensions)
+import "./extension/edge";
+
 // Import seal module for side effects (registers prototype extensions)
 import "./seal";
 export { registerSealExtension } from "./seal";

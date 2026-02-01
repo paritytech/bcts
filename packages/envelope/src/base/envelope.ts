@@ -877,6 +877,7 @@ export class Envelope implements DigestProvider {
   ) => Set<Digest>;
   declare walkUnelide: (envelopes: Envelope[]) => Envelope;
   declare walkReplace: (target: Set<Digest>, replacement: Envelope) => Envelope;
+  declare isEquivalentTo: (other: Envelope) => boolean;
   declare isIdenticalTo: (other: Envelope) => boolean;
 
   // From leaf.ts
@@ -1003,6 +1004,21 @@ export class Envelope implements DigestProvider {
   declare attachmentsWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope[];
   declare attachmentWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope;
   declare validateAttachment: () => void;
+
+  // From edge.ts (BCR-2026-003)
+  declare addEdgeEnvelope: (edge: Envelope) => Envelope;
+  declare edges: () => Envelope[];
+  declare validateEdge: () => void;
+  declare edgeIsA: () => Envelope;
+  declare edgeSource: () => Envelope;
+  declare edgeTarget: () => Envelope;
+  declare edgeSubject: () => Envelope;
+  declare edgesMatching: (
+    isA?: Envelope,
+    source?: Envelope,
+    target?: Envelope,
+    subject?: Envelope,
+  ) => Envelope[];
 
   // From compress.ts
   declare compress: () => Envelope;

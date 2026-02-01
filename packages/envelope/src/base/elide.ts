@@ -391,6 +391,16 @@ Envelope.prototype.walkReplace = function (
   return this;
 };
 
+/// Implementation of isEquivalentTo
+///
+/// Two envelopes are equivalent if they have the same digest (semantic equivalence).
+/// This is a weaker comparison than `isIdenticalTo` which also checks the case type.
+///
+/// Equivalent to Rust's `is_equivalent_to()` in `src/base/digest.rs`.
+Envelope.prototype.isEquivalentTo = function (this: Envelope, other: Envelope): boolean {
+  return this.digest().equals(other.digest());
+};
+
 /// Implementation of isIdenticalTo
 Envelope.prototype.isIdenticalTo = function (this: Envelope, other: Envelope): boolean {
   // Two envelopes are identical if they have the same digest
