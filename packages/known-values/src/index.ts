@@ -1,6 +1,25 @@
 export { KnownValue, TAG_KNOWN_VALUE, KNOWN_VALUE_TAG, type KnownValueInput } from "./known-value";
 export { KnownValuesStore } from "./known-values-store";
 export {
+  // Directory loading types
+  type RegistryEntry,
+  type OntologyInfo,
+  type GeneratedInfo,
+  type RegistryFile,
+  LoadError,
+  ConfigError,
+  LoadResult,
+  DirectoryConfig,
+  // Directory loading functions
+  setDirectoryConfig,
+  addSearchPaths,
+  loadFromDirectory,
+  loadFromConfig,
+  getAndLockConfig,
+  parseRegistryJson,
+  _resetConfigLock,
+} from "./directory-loader";
+export {
   // =============================================================================
   // Raw Value Constants (_RAW)
   // =============================================================================
@@ -114,6 +133,7 @@ export {
   TARGET_RAW,
   PARENT_RAW,
   CHILD_RAW,
+  SELF_RAW,
   // =============================================================================
   // KnownValue Constants
   // =============================================================================
@@ -227,6 +247,7 @@ export {
   TARGET,
   PARENT,
   CHILD,
+  SELF,
   // Registry
   KNOWN_VALUES,
   LazyKnownValues,

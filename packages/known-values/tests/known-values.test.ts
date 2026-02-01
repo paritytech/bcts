@@ -10,6 +10,8 @@ import {
   ID,
   TAG_KNOWN_VALUE,
   KNOWN_VALUE_TAG,
+  SELF,
+  SELF_RAW,
 } from "../src/index";
 import { cbor, MajorType, bytesToHex, hexToBytes, isTagged } from "@bcts/dcbor";
 
@@ -453,5 +455,80 @@ describe("Rust Parity: DigestProvider", () => {
 
     // The digest validates against the CBOR data
     expect(digest.validate(cborData)).toBe(true);
+  });
+});
+
+// =============================================================================
+// Step 7: _insert bug fix tests
+// =============================================================================
+
+describe("Rust Parity: _insert stale name removal", () => {
+  test("should remove old name when overriding codepoint", () => {
+    const store = new KnownValuesStore([IS_A]);
+
+    // Override IS_A (codepoint 1) with a custom name
+    store.insert(new KnownValue(1, "overriddenIsA"));
+
+    // The original "isA" name should be gone
+    expect(store.knownValueNamed("isA")).toBeUndefined();
+
+    // The new name should work
+    const overridden = store.knownValueNamed("overriddenIsA");
+    expect(overridden).toBeDefined();
+    expect(overridden!.value()).toBe(1);
+  });
+
+  test("should handle multiple overrides on same codepoint", () => {
+    const store = new KnownValuesStore([IS_A]);
+
+    // First override
+    store.insert(new KnownValue(1, "firstOverride"));
+    expect(store.knownValueNamed("isA")).toBeUndefined();
+    expect(store.knownValueNamed("firstOverride")).toBeDefined();
+
+    // Second override
+    store.insert(new KnownValue(1, "secondOverride"));
+    expect(store.knownValueNamed("firstOverride")).toBeUndefined();
+    expect(store.knownValueNamed("secondOverride")).toBeDefined();
+    expect(store.knownValueNamed("secondOverride")!.value()).toBe(1);
+  });
+
+  test("should handle override with unnamed value", () => {
+    const store = new KnownValuesStore([IS_A]);
+
+    // Override with an unnamed value (no assigned name)
+    store.insert(new KnownValue(1));
+
+    // The original "isA" name should be gone
+    expect(store.knownValueNamed("isA")).toBeUndefined();
+
+    // Should still be retrievable by value
+    const found = store.knownValueForValue(1);
+    expect(found).toBeDefined();
+    expect(found!.value()).toBe(1);
+    expect(found!.assignedName()).toBeUndefined();
+  });
+});
+
+// =============================================================================
+// Step 8: SELF constant tests
+// =============================================================================
+
+describe("Rust Parity: SELF constant (706)", () => {
+  test("SELF constant should exist with correct value and name", () => {
+    expect(SELF.value()).toBe(706);
+    expect(SELF.name()).toBe("Self");
+    expect(SELF_RAW).toBe(706n);
+  });
+
+  test("SELF_RAW should match SELF.valueBigInt()", () => {
+    expect(SELF.valueBigInt()).toBe(SELF_RAW);
+  });
+
+  test("SELF should NOT be in default KNOWN_VALUES store", () => {
+    // Matching Rust: SELF is exported as a constant but NOT in the default
+    // KnownValuesStore initialization list
+    const store = KNOWN_VALUES.get();
+    expect(store.knownValueNamed("Self")).toBeUndefined();
   });
 });

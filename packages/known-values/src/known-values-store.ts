@@ -1,4 +1,10 @@
 import { KnownValue, type KnownValueInput } from "./known-value";
+import {
+    loadFromDirectory as directoryLoadFromDirectory,
+    loadFromConfig as directoryLoadFromConfig,
+    type DirectoryConfig,
+    type LoadResult,
+} from "./directory-loader";
 
 /**
  * A store that maps between Known Values and their assigned names.
@@ -318,10 +324,68 @@ export class KnownValuesStore {
    * Internal helper method to insert a KnownValue into the store's maps.
    */
   private _insert(knownValue: KnownValue): void {
+    // If there's an existing value with the same codepoint, remove its name
+    // from the name index to avoid stale entries
+    const existing = this.knownValuesByRawValue.get(knownValue.valueBigInt());
+    if (existing !== undefined) {
+      const oldName = existing.assignedName();
+      if (oldName !== undefined && oldName !== "") {
+        this.knownValuesByAssignedName.delete(oldName);
+      }
+    }
+
     this.knownValuesByRawValue.set(knownValue.valueBigInt(), knownValue);
     const assignedName = knownValue.assignedName();
     if (assignedName !== undefined && assignedName !== "") {
       this.knownValuesByAssignedName.set(assignedName, knownValue);
     }
+  }
+
+  /**
+   * Loads and inserts known values from a directory containing JSON registry
+   * files.
+   *
+   * This method scans the specified directory for `.json` files and parses
+   * them as known value registries. Values from JSON files override
+   * existing values in the store when codepoints match.
+   *
+   * Returns the number of values loaded.
+   * Returns 0 if the directory doesn't exist or the environment doesn't
+   * support file system access (e.g., browser).
+   *
+   * Equivalent to Rust's `KnownValuesStore::load_from_directory()`.
+   *
+   * @param dirPath - The directory to scan for JSON registry files.
+   * @returns The number of values loaded.
+   * @throws {LoadError} If directory traversal or JSON parsing fails.
+   */
+  loadFromDirectory(dirPath: string): number {
+    const values = directoryLoadFromDirectory(dirPath);
+    const count = values.length;
+    for (const value of values) {
+      this.insert(value);
+    }
+    return count;
+  }
+
+  /**
+   * Loads known values from multiple directories using the provided
+   * configuration.
+   *
+   * Directories are processed in order. When multiple entries have the same
+   * codepoint, values from later directories override values from earlier
+   * directories.
+   *
+   * Equivalent to Rust's `KnownValuesStore::load_from_config()`.
+   *
+   * @param config - The directory configuration specifying search paths.
+   * @returns A LoadResult containing information about the loading operation.
+   */
+  loadFromConfig(config: DirectoryConfig): LoadResult {
+    const result = directoryLoadFromConfig(config);
+    for (const value of result.values.values()) {
+      this.insert(value);
+    }
+    return result;
   }
 }
