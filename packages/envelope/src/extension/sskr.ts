@@ -32,7 +32,7 @@ export { SSKRSpec, SSKRGroupSpec, SSKRShareCbor, SSKRSecret };
 // Envelope Prototype Extensions for SSKR
 // ============================================================================
 
-declare module "../base/envelope" {
+declare module "@bcts/envelope" {
   interface Envelope {
     /// Split this envelope into SSKR shares.
     ///

@@ -29,7 +29,7 @@ import type { Encrypter, Decrypter } from "@bcts/components";
 // Envelope Prototype Extensions for Sealing
 // ============================================================================
 
-declare module "./base/envelope" {
+declare module "@bcts/envelope" {
   interface Envelope {
     /// Encrypt this envelope to a single recipient.
     ///
