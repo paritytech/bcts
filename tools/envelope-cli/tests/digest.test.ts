@@ -17,8 +17,7 @@ describe("digest command", () => {
     );
   });
 
-  // Skip: hex flag not working properly (returns UR instead of hex)
-  it.skip("test_envelope_digest_hex", () => {
+  it("test_envelope_digest_hex", () => {
     const result = digest.exec({
       ...digest.defaultArgs(),
       hex: true,

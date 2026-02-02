@@ -169,7 +169,7 @@ describe("keys command", () => {
   });
 
   describe("Ed25519 signing (implemented)", () => {
-    // Skip: sign command expects signers (plural array) but test uses signer (singular)
+    // Skip: Format output shows raw CBOR tag 40020([...]) instead of "Signature"
     it.skip("test_ed25519_sign_verify", async () => {
       // Generate random Ed25519 prvkeys
       const prvkeys = generate.prvKeys.exec({

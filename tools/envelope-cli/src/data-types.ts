@@ -35,6 +35,8 @@ export enum DataType {
   Number = "number",
   /** UTF-8 String */
   String = "string",
+  /** Unit Known Value (deliberate emptiness, no value) */
+  Unit = "unit",
   /** Uniform Resource (UR) */
   Ur = "ur",
   /** URI */
@@ -53,6 +55,11 @@ export function parseDataTypeToEnvelope(
   value: string | undefined,
   urCborTagValue?: number | bigint,
 ): Envelope {
+  // Unit is special: it takes no value and represents deliberate emptiness
+  if (dataType === DataType.Unit) {
+    return Envelope.unit();
+  }
+
   if (value === undefined || value === "") {
     throw new Error("No value provided");
   }

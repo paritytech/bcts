@@ -147,6 +147,21 @@ describe("subject type command", () => {
     expect(result).toBe("ur:envelope/tpsptpsolsadaoaxaegyemck");
   });
 
+  it("test_subject_type_unit", () => {
+    // Unit represents deliberate emptiness — no value required
+    const result = subject.type.exec({
+      subjectType: DataType.Unit,
+    });
+    // Unit is a known value that encodes as a specific CBOR value
+    expect(result).toMatch(/^ur:envelope\//);
+    // Verify it formats correctly
+    const formatted = format.exec({
+      ...format.defaultArgs(),
+      envelope: result,
+    });
+    expect(formatted.trim()).toBe("''");
+  });
+
   // Skip: dcbor error - expected TAG_ENVELOPE (200)
   it.skip("test_cbor_subject", () => {
     const cborArrayExample = "83010203";

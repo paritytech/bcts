@@ -56,7 +56,7 @@ export class DigestCommand implements Exec {
     switch (this.args.depth) {
       case Depth.Top: {
         const digest = envelope.digest();
-        digests = new Set([digest.urString()]);
+        digests = new Set([this.args.hex ? digest.hex() : digest.urString()]);
         break;
       }
       case Depth.Shallow: {
