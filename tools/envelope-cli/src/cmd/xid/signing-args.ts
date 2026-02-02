@@ -78,7 +78,7 @@ export async function signingOptions(
 
       // Use the same password that unlocks the XID document
       let password: string;
-      if (passwordArgs !== undefined) {
+      if (passwordArgs !== undefined && (passwordArgs.password !== undefined || passwordArgs.askpass)) {
         password = await readPassword(
           "Password:",
           passwordArgs.password,

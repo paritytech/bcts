@@ -1,6 +1,6 @@
-# bcts - Blockchain Commons for TypeScript
+# BCTS - Blockchain Commons for TypeScript
 
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha.17-green)](https://github.com/leonardocustodio/bcts/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0--alpha.18-green)](https://github.com/leonardocustodio/bcts/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
@@ -8,7 +8,7 @@
 
 🔷 **Community Implementation:** This is a TypeScript port of the Blockchain Commons' open specifications and implementations.
 
-> ⚠️ **Disclaimer:** This is an independent project. It has not been audited and is not ready for production use yet. APIs and interfaces are subject to change.
+> ⚠️ **Disclaimer:** This is an independent project. It has not been audited and is not ready for production use. APIs and interfaces are subject to change.
 
 ## Overview
 
@@ -99,4 +99,4 @@ Found a vulnerability? We'd really appreciate you letting us know privately at *
 
 ## 📄 License
 
-This project is licensed under the BSD-2-Clause-Patent License – see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the BSD-2-Clause-Patent License - see the [LICENSE](./LICENSE) file for details.

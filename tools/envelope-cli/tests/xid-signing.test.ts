@@ -7,6 +7,8 @@ import * as xid from "../src/cmd/xid/index.js";
 import * as format from "../src/cmd/format.js";
 import * as encrypt from "../src/cmd/encrypt.js";
 import * as subject from "../src/cmd/subject/index.js";
+import { Envelope } from "@bcts/envelope";
+import { PrivateKeys } from "@bcts/components";
 import { PrivateOptions } from "../src/cmd/xid/private-options.js";
 import { GeneratorOptions } from "../src/cmd/xid/generator-options.js";
 import { PasswordMethod } from "../src/cmd/xid/password-args.js";
@@ -44,17 +46,16 @@ async function makeSignableXidDoc(): Promise<string> {
 }
 
 /**
- * Create an encrypted envelope from a UR string.
+ * Create an encrypted envelope from a PrivateKeys UR string.
+ * Uses PrivateKeys API directly to avoid tags store registration issues.
  */
-async function encryptUr(ur: string, password: string): Promise<string> {
-  const envelopeUr = subject.type.exec({
-    subjectType: DataType.Ur,
-    subjectValue: ur,
-  });
+async function encryptPrvKeys(prvKeysUr: string, password: string): Promise<string> {
+  const privateKeys = PrivateKeys.fromURString(prvKeysUr);
+  const keyEnvelope = Envelope.newLeaf(privateKeys.taggedCbor());
   return encrypt.exec({
     ...encrypt.defaultArgs(),
     password,
-    envelope: envelopeUr,
+    envelope: keyEnvelope.urString(),
   });
 }
 
@@ -355,7 +356,7 @@ describe("xid signing command", () => {
   describe("encrypted private keys", () => {
     it("test_xid_sign_with_encrypted_private_keys", async () => {
       // Create an encrypted PrivateKeys envelope
-      const encryptedKeys = await encryptUr(CAROL_PRVKEYS, "testpass");
+      const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "testpass");
       expect(encryptedKeys).toMatch(/^ur:envelope\//);
 
       // Create a new XID document
@@ -394,7 +395,7 @@ describe("xid signing command", () => {
 
     it("test_xid_sign_with_encrypted_signing_private_key", async () => {
       // Create encrypted PrivateKeys
-      const encryptedKey = await encryptUr(CAROL_PRVKEYS, "mypass");
+      const encryptedKey = await encryptPrvKeys(CAROL_PRVKEYS, "mypass");
       expect(encryptedKey).toMatch(/^ur:envelope\//);
 
       // Create a new XID document
@@ -433,7 +434,7 @@ describe("xid signing command", () => {
 
     it("test_xid_sign_with_encrypted_key_wrong_password", async () => {
       // Create an encrypted key
-      const encryptedKeys = await encryptUr(CAROL_PRVKEYS, "correctpass");
+      const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "correctpass");
 
       const args = xid.newCmd.defaultArgs();
       args.keyArgs.keys = ALICE_PUBKEYS;
@@ -465,7 +466,7 @@ describe("xid signing command", () => {
 
     it("test_xid_sign_with_encrypted_key_no_password", async () => {
       // Create an encrypted key
-      const encryptedKeys = await encryptUr(CAROL_PRVKEYS, "testpass");
+      const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "testpass");
 
       const args = xid.newCmd.defaultArgs();
       args.keyArgs.keys = ALICE_PUBKEYS;
