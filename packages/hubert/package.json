@@ -103,7 +103,7 @@
     "@noble/curves": "^2.0.1",
     "better-sqlite3": "^12.6.2",
     "bittorrent-dht": "^11.0.7",
-    "commander": "^13.1.0",
+    "commander": "^14.0.3",
     "fastify": "^5.7.1",
     "kubo-rpc-client": "^6.0.2"
   },
