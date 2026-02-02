@@ -399,9 +399,9 @@ describe("Signing Options Tests", () => {
     });
   });
 
-  describe("SigningOptions.PrivateKeyBase", () => {
-    // Testing signing with PrivateKeyBase
-    it("should sign with provided private key", () => {
+  describe("SigningOptions.PrivateKeys", () => {
+    // Testing signing with PrivateKeys (matching Rust XIDSigningOptions::PrivateKeys)
+    it("should sign with provided private keys", () => {
       const [docKeyBase, signingKeyBase] = makeFakePrivateKeyBases(2);
 
       const xidDocument = XIDDocument.new(
@@ -409,10 +409,11 @@ describe("Signing Options Tests", () => {
         { type: "none" },
       );
 
-      // Sign with separate key
+      // Derive PrivateKeys from PrivateKeyBase, then sign
+      const signingPrivateKeys = signingKeyBase.ed25519PrivateKeys();
       const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
-        type: "privateKeyBase",
-        privateKeyBase: signingKeyBase,
+        type: "privateKeys",
+        privateKeys: signingPrivateKeys,
       });
 
       // Envelope should be defined

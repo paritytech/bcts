@@ -442,12 +442,16 @@ describe("XIDDocument", () => {
         { type: "none" },
       );
 
-      // equals() compares by XID only, not content
-      expect(xidDocument1.equals(xidDocument2)).toBe(true); // Same XID
+      // equals() compares all fields (matching Rust PartialEq)
+      // xidDocument1 has a key, xidDocument2 was created from just an XID (no keys)
+      expect(xidDocument1.equals(xidDocument2)).toBe(false); // Same XID but different keys
       expect(xidDocument1.equals(xidDocument3)).toBe(false); // Different XID
 
-      // XID comparison
+      // XID comparison directly
       expect(xidDocument1.xid().equals(xidDocument2.xid())).toBe(true);
+
+      // Clone should be equal (same fields)
+      expect(xidDocument1.equals(xidDocument1.clone())).toBe(true);
     });
   });
 

@@ -432,6 +432,39 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
   }
 
   /**
+   * Get the private key envelope, optionally decrypting it.
+   *
+   * Returns:
+   * - undefined if no private keys
+   * - The decrypted private key envelope if unencrypted
+   * - The decrypted envelope if encrypted + correct password
+   * - The encrypted envelope as-is if encrypted + no password
+   * - Throws on wrong password
+   */
+  privateKeyEnvelope(password?: string): Envelope | undefined {
+    if (this._privateKeyData === undefined) {
+      return undefined;
+    }
+    const { data } = this._privateKeyData;
+    if (data.type === "decrypted") {
+      return Envelope.new(data.privateKeys.taggedCborData());
+    }
+    // Encrypted case
+    if (password !== undefined) {
+      try {
+        const decrypted = (
+          data.envelope as unknown as { decryptSubject(p: Uint8Array): Envelope }
+        ).decryptSubject(new TextEncoder().encode(password));
+        return decrypted;
+      } catch {
+        throw XIDError.invalidPassword();
+      }
+    }
+    // No password — return encrypted envelope as-is
+    return data.envelope;
+  }
+
+  /**
    * Check equality with another Key.
    */
   equals(other: Key): boolean {

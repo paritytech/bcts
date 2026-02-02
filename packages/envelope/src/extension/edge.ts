@@ -107,6 +107,17 @@ export class Edges {
   }
 
   /**
+   * Check equality with another Edges container.
+   */
+  equals(other: Edges): boolean {
+    if (this._envelopes.size !== other._envelopes.size) return false;
+    for (const [key] of this._envelopes) {
+      if (!other._envelopes.has(key)) return false;
+    }
+    return true;
+  }
+
+  /**
    * Adds all edges as `'edge'` assertion envelopes to the given envelope.
    *
    * @param envelope - The envelope to add edges to

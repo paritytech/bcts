@@ -66,6 +66,15 @@ export class Attachments {
   }
 
   /**
+   * Adds a pre-constructed attachment envelope directly.
+   *
+   * @param envelope - The attachment envelope to add
+   */
+  addEnvelope(envelope: Envelope): void {
+    this._envelopes.set(envelope.digest().hex(), envelope);
+  }
+
+  /**
    * Retrieves an attachment by its digest.
    *
    * @param digest - The unique digest of the attachment to retrieve
@@ -99,6 +108,31 @@ export class Attachments {
    */
   isEmpty(): boolean {
     return this._envelopes.size === 0;
+  }
+
+  /**
+   * Returns the number of attachments in the container.
+   */
+  len(): number {
+    return this._envelopes.size;
+  }
+
+  /**
+   * Returns an iterator over all attachment envelopes.
+   */
+  iter(): IterableIterator<[string, Envelope]> {
+    return this._envelopes.entries();
+  }
+
+  /**
+   * Check equality with another Attachments container.
+   */
+  equals(other: Attachments): boolean {
+    if (this._envelopes.size !== other._envelopes.size) return false;
+    for (const [key] of this._envelopes) {
+      if (!other._envelopes.has(key)) return false;
+    }
+    return true;
   }
 
   /**
