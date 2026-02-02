@@ -719,9 +719,16 @@ registerAllFactories();
 import { registerVMPatternFunctions } from "./vm";
 registerVMPatternFunctions(patternPathsWithCaptures, patternMatches, patternPaths);
 
-// Register pattern match function for meta patterns
-import { registerPatternMatchFn } from "./matcher";
+// Register pattern dispatch functions for meta patterns
+import { registerPatternMatchFn, registerPatternDispatchFns } from "./matcher";
 registerPatternMatchFn(patternMatches);
+registerPatternDispatchFns({
+  pathsWithCaptures: patternPathsWithCaptures,
+  paths: patternPaths,
+  compile: patternCompile,
+  isComplex: patternIsComplex,
+  toString: patternToString,
+});
 
 // Register traverse dispatch functions to resolve circular dependencies
 import { registerTraverseDispatchFunctions } from "./meta/traverse-pattern";

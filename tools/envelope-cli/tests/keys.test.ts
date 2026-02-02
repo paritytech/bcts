@@ -91,16 +91,17 @@ describe("keys command", () => {
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });
 
-      // Verify the format
-      const expectedFormat = `"Alice" [
-    "knows": "Bob"
-    'signed': ${expectedSignatureSummary}
-]`;
+      // Verify the format contains expected assertions
+      // Note: assertion ordering depends on digests which vary with
+      // non-deterministic signatures (random aux_rand in BIP-340),
+      // so we check for each assertion line independently.
       const formatted = format.exec({
         ...format.defaultArgs(),
         envelope: signed,
       });
-      expectOutput(formatted, expectedFormat);
+      expect(formatted).toContain('"Alice"');
+      expect(formatted).toContain('"knows": "Bob"');
+      expect(formatted).toContain(`'signed': ${expectedSignatureSummary}`);
 
       // Verify the signature
       await verify.exec({

@@ -53,25 +53,25 @@ describe("Capture Tests", () => {
   describe("Simple Capture Matching", () => {
     // Note: Capture patterns require VM implementation to work with pathsWithCaptures
     // These tests verify pattern construction and are skipped for matching
-    it.skip("capture pattern matches when inner pattern matches", () => {
+    it("capture pattern matches when inner pattern matches", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", number(42));
       expect(patternMatches(capturePat, envelope)).toBe(true);
     });
 
-    it.skip("capture pattern does not match when inner pattern fails", () => {
+    it("capture pattern does not match when inner pattern fails", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", number(43));
       expect(patternMatches(capturePat, envelope)).toBe(false);
     });
 
-    it.skip("capture pattern with anyNumber matches numbers", () => {
+    it("capture pattern with anyNumber matches numbers", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", anyNumber());
       expect(patternMatches(capturePat, envelope)).toBe(true);
     });
 
-    it.skip("capture pattern with anyNumber does not match non-numbers", () => {
+    it("capture pattern with anyNumber does not match non-numbers", () => {
       const envelope = Envelope.new("hello");
       const capturePat = capture("num", anyNumber());
       expect(patternMatches(capturePat, envelope)).toBe(false);

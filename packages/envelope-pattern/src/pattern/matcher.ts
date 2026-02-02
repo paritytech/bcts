@@ -88,14 +88,23 @@ export function compileAsAtomic(
 }
 
 // ============================================================================
-// Pattern Match Registry
+// Pattern Dispatch Registry
 // ============================================================================
 
 /**
- * Registry for pattern matching function to break circular dependencies.
- * This allows meta patterns to match child patterns without importing from index.ts.
+ * Registry for pattern dispatch functions to break circular dependencies.
+ * This allows meta patterns to dispatch to child patterns without importing from index.ts.
  */
 let patternMatchFn: ((pattern: Pattern, haystack: Envelope) => boolean) | undefined;
+let patternPathsWithCapturesFn:
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
+let patternPathsFn: ((pattern: Pattern, haystack: Envelope) => Path[]) | undefined;
+let patternCompileFn:
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
+let patternIsComplexFn: ((pattern: Pattern) => boolean) | undefined;
+let patternToStringFn: ((pattern: Pattern) => string) | undefined;
 
 /**
  * Registers the pattern match function.
@@ -108,6 +117,24 @@ export function registerPatternMatchFn(
 }
 
 /**
+ * Registers all pattern dispatch functions.
+ * Called from index.ts after all patterns are defined.
+ */
+export function registerPatternDispatchFns(fns: {
+  pathsWithCaptures: (pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>];
+  paths: (pattern: Pattern, haystack: Envelope) => Path[];
+  compile: (pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void;
+  isComplex: (pattern: Pattern) => boolean;
+  toString: (pattern: Pattern) => string;
+}): void {
+  patternPathsWithCapturesFn = fns.pathsWithCaptures;
+  patternPathsFn = fns.paths;
+  patternCompileFn = fns.compile;
+  patternIsComplexFn = fns.isComplex;
+  patternToStringFn = fns.toString;
+}
+
+/**
  * Match a pattern against an envelope using the registered match function.
  * Used by meta patterns to match child patterns.
  */
@@ -116,4 +143,62 @@ export function matchPattern(pattern: Pattern, haystack: Envelope): boolean {
     throw new Error("Pattern match function not registered");
   }
   return patternMatchFn(pattern, haystack);
+}
+
+/**
+ * Dispatch pathsWithCaptures on a Pattern.
+ */
+export function dispatchPathsWithCaptures(
+  pattern: Pattern,
+  haystack: Envelope,
+): [Path[], Map<string, Path[]>] {
+  if (patternPathsWithCapturesFn === undefined) {
+    throw new Error("Pattern dispatch functions not registered");
+  }
+  return patternPathsWithCapturesFn(pattern, haystack);
+}
+
+/**
+ * Dispatch paths on a Pattern.
+ */
+export function dispatchPaths(pattern: Pattern, haystack: Envelope): Path[] {
+  if (patternPathsFn === undefined) {
+    throw new Error("Pattern dispatch functions not registered");
+  }
+  return patternPathsFn(pattern, haystack);
+}
+
+/**
+ * Dispatch compile on a Pattern.
+ */
+export function dispatchCompile(
+  pattern: Pattern,
+  code: Instr[],
+  literals: Pattern[],
+  captures: string[],
+): void {
+  if (patternCompileFn === undefined) {
+    throw new Error("Pattern dispatch functions not registered");
+  }
+  patternCompileFn(pattern, code, literals, captures);
+}
+
+/**
+ * Dispatch isComplex on a Pattern.
+ */
+export function dispatchIsComplex(pattern: Pattern): boolean {
+  if (patternIsComplexFn === undefined) {
+    throw new Error("Pattern dispatch functions not registered");
+  }
+  return patternIsComplexFn(pattern);
+}
+
+/**
+ * Dispatch toString on a Pattern.
+ */
+export function dispatchPatternToString(pattern: Pattern): string {
+  if (patternToStringFn === undefined) {
+    throw new Error("Pattern dispatch functions not registered");
+  }
+  return patternToStringFn(pattern);
 }

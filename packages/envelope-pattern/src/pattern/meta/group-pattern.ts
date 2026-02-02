@@ -9,7 +9,7 @@
 import type { Envelope } from "@bcts/envelope";
 import { Quantifier } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
-import { matchPattern, type Matcher } from "../matcher";
+import { matchPattern, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -88,7 +88,7 @@ export class GroupPattern implements Matcher {
 
   toString(): string {
     const formattedRange = this._quantifier.toString();
-    return `(${(this._pattern as unknown as { toString(): string }).toString()})${formattedRange}`;
+    return `(${dispatchPatternToString(this._pattern)})${formattedRange}`;
   }
 
   /**

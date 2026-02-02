@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { type Matcher, matchPattern } from "../matcher";
+import { matchPattern, dispatchCompile, dispatchIsComplex, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -63,8 +63,7 @@ export class AndPattern implements Matcher {
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
     // Each pattern must match at this position
     for (const pattern of this._patterns) {
-      const matcher = pattern as unknown as Matcher;
-      matcher.compile(code, literals, captures);
+      dispatchCompile(pattern, code, literals, captures);
     }
   }
 
@@ -72,13 +71,13 @@ export class AndPattern implements Matcher {
     // The pattern is complex if it contains more than one pattern, or if
     // the one pattern is complex itself.
     return (
-      this._patterns.length > 1 || this._patterns.some((p) => (p as unknown as Matcher).isComplex())
+      this._patterns.length > 1 || this._patterns.some((p) => dispatchIsComplex(p))
     );
   }
 
   toString(): string {
     return this._patterns
-      .map((p) => (p as unknown as { toString(): string }).toString())
+      .map((p) => dispatchPatternToString(p))
       .join(" & ");
   }
 

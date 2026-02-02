@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { type Matcher, matchPattern } from "../matcher";
+import { matchPattern, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -71,7 +71,7 @@ export class NotPattern implements Matcher {
   }
 
   toString(): string {
-    return `!${(this._pattern as unknown as { toString(): string }).toString()}`;
+    return `!${dispatchPatternToString(this._pattern)}`;
   }
 
   /**
