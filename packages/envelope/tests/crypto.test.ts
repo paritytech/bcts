@@ -379,46 +379,50 @@ describe("Crypto Tests", () => {
       expect(() => receivedEnvelope.unlock(wrongPassword)).toThrow();
     });
 
-    it("should support multiple secrets with different derivation methods", { timeout: 30_000 }, () => {
-      const bobPassword = new TextEncoder().encode("correct horse battery staple");
-      const carolPassword = new TextEncoder().encode("Able was I ere I saw Elba");
-      const gracyPassword = new TextEncoder().encode("Madam, in Eden, I'm Adam");
-      const wrongPassword = new TextEncoder().encode("wrong password");
+    it(
+      "should support multiple secrets with different derivation methods",
+      { timeout: 30_000 },
+      () => {
+        const bobPassword = new TextEncoder().encode("correct horse battery staple");
+        const carolPassword = new TextEncoder().encode("Able was I ere I saw Elba");
+        const gracyPassword = new TextEncoder().encode("Madam, in Eden, I'm Adam");
+        const wrongPassword = new TextEncoder().encode("wrong password");
 
-      // Alice encrypts a message so that it can be decrypted by three specific passwords.
-      const contentKey = SymmetricKey.new();
-      const envelope = helloEnvelope()
-        .encryptSubject(contentKey)
-        .addSecret(KeyDerivationMethod.HKDF, bobPassword, contentKey)
-        .addSecret(KeyDerivationMethod.Scrypt, carolPassword, contentKey)
-        .addSecret(KeyDerivationMethod.Argon2id, gracyPassword, contentKey);
+        // Alice encrypts a message so that it can be decrypted by three specific passwords.
+        const contentKey = SymmetricKey.new();
+        const envelope = helloEnvelope()
+          .encryptSubject(contentKey)
+          .addSecret(KeyDerivationMethod.HKDF, bobPassword, contentKey)
+          .addSecret(KeyDerivationMethod.Scrypt, carolPassword, contentKey)
+          .addSecret(KeyDerivationMethod.Argon2id, gracyPassword, contentKey);
 
-      expect(envelope.format().includes("ENCRYPTED")).toBe(true);
-      expect(envelope.format().includes("hasSecret")).toBe(true);
+        expect(envelope.format().includes("ENCRYPTED")).toBe(true);
+        expect(envelope.format().includes("hasSecret")).toBe(true);
 
-      // Alice -> Cloud -> Bob, Carol, Gracy, Eve
+        // Alice -> Cloud -> Bob, Carol, Gracy, Eve
 
-      // The envelope is received
-      const receivedEnvelope = Envelope.fromTaggedCbor(envelope.taggedCbor());
+        // The envelope is received
+        const receivedEnvelope = Envelope.fromTaggedCbor(envelope.taggedCbor());
 
-      // Bob decrypts and reads the message
-      const bobDecrypted = receivedEnvelope.unlockSubject(bobPassword);
-      const bobReceivedPlaintext = bobDecrypted.subject().asText();
-      expect(bobReceivedPlaintext).toBe(PLAINTEXT_HELLO);
+        // Bob decrypts and reads the message
+        const bobDecrypted = receivedEnvelope.unlockSubject(bobPassword);
+        const bobReceivedPlaintext = bobDecrypted.subject().asText();
+        expect(bobReceivedPlaintext).toBe(PLAINTEXT_HELLO);
 
-      // Carol decrypts and reads the message
-      const carolDecrypted = receivedEnvelope.unlockSubject(carolPassword);
-      const carolReceivedPlaintext = carolDecrypted.subject().asText();
-      expect(carolReceivedPlaintext).toBe(PLAINTEXT_HELLO);
+        // Carol decrypts and reads the message
+        const carolDecrypted = receivedEnvelope.unlockSubject(carolPassword);
+        const carolReceivedPlaintext = carolDecrypted.subject().asText();
+        expect(carolReceivedPlaintext).toBe(PLAINTEXT_HELLO);
 
-      // Gracy decrypts and reads the message
-      const gracyDecrypted = receivedEnvelope.unlockSubject(gracyPassword);
-      const gracyReceivedPlaintext = gracyDecrypted.subject().asText();
-      expect(gracyReceivedPlaintext).toBe(PLAINTEXT_HELLO);
+        // Gracy decrypts and reads the message
+        const gracyDecrypted = receivedEnvelope.unlockSubject(gracyPassword);
+        const gracyReceivedPlaintext = gracyDecrypted.subject().asText();
+        expect(gracyReceivedPlaintext).toBe(PLAINTEXT_HELLO);
 
-      // Eve tries to decrypt the message with a different password
-      expect(() => receivedEnvelope.unlockSubject(wrongPassword)).toThrow();
-    });
+        // Eve tries to decrypt the message with a different password
+        expect(() => receivedEnvelope.unlockSubject(wrongPassword)).toThrow();
+      },
+    );
   });
 
   describe("envelope equivalence and identity", () => {

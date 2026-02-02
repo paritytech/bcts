@@ -180,9 +180,10 @@ export class WrappedPattern implements Matcher {
       case "Any":
         return "wrapped";
       case "Unwrap": {
-        const patternStr = dispatchPatternToString !== undefined
-          ? dispatchPatternToString(this._pattern.pattern)
-          : "*";
+        const patternStr =
+          dispatchPatternToString !== undefined
+            ? dispatchPatternToString(this._pattern.pattern)
+            : "*";
         if (patternStr === "*") {
           return "unwrap";
         }
