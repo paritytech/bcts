@@ -124,8 +124,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
    * Create a new Key with private key base (derives keys from it).
    */
   static newWithPrivateKeyBase(privateKeyBase: PrivateKeyBase): Key {
-    const privateKeys = privateKeyBase.ed25519PrivateKeys();
-    const publicKeys = privateKeyBase.ed25519PublicKeys();
+    const privateKeys = privateKeyBase.schnorrPrivateKeys();
+    const publicKeys = privateKeyBase.schnorrPublicKeys();
     return Key.newWithPrivateKeys(privateKeys, publicKeys);
   }
 

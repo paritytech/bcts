@@ -45,8 +45,8 @@ import { bytesToHex } from "./utils.js";
 import { PrivateKeys } from "./private-keys.js";
 import type { PublicKeys } from "./public-keys.js";
 
-/** Size of PrivateKeyBase key material in bytes */
-const PRIVATE_KEY_BASE_SIZE = 32;
+/** Default size of PrivateKeyBase key material in bytes (used for random generation) */
+const PRIVATE_KEY_BASE_DEFAULT_SIZE = 32;
 
 /** Key derivation salt strings - must match Rust's bc-crypto derive functions */
 const SALT_SIGNING = "signing";
@@ -64,8 +64,8 @@ export class PrivateKeyBase
   private readonly _data: Uint8Array;
 
   private constructor(data: Uint8Array) {
-    if (data.length !== PRIVATE_KEY_BASE_SIZE) {
-      throw new Error(`PrivateKeyBase must be ${PRIVATE_KEY_BASE_SIZE} bytes, got ${data.length}`);
+    if (data.length === 0) {
+      throw new Error("PrivateKeyBase must have non-zero length");
     }
     this._data = new Uint8Array(data);
   }
@@ -86,7 +86,7 @@ export class PrivateKeyBase
    * Create a new random PrivateKeyBase using the provided RNG.
    */
   static newUsing(rng: RandomNumberGenerator): PrivateKeyBase {
-    const data = rng.randomData(PRIVATE_KEY_BASE_SIZE);
+    const data = rng.randomData(PRIVATE_KEY_BASE_DEFAULT_SIZE);
     return new PrivateKeyBase(data);
   }
 
@@ -311,7 +311,7 @@ export class PrivateKeyBase
    * Static method to decode from tagged CBOR.
    */
   static fromTaggedCbor(cborValue: Cbor): PrivateKeyBase {
-    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_SIZE));
+    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_DEFAULT_SIZE));
     return dummy.fromTaggedCbor(cborValue);
   }
 
@@ -328,7 +328,7 @@ export class PrivateKeyBase
    */
   static fromUntaggedCborData(data: Uint8Array): PrivateKeyBase {
     const cborValue = decodeCbor(data);
-    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_SIZE));
+    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_DEFAULT_SIZE));
     return dummy.fromUntaggedCbor(cborValue);
   }
 
@@ -361,7 +361,7 @@ export class PrivateKeyBase
     if (ur.urTypeStr() !== TAG_PRIVATE_KEY_BASE.name) {
       throw new Error(`Expected UR type ${TAG_PRIVATE_KEY_BASE.name}, got ${ur.urTypeStr()}`);
     }
-    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_SIZE));
+    const dummy = new PrivateKeyBase(new Uint8Array(PRIVATE_KEY_BASE_DEFAULT_SIZE));
     return dummy.fromUntaggedCbor(ur.cbor());
   }
 

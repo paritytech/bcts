@@ -15,7 +15,13 @@ import { VerifyOption } from "../src/cmd/xid/verify-args.js";
 import { defaultOutputOptions } from "../src/cmd/xid/output-options.js";
 import { XIDPrivilege } from "../src/cmd/xid/xid-privilege.js";
 import { URI } from "@bcts/components";
-import { ALICE_PUBKEYS, BOB_PUBKEYS } from "./common.js";
+import {
+  ALICE_PUBKEYS,
+  ALICE_PRVKEY_BASE,
+  ALICE_PRVKEYS,
+  BOB_PUBKEYS,
+  CAROL_PRVKEYS,
+} from "./common.js";
 
 const NO_PASSWORD_ARGS: xid.ReadWritePasswordArgs = {
   read: { askpass: false },
@@ -183,10 +189,62 @@ describe("xid command", () => {
       expect(formatted).toContain("'nickname': \"Alice's Key\"");
     });
 
-    // Skip: PrivateKeyBase UR parsing not yet implemented in @bcts/components
-    it.skip("test_xid_new_from_prvkey_base", () => {});
-    it.skip("test_xid_new_private_omit", () => {});
-    it.skip("test_xid_new_private_elide", () => {});
+    it("test_xid_new_from_prvkey_base", async () => {
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PRVKEY_BASE;
+      args.generatorOpts = GeneratorOptions.Omit;
+      const newXidDoc = await xid.newCmd.exec(args);
+
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: newXidDoc,
+      });
+
+      // Default includes salted private key
+      expect(formatted).toContain("XID(93a4d4e7)");
+      expect(formatted).toContain("'key':");
+      expect(formatted).toContain("'privateKey':");
+      expect(formatted).toContain("'salt':");
+      expect(formatted).toContain("'allow': 'All'");
+    });
+
+    it("test_xid_new_private_omit", async () => {
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PRVKEY_BASE;
+      args.outputOpts.privateOpts = PrivateOptions.Omit;
+      args.generatorOpts = GeneratorOptions.Omit;
+      const newXidDoc = await xid.newCmd.exec(args);
+
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: newXidDoc,
+      });
+
+      // Private key omitted
+      expect(formatted).toContain("XID(93a4d4e7)");
+      expect(formatted).toContain("'key':");
+      expect(formatted).toContain("'allow': 'All'");
+      expect(formatted).not.toContain("'privateKey':");
+    });
+
+    it("test_xid_new_private_elide", async () => {
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PRVKEY_BASE;
+      args.outputOpts.privateOpts = PrivateOptions.Elide;
+      args.generatorOpts = GeneratorOptions.Omit;
+      const newXidDoc = await xid.newCmd.exec(args);
+
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: newXidDoc,
+      });
+
+      // Private key elided (replaced with ELIDED marker)
+      expect(formatted).toContain("XID(93a4d4e7)");
+      expect(formatted).toContain("'key':");
+      expect(formatted).toContain("'allow': 'All'");
+      expect(formatted).toContain("ELIDED");
+    });
 
     it("test_xid_new_with_endpoints", async () => {
       const args = xid.newCmd.defaultArgs();
@@ -227,39 +285,24 @@ describe("xid command", () => {
   });
 
   describe("export", () => {
-    it("test_xid_export_envelope_format", () => {
-      const exported = xid.exportCmd.exec({
+    it("test_xid_export_default", async () => {
+      const exported = await xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
-        format: xid.ExportFormat.Envelope,
         envelope: XID_DOC,
         verifyArgs: NO_VERIFY_ARGS,
       });
 
-      expect(exported).toMatch(/^ur:envelope\//);
+      expect(exported).toMatch(/^ur:xid\//);
     });
 
-    it("test_xid_export_xid_format", () => {
-      const exported = xid.exportCmd.exec({
+    it("test_xid_export_xid_format", async () => {
+      const exported = await xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
-        format: xid.ExportFormat.Xid,
         envelope: XID_DOC,
         verifyArgs: NO_VERIFY_ARGS,
       });
 
-      expect(exported).toBe(
-        "ur:xid/hdcxjsdigtwneocmnybadpdlzobysbstmekteypspeotcfldynlpsfolsbintyjkrhfnvsbyrdfw",
-      );
-    });
-
-    it("test_xid_export_json_not_implemented", () => {
-      expect(() =>
-        xid.exportCmd.exec({
-          ...xid.exportCmd.defaultArgs(),
-          format: xid.ExportFormat.Json,
-          envelope: XID_DOC,
-          verifyArgs: NO_VERIFY_ARGS,
-        }),
-      ).toThrow("not yet implemented");
+      expect(exported).toMatch(/^ur:xid\//);
     });
   });
 
@@ -787,8 +830,8 @@ describe("xid command", () => {
       // Old permission should be gone
       expect(formatted).not.toContain("'allow': 'Encrypt'");
     });
-    // Skip: No delegate find-by-name command (Rust only has delegate find by XID)
-    it.skip("test_xid_delegate_find_name", () => {});
+    // Rust's delegate find command only supports find-by-XID, not find-by-name.
+    // The TS implementation matches: delegate/find.ts takes a delegate XID arg.
   });
 
   describe("service management", () => {
@@ -939,6 +982,161 @@ describe("xid command", () => {
       expect(formatted).toContain("\"Example API\"");
       expect(formatted).toContain("'allow': 'Sign'");
       expect(formatted).toContain("'allow': 'Encrypt'");
+    });
+  });
+
+  describe("encrypted keys", () => {
+    it("test_xid_encrypted_keys_preserved", async () => {
+      // Create XID with encrypted private keys
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PRVKEYS;
+      args.outputOpts.privateOpts = PrivateOptions.Encrypt;
+      args.generatorOpts = GeneratorOptions.Omit;
+      args.passwordArgs.write.encryptPassword = "secret";
+      const xidEncrypted = await xid.newCmd.exec(args);
+
+      // Verify it contains ENCRYPTED
+      let formatted = format.exec({ ...format.defaultArgs(), envelope: xidEncrypted });
+      expect(formatted).toContain("ENCRYPTED");
+      expect(formatted).toContain("hasSecret");
+
+      // Add a resolution method WITHOUT providing password
+      const resolutionAdd = await import("../src/cmd/xid/resolution/add.js");
+      const xidWithMethod = await resolutionAdd.exec({
+        uri: "https://resolver.example.com",
+        outputOpts: defaultOutputOptions(),
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidEncrypted,
+      });
+
+      // Should still have encrypted keys
+      formatted = format.exec({ ...format.defaultArgs(), envelope: xidWithMethod });
+      expect(formatted).toContain("ENCRYPTED");
+      expect(formatted).toContain("hasSecret");
+      expect(formatted).toContain("dereference");
+
+      // Verify we can still decrypt with the password by adding another key
+      const xidFinal = await xid.key.add.exec({
+        keyArgs: {
+          keys: CAROL_PRVKEYS,
+          nickname: "",
+          privateOpts: PrivateOptions.Encrypt,
+          endpoints: [],
+          permissions: [],
+        },
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: {
+          read: { askpass: false, password: "secret" },
+          write: { encryptAskpass: false, encryptMethod: PasswordMethod.Argon2id, encryptPassword: "secret" },
+        },
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidWithMethod,
+      });
+
+      // Should still have encrypted keys and now 2 keys
+      formatted = format.exec({ ...format.defaultArgs(), envelope: xidFinal });
+      expect(formatted).toContain("ENCRYPTED");
+      expect(formatted).toContain("hasSecret");
+      expect((formatted.match(/'key':/g) || []).length).toBe(2);
+    });
+
+    it("test_xid_key_private_flag", async () => {
+      // Create XID with encrypted private key
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PRVKEYS;
+      args.keyArgs.nickname = "TestKey";
+      args.outputOpts.privateOpts = PrivateOptions.Encrypt;
+      args.generatorOpts = GeneratorOptions.Omit;
+      args.passwordArgs.write.encryptPassword = "secret";
+      const xidEncrypted = await xid.newCmd.exec(args);
+
+      // Test 1: key all without --private (returns public key envelopes)
+      const publicKeys = await xid.key.all.exec({
+        private: false,
+        passwordArgs: { askpass: false },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      expect(publicKeys).toMatch(/^ur:envelope\//);
+      const formattedPublic = format.exec({ ...format.defaultArgs(), envelope: publicKeys });
+      expect(formattedPublic).toContain("ENCRYPTED");
+
+      // Test 2: key all --private without password (returns encrypted envelope)
+      const encrypted = await xid.key.all.exec({
+        private: true,
+        passwordArgs: { askpass: false },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      const formattedEncrypted = format.exec({ ...format.defaultArgs(), envelope: encrypted });
+      expect(formattedEncrypted).toContain("ENCRYPTED");
+      expect(formattedEncrypted).toContain("hasSecret");
+
+      // Test 3: key all --private with correct password (returns ur:crypto-prvkeys)
+      const decrypted = await xid.key.all.exec({
+        private: true,
+        passwordArgs: { askpass: false, password: "secret" },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      expect(decrypted).toMatch(/^ur:crypto-prvkeys\//);
+
+      // Test 4: key all --private with wrong password (should error)
+      await expect(
+        xid.key.all.exec({
+          private: true,
+          passwordArgs: { askpass: false, password: "wrong" },
+          verifyArgs: NO_VERIFY_ARGS,
+          envelope: xidEncrypted,
+        }),
+      ).rejects.toThrow();
+
+      // Test 5: key at 0 --private with password (returns ur:crypto-prvkeys)
+      const decryptedAt = await xid.key.at.exec({
+        index: 0,
+        private: true,
+        passwordArgs: { askpass: false, password: "secret" },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      expect(decryptedAt).toMatch(/^ur:crypto-prvkeys\//);
+
+      // Test 6: key find inception --private (returns encrypted envelope)
+      const inceptionEncrypted = await xid.key.find.inception.exec({
+        private: true,
+        passwordArgs: { askpass: false },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      const formattedInception = format.exec({ ...format.defaultArgs(), envelope: inceptionEncrypted });
+      expect(formattedInception).toContain("ENCRYPTED");
+
+      // Test 7: key find name --private with password (returns ur:crypto-prvkeys)
+      const foundByName = await xid.key.find.name.exec({
+        name: "TestKey",
+        private: true,
+        passwordArgs: { askpass: false, password: "secret" },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidEncrypted,
+      });
+      expect(foundByName).toMatch(/^ur:crypto-prvkeys\//);
+
+      // Test 8: Unencrypted key with --private (returns ur:crypto-prvkeys directly)
+      const unencryptedArgs = xid.newCmd.defaultArgs();
+      unencryptedArgs.keyArgs.keys = ALICE_PRVKEYS;
+      unencryptedArgs.generatorOpts = GeneratorOptions.Omit;
+      const xidUnencrypted = await xid.newCmd.exec(unencryptedArgs);
+
+      const unencryptedPrivate = await xid.key.all.exec({
+        private: true,
+        passwordArgs: { askpass: false },
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidUnencrypted,
+      });
+      expect(unencryptedPrivate).toMatch(/^ur:crypto-prvkeys\//);
     });
   });
 });

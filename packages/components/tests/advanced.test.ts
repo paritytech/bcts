@@ -49,12 +49,17 @@ describe("PrivateKeyBase", () => {
       expect(pkb.asBytes()).toEqual(data);
     });
 
-    it("should reject invalid data length", () => {
-      const shortData = new Uint8Array(16);
-      expect(() => PrivateKeyBase.fromData(shortData)).toThrow();
+    it("should accept variable data lengths (matching Rust)", () => {
+      // Rust accepts any non-zero length
+      const shortData = new Uint8Array(16).fill(0x42);
+      expect(() => PrivateKeyBase.fromData(shortData)).not.toThrow();
 
-      const longData = new Uint8Array(64);
-      expect(() => PrivateKeyBase.fromData(longData)).toThrow();
+      const longData = new Uint8Array(64).fill(0x42);
+      expect(() => PrivateKeyBase.fromData(longData)).not.toThrow();
+
+      // Only reject zero-length
+      const emptyData = new Uint8Array(0);
+      expect(() => PrivateKeyBase.fromData(emptyData)).toThrow();
     });
 
     it("should return a copy of data", () => {

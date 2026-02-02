@@ -4,8 +4,9 @@
 
 import { describe, it, expect } from "vitest";
 import * as xid from "../src/cmd/xid/index.js";
+import * as format from "../src/cmd/format.js";
 import * as resolution from "../src/cmd/xid/resolution/index.js";
-import { ALICE_PUBKEYS, BOB_PUBKEYS } from "./common.js";
+import { ALICE_PUBKEYS, ALICE_PRVKEYS, BOB_PUBKEYS } from "./common.js";
 import { PrivateOptions } from "../src/cmd/xid/private-options.js";
 import { GeneratorOptions } from "../src/cmd/xid/generator-options.js";
 import { PasswordMethod } from "../src/cmd/xid/password-args.js";
@@ -218,5 +219,55 @@ describe("xid resolution", () => {
     // Resolution should still be present
     expect(resolution.count.exec({ envelope: xidDoc })).toBe("1");
     expect(resolution.all.exec({ envelope: xidDoc })).toContain("https://resolver.example.com");
+  });
+
+  it("test_xid_resolution_with_signature", async () => {
+    // Create a signed XID document with encrypted private keys
+    const args = xid.newCmd.defaultArgs();
+    args.keyArgs.keys = ALICE_PRVKEYS;
+    args.keyArgs.nickname = "Alice";
+    args.outputOpts.privateOpts = PrivateOptions.Encrypt;
+    args.generatorOpts = GeneratorOptions.Omit;
+    args.passwordArgs.write.encryptPassword = "secret";
+    args.signingArgs = { sign: SigningOption.Inception };
+    let xidDoc = await xid.newCmd.exec(args);
+
+    // Verify initial structure: signed with encrypted private key
+    let formatted = format.exec({ ...format.defaultArgs(), envelope: xidDoc });
+    expect(formatted).toContain("'signed':");
+    expect(formatted).toContain("ENCRYPTED");
+    expect(formatted).toContain("hasSecret");
+    expect(formatted).toContain("'nickname': \"Alice\"");
+
+    // Add a resolution method with verify and re-sign
+    xidDoc = await resolution.add.exec({
+      uri: "https://resolver.example.com",
+      outputOpts: {
+        privateOpts: PrivateOptions.Encrypt,
+        generatorOpts: GeneratorOptions.Omit,
+      },
+      passwordArgs: {
+        read: { askpass: false, password: "secret" },
+        write: { encryptAskpass: false, encryptMethod: PasswordMethod.Argon2id, encryptPassword: "secret" },
+      },
+      verifyArgs: { verify: VerifyOption.Inception },
+      signingArgs: { sign: SigningOption.Inception },
+      envelope: xidDoc,
+    });
+
+    // Verify the signed document now has the resolution method
+    formatted = format.exec({ ...format.defaultArgs(), envelope: xidDoc });
+    expect(formatted).toContain("'signed':");
+    expect(formatted).toContain("ENCRYPTED");
+    expect(formatted).toContain("hasSecret");
+    expect(formatted).toContain("dereference");
+
+    // Verify signature is valid
+    const id = xid.id.exec({
+      envelope: xidDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.Inception },
+    });
+    expect(id).toBeTruthy();
   });
 });

@@ -20,7 +20,6 @@ export * as provenance from "./provenance/index.js";
 // Re-export types for convenience
 export { IDFormat } from "./id.js";
 export { GeneratorOptions, PrivateOptions } from "./new.js";
-export { ExportFormat } from "./export.js";
 
 // Re-export utility types
 export type { OutputOptions } from "./output-options.js";
