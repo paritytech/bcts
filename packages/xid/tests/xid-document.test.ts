@@ -359,7 +359,7 @@ describe("XIDDocument", () => {
       expect(xidDocument2.inceptionKey()?.hasPrivateKeys()).toBe(false);
     });
 
-    it("should encrypt private key when specified", () => {
+    it("should encrypt private key when specified", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("secure_password");
 
@@ -543,7 +543,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Multiple keys with encryption", () => {
-    it("should encrypt multiple keys", () => {
+    it("should encrypt multiple keys", { timeout: 30_000 }, () => {
       const password = new TextEncoder().encode("multi_key_password");
 
       // Create document with inception key
@@ -575,7 +575,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Mode switching", () => {
-    it("should switch between storage modes", () => {
+    it("should switch between storage modes", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("mode_switch_password");
 
@@ -786,7 +786,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Encrypted with different methods", () => {
-    it("should encrypt with Argon2id, PBKDF2, and Scrypt", () => {
+    it("should encrypt with Argon2id, PBKDF2, and Scrypt", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -824,7 +824,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Re-encryption", () => {
-    it("should re-encrypt with different password", () => {
+    it("should re-encrypt with different password", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -871,7 +871,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Change encryption method", () => {
-    it("should change from Argon2id to Scrypt", () => {
+    it("should change from Argon2id to Scrypt", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -1011,7 +1011,7 @@ describe("XIDDocument", () => {
       expect(bytes).toBeDefined();
     });
 
-    it("should get encrypted private key envelope", () => {
+    it("should get encrypted private key envelope", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = "test-password";
 

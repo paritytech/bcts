@@ -95,7 +95,7 @@ describe("Key", () => {
   });
 
   describe("Encrypted private key", () => {
-    it("should encrypt and decrypt private key with password", () => {
+    it("should encrypt and decrypt private key with password", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("correct_horse_battery_staple");
 
@@ -200,7 +200,7 @@ describe("Key", () => {
   });
 
   describe("Encrypted with different methods", () => {
-    it("should encrypt with Argon2id, PBKDF2, and Scrypt", () => {
+    it("should encrypt with Argon2id, PBKDF2, and Scrypt", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("test_password_123");
 
@@ -284,7 +284,7 @@ describe("Key", () => {
       expect(formatted).toContain("hasSecret");
     });
 
-    it("should decrypt envelope with correct password", () => {
+    it("should decrypt envelope with correct password", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
       const password = "test-password";

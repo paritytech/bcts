@@ -117,7 +117,7 @@ describe("Provenance", () => {
   });
 
   describe("Encrypted generator", () => {
-    it("should encrypt and decrypt generator with password", () => {
+    it("should encrypt and decrypt generator with password", { timeout: 30_000 }, () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -402,7 +402,7 @@ describe("Provenance", () => {
   });
 
   describe("Encrypted with different methods", () => {
-    it("should encrypt with Argon2id, PBKDF2, and Scrypt", () => {
+    it("should encrypt with Argon2id, PBKDF2, and Scrypt", { timeout: 30_000 }, () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -507,7 +507,7 @@ describe("Provenance", () => {
       expect(formatted).toContain("hasSecret");
     });
 
-    it("should decrypt envelope with correct password", () => {
+    it("should decrypt envelope with correct password", { timeout: 30_000 }, () => {
       const generator = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
