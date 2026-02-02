@@ -28,6 +28,7 @@ export type {
   ReadPasswordArgs,
   WritePasswordArgs,
 } from "./password-args.js";
+export { VerifyOption } from "./verify-args.js";
 export type { VerifyArgs } from "./verify-args.js";
 export type { SigningArgs } from "./signing-args.js";
 export type { KeyArgsLike } from "./key-args.js";
