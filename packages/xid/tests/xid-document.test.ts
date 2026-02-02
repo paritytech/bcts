@@ -998,7 +998,7 @@ describe("XIDDocument", () => {
     it("should get unencrypted private key envelope", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const doc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
-      const pubkeys = doc.inceptionKey()!.publicKeys();
+      const pubkeys = doc.inceptionKey()?.publicKeys();
 
       // Get unencrypted private key
       const envelope = doc.privateKeyEnvelopeForKey(pubkeys);
@@ -1006,7 +1006,7 @@ describe("XIDDocument", () => {
 
       // Should be able to extract bytes from the subject
       const bytes = (
-        envelope!.subject() as unknown as { asByteString(): Uint8Array | undefined }
+        envelope?.subject() as unknown as { asByteString(): Uint8Array | undefined }
       ).asByteString();
       expect(bytes).toBeDefined();
     });
@@ -1023,12 +1023,12 @@ describe("XIDDocument", () => {
       });
 
       const docEncrypted = XIDDocument.fromEnvelope(envelopeEncrypted);
-      const pubkeys = docEncrypted.inceptionKey()!.publicKeys();
+      const pubkeys = docEncrypted.inceptionKey()?.publicKeys();
 
       // Without password - should get encrypted envelope
       const encryptedEnv = docEncrypted.privateKeyEnvelopeForKey(pubkeys);
       expect(encryptedEnv).toBeDefined();
-      const formatted = encryptedEnv!.format();
+      const formatted = encryptedEnv?.format();
       expect(formatted).toContain("ENCRYPTED");
       expect(formatted).toContain("hasSecret");
 
@@ -1155,7 +1155,7 @@ describe("XIDDocument", () => {
       );
 
       // Use toSignedEnvelope
-      const signingKey = xidDocument.inceptionKey()!.privateKeys()!;
+      const signingKey = xidDocument.inceptionKey()?.privateKeys();
       const envelope = xidDocument.toSignedEnvelope(signingKey);
 
       // Subject should be wrapped (signed)

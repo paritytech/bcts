@@ -502,7 +502,7 @@ describe("Provenance", () => {
       expect(encryptedEnvelope).toBeDefined();
 
       // Should be encrypted
-      const formatted = encryptedEnvelope!.format();
+      const formatted = encryptedEnvelope?.format();
       expect(formatted).toContain("ENCRYPTED");
       expect(formatted).toContain("hasSecret");
     });

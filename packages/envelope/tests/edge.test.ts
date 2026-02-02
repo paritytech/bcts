@@ -350,7 +350,7 @@ describe("Edge Extension", () => {
       expect(edges.isEmpty()).toBe(false);
       expect(edges.len()).toBe(1);
       expect(edges.get(digest)).toBeDefined();
-      expect(edges.get(digest)!.isEquivalentTo(edge)).toBe(true);
+      expect(edges.get(digest)?.isEquivalentTo(edge)).toBe(true);
     });
 
     it("test_edges_container_remove", () => {

@@ -257,7 +257,7 @@ describe("Key", () => {
       expect(envelope).toBeDefined();
 
       // Should be able to extract PrivateKeys from the subject
-      const bytes = envelope!.subject().asByteString();
+      const bytes = envelope?.subject().asByteString();
       expect(bytes).toBeDefined();
     });
 
@@ -279,7 +279,7 @@ describe("Key", () => {
       expect(encryptedEnvelope).toBeDefined();
 
       // Should be encrypted
-      const formatted = encryptedEnvelope!.format();
+      const formatted = encryptedEnvelope?.format();
       expect(formatted).toContain("ENCRYPTED");
       expect(formatted).toContain("hasSecret");
     });
@@ -302,7 +302,7 @@ describe("Key", () => {
       expect(decryptedEnvelope).toBeDefined();
 
       // Should be able to extract PrivateKeys from the subject
-      const bytes = decryptedEnvelope!.subject().asByteString();
+      const bytes = decryptedEnvelope?.subject().asByteString();
       expect(bytes).toBeDefined();
     });
 

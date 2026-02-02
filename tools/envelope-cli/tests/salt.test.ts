@@ -5,7 +5,7 @@
 import { describe, it, expect } from "vitest";
 import * as salt from "../src/cmd/salt.js";
 import * as format from "../src/cmd/format.js";
-import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { ALICE_KNOWS_BOB_EXAMPLE } from "./common.js";
 
 describe("salt command", () => {
   it("test_salt", () => {

@@ -82,7 +82,7 @@ describe("Edge", () => {
 
       const retrieved = xidDocument.getEdge(digest);
       expect(retrieved).toBeDefined();
-      expect(retrieved!.isEquivalentTo(edge)).toBe(true);
+      expect(retrieved?.isEquivalentTo(edge)).toBe(true);
     });
 
     it("should return undefined for nonexistent edge", () => {
@@ -319,10 +319,10 @@ describe("Edge", () => {
 
       const retrieved = xidDocument.getEdge(digest);
       expect(retrieved).toBeDefined();
-      expect(retrieved!.edgeIsA().asText()).toBe("schema:colleague");
-      expect(retrieved!.edgeSource().asText()).toBe("Alice");
-      expect(retrieved!.edgeTarget().asText()).toBe("Bob");
-      expect(retrieved!.edgeSubject().asText()).toBe("knows-bob");
+      expect(retrieved?.edgeIsA().asText()).toBe("schema:colleague");
+      expect(retrieved?.edgeSource().asText()).toBe("Alice");
+      expect(retrieved?.edgeTarget().asText()).toBe("Bob");
+      expect(retrieved?.edgeSubject().asText()).toBe("knows-bob");
     });
   });
 

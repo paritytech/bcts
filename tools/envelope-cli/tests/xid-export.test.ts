@@ -23,7 +23,7 @@ import { GeneratorOptions } from "../src/cmd/xid/generator-options.js";
 import { PasswordMethod } from "../src/cmd/xid/password-args.js";
 import { SigningOption } from "../src/cmd/xid/signing-args.js";
 import { VerifyOption } from "../src/cmd/xid/verify-args.js";
-import { ALICE_PRVKEYS, BOB_PUBKEYS, CAROL_PUBKEYS, DAVE_PUBKEYS, expectOutput } from "./common.js";
+import { ALICE_PRVKEYS, BOB_PUBKEYS, CAROL_PUBKEYS, DAVE_PUBKEYS } from "./common.js";
 
 const NO_PASSWORD_ARGS: xid.ReadWritePasswordArgs = {
   read: { askpass: false },

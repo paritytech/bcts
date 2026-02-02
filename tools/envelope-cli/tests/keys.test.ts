@@ -11,7 +11,7 @@ import * as generate from "../src/cmd/generate/index.js";
 import * as sign from "../src/cmd/sign.js";
 import * as verify from "../src/cmd/verify.js";
 import * as format from "../src/cmd/format.js";
-import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { ALICE_KNOWS_BOB_EXAMPLE } from "./common.js";
 
 const SEED =
   "ur:seed/oyadhdcxhsinuesrennenlhfaopycnrfrkdmfnsrvltowmtbmyfwdafxvwmthersktcpetdweocfztrd";

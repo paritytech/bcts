@@ -99,7 +99,7 @@ export class SplitCommand implements Exec {
         const pk = PublicKeys.fromURString(r);
         const encKey = pk.encapsulationPublicKey();
         const publicData = encKey.x25519PublicKey().data();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
         return new (EnvelopePublicKeyBase as any)(publicData) as EnvelopePublicKeyBase;
       });
       flatShares = flatShares.map((share) => {
