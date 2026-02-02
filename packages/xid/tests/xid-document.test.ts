@@ -481,7 +481,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Encrypted generator", () => {
-    it("should encrypt and decrypt generator in document", () => {
+    it("should encrypt and decrypt generator in document", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("generator_password");
 

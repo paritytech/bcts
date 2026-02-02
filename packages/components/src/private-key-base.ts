@@ -48,9 +48,8 @@ import type { PublicKeys } from "./public-keys.js";
 /** Default size of PrivateKeyBase key material in bytes (used for random generation) */
 const PRIVATE_KEY_BASE_DEFAULT_SIZE = 32;
 
-/** Key derivation salt strings - must match Rust's bc-crypto derive functions */
+/** Key derivation salt string - must match Rust's bc-crypto derive functions */
 const SALT_SIGNING = "signing";
-const _SALT_AGREEMENT = "agreement";
 
 /**
  * PrivateKeyBase - Root cryptographic material for deterministic key derivation.
