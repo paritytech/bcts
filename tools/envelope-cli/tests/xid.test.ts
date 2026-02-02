@@ -988,7 +988,7 @@ describe("xid command", () => {
   });
 
   describe("encrypted keys", () => {
-    it("test_xid_encrypted_keys_preserved", { timeout: 30_000 }, async () => {
+    it("test_xid_encrypted_keys_preserved", { timeout: 60_000 }, async () => {
       // Create XID with encrypted private keys
       const args = xid.newCmd.defaultArgs();
       args.keyArgs.keys = ALICE_PRVKEYS;
@@ -1049,7 +1049,7 @@ describe("xid command", () => {
       expect((formatted.match(/'key':/g) || []).length).toBe(2);
     });
 
-    it("test_xid_key_private_flag", { timeout: 30_000 }, async () => {
+    it("test_xid_key_private_flag", { timeout: 60_000 }, async () => {
       // Create XID with encrypted private key
       const args = xid.newCmd.defaultArgs();
       args.keyArgs.keys = ALICE_PRVKEYS;

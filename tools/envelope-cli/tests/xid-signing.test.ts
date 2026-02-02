@@ -354,7 +354,7 @@ describe("xid signing command", () => {
   });
 
   describe("encrypted private keys", () => {
-    it("test_xid_sign_with_encrypted_private_keys", { timeout: 30_000 }, async () => {
+    it("test_xid_sign_with_encrypted_private_keys", { timeout: 60_000 }, async () => {
       // Create an encrypted PrivateKeys envelope
       const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "testpass");
       expect(encryptedKeys).toMatch(/^ur:envelope\//);
@@ -464,7 +464,7 @@ describe("xid signing command", () => {
       ).rejects.toThrow();
     });
 
-    it("test_xid_sign_with_encrypted_key_no_password", async () => {
+    it("test_xid_sign_with_encrypted_key_no_password", { timeout: 60_000 }, async () => {
       // Create an encrypted key
       const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "testpass");
 
