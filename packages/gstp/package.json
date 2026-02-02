@@ -1,6 +1,6 @@
 {
   "name": "@bcts/gstp",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Gordian Sealed Transaction Protocol - A secure, authenticated, transport-agnostic data exchange protocol with distributed state management via Encrypted State Continuations (ESC)",
   "license": "BSD-2-Clause-Patent",

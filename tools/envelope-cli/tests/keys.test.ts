@@ -28,16 +28,14 @@ describe("keys command", () => {
       expect(prvkeys).toMatch(/^ur:crypto-prvkeys\//);
     });
 
-    // Skip: Seed derivation is not yet implemented in TypeScript
-    it.skip("test_generate_private_key_base_from_seed", () => {
+    it("test_generate_private_key_base_from_seed", () => {
       const expectedPrvkeys =
         "ur:crypto-prvkeys/lftansgohdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdstbtagyeh";
 
+      // Default signing scheme is Schnorr (matching Rust CLI default)
       const prvkeys = generate.prvKeys.exec({
         ...generate.prvKeys.defaultArgs(),
         input: SEED,
-        signing: generate.PrvKeysSigningScheme.Ed25519,
-        encryption: generate.PrvKeysEncryptionScheme.X25519,
       });
       expect(prvkeys).toBe(expectedPrvkeys);
     });
@@ -112,8 +110,7 @@ describe("keys command", () => {
       });
     }
 
-    // Skip: Schnorr signing scheme is not yet implemented in TypeScript
-    it.skip("test_schnorr", async () => {
+    it("test_schnorr", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.Schnorr,
         "ur:crypto-prvkeys/lftansgohdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdstbtagyeh",
@@ -122,8 +119,7 @@ describe("keys command", () => {
       );
     });
 
-    // Skip: ECDSA signing scheme is not yet implemented in TypeScript
-    it.skip("test_ecdsa", async () => {
+    it("test_ecdsa", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.Ecdsa,
         "ur:crypto-prvkeys/lftansgolfadhdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdsuoamcehg",

@@ -25,12 +25,24 @@ export enum ObscureType {
 /// maintaining its semantic integrity and digest tree.
 export type ObscureAction =
   | { type: "elide" }
-  | { type: "encrypt"; key: unknown } // TODO: SymmetricKey type
+  | { type: "encrypt"; key: unknown }
   | { type: "compress" };
 
 /// Helper to create elide action
 export function elideAction(): ObscureAction {
   return { type: "elide" };
+}
+
+/// Late-binding handler for the encrypt obscure action.
+/// Registered by extension/encrypt.ts to avoid circular dependencies.
+let _obscureEncryptHandler: ((envelope: Envelope, key: unknown) => Envelope) | undefined;
+
+/// Registers the handler for the encrypt obscure action.
+/// Called by registerEncryptExtension() during module initialization.
+export function registerObscureEncryptHandler(
+  handler: (envelope: Envelope, key: unknown) => Envelope,
+): void {
+  _obscureEncryptHandler = handler;
 }
 
 /// Implementation of elide()
@@ -63,11 +75,12 @@ function elideSetWithAction(
     if (action.type === "elide") {
       return envelope.elide();
     } else if (action.type === "encrypt") {
-      // TODO: Implement encryption
-      throw new Error("Encryption not yet implemented");
+      if (_obscureEncryptHandler === undefined) {
+        throw new Error("Encrypt action handler not registered");
+      }
+      return _obscureEncryptHandler(envelope, action.key);
     } else if (action.type === "compress") {
-      // TODO: Implement compression
-      throw new Error("Compression not yet implemented");
+      return envelope.compress();
     }
   }
 

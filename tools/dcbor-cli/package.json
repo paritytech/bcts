@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor-cli",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Command line parser/validator for deterministic CBOR (dCBOR)",
   "license": "BSD-2-Clause-Patent",

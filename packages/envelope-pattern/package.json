@@ -1,6 +1,6 @@
 {
   "name": "@bcts/envelope-pattern",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Pattern matching for Gordian Envelope structures",
   "license": "BSD-2-Clause-Patent",

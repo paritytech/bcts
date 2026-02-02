@@ -42,8 +42,7 @@ describe("encrypt command", () => {
     expect(decrypted).toBe(ALICE_KNOWS_BOB_EXAMPLE);
   });
 
-  // Skip: Format output differs from Rust (shows raw CBOR tags instead of EncryptedKey)
-  it.skip("test_encrypt_password", async () => {
+  it("test_encrypt_password", async () => {
     // First wrap the envelope
     const wrapped = subject.type.exec({
       subjectType: DataType.Wrapped,

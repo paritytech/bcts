@@ -2,8 +2,7 @@ import { Digest, type DigestProvider } from "./digest";
 import { Envelope } from "./envelope";
 import { type EnvelopeEncodable } from "./envelope-encodable";
 import { EnvelopeError } from "./error";
-import type { Cbor } from "@bcts/dcbor";
-import { CborMap } from "@bcts/dcbor";
+import { type Cbor, cbor as toCborValue, CborMap } from "@bcts/dcbor";
 
 /// A predicate-object relationship representing an assertion about a subject.
 ///
@@ -112,7 +111,7 @@ export class Assertion implements DigestProvider {
   toCbor(): Cbor {
     const map = new CborMap();
     map.set(this._predicate.untaggedCbor(), this._object.untaggedCbor());
-    return map as unknown as Cbor;
+    return toCborValue(map);
   }
 
   /// Attempts to create an assertion from a CBOR value.

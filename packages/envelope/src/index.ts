@@ -15,16 +15,20 @@ export * from "./base";
 export * from "./extension";
 
 // Import registration functions and call them to ensure proper initialization order
-import { registerEncryptExtension } from "./extension/encrypt";
+import { registerEncryptExtension, encryptWholeEnvelope } from "./extension/encrypt";
 import { registerCompressExtension } from "./extension/compress";
 import { registerProofExtension } from "./extension/proof";
 import { registerSecretExtension } from "./extension/secret";
 import { registerSskrExtension } from "./extension/sskr";
+import { registerObscureEncryptHandler } from "./base/elide";
+import type { SymmetricKey } from "@bcts/components";
 registerEncryptExtension();
 registerCompressExtension();
 registerProofExtension();
 registerSecretExtension();
 registerSskrExtension();
+// Wire up obscure action handlers after all extensions are registered
+registerObscureEncryptHandler((env, key) => encryptWholeEnvelope(env, key as SymmetricKey));
 
 // Re-export everything from the format module
 // Import for side effects (registers prototype extensions like treeFormat)

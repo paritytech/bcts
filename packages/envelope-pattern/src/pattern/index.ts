@@ -722,3 +722,7 @@ registerVMPatternFunctions(patternPathsWithCaptures, patternMatches, patternPath
 // Register pattern match function for meta patterns
 import { registerPatternMatchFn } from "./matcher";
 registerPatternMatchFn(patternMatches);
+
+// Register traverse dispatch functions to resolve circular dependencies
+import { registerTraverseDispatchFunctions } from "./meta/traverse-pattern";
+registerTraverseDispatchFunctions(patternPathsWithCaptures, patternCompile, patternIsComplex);

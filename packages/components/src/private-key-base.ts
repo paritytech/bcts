@@ -38,6 +38,7 @@ import { hkdfHmacSha256 } from "@bcts/crypto";
 
 import { X25519PrivateKey } from "./x25519/x25519-private-key.js";
 import { Ed25519PrivateKey } from "./ed25519/ed25519-private-key.js";
+import { ECPrivateKey } from "./ec-key/ec-private-key.js";
 import { SigningPrivateKey } from "./signing/signing-private-key.js";
 import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-key.js";
 import { bytesToHex } from "./utils.js";
@@ -47,9 +48,9 @@ import type { PublicKeys } from "./public-keys.js";
 /** Size of PrivateKeyBase key material in bytes */
 const PRIVATE_KEY_BASE_SIZE = 32;
 
-/** Key derivation info strings */
-const INFO_SIGNING_ED25519 = "signing-ed25519";
-const INFO_AGREEMENT_X25519 = "agreement-x25519";
+/** Key derivation salt strings - must match Rust's bc-crypto derive functions */
+const SALT_SIGNING = "signing";
+const SALT_AGREEMENT = "agreement";
 
 /**
  * PrivateKeyBase - Root cryptographic material for deterministic key derivation.
@@ -123,10 +124,10 @@ export class PrivateKeyBase
   /**
    * Derive an Ed25519 signing private key.
    *
-   * Uses HKDF with info string "signing-ed25519".
+   * Uses HKDF with salt "signing", matching Rust's derive_signing_private_key().
    */
   ed25519SigningPrivateKey(): SigningPrivateKey {
-    const derivedKey = this._deriveKey(INFO_SIGNING_ED25519);
+    const derivedKey = this._deriveKey(SALT_SIGNING);
     const ed25519Key = Ed25519PrivateKey.from(derivedKey);
     return SigningPrivateKey.newEd25519(ed25519Key);
   }
@@ -134,11 +135,10 @@ export class PrivateKeyBase
   /**
    * Derive an X25519 agreement private key.
    *
-   * Uses HKDF with info string "agreement-x25519".
+   * Uses HKDF with salt "agreement", matching Rust's derive_agreement_private_key().
    */
   x25519PrivateKey(): X25519PrivateKey {
-    const derivedKey = this._deriveKey(INFO_AGREEMENT_X25519);
-    return X25519PrivateKey.fromData(derivedKey);
+    return X25519PrivateKey.deriveFromKeyMaterial(this._data);
   }
 
   /**
@@ -170,13 +170,65 @@ export class PrivateKeyBase
   }
 
   /**
-   * Internal key derivation using HKDF-SHA256.
-   * Uses the info string as salt for domain separation.
+   * Derive a Schnorr signing private key.
+   *
+   * Uses ECPrivateKey.deriveFromKeyMaterial() matching Rust's
+   * PrivateKeyBase::schnorr_signing_private_key().
    */
-  private _deriveKey(info: string): Uint8Array {
-    // Use info as salt for domain separation (crypto package's HKDF doesn't have info param)
-    const salt = new TextEncoder().encode(info);
-    return hkdfHmacSha256(this._data, salt, 32);
+  schnorrSigningPrivateKey(): SigningPrivateKey {
+    const ecKey = ECPrivateKey.deriveFromKeyMaterial(this._data);
+    return SigningPrivateKey.newSchnorr(ecKey);
+  }
+
+  /**
+   * Derive a PrivateKeys container with Schnorr signing and X25519 agreement keys.
+   *
+   * Matches Rust's PrivateKeyBase::schnorr_private_keys().
+   */
+  schnorrPrivateKeys(): PrivateKeys {
+    return PrivateKeys.withKeys(this.schnorrSigningPrivateKey(), this.encapsulationPrivateKey());
+  }
+
+  /**
+   * Derive a PublicKeys container from Schnorr derived keys.
+   */
+  schnorrPublicKeys(): PublicKeys {
+    return this.schnorrPrivateKeys().publicKeys();
+  }
+
+  /**
+   * Derive an ECDSA signing private key.
+   *
+   * Uses ECPrivateKey.deriveFromKeyMaterial() matching Rust's
+   * PrivateKeyBase::ecdsa_signing_private_key().
+   */
+  ecdsaSigningPrivateKey(): SigningPrivateKey {
+    const ecKey = ECPrivateKey.deriveFromKeyMaterial(this._data);
+    return SigningPrivateKey.newEcdsa(ecKey);
+  }
+
+  /**
+   * Derive a PrivateKeys container with ECDSA signing and X25519 agreement keys.
+   *
+   * Matches Rust's PrivateKeyBase::ecdsa_private_keys().
+   */
+  ecdsaPrivateKeys(): PrivateKeys {
+    return PrivateKeys.withKeys(this.ecdsaSigningPrivateKey(), this.encapsulationPrivateKey());
+  }
+
+  /**
+   * Derive a PublicKeys container from ECDSA derived keys.
+   */
+  ecdsaPublicKeys(): PublicKeys {
+    return this.ecdsaPrivateKeys().publicKeys();
+  }
+
+  /**
+   * Internal key derivation using HKDF-SHA256.
+   * Matches Rust's hkdf_hmac_sha256(key_material, salt, key_len) with empty info.
+   */
+  private _deriveKey(salt: string): Uint8Array {
+    return hkdfHmacSha256(this._data, new TextEncoder().encode(salt), 32);
   }
 
   // ============================================================================

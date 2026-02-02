@@ -21,6 +21,25 @@ export function registerTraversePatternFactory(
   createMetaTraversePattern = factory;
 }
 
+// Late-binding dispatch functions to avoid circular dependency with Pattern
+let _patternPathsWithCaptures:
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
+let _patternCompile:
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
+let _patternIsComplex: ((pattern: Pattern) => boolean) | undefined;
+
+export function registerTraverseDispatchFunctions(
+  pathsWithCaptures: (pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>],
+  compile: (pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void,
+  isComplex: (pattern: Pattern) => boolean,
+): void {
+  _patternPathsWithCaptures = pathsWithCaptures;
+  _patternCompile = compile;
+  _patternIsComplex = isComplex;
+}
+
 /**
  * A pattern that matches a traversal order of patterns.
  *
@@ -61,8 +80,10 @@ export class TraversePattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const firstMatcher = this._first as unknown as Matcher;
-    const headPaths = firstMatcher.paths(haystack);
+    if (!_patternPathsWithCaptures) {
+      throw new Error("TraversePattern dispatch functions not registered");
+    }
+    const headPaths = _patternPathsWithCaptures(this._first, haystack)[0];
 
     // If there's no further traversal, return head paths
     if (this._rest === undefined) {
@@ -94,9 +115,11 @@ export class TraversePattern implements Matcher {
   }
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
+    if (!_patternCompile) {
+      throw new Error("TraversePattern dispatch functions not registered");
+    }
     // Compile the first pattern
-    const firstMatcher = this._first as unknown as Matcher;
-    firstMatcher.compile(code, literals, captures);
+    _patternCompile(this._first, code, literals, captures);
 
     if (this._rest !== undefined) {
       // Save the current path and switch to last envelope
@@ -109,9 +132,10 @@ export class TraversePattern implements Matcher {
   }
 
   isComplex(): boolean {
-    // A traversal is complex if `first` is complex, or it has more than one pattern
-    const firstMatcher = this._first as unknown as Matcher;
-    return firstMatcher.isComplex() || this._rest !== undefined;
+    if (!_patternIsComplex) {
+      throw new Error("TraversePattern dispatch functions not registered");
+    }
+    return _patternIsComplex(this._first) || this._rest !== undefined;
   }
 
   toString(): string {

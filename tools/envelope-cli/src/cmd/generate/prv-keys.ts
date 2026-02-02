@@ -9,7 +9,7 @@
  * Schnorr, ECDSA, and SSH key schemes require additional implementation in @bcts/components.
  */
 
-import { PrivateKeyBase, type PrivateKeys } from "@bcts/components";
+import { PrivateKeyBase, Seed, type PrivateKeys } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 
 /**
@@ -49,13 +49,16 @@ export interface CommandArgs {
  */
 export function defaultArgs(): Partial<CommandArgs> {
   return {
-    signing: SigningScheme.Ed25519,
+    signing: SigningScheme.Schnorr,
     encryption: EncryptionScheme.X25519,
   };
 }
 
 /**
  * Parse input as PrivateKeyBase.
+ * Matches Rust's parse_input() in cmd/generate/prv_keys.rs:
+ * 1. Try PrivateKeyBase UR
+ * 2. Try Seed UR -> derive PrivateKeyBase via PrivateKeyDataProvider
  */
 function parseInput(input: string): PrivateKeyBase {
   // Try parsing as PrivateKeyBase
@@ -65,13 +68,16 @@ function parseInput(input: string): PrivateKeyBase {
     // Not a PrivateKeyBase
   }
 
-  // Note: Seed derivation is not yet implemented
-  // The Rust version supports:
-  // - ur:seed input with PrivateKeyBase.newWithProvider(seed)
-  // - ur:envelope containing a seed
+  // Try parsing as Seed, then derive PrivateKeyBase
+  try {
+    const seed = Seed.fromURString(input);
+    return PrivateKeyBase.fromData(seed.privateKeyData());
+  } catch {
+    // Not a Seed
+  }
+
   throw new Error(
-    "Only ur:crypto-prvkey-base input is currently supported. " +
-      "Seed derivation is not yet implemented in the TypeScript version.",
+    "Input must be ur:crypto-prvkey-base or ur:seed.",
   );
 }
 
@@ -92,12 +98,12 @@ export class PrvKeysCommand implements Exec {
         break;
 
       case SigningScheme.Schnorr:
+        privateKeys = privateKeyBase.schnorrPrivateKeys();
+        break;
+
       case SigningScheme.Ecdsa:
-        // Not yet implemented - requires schnorrPrivateKeys()/ecdsaPrivateKeys() on PrivateKeyBase
-        throw new Error(
-          `${this.args.signing} signing scheme is not yet implemented in the TypeScript version. ` +
-            "Use --signing ed25519 instead.",
-        );
+        privateKeys = privateKeyBase.ecdsaPrivateKeys();
+        break;
 
       case SigningScheme.SshEd25519:
       case SigningScheme.SshDsa:

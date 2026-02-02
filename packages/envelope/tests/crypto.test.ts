@@ -135,8 +135,7 @@ describe("Crypto Tests", () => {
       roundTripTest(e);
     });
 
-    // Skip: Known value encoding is not yet implemented in TypeScript
-    it.skip("should round-trip known value envelope", () => {
+    it("should round-trip known value envelope", () => {
       const e = Envelope.new(IS_A);
       roundTripTest(e);
     });
@@ -355,8 +354,7 @@ describe("Crypto Tests", () => {
     });
   });
 
-  // Skip: Secret tests require KnownValue encoding which is not yet implemented in TypeScript
-  describe.skip("secret (password-based encryption)", () => {
+  describe("secret (password-based encryption)", () => {
     it("should lock and unlock with HKDF", () => {
       const bobPassword = new TextEncoder().encode("correct horse battery staple");
       const wrongPassword = new TextEncoder().encode("wrong password");

@@ -8,8 +8,7 @@ import * as format from "../src/cmd/format.js";
 import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
 
 describe("sskr command", () => {
-  // Skip: SSKR is not yet implemented in TypeScript
-  it.skip("test_sskr_1", () => {
+  it("test_sskr_1", () => {
     const result = sskr.split.exec({
       groupThreshold: 1,
       groups: ["1-of-1"],
@@ -33,8 +32,7 @@ describe("sskr command", () => {
     expect(restored).toBe(ALICE_KNOWS_BOB_EXAMPLE);
   });
 
-  // Skip: SSKR is not yet implemented in TypeScript
-  it.skip("test_sskr_2", () => {
+  it("test_sskr_2", () => {
     const result = sskr.split.exec({
       groupThreshold: 2,
       groups: ["2-of-3", "2-of-3"],

@@ -244,5 +244,24 @@ export function registerEncryptExtension(): void {
   };
 }
 
+/// Encrypts an entire envelope as a unit, matching Rust's
+/// ObscureAction::Encrypt behavior in elide_set_with_action.
+/// Unlike encryptSubject which only encrypts a node's subject,
+/// this encrypts the entire envelope's tagged CBOR.
+export function encryptWholeEnvelope(envelope: Envelope, key: SymmetricKey): Envelope {
+  const c = envelope.case();
+  if (c.type === "encrypted") {
+    throw EnvelopeError.general("Envelope is already encrypted");
+  }
+  if (c.type === "elided") {
+    throw EnvelopeError.general("Cannot encrypt elided envelope");
+  }
+  const cbor = envelope.taggedCbor();
+  const encodedCbor = cborData(cbor);
+  const digest = envelope.digest();
+  const encryptedMessage = encryptWithDigest(key, encodedCbor, digest);
+  return Envelope.fromCase({ type: "encrypted", message: encryptedMessage });
+}
+
 // Registration is handled by the main index.ts to avoid circular dependency issues.
 // The registerEncryptExtension() function is called explicitly after all modules are loaded.

@@ -108,8 +108,7 @@ describe("sign command", () => {
     expect(verifyResult).toBeTruthy();
   });
 
-  // Skip: Schnorr key parsing not yet supported in sign command
-  it.skip("test_sign_3", () => {
+  it("test_sign_3", () => {
     // Create envelope from string subject
     const envelope = subject.type.exec({
       subjectType: DataType.String,

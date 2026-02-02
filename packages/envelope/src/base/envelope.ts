@@ -486,7 +486,9 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns `true` if the subject is an assertion, `false` otherwise
   isSubjectAssertion(): boolean {
-    return this._case.type === "assertion";
+    if (this._case.type === "assertion") return true;
+    if (this._case.type === "node") return this._case.subject.isSubjectAssertion();
+    return false;
   }
 
   /// Checks if the envelope's subject is obscured (elided, encrypted, or compressed).

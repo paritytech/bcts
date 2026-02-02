@@ -180,9 +180,7 @@ describe("Nodes Matching", () => {
     expect(noMatches.size).toBe(0);
   });
 
-  // NOTE: elideRemovingSetWithAction with compress action is not yet implemented.
-  // When implemented, this test should pass.
-  it.skip("should find elided and compressed nodes (requires elideRemovingSetWithAction compress)", () => {
+  it("should find elided and compressed nodes", () => {
     const envelope = Envelope.new("Alice")
       .addAssertion("knows", "Bob")
       .addAssertion("age", 30)
@@ -261,9 +259,7 @@ describe("Walk Unelide", () => {
   });
 });
 
-// NOTE: elideRemovingSetWithAction with encrypt action is not yet implemented.
-// When implemented, this test should pass.
-describe.skip("Walk Decrypt (requires elideRemovingSetWithAction encrypt)", () => {
+describe("Walk Decrypt", () => {
   it("should decrypt multiple encrypted parts with different keys", () => {
     const key1 = SymmetricKey.new();
     const key2 = SymmetricKey.new();
@@ -301,9 +297,7 @@ describe.skip("Walk Decrypt (requires elideRemovingSetWithAction encrypt)", () =
   });
 });
 
-// NOTE: elideRemovingSetWithAction with compress action is not yet implemented.
-// When implemented, this test should pass.
-describe.skip("Walk Decompress (requires elideRemovingSetWithAction compress)", () => {
+describe("Walk Decompress", () => {
   it("should decompress multiple compressed parts", () => {
     const envelope = Envelope.new("Alice")
       .addAssertion("knows", "Bob")
@@ -344,9 +338,7 @@ describe.skip("Walk Decompress (requires elideRemovingSetWithAction compress)", 
   });
 });
 
-// NOTE: elideRemovingSetWithAction with encrypt/compress actions is not yet implemented.
-// When implemented, this test should pass.
-describe.skip("Mixed Obscuration Operations (requires elideRemovingSetWithAction encrypt/compress)", () => {
+describe("Mixed Obscuration Operations", () => {
   it("should handle mixed elision, encryption, and compression", () => {
     const key = SymmetricKey.new();
 

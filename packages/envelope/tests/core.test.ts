@@ -112,8 +112,7 @@ describe("Core Envelope Tests", () => {
       );
     });
 
-    it.skip("should round-trip known value envelope", () => {
-      // TODO: Known value CBOR encoding not yet implemented
+    it("should round-trip known value envelope", () => {
       const e = checkEncoding(knownValueEnvelope());
       expect(e.format()).toBe("'note'");
     });
@@ -233,7 +232,7 @@ describe("Core Envelope Tests", () => {
     // because is_subject_assertion() only checks the immediate case type.
     // This test is skipped until the TypeScript library is updated to match
     // the Rust behavior.
-    it.skip("should create assertion envelope with its own assertions", () => {
+    it("should create assertion envelope with its own assertions", () => {
       // Build assertion with its own assertions
       const a = Envelope.newAssertion(1, 2).addAssertion(3, 4).addAssertion(5, 6);
 
@@ -320,8 +319,7 @@ describe("Core Envelope Tests", () => {
       expect(subject?.equals(UNIT)).toBe(true);
     });
 
-    it.skip("should round-trip unit envelope", () => {
-      // TODO: Known value CBOR encoding not yet implemented
+    it("should round-trip unit envelope", () => {
       const e = checkEncoding(Envelope.unit());
       expect(e.format()).toBe("''");
     });

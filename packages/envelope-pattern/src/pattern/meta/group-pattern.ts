@@ -9,7 +9,7 @@
 import type { Envelope } from "@bcts/envelope";
 import { Quantifier } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { matchPattern, type Matcher } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -73,9 +73,7 @@ export class GroupPattern implements Matcher {
   }
 
   matches(haystack: Envelope): boolean {
-    // GroupPattern needs VM execution
-    const matcher = this._pattern as unknown as Matcher;
-    return matcher.matches(haystack);
+    return matchPattern(this._pattern, haystack);
   }
 
   compile(code: Instr[], literals: Pattern[], _captures: string[]): void {

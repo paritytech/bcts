@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { matchPattern, type Matcher } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -84,8 +84,7 @@ export class PredicatePattern implements Matcher {
         paths = [[predicate]];
         break;
       case "Pattern": {
-        const innerMatcher = this._pattern.pattern as unknown as Matcher;
-        if (innerMatcher.matches(predicate)) {
+        if (matchPattern(this._pattern.pattern, predicate)) {
           paths = [[predicate]];
         } else {
           paths = [];

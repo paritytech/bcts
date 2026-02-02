@@ -9,8 +9,7 @@ import * as assertion from "../src/cmd/assertion/index.js";
 import { DataType } from "../src/data-types.js";
 
 describe("match command", () => {
-  // Skip: pattern library has internal issues - TraversePattern.paths is not a function
-  it.skip("test_match_traversal_pattern", () => {
+  it("test_match_traversal_pattern", () => {
     // Create Alice envelope
     const aliceEnvelope = subject.type.exec({
       subjectType: DataType.String,
