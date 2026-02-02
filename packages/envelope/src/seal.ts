@@ -29,42 +29,6 @@ import type { Encrypter, Decrypter } from "@bcts/components";
 // Envelope Prototype Extensions for Sealing
 // ============================================================================
 
-declare module "@bcts/envelope" {
-  interface Envelope {
-    /// Encrypt this envelope to a single recipient.
-    ///
-    /// Convenience method that wraps the envelope first, then encrypts
-    /// to a single recipient. Supports both X25519 and MLKEM encryption.
-    ///
-    /// @param recipient - The recipient (implements Encrypter interface)
-    /// @returns A new wrapped and encrypted envelope
-    encryptToRecipient(recipient: Encrypter): Envelope;
-
-    /// Seal this envelope by signing with sender's key and encrypting to
-    /// recipient.
-    ///
-    /// This is a convenience method that combines signing and encryption in
-    /// one step. Supports both classical and post-quantum cryptography.
-    ///
-    /// @param sender - The private key used to sign the envelope
-    /// @param recipient - The recipient (implements Encrypter interface)
-    /// @returns A new envelope that has been signed and encrypted
-    seal(sender: Signer, recipient: Encrypter): Envelope;
-
-    /// Unseal this envelope by decrypting with recipient's key and verifying
-    /// signature.
-    ///
-    /// This is a convenience method that combines decryption and signature
-    /// verification in one step.
-    ///
-    /// @param senderPublicKey - The public key used to verify the signature
-    /// @param recipient - The recipient's private key (implements Decrypter interface)
-    /// @returns The unsealed envelope if successful
-    /// @throws EnvelopeError if decryption or verification fails
-    unseal(senderPublicKey: Verifier, recipient: Decrypter): Envelope;
-  }
-}
-
 /// Implementation of encryptToRecipient
 Envelope.prototype.encryptToRecipient = function (this: Envelope, recipient: Encrypter): Envelope {
   return this.wrap().encryptSubjectToRecipient(recipient);

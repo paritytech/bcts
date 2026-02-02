@@ -36,7 +36,8 @@ import type { TreeFormatOptions } from "../format/tree";
 import type { EnvelopeFormatOpts } from "../format/notation";
 import type { MermaidFormatOpts } from "../format/mermaid";
 import type { FormatContext } from "../format/format-context";
-import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce } from "@bcts/components";
+import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce, SSKRSpec } from "@bcts/components";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
@@ -1056,7 +1057,10 @@ export class Envelope implements DigestProvider {
   declare encryptToRecipients: (recipients: Encrypter[]) => Envelope;
   declare recipients: () => SealedMessage[];
 
-  // From seal.ts - encryptToRecipient, seal, unseal declared in seal.ts module augmentation
+  // From seal.ts
+  declare encryptToRecipient: (recipient: Encrypter) => Envelope;
+  declare seal: (sender: Signer, recipient: Encrypter) => Envelope;
+  declare unseal: (senderPublicKey: Verifier, recipient: Decrypter) => Envelope;
 
   // From salt.ts
   declare addSalt: () => Envelope;
@@ -1146,6 +1150,16 @@ export class Envelope implements DigestProvider {
   ) => Envelope;
   declare lock: (method: KeyDerivationMethod, secret: Uint8Array) => Envelope;
   declare unlock: (secret: Uint8Array) => Envelope;
+
+  // From extension/sskr.ts
+  declare sskrSplit: (spec: SSKRSpec, contentKey: SymmetricKey) => Envelope[][];
+  declare sskrSplitFlattened: (spec: SSKRSpec, contentKey: SymmetricKey) => Envelope[];
+  declare sskrSplitUsing: (
+    spec: SSKRSpec,
+    contentKey: SymmetricKey,
+    rng: RandomNumberGenerator,
+  ) => Envelope[][];
+  declare static sskrJoin: (envelopes: Envelope[]) => Envelope;
 
   // CBOR methods
   declare toCbor: () => unknown;

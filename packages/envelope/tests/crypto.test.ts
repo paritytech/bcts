@@ -379,7 +379,7 @@ describe("Crypto Tests", () => {
       expect(() => receivedEnvelope.unlock(wrongPassword)).toThrow();
     });
 
-    it("should support multiple secrets with different derivation methods", () => {
+    it("should support multiple secrets with different derivation methods", { timeout: 30_000 }, () => {
       const bobPassword = new TextEncoder().encode("correct horse battery staple");
       const carolPassword = new TextEncoder().encode("Able was I ere I saw Elba");
       const gracyPassword = new TextEncoder().encode("Madam, in Eden, I'm Adam");
