@@ -1003,8 +1003,8 @@ function compileMetaPattern(
     }
     case "Group": {
       const quantifier = pattern.pattern.quantifier();
-      if (quantifier !== undefined) {
-        // Repeat pattern
+      if (quantifier !== undefined && !(quantifier.min() === 1 && quantifier.max() === 1)) {
+        // Repeat pattern (skip for exactly-1 which is simple pass-through)
         literals.push(pattern.pattern.pattern());
         code.push({
           type: "Repeat",
@@ -1012,7 +1012,7 @@ function compileMetaPattern(
           quantifier,
         });
       } else {
-        // Simple grouping
+        // Simple grouping (including exactly-1 quantifier)
         compilePattern(pattern.pattern.pattern(), code, literals, captureNames);
       }
       break;

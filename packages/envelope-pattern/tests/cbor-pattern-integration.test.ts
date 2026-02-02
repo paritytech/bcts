@@ -45,8 +45,7 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Any CBOR Pattern", () => {
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches any cbor value", () => {
+    it("matches any cbor value", () => {
       const envelope = Envelope.new(123);
 
       const result = parse("cbor");
@@ -56,8 +55,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches boolean cbor value", () => {
+    it("matches boolean cbor value", () => {
       const envelope = Envelope.new(true);
 
       const result = parse("cbor");
@@ -67,8 +65,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches text cbor value", () => {
+    it("matches text cbor value", () => {
       const envelope = Envelope.new("hello");
 
       const result = parse("cbor");

@@ -99,7 +99,8 @@ export type Token =
   | { readonly type: "DatePattern"; readonly value: Result<string> }
   | { readonly type: "Range"; readonly value: Result<Quantifier> }
   | { readonly type: "SingleQuotedPattern"; readonly value: Result<string> }
-  | { readonly type: "SingleQuotedRegex"; readonly value: Result<string> };
+  | { readonly type: "SingleQuotedRegex"; readonly value: Result<string> }
+  | { readonly type: "Identifier"; readonly value: string };
 
 /**
  * Keyword to token type mapping.
@@ -875,8 +876,8 @@ export class Lexer {
         return { token: keyword, span: this.span() };
       }
 
-      // Unknown identifier - treat as error
-      return undefined;
+      // Unknown identifier - return as Identifier token
+      return { token: { type: "Identifier", value: ident }, span: this.span() };
     }
 
     // Unknown character

@@ -151,8 +151,7 @@ describe("Parser Integration Tests", () => {
   });
 
   describe("Mixed Envelope and DCBOR Syntax", () => {
-    // Note: Search pattern paths require VM implementation
-    it.skip("search with number pattern", () => {
+    it("search with number pattern", () => {
       const env = Envelope.new(42);
 
       const result = parse("search(42)");

@@ -80,7 +80,7 @@ describe("Capture Tests", () => {
 
   describe("Capture Path Extraction", () => {
     // These tests require full VM implementation for capture extraction
-    it.skip("captures simple number with paths", () => {
+    it("captures simple number with paths", () => {
       const envelope = Envelope.new(42);
       const result = parse("@num(42)");
       expect(result.ok).toBe(true);
@@ -97,7 +97,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("captures multiple or patterns", () => {
+    it("captures multiple or patterns", () => {
       const envelope = Envelope.new(42);
       const result = parse("@num(42)|@num(>40)");
       expect(result.ok).toBe(true);
@@ -110,7 +110,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("captures nested patterns", () => {
+    it("captures nested patterns", () => {
       const envelope = Envelope.new(42);
       const result = parse("@outer(@inner(42))");
       expect(result.ok).toBe(true);
@@ -124,7 +124,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("returns empty captures for no match", () => {
+    it("returns empty captures for no match", () => {
       const envelope = Envelope.new(1);
       const result = parse("@n(2)");
       expect(result.ok).toBe(true);

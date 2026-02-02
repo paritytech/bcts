@@ -19,6 +19,7 @@ import {
 
 import type { Path } from "../format";
 import type { Instr } from "./vm";
+import { compile, run } from "./vm";
 
 // Re-export sub-modules
 export * from "./leaf";
@@ -177,12 +178,56 @@ export function patternMeta(meta: MetaPattern): Pattern {
 // ============================================================================
 
 /**
+ * Check if a pattern requires the VM for execution.
+ * Patterns containing Group (repeat), Traverse, or Search require compilation.
+ */
+function patternNeedsVM(pattern: Pattern): boolean {
+  switch (pattern.type) {
+    case "Leaf":
+    case "Structure":
+      return false;
+    case "Meta":
+      return metaPatternNeedsVM(pattern.pattern);
+  }
+}
+
+function metaPatternNeedsVM(pattern: MetaPattern): boolean {
+  switch (pattern.type) {
+    case "Any":
+      return false;
+    case "And":
+      return pattern.pattern.patterns().some(patternNeedsVM);
+    case "Or":
+      return pattern.pattern.patterns().some(patternNeedsVM);
+    case "Not":
+      return patternNeedsVM(pattern.pattern.pattern());
+    case "Capture":
+      return patternNeedsVM(pattern.pattern.pattern());
+    case "Search":
+    case "Traverse":
+      return true;
+    case "Group": {
+      // Group with exactly(1) is simple pass-through, doesn't need VM
+      const q = pattern.pattern.quantifier();
+      if (q.min() === 1 && q.max() === 1) {
+        return patternNeedsVM(pattern.pattern.pattern());
+      }
+      return true;
+    }
+  }
+}
+
+/**
  * Gets paths with captures for a pattern.
+ * Routes through the VM for complex patterns that require compilation.
  */
 export function patternPathsWithCaptures(
   pattern: Pattern,
   haystack: Envelope,
 ): [Path[], Map<string, Path[]>] {
+  if (patternNeedsVM(pattern)) {
+    return patternPathsWithCapturesViaVM(pattern, haystack);
+  }
   switch (pattern.type) {
     case "Leaf":
       return leafPatternPathsWithCaptures(pattern.pattern, haystack);
@@ -191,6 +236,31 @@ export function patternPathsWithCaptures(
     case "Meta":
       return metaPatternPathsWithCaptures(pattern.pattern, haystack);
   }
+}
+
+/**
+ * Execute a pattern through the VM, merging results.
+ */
+function patternPathsWithCapturesViaVM(
+  pattern: Pattern,
+  haystack: Envelope,
+): [Path[], Map<string, Path[]>] {
+  const prog = compile(pattern);
+  const results = run(prog, haystack);
+
+  const allPaths: Path[] = [];
+  const mergedCaptures = new Map<string, Path[]>();
+
+  for (const [path, captures] of results) {
+    allPaths.push(path);
+    for (const [name, paths] of captures) {
+      const existing = mergedCaptures.get(name) ?? [];
+      existing.push(...paths);
+      mergedCaptures.set(name, existing);
+    }
+  }
+
+  return [allPaths, mergedCaptures];
 }
 
 /**

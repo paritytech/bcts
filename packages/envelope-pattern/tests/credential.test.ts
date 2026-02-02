@@ -105,8 +105,7 @@ describe("Credential Pattern Tests", () => {
   });
 
   describe("Assertion Pattern Matching", () => {
-    // Note: These tests require full VM implementation for search traversal
-    it.skip("finds text or number assertions in credential", () => {
+    it("finds text or number assertions in credential", () => {
       const credential = createTestCredential();
 
       // Build the pattern: search for assertion objects that are text or number
@@ -122,8 +121,7 @@ describe("Credential Pattern Tests", () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    // Note: This test requires VM implementation for assertion pattern matching
-    it.skip("finds specific firstName assertion", () => {
+    it("finds specific firstName assertion", () => {
       const credential = createTestCredential();
 
       // Pattern: assertion with predicate "firstName"
@@ -136,16 +134,14 @@ describe("Credential Pattern Tests", () => {
       expect(paths.length).toBe(1);
     });
 
-    // Note: This test requires VM implementation for assertion pattern matching
-    it.skip("finds specific lastName assertion", () => {
+    it("finds specific lastName assertion", () => {
       const credential = createTestCredential();
 
       const pattern = assertionWithPredicate(text("lastName"));
       expect(patternMatches(pattern, credential)).toBe(true);
     });
 
-    // Note: This test requires VM implementation for assertion pattern matching
-    it.skip("does not find non-existent predicate", () => {
+    it("does not find non-existent predicate", () => {
       const credential = createTestCredential();
 
       const pattern = assertionWithPredicate(text("nonExistent"));
@@ -154,8 +150,7 @@ describe("Credential Pattern Tests", () => {
   });
 
   describe("Search Pattern Matching", () => {
-    // Search patterns require VM traversal for full functionality
-    it.skip("search finds all text assertions", () => {
+    it("search finds all text assertions", () => {
       const credential = createTestCredential();
       const result = parse("search(assertobj(text))");
       expect(result.ok).toBe(true);
@@ -165,7 +160,7 @@ describe("Credential Pattern Tests", () => {
       }
     });
 
-    it.skip("search finds firstName capture", () => {
+    it("search finds firstName capture", () => {
       const credential = createTestCredential();
       const result = parse('search(assertpred("firstName")->obj("James"))');
       expect(result.ok).toBe(true);
@@ -175,7 +170,7 @@ describe("Credential Pattern Tests", () => {
       }
     });
 
-    it.skip("search with capture propagation", () => {
+    it("search with capture propagation", () => {
       const credential = createTestCredential();
       const result = parse('search(@cap(assertpred("firstName")->obj("James")))');
       expect(result.ok).toBe(true);
@@ -214,7 +209,7 @@ describe("Credential Pattern Tests", () => {
 
   describe("Elided Pattern Search", () => {
     // Tests for finding elided elements in partially redacted credentials
-    it.skip("search finds elided elements in redacted credential", () => {
+    it("search finds elided elements in redacted credential", () => {
       // This would require actual selective elision support
       const result = parse("search(elided)");
       expect(result.ok).toBe(true);
@@ -235,6 +230,7 @@ describe("Credential Pattern Tests", () => {
       expect(result.ok).toBe(true);
     });
 
+    // TODO: Wrapped repeat pattern traversal requires further VM work
     it.skip("wrapped repeat matches wrapped credential", () => {
       const credential = createTestCredential().wrap();
       const result = parse("(wrapped)*->node");
@@ -245,6 +241,7 @@ describe("Credential Pattern Tests", () => {
       }
     });
 
+    // TODO: Wrapped repeat pattern traversal requires further VM work
     it.skip("search wrapped repeat finds all nodes", () => {
       const credential = createTestCredential().wrap();
       const result = parse("search((wrapped)*->node)");
@@ -258,13 +255,12 @@ describe("Credential Pattern Tests", () => {
   });
 
   describe("Node Structure Patterns", () => {
-    // Note: node({n}) syntax for assertion count is not yet implemented
-    it.skip("parses node with assertion count pattern", () => {
+    it("parses node with assertion count pattern", () => {
       const result = parse("search(node({13}))");
       expect(result.ok).toBe(true);
     });
 
-    it.skip("finds node with specific assertion count", () => {
+    it("finds node with specific assertion count", () => {
       const credential = createTestCredential();
       const result = parse("search(node({13}))");
       expect(result.ok).toBe(true);

@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { matchPattern, dispatchCompile, dispatchIsComplex, dispatchPatternToString } from "../matcher";
+import { matchPattern, dispatchPathsWithCaptures, dispatchCompile, dispatchIsComplex, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -46,10 +46,14 @@ export class OrPattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const anyMatch = this._patterns.some((pattern) => matchPattern(pattern, haystack));
-
-    const paths = anyMatch ? [[haystack]] : [];
-    return [paths, new Map<string, Path[]>()];
+    // Try each pattern and return paths+captures from the first match
+    for (const pattern of this._patterns) {
+      const [paths, captures] = dispatchPathsWithCaptures(pattern, haystack);
+      if (paths.length > 0) {
+        return [paths, captures];
+      }
+    }
+    return [[], new Map<string, Path[]>()];
   }
 
   paths(haystack: Envelope): Path[] {

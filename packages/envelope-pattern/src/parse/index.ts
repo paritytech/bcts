@@ -41,6 +41,8 @@ import {
   knownValue,
   anyArray,
   anyTag,
+  anyCbor,
+  cborPattern,
   nullPattern,
   // Structure pattern constructors
   leaf,
@@ -469,6 +471,7 @@ function parsePrimary(lexer: Lexer): Result<Pattern> {
     case "Comma":
     case "Ellipsis":
     case "Range":
+    case "Identifier":
       return err(unexpectedToken(token, span));
   }
 }
@@ -718,12 +721,35 @@ function parseCbor(lexer: Lexer): Result<Pattern> {
   // Check for optional content in parentheses
   const next = lexer.peekToken();
   if (next?.token.type !== "ParenOpen") {
-    return ok(patternLeaf(leafTag(TaggedPattern.any()))); // cbor matches any CBOR
+    return ok(anyCbor()); // cbor matches any CBOR value
   }
 
   lexer.next(); // consume (
 
-  // Parse inner content - this is a dcbor-pattern expression
+  // Check for dcbor-pattern regex syntax: cbor(/keyword/)
+  const peek = lexer.peekToken();
+  if (peek?.token.type === "Regex") {
+    lexer.next(); // consume Regex token
+    const regexToken = peek.token;
+    if (!regexToken.value.ok) return err(regexToken.value.error);
+    const keyword = regexToken.value.value;
+
+    // Parse the keyword as a dcbor-pattern expression
+    const dcborResult = parseDcborPattern(keyword);
+    if (!dcborResult.ok) {
+      return err(unexpectedToken(regexToken, peek.span));
+    }
+    const dcborPattern = dcborResult.value;
+
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+
+    return ok(cborPattern(dcborPattern));
+  }
+
+  // Parse inner content - this is a regular pattern expression
   const inner = parseOr(lexer);
   if (!inner.ok) return inner;
 
@@ -746,6 +772,24 @@ function parseNode(lexer: Lexer): Result<Pattern> {
   }
 
   lexer.next(); // consume (
+
+  // Check for assertion count range: node({n,m}), node({n}), node({n,})
+  const afterParen = lexer.peekToken();
+  if (afterParen?.token.type === "Range") {
+    lexer.next(); // consume Range token
+    const rangeToken = afterParen.token;
+    if (!rangeToken.value.ok) return err(rangeToken.value.error);
+    const quantifier = rangeToken.value.value;
+    const interval = quantifier.interval();
+
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+
+    return ok(patternStructure(structureNode(NodePattern.fromInterval(interval))));
+  }
+
   const inner = parseOr(lexer);
   if (!inner.ok) return inner;
 
@@ -845,6 +889,24 @@ function parseDigest(lexer: Lexer): Result<Pattern> {
       return err({ type: "ExpectedCloseParen", span: lexer.span() });
     }
     return ok(digestPrefix(digestToken.token.value.value));
+  }
+
+  // Accept raw hex string identifiers: digest(a1b2c3)
+  if (digestToken.token.type === "Identifier") {
+    const hexStr = digestToken.token.value;
+    // Validate hex string: must be even length and all hex digits
+    if (hexStr.length === 0 || hexStr.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hexStr)) {
+      return err({ type: "InvalidHexString", span: digestToken.span });
+    }
+    const bytes = new Uint8Array(hexStr.length / 2);
+    for (let i = 0; i < hexStr.length; i += 2) {
+      bytes[i / 2] = Number.parseInt(hexStr.slice(i, i + 2), 16);
+    }
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+    return ok(digestPrefix(bytes));
   }
 
   return err(unexpectedToken(digestToken.token, digestToken.span));

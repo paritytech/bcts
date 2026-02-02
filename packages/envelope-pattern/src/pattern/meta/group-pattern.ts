@@ -9,7 +9,7 @@
 import type { Envelope } from "@bcts/envelope";
 import { Quantifier } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
-import { matchPattern, dispatchPatternToString } from "../matcher";
+import { matchPattern, dispatchPathsWithCaptures, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -62,7 +62,11 @@ export class GroupPattern implements Matcher {
     return this._quantifier;
   }
 
-  pathsWithCaptures(_haystack: Envelope): [Path[], Map<string, Path[]>] {
+  pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
+    // For simple grouping (exactly 1), delegate to the inner pattern
+    if (this._quantifier.min() === 1 && this._quantifier.max() === 1) {
+      return dispatchPathsWithCaptures(this._pattern, haystack);
+    }
     throw new Error(
       "GroupPattern does not support pathsWithCaptures directly; use compile instead",
     );
