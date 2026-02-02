@@ -7,7 +7,7 @@
 import { Envelope } from "@bcts/envelope";
 import { Digest } from "@bcts/components";
 import { UR } from "@bcts/uniform-resources";
-import { XID, XIDDocument } from "@bcts/xid";
+import { XID } from "@bcts/xid";
 import * as readline from "readline";
 import { execSync, spawnSync } from "child_process";
 import * as fs from "fs";
@@ -278,12 +278,19 @@ export function envelopeFromUr(ur: UR): Envelope {
     // Ignore
   }
 
-  // Try as XID
+  // Try as XID (ur:xid contains untagged CBOR)
   if (ur.urTypeStr() === "xid") {
+    // First try: parse as bare XID (just the 32-byte identifier)
     try {
-      const xid = XID.fromTaggedCbor(ur.cbor());
-      const doc = XIDDocument.fromXid(xid);
-      return doc.toEnvelope();
+      const xid = XID.fromUR(ur);
+      return Envelope.newLeaf(xid.taggedCbor());
+    } catch {
+      // Ignore
+    }
+
+    // Second try: parse as envelope CBOR (XID document URs store envelope data)
+    try {
+      return Envelope.fromUntaggedCbor(ur.cbor());
     } catch {
       // Ignore
     }

@@ -88,6 +88,16 @@ export { type Error, type Result, Ok, Err, errorMsg, errorToString, CborError } 
 // Note: conveniences.ts is an internal module (not exported in Rust either)
 // The main convenience functions are exported from cbor.ts above
 
+// BigNum support (CBOR tags 2/3, RFC 8949 §3.4.3)
+export {
+  biguintToCbor,
+  bigintToCbor,
+  cborToBiguint,
+  cborToBigint,
+  biguintFromUntaggedCbor,
+  bigintFromNegativeUntaggedCbor,
+} from "./bignum";
+
 // Float utilities
 export { hasFractionalPart } from "./float";
 

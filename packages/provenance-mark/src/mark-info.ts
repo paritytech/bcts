@@ -74,7 +74,7 @@ export class ProvenanceMarkInfo {
     lines.push("---");
 
     lines.push("");
-    lines.push(this._mark.date().toISOString());
+    lines.push(this._mark.date().toISOString().replace(".000Z", "Z"));
 
     lines.push("");
     lines.push(`#### ${this._ur.toString()}`);

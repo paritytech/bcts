@@ -51,6 +51,7 @@ export {
   WrappedPattern,
   type WrappedPatternType,
   registerWrappedPatternFactory,
+  registerWrappedPatternDispatch,
 } from "./wrapped-pattern";
 
 // Import concrete types for use in StructurePattern

@@ -7,6 +7,8 @@ import {
   rngNextInClosedRangeI32,
   type RandomNumberGenerator,
 } from "@bcts/rand";
+import { SALT as SALT_KV } from "@bcts/known-values";
+import { Salt as SaltComponent } from "@bcts/components";
 
 /// Extension for adding salt to envelopes to prevent correlation.
 ///
@@ -38,8 +40,8 @@ import {
 // Envelope Prototype Extensions for Salted Assertions
 // ============================================================================
 
-/// The standard predicate for salt assertions
-export const SALT = "salt";
+/// The standard predicate for salt assertions (KnownValue matching Rust)
+export const SALT = SALT_KV;
 
 /// Minimum salt size in bytes (64 bits)
 const MIN_SALT_SIZE = 8;
@@ -73,7 +75,7 @@ if (Envelope?.prototype) {
     const envelopeSize = this.cborBytes().length;
     const saltSize = calculateProportionalSaltSize(envelopeSize, rng);
     const saltBytes = generateRandomBytes(saltSize, rng);
-    return this.addAssertion(SALT, saltBytes);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
   /// Implementation of addSaltWithLength()
@@ -82,7 +84,7 @@ if (Envelope?.prototype) {
       throw EnvelopeError.general(`Salt must be at least ${MIN_SALT_SIZE} bytes, got ${count}`);
     }
     const saltBytes = generateRandomBytes(count);
-    return this.addAssertion(SALT, saltBytes);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
   /// Alias for addSaltWithLength (Rust API compatibility)
@@ -95,7 +97,7 @@ if (Envelope?.prototype) {
         `Salt must be at least ${MIN_SALT_SIZE} bytes, got ${saltBytes.length}`,
       );
     }
-    return this.addAssertion(SALT, saltBytes);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
   /// Implementation of addSaltInRange()
@@ -117,7 +119,7 @@ if (Envelope?.prototype) {
     const rng = createSecureRng();
     const saltSize = rngNextInClosedRangeI32(rng, min, max);
     const saltBytes = generateRandomBytes(saltSize, rng);
-    return this.addAssertion(SALT, saltBytes);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
   /// Implementation of addAssertionSalted()

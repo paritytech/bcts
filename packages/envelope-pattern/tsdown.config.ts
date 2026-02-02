@@ -12,6 +12,7 @@ export default defineConfig({
   outputOptions: {
     globals: {
       "@bcts/dcbor": "bctsDcbor",
+      "@bcts/dcbor-parse": "bctsDcborParse",
       "@bcts/dcbor-pattern": "bctsDcborPattern",
       "@bcts/envelope": "bctsEnvelope",
       "@bcts/components": "bctsComponents",

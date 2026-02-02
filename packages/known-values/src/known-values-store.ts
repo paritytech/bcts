@@ -318,6 +318,16 @@ export class KnownValuesStore {
    * Internal helper method to insert a KnownValue into the store's maps.
    */
   private _insert(knownValue: KnownValue): void {
+    // If there's an existing value with the same codepoint, remove its name
+    // from the name index to avoid stale entries
+    const existing = this.knownValuesByRawValue.get(knownValue.valueBigInt());
+    if (existing !== undefined) {
+      const oldName = existing.assignedName();
+      if (oldName !== undefined && oldName !== "") {
+        this.knownValuesByAssignedName.delete(oldName);
+      }
+    }
+
     this.knownValuesByRawValue.set(knownValue.valueBigInt(), knownValue);
     const assignedName = knownValue.assignedName();
     if (assignedName !== undefined && assignedName !== "") {

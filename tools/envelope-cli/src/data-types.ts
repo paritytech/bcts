@@ -35,6 +35,8 @@ export enum DataType {
   Number = "number",
   /** UTF-8 String */
   String = "string",
+  /** Unit Known Value (deliberate emptiness, no value) */
+  Unit = "unit",
   /** Uniform Resource (UR) */
   Ur = "ur",
   /** URI */
@@ -53,6 +55,11 @@ export function parseDataTypeToEnvelope(
   value: string | undefined,
   urCborTagValue?: number | bigint,
 ): Envelope {
+  // Unit is special: it takes no value and represents deliberate emptiness
+  if (dataType === DataType.Unit) {
+    return Envelope.unit();
+  }
+
   if (value === undefined || value === "") {
     throw new Error("No value provided");
   }
@@ -126,12 +133,13 @@ function parseBoolean(s: string): Envelope {
 }
 
 /**
- * Parse a CBOR envelope from a hex string.
+ * Parse a CBOR value from a hex string into a leaf envelope.
+ * Unlike parseEnvelope, this wraps raw CBOR as a leaf, not a tagged envelope.
  */
 function parseCbor(s: string): Envelope {
   const bytes = hexToBytes(s);
   const cborValue = decodeCbor(bytes);
-  return Envelope.fromTaggedCbor(cborValue);
+  return Envelope.newLeaf(cborValue);
 }
 
 /**
@@ -232,7 +240,7 @@ function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
   if (resolvedTagValue !== undefined) {
     const urCbor = ur.cbor();
     const tagged = toTaggedValue(resolvedTagValue, urCbor);
-    return Envelope.fromTaggedCbor(tagged);
+    return Envelope.newLeaf(tagged);
   }
 
   throw new Error(`Unknown UR type: ${ur.urTypeStr()}`);

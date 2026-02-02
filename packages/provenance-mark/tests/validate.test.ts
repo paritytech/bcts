@@ -204,9 +204,10 @@ describe("Validation (Rust parity)", () => {
       expect(parsed.chains[0].sequences[1].end_seq).toBe(4);
 
       // First mark in second sequence should have gap issue
+      // Matches Rust serde format: #[serde(tag = "type", content = "data")]
       expect(parsed.chains[0].sequences[1].marks[0].issues[0].type).toBe("SequenceGap");
-      expect(parsed.chains[0].sequences[1].marks[0].issues[0].expected).toBe(2);
-      expect(parsed.chains[0].sequences[1].marks[0].issues[0].actual).toBe(3);
+      expect(parsed.chains[0].sequences[1].marks[0].issues[0].data.expected).toBe(2);
+      expect(parsed.chains[0].sequences[1].marks[0].issues[0].data.actual).toBe(3);
 
       // Text format should show gap
       const text = formatReport(report, ValidationReportFormat.Text);

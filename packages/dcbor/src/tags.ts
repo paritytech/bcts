@@ -41,6 +41,18 @@ export const TAG_POSITIVE_BIGNUM = 2;
 export const TAG_NEGATIVE_BIGNUM = 3;
 
 /**
+ * Name for tag 2 (positive bignum).
+ * Matches Rust's `TAG_NAME_POSITIVE_BIGNUM`.
+ */
+export const TAG_NAME_POSITIVE_BIGNUM = "positive-bignum";
+
+/**
+ * Name for tag 3 (negative bignum).
+ * Matches Rust's `TAG_NAME_NEGATIVE_BIGNUM`.
+ */
+export const TAG_NAME_NEGATIVE_BIGNUM = "negative-bignum";
+
+/**
  * Tag 4: Decimal fraction [exponent, mantissa]
  */
 export const TAG_DECIMAL_FRACTION = 4;
@@ -152,6 +164,7 @@ import type { TagsStore, SummarizerResult } from "./tags-store";
 import { getGlobalTagsStore } from "./tags-store";
 import { CborDate } from "./date";
 import type { Cbor } from "./cbor";
+import { biguintFromUntaggedCbor, bigintFromNegativeUntaggedCbor } from "./bignum";
 
 // Tag constants matching Rust
 export const TAG_DATE = 1;
@@ -177,6 +190,39 @@ export const registerTagsIn = (tagsStore: TagsStore): void => {
       return { ok: false, error: { type: "Custom", message } };
     }
   });
+
+  // Register bignum tags (matching Rust's #[cfg(feature = "num-bigint")] block)
+  const biguintTag = createTag(TAG_POSITIVE_BIGNUM, TAG_NAME_POSITIVE_BIGNUM);
+  const bigintTag = createTag(TAG_NEGATIVE_BIGNUM, TAG_NAME_NEGATIVE_BIGNUM);
+  tagsStore.insertAll([biguintTag, bigintTag]);
+
+  // Summarizer for tag 2 (positive bignum)
+  tagsStore.setSummarizer(
+    TAG_POSITIVE_BIGNUM,
+    (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
+      try {
+        const value = biguintFromUntaggedCbor(untaggedCbor);
+        return { ok: true, value: `bignum(${value})` };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { ok: false, error: { type: "Custom", message } };
+      }
+    },
+  );
+
+  // Summarizer for tag 3 (negative bignum)
+  tagsStore.setSummarizer(
+    TAG_NEGATIVE_BIGNUM,
+    (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
+      try {
+        const value = bigintFromNegativeUntaggedCbor(untaggedCbor);
+        return { ok: true, value: `bignum(${value})` };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { ok: false, error: { type: "Custom", message } };
+      }
+    },
+  );
 };
 
 /**

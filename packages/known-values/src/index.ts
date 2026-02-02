@@ -1,5 +1,6 @@
 export { KnownValue, TAG_KNOWN_VALUE, KNOWN_VALUE_TAG, type KnownValueInput } from "./known-value";
 export { KnownValuesStore } from "./known-values-store";
+export { loadBundledRegistries, type RegistryEntry, type RegistryFile } from "./bundled-registries";
 export {
   // =============================================================================
   // Raw Value Constants (_RAW)
@@ -114,6 +115,7 @@ export {
   TARGET_RAW,
   PARENT_RAW,
   CHILD_RAW,
+  SELF_RAW,
   // =============================================================================
   // KnownValue Constants
   // =============================================================================
@@ -227,6 +229,7 @@ export {
   TARGET,
   PARENT,
   CHILD,
+  SELF,
   // Registry
   KNOWN_VALUES,
   LazyKnownValues,

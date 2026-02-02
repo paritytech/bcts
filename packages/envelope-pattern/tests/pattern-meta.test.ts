@@ -114,8 +114,7 @@ describe("Meta Pattern Tests", () => {
   });
 
   describe("Capture Pattern", () => {
-    // Note: Capture patterns require VM implementation
-    it.skip("captures matching patterns", () => {
+    it("captures matching patterns", () => {
       const envelope = Envelope.new(42);
 
       const capturePat = capture("myNumber", anyNumber());
@@ -126,7 +125,7 @@ describe("Meta Pattern Tests", () => {
       expect(captures.get("myNumber")?.length).toBeGreaterThan(0);
     });
 
-    it.skip("does not capture when pattern does not match", () => {
+    it("does not capture when pattern does not match", () => {
       const envelope = Envelope.new("hello");
 
       const capturePat = capture("myNumber", anyNumber());
@@ -139,8 +138,7 @@ describe("Meta Pattern Tests", () => {
   });
 
   describe("Search Pattern", () => {
-    // Note: Search patterns require VM implementation for tree traversal
-    it.skip("searches for patterns in envelope tree", () => {
+    it("searches for patterns in envelope tree", () => {
       const envelope = Envelope.new("Alice").addAssertion("knows", "Bob").addAssertion("age", 30);
 
       // Search for any assertion

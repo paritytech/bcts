@@ -2,12 +2,17 @@
  * SSKR join command - 1:1 port of cmd/sskr/join.rs
  *
  * Join a set of SSKR shares back into the original envelope.
- *
- * NOTE: SSKR functionality is not yet implemented in the TypeScript version.
  */
 
+import { Envelope } from "@bcts/envelope";
 import type { Exec } from "../../exec.js";
 import { readStdinSync } from "../../utils.js";
+
+// SSKR extension methods are added to Envelope at import time
+// but the module augmentation uses relative paths that don't resolve across packages.
+const EnvelopeWithSskr = Envelope as typeof Envelope & {
+  sskrJoin(envelopes: Envelope[]): Envelope;
+};
 
 /**
  * Command arguments for the join command.
@@ -38,12 +43,16 @@ export class JoinCommand implements Exec {
       throw new Error("No share envelopes provided");
     }
 
-    // SSKR is not yet implemented in @bcts/envelope
-    // The Rust version uses Shamir's Secret Sharing for Key Recovery
-    throw new Error(
-      "SSKR join is not yet implemented in the TypeScript CLI. " +
-        "This requires SSKR (Sharded Secret Key Reconstruction) support in @bcts/envelope.",
-    );
+    // Parse each share string into an Envelope
+    const shareEnvelopes = shares.map((s) => Envelope.fromURString(s));
+
+    // Join the SSKR shares to recover the wrapped envelope
+    const wrapped = EnvelopeWithSskr.sskrJoin(shareEnvelopes);
+
+    // Unwrap to get the original envelope
+    const result = wrapped.unwrap();
+
+    return result.urString();
   }
 }
 

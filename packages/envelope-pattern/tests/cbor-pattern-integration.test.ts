@@ -12,8 +12,7 @@ import { parse, patternMatches } from "../src";
 
 describe("CBOR Pattern Integration Tests", () => {
   describe("DCBOR Pattern Integration", () => {
-    // Note: cbor(/pattern/) syntax parsing works but matching may require VM
-    it.skip("parses and matches number pattern", () => {
+    it("parses and matches number pattern", () => {
       const result = parse("cbor(/number/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -22,8 +21,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: cbor(/pattern/) syntax parsing works but matching may require VM
-    it.skip("parses and matches array pattern", () => {
+    it("parses and matches array pattern", () => {
       const result = parse("cbor(/array/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -33,8 +31,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: cbor(/pattern/) syntax parsing works but matching may require VM
-    it.skip("parses and matches text pattern", () => {
+    it("parses and matches text pattern", () => {
       const result = parse("cbor(/text/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -45,8 +42,7 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Any CBOR Pattern", () => {
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches any cbor value", () => {
+    it("matches any cbor value", () => {
       const envelope = Envelope.new(123);
 
       const result = parse("cbor");
@@ -56,8 +52,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches boolean cbor value", () => {
+    it("matches boolean cbor value", () => {
       const envelope = Envelope.new(true);
 
       const result = parse("cbor");
@@ -67,8 +62,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: "cbor" pattern may require specific implementation for any match
-    it.skip("matches text cbor value", () => {
+    it("matches text cbor value", () => {
       const envelope = Envelope.new("hello");
 
       const result = parse("cbor");
@@ -128,8 +122,7 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Complex CBOR Structures", () => {
-    // Note: Complex map parsing with string keys may have implementation differences
-    it.skip("matches map with string keys", () => {
+    it("matches map with string keys", () => {
       // Note: Map as Envelope subject requires CBOR wrapping
       const envelope = Envelope.new(
         new Map<string, unknown>([
@@ -174,14 +167,12 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Parsing Errors", () => {
-    // Note: In dcbor-pattern, uint and int may be valid patterns
-    it.skip("rejects invalid dcbor-pattern keyword uint", () => {
+    it("rejects invalid dcbor-pattern keyword uint", () => {
       const result = parse("cbor(/uint/)");
       expect(result.ok).toBe(false);
     });
 
-    // Note: In dcbor-pattern, uint and int may be valid patterns
-    it.skip("rejects invalid dcbor-pattern keyword int", () => {
+    it("rejects invalid dcbor-pattern keyword int", () => {
       const result = parse("cbor(/int/)");
       expect(result.ok).toBe(false);
     });
@@ -193,8 +184,7 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Direct DCBOR Patterns", () => {
-    // Note: cbor(/pattern/) matching requires proper dcbor integration
-    it.skip("number pattern matches integer", () => {
+    it("number pattern matches integer", () => {
       const result = parse("cbor(/number/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -203,8 +193,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: cbor(/pattern/) matching requires proper dcbor integration
-    it.skip("array pattern matches array", () => {
+    it("array pattern matches array", () => {
       const result = parse("cbor(/array/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -214,8 +203,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: cbor(/pattern/) matching requires proper dcbor integration
-    it.skip("text pattern matches string", () => {
+    it("text pattern matches string", () => {
       const result = parse("cbor(/text/)");
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -224,8 +212,7 @@ describe("CBOR Pattern Integration Tests", () => {
       }
     });
 
-    // Note: cbor(/pattern/) matching requires proper dcbor integration
-    it.skip("bool pattern matches boolean", () => {
+    it("bool pattern matches boolean", () => {
       const result = parse("cbor(/bool/)");
       expect(result.ok).toBe(true);
       if (result.ok) {

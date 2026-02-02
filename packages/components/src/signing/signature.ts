@@ -210,7 +210,7 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
       case SignatureScheme.Schnorr:
         return "Schnorr";
       case SignatureScheme.Ecdsa:
-        return "ECDSA";
+        return "Ecdsa";
       case SignatureScheme.Sr25519:
         return "Sr25519";
       case SignatureScheme.MLDSA44:
@@ -220,13 +220,13 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
       case SignatureScheme.MLDSA87:
         return "MLDSA-87";
       case SignatureScheme.SshEd25519:
-        return "SSH-Ed25519";
+        return "SshEd25519";
       case SignatureScheme.SshDsa:
-        return "SSH-DSA";
+        return "SshDsa";
       case SignatureScheme.SshEcdsaP256:
-        return "SSH-ECDSA-P256";
+        return "SshEcdsaP256";
       case SignatureScheme.SshEcdsaP384:
-        return "SSH-ECDSA-P384";
+        return "SshEcdsaP384";
       default:
         return this._type;
     }

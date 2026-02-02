@@ -8,9 +8,10 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { dispatchPaths, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaSearchPattern: ((pattern: SearchPattern) => Pattern) | undefined;
@@ -47,7 +48,6 @@ export class SearchPattern implements Matcher {
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     const resultPaths: Path[] = [];
-    const matcher = this._pattern as unknown as Matcher;
 
     // Walk the envelope tree
     this._walkEnvelope(haystack, [], (currentEnvelope, pathToCurrent) => {
@@ -55,7 +55,7 @@ export class SearchPattern implements Matcher {
       const newPath: Envelope[] = [...pathToCurrent, currentEnvelope];
 
       // Test the pattern against this node
-      const patternPaths = matcher.paths(currentEnvelope);
+      const patternPaths = dispatchPaths(this._pattern, currentEnvelope);
 
       // If the pattern matches, emit the full paths
       for (const patternPath of patternPaths) {
@@ -170,7 +170,7 @@ export class SearchPattern implements Matcher {
   }
 
   toString(): string {
-    return `search(${(this._pattern as unknown as { toString(): string }).toString()})`;
+    return `search(${dispatchPatternToString(this._pattern)})`;
   }
 
   /**

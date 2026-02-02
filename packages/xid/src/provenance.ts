@@ -9,13 +9,20 @@
 
 import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { PROVENANCE_GENERATOR, SALT, type KnownValue } from "@bcts/known-values";
-import { Salt } from "@bcts/components";
+import { Salt, type KeyDerivationMethod, defaultKeyDerivationMethod } from "@bcts/components";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
 import { ProvenanceMark, ProvenanceMarkGenerator } from "@bcts/provenance-mark";
-import { cborData, decodeCbor } from "@bcts/dcbor";
 import { XIDError } from "./error";
+
+// Encode generator JSON as bytes for storage in envelope
+const encodeGeneratorJSON = (json: Record<string, unknown>): Uint8Array =>
+  new TextEncoder().encode(JSON.stringify(json));
+
+// Decode generator JSON from bytes stored in envelope
+const decodeGeneratorJSON = (data: Uint8Array): Record<string, unknown> =>
+  JSON.parse(new TextDecoder().decode(data)) as Record<string, unknown>;
 
 /**
  * Options for handling generators in envelopes.
@@ -37,6 +44,7 @@ export enum XIDGeneratorOptions {
 export interface XIDGeneratorEncryptConfig {
   type: XIDGeneratorOptions.Encrypt;
   password: Uint8Array;
+  method?: KeyDerivationMethod;
 }
 
 /**
@@ -150,7 +158,8 @@ export class Provenance implements EnvelopeEncodable {
    */
   generatorMut(password?: Uint8Array): ProvenanceMarkGenerator | undefined {
     type EnvelopeExt = Envelope & {
-      decryptSubject(p: Uint8Array): Envelope;
+      unlockSubject(p: Uint8Array): Envelope;
+      subject(): Envelope;
       tryUnwrap(): Envelope;
       asByteString(): Uint8Array | undefined;
     };
@@ -165,12 +174,12 @@ export class Provenance implements EnvelopeEncodable {
     if (password !== undefined) {
       const encryptedEnvelope = this._generator.data.envelope as EnvelopeExt;
       try {
-        const decrypted = encryptedEnvelope.decryptSubject(password) as EnvelopeExt;
-        const unwrapped = decrypted.tryUnwrap() as EnvelopeExt;
+        const decrypted = encryptedEnvelope.unlockSubject(password) as EnvelopeExt;
+        const unwrapped = (decrypted.subject() as EnvelopeExt).tryUnwrap() as EnvelopeExt;
         // Extract generator from unwrapped envelope
         const generatorData = unwrapped.asByteString();
         if (generatorData !== undefined) {
-          const json = decodeCbor(generatorData) as unknown as Record<string, unknown>;
+          const json = decodeGeneratorJSON(generatorData);
           const generator = ProvenanceMarkGenerator.fromJSON(json);
           // Replace encrypted with decrypted
           this._generator = {
@@ -188,13 +197,54 @@ export class Provenance implements EnvelopeEncodable {
   }
 
   /**
+   * Get the generator envelope, optionally decrypting it.
+   *
+   * Returns:
+   * - undefined if no generator
+   * - An envelope containing the generator if unencrypted
+   * - The decrypted envelope if encrypted + correct password
+   * - The encrypted envelope as-is if encrypted + no password
+   * - Throws on wrong password
+   */
+  generatorEnvelope(password?: string): Envelope | undefined {
+    type EnvelopeExt = Envelope & {
+      unlockSubject(p: Uint8Array): Envelope;
+      subject(): Envelope;
+      tryUnwrap(): Envelope;
+    };
+
+    if (this._generator === undefined) {
+      return undefined;
+    }
+    const { data } = this._generator;
+    if (data.type === "decrypted") {
+      const generatorBytes = encodeGeneratorJSON(data.generator.toJSON());
+      return Envelope.new(generatorBytes);
+    }
+    // Encrypted case
+    if (password !== undefined) {
+      try {
+        const decrypted = (data.envelope as EnvelopeExt).unlockSubject(
+          new TextEncoder().encode(password),
+        ) as EnvelopeExt;
+        const unwrapped = (decrypted.subject() as EnvelopeExt).tryUnwrap();
+        return unwrapped;
+      } catch {
+        throw XIDError.invalidPassword();
+      }
+    }
+    // No password — return encrypted envelope as-is
+    return data.envelope;
+  }
+
+  /**
    * Convert to envelope with specified options.
    */
   intoEnvelopeOpt(generatorOptions: XIDGeneratorOptionsValue = XIDGeneratorOptions.Omit): Envelope {
     type EnvelopeExt = Envelope & {
       elide(): Envelope;
       wrap(): Envelope;
-      encryptSubject(p: Uint8Array): Envelope;
+      lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;
     };
 
     // Create envelope with the mark as subject
@@ -215,13 +265,13 @@ export class Provenance implements EnvelopeEncodable {
 
         switch (option) {
           case XIDGeneratorOptions.Include: {
-            const generatorBytes = cborData(data.generator.toJSON());
+            const generatorBytes = encodeGeneratorJSON(data.generator.toJSON());
             envelope = envelope.addAssertion(kv(PROVENANCE_GENERATOR), generatorBytes);
             envelope = envelope.addAssertion(kv(SALT), salt.toData());
             break;
           }
           case XIDGeneratorOptions.Elide: {
-            const generatorBytes2 = cborData(data.generator.toJSON());
+            const generatorBytes2 = encodeGeneratorJSON(data.generator.toJSON());
             const baseAssertion = Envelope.newAssertion(kv(PROVENANCE_GENERATOR), generatorBytes2);
             const elidedAssertion = (baseAssertion as EnvelopeExt).elide();
             envelope = envelope.addAssertionEnvelope(elidedAssertion);
@@ -230,10 +280,15 @@ export class Provenance implements EnvelopeEncodable {
           }
           case XIDGeneratorOptions.Encrypt: {
             if (typeof generatorOptions === "object") {
-              const generatorBytes3 = cborData(data.generator.toJSON());
+              const generatorBytes3 = encodeGeneratorJSON(data.generator.toJSON());
               const generatorEnvelope = Envelope.new(generatorBytes3) as EnvelopeExt;
               const wrapped = generatorEnvelope.wrap() as EnvelopeExt;
-              const encrypted = wrapped.encryptSubject(generatorOptions.password);
+              const method: KeyDerivationMethod =
+                generatorOptions.method ?? defaultKeyDerivationMethod();
+              const encrypted = (wrapped as unknown as EnvelopeExt).lockSubject(
+                method,
+                generatorOptions.password,
+              );
               envelope = envelope.addAssertion(kv(PROVENANCE_GENERATOR), encrypted);
               envelope = envelope.addAssertion(kv(SALT), salt.toData());
             }
@@ -261,8 +316,10 @@ export class Provenance implements EnvelopeEncodable {
   static tryFromEnvelope(envelope: Envelope, password?: Uint8Array): Provenance {
     type EnvelopeExt = Envelope & {
       asByteString(): Uint8Array | undefined;
+      subject(): Envelope;
       assertionsWithPredicate(p: unknown): Envelope[];
-      decryptSubject(p: Uint8Array): Envelope;
+      unlockSubject(p: Uint8Array): Envelope;
+      isLockedWithPassword(): boolean;
       tryUnwrap(): Envelope;
     };
     const env = envelope as EnvelopeExt;
@@ -304,16 +361,15 @@ export class Provenance implements EnvelopeEncodable {
       if (assertionCase.type === "assertion") {
         const generatorObject = assertionCase.assertion.object() as EnvelopeExt;
 
-        // Check if encrypted
-        const objCase = generatorObject.case();
-        if (objCase.type === "encrypted") {
+        // Check if locked with password (uses hasSecret assertion with EncryptedKey)
+        if (generatorObject.isLockedWithPassword()) {
           if (password !== undefined) {
             try {
-              const decrypted = generatorObject.decryptSubject(password) as EnvelopeExt;
-              const unwrapped = decrypted.tryUnwrap() as EnvelopeExt;
+              const decrypted = generatorObject.unlockSubject(password) as EnvelopeExt;
+              const unwrapped = (decrypted.subject() as EnvelopeExt).tryUnwrap() as EnvelopeExt;
               const generatorData = unwrapped.asByteString();
               if (generatorData !== undefined) {
-                const json = decodeCbor(generatorData) as unknown as Record<string, unknown>;
+                const json = decodeGeneratorJSON(generatorData);
                 const gen = ProvenanceMarkGenerator.fromJSON(json);
                 generator = {
                   data: { type: "decrypted", generator: gen },
@@ -338,7 +394,7 @@ export class Provenance implements EnvelopeEncodable {
           // Plain text generator
           const generatorData = generatorObject.asByteString();
           if (generatorData !== undefined) {
-            const json2 = decodeCbor(generatorData) as unknown as Record<string, unknown>;
+            const json2 = decodeGeneratorJSON(generatorData);
             const gen = ProvenanceMarkGenerator.fromJSON(json2);
             generator = {
               data: { type: "decrypted", generator: gen },

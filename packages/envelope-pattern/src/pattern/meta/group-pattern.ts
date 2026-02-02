@@ -9,9 +9,10 @@
 import type { Envelope } from "@bcts/envelope";
 import { Quantifier } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { matchPattern, dispatchPathsWithCaptures, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaGroupPattern: ((pattern: GroupPattern) => Pattern) | undefined;
@@ -62,7 +63,11 @@ export class GroupPattern implements Matcher {
     return this._quantifier;
   }
 
-  pathsWithCaptures(_haystack: Envelope): [Path[], Map<string, Path[]>] {
+  pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
+    // For simple grouping (exactly 1), delegate to the inner pattern
+    if (this._quantifier.min() === 1 && this._quantifier.max() === 1) {
+      return dispatchPathsWithCaptures(this._pattern, haystack);
+    }
     throw new Error(
       "GroupPattern does not support pathsWithCaptures directly; use compile instead",
     );
@@ -73,9 +78,7 @@ export class GroupPattern implements Matcher {
   }
 
   matches(haystack: Envelope): boolean {
-    // GroupPattern needs VM execution
-    const matcher = this._pattern as unknown as Matcher;
-    return matcher.matches(haystack);
+    return matchPattern(this._pattern, haystack);
   }
 
   compile(code: Instr[], literals: Pattern[], _captures: string[]): void {
@@ -90,7 +93,7 @@ export class GroupPattern implements Matcher {
 
   toString(): string {
     const formattedRange = this._quantifier.toString();
-    return `(${(this._pattern as unknown as { toString(): string }).toString()})${formattedRange}`;
+    return `(${dispatchPatternToString(this._pattern)})${formattedRange}`;
   }
 
   /**

@@ -199,6 +199,12 @@ export type CborDecoder<T> = (cbor: Cbor) => T;
 /// Since TypeScript doesn't have trait bounds on generics, we pass a decoder
 /// function explicitly.
 ///
+/// Handles all envelope case types:
+/// - leaf: decodes the CBOR value
+/// - knownValue: converts to tagged CBOR then decodes
+/// - wrapped: recurses into the inner envelope
+/// - node: recurses on the subject
+///
 /// @example
 /// ```typescript
 /// const envelope = Envelope.new(myEncryptedKey.taggedCbor());
@@ -207,16 +213,50 @@ export type CborDecoder<T> = (cbor: Cbor) => T;
 ///
 /// @param decoder - Function to decode CBOR to type T
 /// @returns The decoded value of type T
-/// @throws {EnvelopeError} If the envelope is not a leaf or decoding fails
+/// @throws {EnvelopeError} If the envelope case is unsupported or decoding fails
 export function extractSubject<T>(envelope: Envelope, decoder: CborDecoder<T>): T {
-  const cbor = envelope.subject().tryLeaf();
-  try {
-    return decoder(cbor);
-  } catch (error) {
-    throw EnvelopeError.cbor(
-      "failed to decode subject",
-      error instanceof Error ? error : undefined,
-    );
+  const subject = envelope.subject();
+  const c = subject.case();
+
+  switch (c.type) {
+    case "leaf":
+      try {
+        return decoder(c.cbor);
+      } catch (error) {
+        throw EnvelopeError.cbor(
+          "failed to decode subject",
+          error instanceof Error ? error : undefined,
+        );
+      }
+    case "knownValue":
+      try {
+        return decoder(c.value.taggedCbor());
+      } catch (error) {
+        throw EnvelopeError.cbor(
+          "failed to decode subject",
+          error instanceof Error ? error : undefined,
+        );
+      }
+    case "wrapped":
+      return extractSubject(c.envelope, decoder);
+    case "node":
+      return extractSubject(c.subject, decoder);
+    case "assertion":
+      try {
+        return decoder(c.assertion.toCbor());
+      } catch {
+        throw EnvelopeError.invalidFormat();
+      }
+    case "elided":
+      try {
+        return decoder(c.digest.taggedCbor());
+      } catch {
+        throw EnvelopeError.invalidFormat();
+      }
+    case "encrypted":
+      throw EnvelopeError.invalidFormat();
+    case "compressed":
+      throw EnvelopeError.invalidFormat();
   }
 }
 

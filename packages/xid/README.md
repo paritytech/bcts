@@ -12,4 +12,4 @@ XIDs and XID documents are discussed in [this paper](https://hackmd.io/@bc-commu
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-xid-rust](https://github.com/BlockchainCommons/bc-xid-rust) **v0.18.0** ([commit](https://github.com/BlockchainCommons/bc-xid-rust/tree/5252859b456d1a751be1e690514cc8cfc7680a04)).
+This TypeScript implementation is based on [bc-xid-rust](https://github.com/BlockchainCommons/bc-xid-rust) **v0.21.0** ([commit](https://github.com/BlockchainCommons/bc-xid-rust/tree/f0dc62187fc728d92063ee0ff456a9552a4698cf)).

@@ -8,9 +8,15 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { type Matcher, matchPattern } from "../matcher";
+import {
+  dispatchPathsWithCaptures,
+  dispatchCompile,
+  dispatchIsComplex,
+  dispatchPatternToString,
+} from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaOrPattern: ((pattern: OrPattern) => Pattern) | undefined;
@@ -46,10 +52,14 @@ export class OrPattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const anyMatch = this._patterns.some((pattern) => matchPattern(pattern, haystack));
-
-    const paths = anyMatch ? [[haystack]] : [];
-    return [paths, new Map<string, Path[]>()];
+    // Try each pattern and return paths+captures from the first match
+    for (const pattern of this._patterns) {
+      const [paths, captures] = dispatchPathsWithCaptures(pattern, haystack);
+      if (paths.length > 0) {
+        return [paths, captures];
+      }
+    }
+    return [[], new Map<string, Path[]>()];
   }
 
   paths(haystack: Envelope): Path[] {
@@ -83,8 +93,7 @@ export class OrPattern implements Matcher {
 
       // Compile this pattern
       const pattern = this._patterns[i];
-      const matcher = pattern as unknown as Matcher;
-      matcher.compile(code, literals, captures);
+      dispatchCompile(pattern, code, literals, captures);
 
       // This pattern will jump to the end if it matches
       const jumpPastAll = code.length;
@@ -108,15 +117,11 @@ export class OrPattern implements Matcher {
   isComplex(): boolean {
     // The pattern is complex if it contains more than one pattern, or if
     // the one pattern is complex itself.
-    return (
-      this._patterns.length > 1 || this._patterns.some((p) => (p as unknown as Matcher).isComplex())
-    );
+    return this._patterns.length > 1 || this._patterns.some((p) => dispatchIsComplex(p));
   }
 
   toString(): string {
-    return this._patterns
-      .map((p) => (p as unknown as { toString(): string }).toString())
-      .join(" | ");
+    return this._patterns.map((p) => dispatchPatternToString(p)).join(" | ");
   }
 
   /**

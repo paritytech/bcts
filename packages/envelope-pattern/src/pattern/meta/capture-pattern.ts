@@ -8,9 +8,10 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { dispatchPathsWithCaptures, dispatchCompile, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaCapturePattern: ((pattern: CapturePattern) => Pattern) | undefined;
@@ -55,8 +56,7 @@ export class CapturePattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const matcher = this._pattern as unknown as Matcher;
-    const [paths, caps] = matcher.pathsWithCaptures(haystack);
+    const [paths, caps] = dispatchPathsWithCaptures(this._pattern, haystack);
 
     if (paths.length > 0) {
       const existing = caps.get(this._name) ?? [];
@@ -78,8 +78,7 @@ export class CapturePattern implements Matcher {
     const id = captures.length;
     captures.push(this._name);
     code.push({ type: "CaptureStart", captureIndex: id });
-    const matcher = this._pattern as unknown as Matcher;
-    matcher.compile(code, literals, captures);
+    dispatchCompile(this._pattern, code, literals, captures);
     code.push({ type: "CaptureEnd", captureIndex: id });
   }
 
@@ -88,7 +87,7 @@ export class CapturePattern implements Matcher {
   }
 
   toString(): string {
-    return `@${this._name}(${(this._pattern as unknown as { toString(): string }).toString()})`;
+    return `@${this._name}(${dispatchPatternToString(this._pattern)})`;
   }
 
   /**

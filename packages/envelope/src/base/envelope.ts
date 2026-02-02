@@ -29,13 +29,15 @@ import type {
   Verifier,
   Signature,
   SignatureMetadata,
+  SigningOptions,
 } from "../extension";
 import type { UR } from "@bcts/uniform-resources";
 import type { TreeFormatOptions } from "../format/tree";
 import type { EnvelopeFormatOpts } from "../format/notation";
 import type { MermaidFormatOpts } from "../format/mermaid";
 import type { FormatContext } from "../format/format-context";
-import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce } from "@bcts/components";
+import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce, SSKRSpec } from "@bcts/components";
+import type { RandomNumberGenerator } from "@bcts/rand";
 
 /// Import tag values from the tags registry
 /// These match the Rust reference implementation in bc-tags-rust
@@ -485,7 +487,9 @@ export class Envelope implements DigestProvider {
   ///
   /// @returns `true` if the subject is an assertion, `false` otherwise
   isSubjectAssertion(): boolean {
-    return this._case.type === "assertion";
+    if (this._case.type === "assertion") return true;
+    if (this._case.type === "node") return this._case.subject.isSubjectAssertion();
+    return false;
   }
 
   /// Checks if the envelope's subject is obscured (elided, encrypted, or compressed).
@@ -877,6 +881,7 @@ export class Envelope implements DigestProvider {
   ) => Set<Digest>;
   declare walkUnelide: (envelopes: Envelope[]) => Envelope;
   declare walkReplace: (target: Set<Digest>, replacement: Envelope) => Envelope;
+  declare isEquivalentTo: (other: Envelope) => boolean;
   declare isIdenticalTo: (other: Envelope) => boolean;
 
   // From leaf.ts
@@ -1004,6 +1009,21 @@ export class Envelope implements DigestProvider {
   declare attachmentWithVendorAndConformsTo: (vendor?: string, conformsTo?: string) => Envelope;
   declare validateAttachment: () => void;
 
+  // From edge.ts (BCR-2026-003)
+  declare addEdgeEnvelope: (edge: Envelope) => Envelope;
+  declare edges: () => Envelope[];
+  declare validateEdge: () => void;
+  declare edgeIsA: () => Envelope;
+  declare edgeSource: () => Envelope;
+  declare edgeTarget: () => Envelope;
+  declare edgeSubject: () => Envelope;
+  declare edgesMatching: (
+    isA?: Envelope,
+    source?: Envelope,
+    target?: Envelope,
+    subject?: Envelope,
+  ) => Envelope[];
+
   // From compress.ts
   declare compress: () => Envelope;
   declare decompress: () => Envelope;
@@ -1037,7 +1057,10 @@ export class Envelope implements DigestProvider {
   declare encryptToRecipients: (recipients: Encrypter[]) => Envelope;
   declare recipients: () => SealedMessage[];
 
-  // From seal.ts - encryptToRecipient, seal, unseal declared in seal.ts module augmentation
+  // From seal.ts
+  declare encryptToRecipient: (recipient: Encrypter) => Envelope;
+  declare seal: (sender: Signer, recipient: Encrypter) => Envelope;
+  declare unseal: (senderPublicKey: Verifier, recipient: Decrypter) => Envelope;
 
   // From salt.ts
   declare addSalt: () => Envelope;
@@ -1046,37 +1069,45 @@ export class Envelope implements DigestProvider {
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
   declare addSaltInRange: (min: number, max: number) => Envelope;
 
-  // From signature.ts
+  // From signature.ts — matches bc-envelope-rust/src/extension/signature/signature_impl.rs
   declare addSignature: (signer: Signer) => Envelope;
-  declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare addSignatureOpt: (
     signer: Signer,
-    options?: unknown,
+    options?: SigningOptions,
     metadata?: SignatureMetadata,
   ) => Envelope;
+  declare addSignatureWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare addSignatures: (signers: Signer[]) => Envelope;
+  declare addSignaturesOpt: (
+    signersWithOptions: {
+      signer: Signer;
+      options?: SigningOptions;
+      metadata?: SignatureMetadata;
+    }[],
+  ) => Envelope;
   declare addSignaturesWithMetadata: (
     signersWithMetadata: { signer: Signer; metadata?: SignatureMetadata }[],
   ) => Envelope;
+  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
+  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
+  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
   declare hasSignatureFrom: (verifier: Verifier) => boolean;
-  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
-  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold: number) => boolean;
   declare hasSignatureFromReturningMetadata: (verifier: Verifier) => Envelope | undefined;
   declare verifySignatureFrom: (verifier: Verifier) => Envelope;
+  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare hasSignaturesFrom: (verifiers: Verifier[]) => boolean;
+  declare hasSignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => boolean;
   declare verifySignaturesFrom: (verifiers: Verifier[]) => Envelope;
   declare verifySignaturesFromThreshold: (verifiers: Verifier[], threshold?: number) => Envelope;
-  declare verifySignatureFromReturningMetadata: (verifier: Verifier) => Envelope;
+  declare signatures: () => Envelope[];
   declare sign: (signer: Signer) => Envelope;
+  declare signOpt: (signer: Signer, options?: SigningOptions) => Envelope;
   declare signWithMetadata: (signer: Signer, metadata?: SignatureMetadata) => Envelope;
   declare verify: (verifier: Verifier) => Envelope;
   declare verifyReturningMetadata: (verifier: Verifier) => {
     envelope: Envelope;
-    metadata?: SignatureMetadata;
+    metadata: Envelope;
   };
-  declare signatures: () => Envelope[];
-  declare makeSignedAssertion: (signature: Signature, note?: string) => Envelope;
-  declare isVerifiedSignature: (signature: Signature, verifier: Verifier) => boolean;
-  declare verifySignature: (signature: Signature, verifier: Verifier) => Envelope;
 
   // From types.ts
   declare addType: (object: EnvelopeEncodableValue) => Envelope;
@@ -1119,6 +1150,16 @@ export class Envelope implements DigestProvider {
   ) => Envelope;
   declare lock: (method: KeyDerivationMethod, secret: Uint8Array) => Envelope;
   declare unlock: (secret: Uint8Array) => Envelope;
+
+  // From extension/sskr.ts
+  declare sskrSplit: (spec: SSKRSpec, contentKey: SymmetricKey) => Envelope[][];
+  declare sskrSplitFlattened: (spec: SSKRSpec, contentKey: SymmetricKey) => Envelope[];
+  declare sskrSplitUsing: (
+    spec: SSKRSpec,
+    contentKey: SymmetricKey,
+    rng: RandomNumberGenerator,
+  ) => Envelope[][];
+  declare static sskrJoin: (envelopes: Envelope[]) => Envelope;
 
   // CBOR methods
   declare toCbor: () => unknown;

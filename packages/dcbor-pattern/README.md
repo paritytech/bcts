@@ -10,4 +10,4 @@ The pattern language is designed to be expressive yet concise, allowing you to m
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-dcbor-pattern-rust](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust) **v0.10.0** ([commit](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust/tree/b8fbfa0aad2a38ce18fa4ca33d2bb5481fa80038)).
+This TypeScript implementation is based on [bc-dcbor-pattern-rust](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust) **v0.11.1** ([commit](https://github.com/BlockchainCommons/bc-dcbor-pattern-rust/tree/f796d7560f8d39b57b9c1e925cb932ee70860804)).

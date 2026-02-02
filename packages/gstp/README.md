@@ -14,4 +14,4 @@ A key feature of GSTP is Encrypted State Continuations (ESC), which embed encryp
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [gstp-rust](https://github.com/BlockchainCommons/gstp-rust) **v0.13.0** ([commit](https://github.com/BlockchainCommons/gstp-rust/tree/b2cfee1203b4e395ac5d58ac7a43ec226d56c187)).
+This TypeScript implementation is based on [gstp-rust](https://github.com/BlockchainCommons/gstp-rust) **v0.13.0** ([commit](https://github.com/BlockchainCommons/gstp-rust/tree/020a85fe101e24eaced2f830d53a43af29f9cd89)).

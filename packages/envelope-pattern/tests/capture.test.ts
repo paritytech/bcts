@@ -53,25 +53,25 @@ describe("Capture Tests", () => {
   describe("Simple Capture Matching", () => {
     // Note: Capture patterns require VM implementation to work with pathsWithCaptures
     // These tests verify pattern construction and are skipped for matching
-    it.skip("capture pattern matches when inner pattern matches", () => {
+    it("capture pattern matches when inner pattern matches", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", number(42));
       expect(patternMatches(capturePat, envelope)).toBe(true);
     });
 
-    it.skip("capture pattern does not match when inner pattern fails", () => {
+    it("capture pattern does not match when inner pattern fails", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", number(43));
       expect(patternMatches(capturePat, envelope)).toBe(false);
     });
 
-    it.skip("capture pattern with anyNumber matches numbers", () => {
+    it("capture pattern with anyNumber matches numbers", () => {
       const envelope = Envelope.new(42);
       const capturePat = capture("num", anyNumber());
       expect(patternMatches(capturePat, envelope)).toBe(true);
     });
 
-    it.skip("capture pattern with anyNumber does not match non-numbers", () => {
+    it("capture pattern with anyNumber does not match non-numbers", () => {
       const envelope = Envelope.new("hello");
       const capturePat = capture("num", anyNumber());
       expect(patternMatches(capturePat, envelope)).toBe(false);
@@ -80,7 +80,7 @@ describe("Capture Tests", () => {
 
   describe("Capture Path Extraction", () => {
     // These tests require full VM implementation for capture extraction
-    it.skip("captures simple number with paths", () => {
+    it("captures simple number with paths", () => {
       const envelope = Envelope.new(42);
       const result = parse("@num(42)");
       expect(result.ok).toBe(true);
@@ -97,7 +97,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("captures multiple or patterns", () => {
+    it("captures multiple or patterns", () => {
       const envelope = Envelope.new(42);
       const result = parse("@num(42)|@num(>40)");
       expect(result.ok).toBe(true);
@@ -110,7 +110,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("captures nested patterns", () => {
+    it("captures nested patterns", () => {
       const envelope = Envelope.new(42);
       const result = parse("@outer(@inner(42))");
       expect(result.ok).toBe(true);
@@ -124,7 +124,7 @@ describe("Capture Tests", () => {
       }
     });
 
-    it.skip("returns empty captures for no match", () => {
+    it("returns empty captures for no match", () => {
       const envelope = Envelope.new(1);
       const result = parse("@n(2)");
       expect(result.ok).toBe(true);

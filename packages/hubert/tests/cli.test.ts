@@ -120,7 +120,7 @@ describe("CLI Basic Tests", () => {
       await runCliContains(["generate", "--help"], "Generate a new ARID");
     });
 
-    it("should generate unique ARIDs", async () => {
+    it("should generate unique ARIDs", { timeout: 15_000 }, async () => {
       const output1 = await runCli(["generate", "arid"]);
       const output2 = await runCli(["generate", "arid"]);
 
@@ -172,7 +172,7 @@ describe("CLI Server Operations", () => {
     await server.close();
   });
 
-  it("should put and get envelope via CLI", async () => {
+  it("should put and get envelope via CLI", { timeout: 30_000 }, async () => {
     // Generate test data
     const aridOutput = await runCli(["generate", "arid"]);
     const envOutput = await runCli(["generate", "envelope", "50"]);

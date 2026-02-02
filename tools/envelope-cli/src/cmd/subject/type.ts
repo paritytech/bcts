@@ -5,7 +5,7 @@
  */
 
 import type { Exec } from "../../exec.js";
-import { parseDataTypeToEnvelope } from "../../data-types.js";
+import { DataType, parseDataTypeToEnvelope } from "../../data-types.js";
 import { readSubjectValue, type SubjectArgsLike } from "../../subject-args.js";
 
 /**
@@ -20,7 +20,9 @@ export class TypeCommand implements Exec {
   constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
-    const subjectValue = readSubjectValue(this.args);
+    // Unit type takes no value - handle it specially
+    const subjectValue =
+      this.args.subjectType === DataType.Unit ? undefined : readSubjectValue(this.args);
     return parseDataTypeToEnvelope(this.args.subjectType, subjectValue, this.args.urTag).urString();
   }
 }

@@ -64,5 +64,8 @@ export {
   XIDVerifySignature,
 } from "./xid-document";
 
+// Re-export Attachments and Edges from envelope for convenience
+export { Attachments, Edges, type Edgeable } from "@bcts/envelope";
+
 // Version information
 export const VERSION = "1.0.0-alpha.3";

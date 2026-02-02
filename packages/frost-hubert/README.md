@@ -32,4 +32,4 @@ For more details, see the [frosTS](https://github.com/leonardocustodio/frosts).
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [frost-hubert-rust](https://github.com/BlockchainCommons/frost-hubert-rust).
+This TypeScript implementation is based on [frost-hubert-rust](https://github.com/BlockchainCommons/frost-hubert-rust) **v0.1.0** ([commit](https://github.com/BlockchainCommons/frost-hubert-rust/tree/d04850aea6d84f751920a86f867ca7d0defdad7e)).

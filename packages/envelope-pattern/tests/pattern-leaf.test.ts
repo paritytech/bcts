@@ -51,8 +51,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(bool(false), falseEnv)).toBe(true);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches boolean subjects with assertions", () => {
+    it("matches boolean subjects with assertions", () => {
       const envelope = Envelope.new(true).addAssertion("an", "assertion");
       expect(patternMatches(anyBool(), envelope)).toBe(true);
       expect(patternMatches(bool(true), envelope)).toBe(true);
@@ -88,8 +87,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(numberLessThan(42), envelope)).toBe(false);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches number subjects with assertions", () => {
+    it("matches number subjects with assertions", () => {
       const envelope = Envelope.new(42).addAssertion("an", "assertion");
       expect(patternMatches(anyNumber(), envelope)).toBe(true);
       expect(patternMatches(number(42), envelope)).toBe(true);
@@ -116,8 +114,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(textRegex(/^world/), envelope)).toBe(false);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches text subjects with assertions", () => {
+    it("matches text subjects with assertions", () => {
       const envelope = Envelope.new("hello").addAssertion("greeting", "world");
       expect(patternMatches(anyText(), envelope)).toBe(true);
       expect(patternMatches(text("hello"), envelope)).toBe(true);
@@ -142,8 +139,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(byteString(new Uint8Array([1, 2, 3])), envelope)).toBe(false);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches bytestring subjects with assertions", () => {
+    it("matches bytestring subjects with assertions", () => {
       const helloBytes = new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f]); // "Hello"
       // Note: Use Uint8Array directly for byte string envelopes
       const envelope = Envelope.new(helloBytes).addAssertion("type", "greeting");
@@ -171,8 +167,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(anyArray(), envelope)).toBe(true);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches array subjects with assertions", () => {
+    it("matches array subjects with assertions", () => {
       // Note: Array as Envelope subject requires CBOR wrapping
       const envelope = Envelope.new([1, 2, 3] as unknown as number).addAssertion("type", "list");
       expect(patternMatches(anyArray(), envelope)).toBe(true);
@@ -197,8 +192,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(anyMap(), envelope)).toBe(true);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches map subjects with assertions", () => {
+    it("matches map subjects with assertions", () => {
       // Note: Map as Envelope subject requires CBOR wrapping
       const envelope = Envelope.new(new Map([["key", "value"]]) as unknown as string).addAssertion(
         "type",
@@ -219,8 +213,7 @@ describe("Leaf Pattern Tests", () => {
       expect(patternMatches(nullPattern(), envelope)).toBe(true);
     });
 
-    // Matching leaf patterns on node envelopes requires traversal
-    it.skip("matches null subjects with assertions", () => {
+    it("matches null subjects with assertions", () => {
       const envelope = Envelope.null().addAssertion("type", "null_value");
       expect(patternMatches(nullPattern(), envelope)).toBe(true);
     });
@@ -249,8 +242,7 @@ describe("Leaf Pattern Tests", () => {
       expect(paths.length).toBe(0);
     });
 
-    // Node patterns require VM traversal which may not be fully implemented
-    it.skip("includes assertions in matched paths", () => {
+    it("includes assertions in matched paths", () => {
       const envelope = Envelope.new(42).addAssertion("an", "assertion");
       const paths = patternPaths(anyNumber(), envelope);
       expect(paths.length).toBeGreaterThan(0);

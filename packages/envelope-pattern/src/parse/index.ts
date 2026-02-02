@@ -8,6 +8,7 @@
  */
 
 import { parse as parseDcborPattern } from "@bcts/dcbor-pattern";
+import { parseDcborItemPartial } from "@bcts/dcbor-parse";
 import { Lexer } from "./token";
 import {
   type Result,
@@ -37,10 +38,17 @@ import {
   byteString,
   anyDate,
   date,
+  dateRange,
+  dateEarliest,
+  dateLatest,
+  dateRegex,
   anyKnownValue,
   knownValue,
   anyArray,
   anyTag,
+  anyCbor,
+  cborValue,
+  cborPattern,
   nullPattern,
   // Structure pattern constructors
   leaf,
@@ -79,7 +87,6 @@ import {
   ByteStringPattern,
   KnownValuePattern,
   ArrayPattern,
-  TaggedPattern,
   DigestPattern,
   NodePattern,
   AssertionsPattern,
@@ -87,7 +94,6 @@ import {
   leafByteString,
   leafKnownValue,
   leafArray,
-  leafTag,
   structureDigest,
   structureNode,
   structureAssertions,
@@ -469,6 +475,7 @@ function parsePrimary(lexer: Lexer): Result<Pattern> {
     case "Comma":
     case "Ellipsis":
     case "Range":
+    case "Identifier":
       return err(unexpectedToken(token, span));
   }
 }
@@ -685,7 +692,50 @@ function parseTag(lexer: Lexer): Result<Pattern> {
  * Parse date content from date'...' pattern.
  */
 function parseDateContent(content: string, span: Span): Result<Pattern> {
-  // Try to parse as ISO date
+  // Check for regex syntax: /pattern/
+  if (content.startsWith("/") && content.endsWith("/")) {
+    const regexStr = content.slice(1, -1);
+    try {
+      return ok(dateRegex(new RegExp(regexStr)));
+    } catch {
+      return err(invalidRegex(span));
+    }
+  }
+
+  // Check for range syntax: date1...date2, date1..., ...date2
+  const rangeIdx = content.indexOf("...");
+  if (rangeIdx !== -1) {
+    const left = content.slice(0, rangeIdx).trim();
+    const right = content.slice(rangeIdx + 3).trim();
+
+    if (left.length === 0 && right.length > 0) {
+      // ...date2 → latest
+      const parsed = Date.parse(right);
+      if (isNaN(parsed)) return err({ type: "InvalidDateFormat", span });
+      return ok(dateLatest(CborDate.fromDatetime(new Date(parsed))));
+    }
+    if (left.length > 0 && right.length === 0) {
+      // date1... → earliest
+      const parsed = Date.parse(left);
+      if (isNaN(parsed)) return err({ type: "InvalidDateFormat", span });
+      return ok(dateEarliest(CborDate.fromDatetime(new Date(parsed))));
+    }
+    if (left.length > 0 && right.length > 0) {
+      // date1...date2 → range
+      const parsedStart = Date.parse(left);
+      const parsedEnd = Date.parse(right);
+      if (isNaN(parsedStart) || isNaN(parsedEnd)) return err({ type: "InvalidDateFormat", span });
+      return ok(
+        dateRange(
+          CborDate.fromDatetime(new Date(parsedStart)),
+          CborDate.fromDatetime(new Date(parsedEnd)),
+        ),
+      );
+    }
+    return err({ type: "InvalidDateFormat", span });
+  }
+
+  // Simple exact date
   const parsed = Date.parse(content);
   if (isNaN(parsed)) {
     return err({ type: "InvalidDateFormat", span });
@@ -713,17 +763,64 @@ function parseKnownValueContent(content: string): Result<Pattern> {
 
 /**
  * Parse CBOR pattern.
+ *
+ * Matches Rust parse_cbor: tries dcbor-pattern regex first (/keyword/),
+ * then CBOR diagnostic notation via parseDcborItemPartial, then falls
+ * back to parseOr for envelope pattern expressions.
  */
 function parseCbor(lexer: Lexer): Result<Pattern> {
   // Check for optional content in parentheses
   const next = lexer.peekToken();
   if (next?.token.type !== "ParenOpen") {
-    return ok(patternLeaf(leafTag(TaggedPattern.any()))); // cbor matches any CBOR
+    return ok(anyCbor()); // cbor matches any CBOR value
   }
 
   lexer.next(); // consume (
 
-  // Parse inner content - this is a dcbor-pattern expression
+  // Check for dcbor-pattern regex syntax: cbor(/keyword/)
+  // Use peek() (character-level, non-destructive) instead of peekToken()
+  // to avoid the lexer advancing past the CBOR content.
+  if (lexer.peek() === "/") {
+    const regexTokenResult = lexer.next(); // tokenize /pattern/
+    if (regexTokenResult?.token.type === "Regex") {
+      const regexToken = regexTokenResult.token;
+      if (!regexToken.value.ok) return err(regexToken.value.error);
+      const keyword = regexToken.value.value;
+
+      // Parse the keyword as a dcbor-pattern expression
+      const dcborResult = parseDcborPattern(keyword);
+      if (!dcborResult.ok) {
+        return err(unexpectedToken(regexToken, regexTokenResult.span));
+      }
+
+      const close = lexer.next();
+      if (close?.token.type !== "ParenClose") {
+        return err({ type: "ExpectedCloseParen", span: lexer.span() });
+      }
+
+      return ok(cborPattern(dcborResult.value));
+    }
+  }
+
+  // Try to parse inner content as CBOR diagnostic notation
+  // (matching Rust utils::parse_cbor_inner which calls parse_dcbor_item_partial)
+  const remaining = lexer.remainder();
+  const cborResult = parseDcborItemPartial(remaining);
+  if (cborResult.ok) {
+    const [cborData, consumed] = cborResult.value;
+    lexer.bump(consumed);
+    // Skip whitespace before closing paren
+    while (lexer.peek() === " " || lexer.peek() === "\t" || lexer.peek() === "\n") {
+      lexer.bump(1);
+    }
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+    return ok(cborValue(cborData));
+  }
+
+  // Fallback: try parsing as a regular pattern expression
   const inner = parseOr(lexer);
   if (!inner.ok) return inner;
 
@@ -746,6 +843,24 @@ function parseNode(lexer: Lexer): Result<Pattern> {
   }
 
   lexer.next(); // consume (
+
+  // Check for assertion count range: node({n,m}), node({n}), node({n,})
+  const afterParen = lexer.peekToken();
+  if (afterParen?.token.type === "Range") {
+    lexer.next(); // consume Range token
+    const rangeToken = afterParen.token;
+    if (!rangeToken.value.ok) return err(rangeToken.value.error);
+    const quantifier = rangeToken.value.value;
+    const interval = quantifier.interval();
+
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+
+    return ok(patternStructure(structureNode(NodePattern.fromInterval(interval))));
+  }
+
   const inner = parseOr(lexer);
   if (!inner.ok) return inner;
 
@@ -845,6 +960,24 @@ function parseDigest(lexer: Lexer): Result<Pattern> {
       return err({ type: "ExpectedCloseParen", span: lexer.span() });
     }
     return ok(digestPrefix(digestToken.token.value.value));
+  }
+
+  // Accept raw hex string identifiers: digest(a1b2c3)
+  if (digestToken.token.type === "Identifier") {
+    const hexStr = digestToken.token.value;
+    // Validate hex string: must be even length and all hex digits
+    if (hexStr.length === 0 || hexStr.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hexStr)) {
+      return err({ type: "InvalidHexString", span: digestToken.span });
+    }
+    const bytes = new Uint8Array(hexStr.length / 2);
+    for (let i = 0; i < hexStr.length; i += 2) {
+      bytes[i / 2] = Number.parseInt(hexStr.slice(i, i + 2), 16);
+    }
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+    return ok(digestPrefix(bytes));
   }
 
   return err(unexpectedToken(digestToken.token, digestToken.span));

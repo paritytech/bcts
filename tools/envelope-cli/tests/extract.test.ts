@@ -67,8 +67,7 @@ describe("extract command", () => {
     expect(result).toBe("ur:envelope/tpsoihfpjziniaihmebdmodl");
   });
 
-  // Skip: envelope's subject is not a leaf error
-  it.skip("test_extract_known", () => {
+  it("test_extract_known", () => {
     const result1 = extract.exec({
       type: extract.SubjectType.Known,
       envelope: "ur:envelope/adonahurcw",
@@ -79,7 +78,7 @@ describe("extract command", () => {
       type: extract.SubjectType.Known,
       envelope: "ur:envelope/cfdyfyfwfpwzms",
     });
-    expect(result2).toBe("'12356'");
+    expect(result2).toBe("'schema:transcript'");
   });
 
   it("test_extract_number", () => {

@@ -31,8 +31,7 @@ describe("subject type command", () => {
     );
   });
 
-  // Skip: dcbor error - expected TAG_ENVELOPE (200)
-  it.skip("test_subject_type_cbor", () => {
+  it("test_subject_type_cbor", () => {
     const result = subject.type.exec({
       subjectType: DataType.Cbor,
       subjectValue: "83010203",
@@ -147,8 +146,22 @@ describe("subject type command", () => {
     expect(result).toBe("ur:envelope/tpsptpsolsadaoaxaegyemck");
   });
 
-  // Skip: dcbor error - expected TAG_ENVELOPE (200)
-  it.skip("test_cbor_subject", () => {
+  it("test_subject_type_unit", () => {
+    // Unit represents deliberate emptiness — no value required
+    const result = subject.type.exec({
+      subjectType: DataType.Unit,
+    });
+    // Unit is a known value that encodes as a specific CBOR value
+    expect(result).toMatch(/^ur:envelope\//);
+    // Verify it formats correctly
+    const formatted = format.exec({
+      ...format.defaultArgs(),
+      envelope: result,
+    });
+    expect(formatted.trim()).toBe("''");
+  });
+
+  it("test_cbor_subject", () => {
     const cborArrayExample = "83010203";
     const e = subject.type.exec({
       subjectType: DataType.Cbor,
@@ -217,8 +230,7 @@ describe("subject type command", () => {
     expect(extracted).toBe(HELLO_ENVELOPE_UR);
   });
 
-  // Skip: Format output differs from Rust (shows Bytes(undefined) instead of Bytes(4))
-  it.skip("test_data_subject", () => {
+  it("test_data_subject", () => {
     const value = "cafebabe";
     const e = subject.type.exec({
       subjectType: DataType.Data,
@@ -301,8 +313,7 @@ describe("subject type command", () => {
     expect(extracted).toBe(value);
   });
 
-  // Skip: BigInt type error in envelope library
-  it.skip("test_negative_int_subject", () => {
+  it("test_negative_int_subject", () => {
     const value = "-42";
     const e = subject.type.exec({
       subjectType: DataType.Number,
@@ -323,8 +334,7 @@ describe("subject type command", () => {
     expect(extracted).toBe(value);
   });
 
-  // Skip: envelope's subject is not a leaf error
-  it.skip("test_known_value_subject", () => {
+  it("test_known_value_subject", () => {
     const value = "note";
     const e = subject.type.exec({
       subjectType: DataType.Known,
@@ -359,8 +369,7 @@ describe("subject type command", () => {
     expect(extracted).toBe(HELLO_STR);
   });
 
-  // Skip: Format output differs from Rust (shows raw CBOR tag instead of UUID)
-  it.skip("test_uuid_subject", () => {
+  it("test_uuid_subject", () => {
     const e = subject.type.exec({
       subjectType: DataType.Uuid,
       subjectValue: UUID_EXAMPLE,

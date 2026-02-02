@@ -6,13 +6,23 @@
  * Ported from bc-xid-rust/src/xid_document.rs
  */
 
-import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
+import {
+  Envelope,
+  Attachments,
+  Edges,
+  type Edgeable,
+  type EnvelopeEncodable,
+  type EnvelopeEncodableValue,
+} from "@bcts/envelope";
+import type { Digest } from "@bcts/envelope";
 import {
   KEY,
   DELEGATE,
   SERVICE,
   PROVENANCE,
   DEREFERENCE_VIA,
+  ATTACHMENT_RAW as ATTACHMENT_RAW_VAL,
+  EDGE_RAW as EDGE_RAW_VAL,
   type KnownValue,
 } from "@bcts/known-values";
 
@@ -26,6 +36,8 @@ import {
   type PrivateKeys,
   type Signer,
   type EncapsulationPublicKey,
+  type SigningPublicKey,
+  type SigningPrivateKey,
 } from "@bcts/components";
 import {
   type ProvenanceMark,
@@ -45,6 +57,8 @@ const DELEGATE_RAW = DELEGATE.value();
 const SERVICE_RAW = SERVICE.value();
 const PROVENANCE_RAW = PROVENANCE.value();
 const DEREFERENCE_VIA_RAW = DEREFERENCE_VIA.value();
+const ATTACHMENT_RAW_VALUE = Number(ATTACHMENT_RAW_VAL);
+const EDGE_RAW_VALUE = Number(EDGE_RAW_VAL);
 
 /**
  * Options for creating the inception key.
@@ -81,8 +95,8 @@ export type XIDGenesisMarkOptions =
 export type XIDSigningOptions =
   | { type: "none" }
   | { type: "inception" }
-  | { type: "privateKeyBase"; privateKeyBase: PrivateKeyBase }
-  | { type: "privateKeys"; privateKeys: PrivateKeys };
+  | { type: "privateKeys"; privateKeys: PrivateKeys }
+  | { type: "signingPrivateKey"; signingPrivateKey: SigningPrivateKey };
 
 /**
  * Options for verifying the signature on an envelope when loading.
@@ -102,13 +116,15 @@ type ServiceMap = Map<string, Service>;
 /**
  * Represents an XID document.
  */
-export class XIDDocument implements EnvelopeEncodable {
+export class XIDDocument implements EnvelopeEncodable, Edgeable {
   private readonly _xid: XID;
   private readonly _resolutionMethods: Set<string>;
   private readonly _keys: KeyMap;
   private readonly _delegates: DelegateMap;
   private readonly _services: ServiceMap;
   private _provenance: Provenance | undefined;
+  private _attachments: Attachments;
+  private _edges: Edges;
 
   private constructor(
     xid: XID,
@@ -117,6 +133,8 @@ export class XIDDocument implements EnvelopeEncodable {
     delegates: DelegateMap = new Map(),
     services: ServiceMap = new Map(),
     provenance?: Provenance,
+    attachments?: Attachments,
+    edges?: Edges,
   ) {
     this._xid = xid;
     this._resolutionMethods = resolutionMethods;
@@ -124,6 +142,8 @@ export class XIDDocument implements EnvelopeEncodable {
     this._delegates = delegates;
     this._services = services;
     this._provenance = provenance;
+    this._attachments = attachments ?? new Attachments();
+    this._edges = edges ?? new Edges();
   }
 
   /**
@@ -136,9 +156,9 @@ export class XIDDocument implements EnvelopeEncodable {
     const inceptionKey = XIDDocument.inceptionKeyForOptions(keyOptions);
     const provenance = XIDDocument.genesisMarkWithOptions(markOptions);
 
-    // Use the reference from PublicKeys (which uses tagged CBOR hash)
-    // XID is created from the digest data of the reference
-    const xid = XID.from(inceptionKey.publicKeys().reference().getDigest().toData());
+    // XID is the SHA-256 digest of the CBOR encoding of the inception signing public key
+    // This matches Rust: XID::new(inception_key.public_keys().signing_public_key())
+    const xid = XID.newFromSigningKey(inceptionKey.publicKeys().signingPublicKey());
     const doc = new XIDDocument(xid, new Set(), new Map(), new Map(), new Map(), provenance);
 
     doc.addKey(inceptionKey);
@@ -280,12 +300,11 @@ export class XIDDocument implements EnvelopeEncodable {
   }
 
   /**
-   * Check if the given public keys is the inception signing key.
+   * Check if the given signing public key is the inception signing key.
+   * Matches Rust: `is_inception_signing_key(&self, signing_public_key: &SigningPublicKey) -> bool`
    */
-  isInceptionKey(publicKeys: PublicKeys): boolean {
-    // The XID is derived from the reference of the inception PublicKeys
-    const xidReference = publicKeys.reference();
-    return bytesEqual(xidReference.getDigest().toData(), this._xid.toData());
+  isInceptionSigningKey(signingPublicKey: SigningPublicKey): boolean {
+    return this._xid.validate(signingPublicKey);
   }
 
   /**
@@ -293,7 +312,7 @@ export class XIDDocument implements EnvelopeEncodable {
    */
   inceptionKey(): Key | undefined {
     for (const key of this._keys.values()) {
-      if (this.isInceptionKey(key.publicKeys())) {
+      if (this.isInceptionSigningKey(key.publicKeys().signingPublicKey())) {
         return key;
       }
     }
@@ -336,6 +355,180 @@ export class XIDDocument implements EnvelopeEncodable {
       this._keys.delete(inceptionKey.hashKey());
     }
     return inceptionKey;
+  }
+
+  /**
+   * Set the name (nickname) for a key identified by its public keys.
+   */
+  setNameForKey(publicKeys: PublicKeys, name: string): void {
+    const key = this.takeKey(publicKeys);
+    if (key === undefined) {
+      throw XIDError.notFound("key");
+    }
+    key.setNickname(name);
+    this.addKey(key);
+  }
+
+  /**
+   * Get the inception signing public key, if it exists.
+   */
+  inceptionSigningKey(): SigningPublicKey | undefined {
+    const key = this.inceptionKey();
+    return key?.publicKeys().signingPublicKey();
+  }
+
+  /**
+   * Get the verification (signing) key for this document.
+   * Prefers the inception key. Falls back to the first key.
+   */
+  verificationKey(): SigningPublicKey | undefined {
+    const inceptionKey = this.inceptionKey();
+    if (inceptionKey !== undefined) {
+      return inceptionKey.publicKeys().signingPublicKey();
+    }
+    const firstKey = this._keys.values().next().value;
+    return firstKey?.publicKeys().signingPublicKey();
+  }
+
+  /**
+   * Extract inception private keys from an envelope (convenience static method).
+   */
+  static extractInceptionPrivateKeysFromEnvelope(
+    envelope: Envelope,
+    password: Uint8Array,
+  ): PrivateKeys | undefined {
+    const doc = XIDDocument.fromEnvelope(envelope, password, XIDVerifySignature.None);
+    return doc.inceptionPrivateKeys();
+  }
+
+  /**
+   * Get the private key envelope for a specific key, optionally decrypting it.
+   */
+  privateKeyEnvelopeForKey(publicKeys: PublicKeys, password?: string): Envelope | undefined {
+    const key = this.findKeyByPublicKeys(publicKeys);
+    if (key === undefined) {
+      return undefined;
+    }
+    return key.privateKeyEnvelope(password);
+  }
+
+  /**
+   * Check that the document contains a key with the given public keys.
+   * Throws if not found.
+   */
+  checkContainsKey(publicKeys: PublicKeys): void {
+    if (this.findKeyByPublicKeys(publicKeys) === undefined) {
+      throw XIDError.keyNotFoundInDocument(publicKeys.toString());
+    }
+  }
+
+  /**
+   * Check that the document contains a delegate with the given XID.
+   * Throws if not found.
+   */
+  checkContainsDelegate(xid: XID): void {
+    if (this.findDelegateByXid(xid) === undefined) {
+      throw XIDError.delegateNotFoundInDocument(xid.toString());
+    }
+  }
+
+  // ============================================================================
+  // Attachable interface implementation
+  // ============================================================================
+
+  /**
+   * Get the attachments container.
+   */
+  getAttachments(): Attachments {
+    return this._attachments;
+  }
+
+  /**
+   * Add an attachment with the specified payload and metadata.
+   */
+  addAttachment(payload: EnvelopeEncodableValue, vendor: string, conformsTo?: string): void {
+    this._attachments.add(payload, vendor, conformsTo);
+  }
+
+  /**
+   * Check if the document has any attachments.
+   */
+  hasAttachments(): boolean {
+    return !this._attachments.isEmpty();
+  }
+
+  /**
+   * Remove all attachments.
+   */
+  clearAttachments(): void {
+    this._attachments.clear();
+  }
+
+  /**
+   * Get an attachment by its digest.
+   */
+  getAttachment(digest: Digest): Envelope | undefined {
+    return this._attachments.get(digest);
+  }
+
+  /**
+   * Remove an attachment by its digest.
+   */
+  removeAttachment(digest: Digest): Envelope | undefined {
+    return this._attachments.remove(digest);
+  }
+
+  // ============================================================================
+  // Edgeable interface implementation
+  // ============================================================================
+
+  /**
+   * Get the edges container (read-only).
+   */
+  edges(): Edges {
+    return this._edges;
+  }
+
+  /**
+   * Get the edges container (mutable).
+   */
+  edgesMut(): Edges {
+    return this._edges;
+  }
+
+  /**
+   * Add an edge envelope.
+   */
+  addEdge(edgeEnvelope: Envelope): void {
+    this._edges.add(edgeEnvelope);
+  }
+
+  /**
+   * Get an edge by its digest.
+   */
+  getEdge(digest: Digest): Envelope | undefined {
+    return this._edges.get(digest);
+  }
+
+  /**
+   * Remove an edge by its digest.
+   */
+  removeEdge(digest: Digest): Envelope | undefined {
+    return this._edges.remove(digest);
+  }
+
+  /**
+   * Remove all edges.
+   */
+  clearEdges(): void {
+    this._edges.clear();
+  }
+
+  /**
+   * Check if the document has any edges.
+   */
+  hasEdges(): boolean {
+    return !this._edges.isEmpty();
   }
 
   /**
@@ -624,7 +817,8 @@ export class XIDDocument implements EnvelopeEncodable {
     generatorOptions: XIDGeneratorOptionsValue = XIDGeneratorOptions.Omit,
     signingOptions: XIDSigningOptions = { type: "none" },
   ): Envelope {
-    let envelope = Envelope.new(this._xid.toData());
+    // Use tagged CBOR representation, matching Rust's Envelope::new(self.xid)
+    let envelope = Envelope.newLeaf(this._xid.taggedCbor());
 
     // Add resolution methods
     for (const method of this._resolutionMethods) {
@@ -654,6 +848,12 @@ export class XIDDocument implements EnvelopeEncodable {
       );
     }
 
+    // Add attachments before signing so they are included in the signature
+    envelope = this._attachments.addToEnvelope(envelope);
+
+    // Add edges before signing so they are included in the signature
+    envelope = this._edges.addToEnvelope(envelope);
+
     // Apply signing (uses sign() which wraps the envelope first)
     // PrivateKeys implements Signer from @bcts/components, which is compatible with envelope's sign()
     switch (signingOptions.type) {
@@ -669,15 +869,15 @@ export class XIDDocument implements EnvelopeEncodable {
         envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
         break;
       }
-      case "privateKeyBase": {
-        // Derive PrivateKeys from PrivateKeyBase and use for signing
-        const privateKeys = signingOptions.privateKeyBase.ed25519PrivateKeys();
-        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(privateKeys);
-        break;
-      }
       case "privateKeys": {
         envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(
           signingOptions.privateKeys,
+        );
+        break;
+      }
+      case "signingPrivateKey": {
+        envelope = (envelope as unknown as { sign(s: Signer): Envelope }).sign(
+          signingOptions.signingPrivateKey,
         );
         break;
       }
@@ -691,6 +891,9 @@ export class XIDDocument implements EnvelopeEncodable {
 
   // EnvelopeEncodable implementation
   intoEnvelope(): Envelope {
+    if (this.isEmpty()) {
+      return Envelope.new(this._xid.toData());
+    }
     return this.toEnvelope();
   }
 
@@ -711,7 +914,16 @@ export class XIDDocument implements EnvelopeEncodable {
       case XIDVerifySignature.None: {
         const subject = envelopeExt.subject();
         const envelopeToParse = subject.isWrapped() ? subject.tryUnwrap() : envelope;
-        return XIDDocument.fromEnvelopeInner(envelopeToParse, password);
+
+        // Extract attachments from the envelope
+        const attachments = Attachments.fromEnvelope(envelopeToParse);
+        // Extract edges from the envelope
+        const edges = Edges.fromEnvelope(envelopeToParse);
+
+        const doc = XIDDocument.fromEnvelopeInner(envelopeToParse, password);
+        doc._attachments = attachments;
+        doc._edges = edges;
+        return doc;
       }
       case XIDVerifySignature.Inception: {
         if (!envelopeExt.subject().isWrapped()) {
@@ -719,6 +931,12 @@ export class XIDDocument implements EnvelopeEncodable {
         }
 
         const unwrapped = envelopeExt.tryUnwrap();
+
+        // Extract attachments from the unwrapped envelope
+        const attachments = Attachments.fromEnvelope(unwrapped);
+        // Extract edges from the unwrapped envelope
+        const edges = Edges.fromEnvelope(unwrapped);
+
         const doc = XIDDocument.fromEnvelopeInner(unwrapped, password);
 
         const inceptionKey = doc.inceptionKey();
@@ -732,10 +950,12 @@ export class XIDDocument implements EnvelopeEncodable {
         }
 
         // Verify XID matches inception key
-        if (!doc.isInceptionKey(inceptionKey.publicKeys())) {
+        if (!doc.isInceptionSigningKey(inceptionKey.publicKeys().signingPublicKey())) {
           throw XIDError.invalidXid();
         }
 
+        doc._attachments = attachments;
+        doc._edges = edges;
         return doc;
       }
     }
@@ -752,13 +972,28 @@ export class XIDDocument implements EnvelopeEncodable {
     // The envelope may be a node (with assertions) or a leaf
     const envCase = envelope.case();
     const subject = envCase.type === "node" ? envelopeExt.subject() : envelope;
-    const xidData = (
-      subject as unknown as { asByteString(): Uint8Array | undefined }
-    ).asByteString();
-    if (xidData === undefined) {
+
+    // Try to extract XID from the subject leaf.
+    // Rust-generated documents store the XID as tagged CBOR (Tag 40015 + byte string).
+    // TS-generated documents may store it as a raw byte string.
+    const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
+    if (leaf === undefined) {
       throw XIDError.invalidXid();
     }
-    const xid = XID.from(xidData);
+    let xid: XID;
+    try {
+      // Try tagged CBOR first (matches Rust's Envelope::new(xid))
+      xid = XID.fromTaggedCbor(leaf);
+    } catch {
+      // Fall back to raw byte string
+      const xidData = (
+        subject as unknown as { asByteString(): Uint8Array | undefined }
+      ).asByteString();
+      if (xidData === undefined) {
+        throw XIDError.invalidXid();
+      }
+      xid = XID.from(xidData);
+    }
     const doc = XIDDocument.fromXid(xid);
 
     // Process assertions
@@ -808,6 +1043,12 @@ export class XIDDocument implements EnvelopeEncodable {
           doc._provenance = Provenance.tryFromEnvelope(object, password);
           break;
         }
+        case ATTACHMENT_RAW_VALUE:
+          // Handled separately by Attachments.fromEnvelope()
+          break;
+        case EDGE_RAW_VALUE:
+          // Handled separately by Edges.fromEnvelope()
+          break;
         default:
           throw XIDError.unexpectedPredicate(String(predicate));
       }
@@ -821,7 +1062,17 @@ export class XIDDocument implements EnvelopeEncodable {
    * Create a signed envelope.
    */
   toSignedEnvelope(signingKey: Signer): Envelope {
-    const envelope = this.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+    return this.toSignedEnvelopeOpt(signingKey, XIDPrivateKeyOptions.Omit);
+  }
+
+  /**
+   * Create a signed envelope with private key options.
+   */
+  toSignedEnvelopeOpt(
+    signingKey: Signer,
+    privateKeyOptions: XIDPrivateKeyOptionsValue = XIDPrivateKeyOptions.Omit,
+  ): Envelope {
+    const envelope = this.toEnvelope(privateKeyOptions, XIDGeneratorOptions.Omit, {
       type: "none",
     });
     return (envelope as unknown as { sign(s: Signer): Envelope }).sign(signingKey);
@@ -838,7 +1089,50 @@ export class XIDDocument implements EnvelopeEncodable {
    * Check equality with another XIDDocument.
    */
   equals(other: XIDDocument): boolean {
-    return this._xid.equals(other._xid);
+    // Match Rust's PartialEq which compares all fields
+    if (!this._xid.equals(other._xid)) return false;
+
+    // Compare resolution methods
+    if (this._resolutionMethods.size !== other._resolutionMethods.size) return false;
+    for (const m of this._resolutionMethods) {
+      if (!other._resolutionMethods.has(m)) return false;
+    }
+
+    // Compare keys
+    if (this._keys.size !== other._keys.size) return false;
+    for (const [hash, key] of this._keys) {
+      const otherKey = other._keys.get(hash);
+      if (otherKey === undefined || !key.equals(otherKey)) return false;
+    }
+
+    // Compare delegates
+    if (this._delegates.size !== other._delegates.size) return false;
+    for (const [hash, delegate] of this._delegates) {
+      const otherDelegate = other._delegates.get(hash);
+      if (otherDelegate === undefined || !delegate.equals(otherDelegate)) return false;
+    }
+
+    // Compare services
+    if (this._services.size !== other._services.size) return false;
+    for (const [uri, service] of this._services) {
+      const otherService = other._services.get(uri);
+      if (otherService === undefined || !service.equals(otherService)) return false;
+    }
+
+    // Compare provenance
+    if (this._provenance === undefined && other._provenance !== undefined) return false;
+    if (this._provenance !== undefined && other._provenance === undefined) return false;
+    if (this._provenance !== undefined && other._provenance !== undefined) {
+      if (!this._provenance.equals(other._provenance)) return false;
+    }
+
+    // Compare attachments
+    if (!this._attachments.equals(other._attachments)) return false;
+
+    // Compare edges
+    if (!this._edges.equals(other._edges)) return false;
+
+    return true;
   }
 
   /**
@@ -853,6 +1147,17 @@ export class XIDDocument implements EnvelopeEncodable {
       new Map(Array.from(this._services.entries()).map(([k, v]) => [k, v.clone()])),
       this._provenance?.clone(),
     );
+
+    // Clone attachments by iterating and re-adding
+    for (const [, env] of this._attachments.iter()) {
+      doc._attachments.addEnvelope(env);
+    }
+
+    // Clone edges by iterating and re-adding
+    for (const [, env] of this._edges.iter()) {
+      doc._edges.add(env);
+    }
+
     return doc;
   }
 

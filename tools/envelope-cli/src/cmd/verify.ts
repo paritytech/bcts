@@ -6,7 +6,14 @@
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import { PublicKeys, SigningPublicKey, type Verifier } from "@bcts/components";
+import {
+  PrivateKeyBase,
+  PublicKeys,
+  SigningPrivateKey,
+  SigningPublicKey,
+  type Verifier,
+} from "@bcts/components";
+import { Envelope } from "@bcts/envelope";
 
 /**
  * Command arguments for the verify command.
@@ -35,6 +42,13 @@ export function defaultArgs(): CommandArgs {
 
 /**
  * Verify command implementation.
+ *
+ * Accepts verifiers as:
+ * - ur:prvkeys (PrivateKeyBase)
+ * - ur:crypto-pubkeys (PublicKeys)
+ * - ur:signing-private-key (SigningPrivateKey)
+ * - ur:signing-public-key (SigningPublicKey)
+ * - ur:envelope (envelope-wrapped key, extracts subject)
  */
 export class VerifyCommand implements Exec {
   constructor(private readonly args: CommandArgs) {}
@@ -49,13 +63,31 @@ export class VerifyCommand implements Exec {
     const verifiers: Verifier[] = [];
 
     for (const v of this.args.verifiers) {
-      // Try parsing as PublicKeys (most common for CLI)
+      // Try parsing as PrivateKeyBase (derive PublicKeys for verification)
+      try {
+        const key = PrivateKeyBase.fromURString(v);
+        verifiers.push(key.ed25519PublicKeys());
+        continue;
+      } catch {
+        // Not a PrivateKeyBase
+      }
+
+      // Try parsing as PublicKeys
       try {
         const key = PublicKeys.fromURString(v);
         verifiers.push(key);
         continue;
       } catch {
         // Not a PublicKeys
+      }
+
+      // Try parsing as SigningPrivateKey
+      try {
+        const key = SigningPrivateKey.fromURString(v);
+        verifiers.push(key);
+        continue;
+      } catch {
+        // Not a SigningPrivateKey
       }
 
       // Try parsing as SigningPublicKey
@@ -67,7 +99,48 @@ export class VerifyCommand implements Exec {
         // Not a SigningPublicKey
       }
 
-      throw new Error(`invalid verifier: ${v}. Must be ur:crypto-pubkeys or ur:signing-public-key`);
+      // Handle envelope-wrapped keys (e.g., from `xid key at`)
+      // by extracting the key from the envelope's subject
+      if (v.startsWith("ur:envelope")) {
+        const keyEnvelope = Envelope.fromUrString(v);
+
+        // Try extract_subject for each key type
+        try {
+          const key = keyEnvelope.extractSubject((cbor) => PrivateKeyBase.fromTaggedCbor(cbor));
+          verifiers.push(key.ed25519PublicKeys());
+          continue;
+        } catch {
+          // Not a PrivateKeyBase
+        }
+
+        try {
+          const key = keyEnvelope.extractSubject((cbor) => PublicKeys.fromTaggedCbor(cbor));
+          verifiers.push(key);
+          continue;
+        } catch {
+          // Not a PublicKeys
+        }
+
+        try {
+          const key = keyEnvelope.extractSubject((cbor) => SigningPrivateKey.fromTaggedCbor(cbor));
+          verifiers.push(key);
+          continue;
+        } catch {
+          // Not a SigningPrivateKey
+        }
+
+        try {
+          const key = keyEnvelope.extractSubject((cbor) => SigningPublicKey.fromTaggedCbor(cbor));
+          verifiers.push(key);
+          continue;
+        } catch {
+          // Not a SigningPublicKey
+        }
+
+        throw new Error(`envelope does not contain a valid verifier key: ${v}`);
+      }
+
+      throw new Error(`invalid verifier: ${v}`);
     }
 
     // Verify signatures

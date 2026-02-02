@@ -13,8 +13,7 @@ import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
 import { DataType } from "../src/data-types.js";
 
 describe("encrypt command", () => {
-  // Skip: SymmetricKey.fromURString is not yet implemented in decrypt
-  it.skip("test_encrypt_key", async () => {
+  it("test_encrypt_key", async () => {
     // Generate a new key for the test
     const key = generate.key.exec({});
 
@@ -43,8 +42,7 @@ describe("encrypt command", () => {
     expect(decrypted).toBe(ALICE_KNOWS_BOB_EXAMPLE);
   });
 
-  // Skip: Format output differs from Rust (shows raw CBOR tags instead of EncryptedKey)
-  it.skip("test_encrypt_password", async () => {
+  it("test_encrypt_password", { timeout: 30_000 }, async () => {
     // First wrap the envelope
     const wrapped = subject.type.exec({
       subjectType: DataType.Wrapped,

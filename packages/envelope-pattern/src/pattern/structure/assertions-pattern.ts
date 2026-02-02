@@ -8,7 +8,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { matchPattern, type Matcher } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -123,8 +123,7 @@ export class AssertionsPattern implements Matcher {
         case "WithPredicate": {
           const predicate = assertion.asPredicate?.();
           if (predicate !== undefined) {
-            const innerMatcher = this._pattern.pattern as unknown as Matcher;
-            if (innerMatcher.matches(predicate)) {
+            if (matchPattern(this._pattern.pattern, predicate)) {
               paths.push([assertion]);
             }
           }
@@ -133,8 +132,7 @@ export class AssertionsPattern implements Matcher {
         case "WithObject": {
           const object = assertion.asObject?.();
           if (object !== undefined) {
-            const innerMatcher = this._pattern.pattern as unknown as Matcher;
-            if (innerMatcher.matches(object)) {
+            if (matchPattern(this._pattern.pattern, object)) {
               paths.push([assertion]);
             }
           }
@@ -144,9 +142,10 @@ export class AssertionsPattern implements Matcher {
           const predicate = assertion.asPredicate?.();
           const object = assertion.asObject?.();
           if (predicate !== undefined && object !== undefined) {
-            const predMatcher = this._pattern.predicatePattern as unknown as Matcher;
-            const objMatcher = this._pattern.objectPattern as unknown as Matcher;
-            if (predMatcher.matches(predicate) && objMatcher.matches(object)) {
+            if (
+              matchPattern(this._pattern.predicatePattern, predicate) &&
+              matchPattern(this._pattern.objectPattern, object)
+            ) {
               paths.push([assertion]);
             }
           }

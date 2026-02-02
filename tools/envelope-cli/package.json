@@ -1,6 +1,6 @@
 {
   "name": "@bcts/envelope-cli",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Gordian Envelope command line tool",
   "license": "BSD-2-Clause-Patent",
@@ -70,7 +70,7 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.2.0",
     "eslint": "^9.39.2",
     "tsdown": "^0.20.1",
     "typedoc": "^0.28.16",
@@ -89,6 +89,6 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@bcts/xid": "workspace:*",
-    "commander": "^14.0.0"
+    "commander": "^14.0.3"
   }
 }

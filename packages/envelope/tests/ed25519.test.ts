@@ -81,9 +81,9 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
       // Verify the envelope format shows a signature
       // In Rust: "Hello." [ 'signed': Signature(Ed25519) ]
       // In TypeScript (ECDSA): "Hello." [ 'signed': ... ]
-      const format = envelope.treeFormat();
+      const format = envelope.format();
       expect(format).toContain("Hello.");
-      expect(format).toContain("signed");
+      expect(format).toContain("'signed'");
 
       // Alice -> cloud -> Bob
 
@@ -235,13 +235,10 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
     });
   });
 
-  describe("Signature with metadata (additional feature)", () => {
-    /**
-     * This test demonstrates signature metadata functionality that may not be
-     * in the original Rust Ed25519 tests but is part of the envelope specification.
-     */
-    it("should add signature with metadata", () => {
+  describe("Signature with metadata", () => {
+    it("should add signature with metadata and double-sign", () => {
       const alice = alicePrivateKey();
+      const alicePub = alice.publicKey();
       const metadata = SignatureMetadata.new()
         .withAssertion(NOTE, "Signed by Alice")
         .withAssertion("timestamp", "2024-01-15T10:30:00Z");
@@ -249,8 +246,36 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
       const document = helloEnvelope();
       const signedWithMetadata = document.addSignatureWithMetadata(alice, metadata);
 
+      // Should have assertions (the signed assertion)
       expect(signedWithMetadata.assertions().length).toBeGreaterThan(0);
-      expect(signedWithMetadata.hasSignatureFrom(alice.publicKey())).toBe(true);
+
+      // hasSignatureFrom handles wrapped (double-signed) signatures
+      expect(signedWithMetadata.hasSignatureFrom(alicePub)).toBe(true);
+
+      // The signature object should have a wrapped subject (metadata is double-signed)
+      const sigs = signedWithMetadata.signatures();
+      expect(sigs.length).toBe(1);
+      expect(sigs[0].subject().isWrapped()).toBe(true);
+
+      // hasSignatureFromReturningMetadata should return the metadata envelope
+      const metadataEnvelope = signedWithMetadata.hasSignatureFromReturningMetadata(alicePub);
+      expect(metadataEnvelope).toBeDefined();
+
+      // The metadata envelope should contain the note
+      const noteObj = metadataEnvelope?.objectForPredicate(NOTE);
+      expect(noteObj).toBeDefined();
+      expect(noteObj?.subject().asText()).toBe("Signed by Alice");
+    });
+
+    it("should reject metadata signature from wrong key", () => {
+      const alice = alicePrivateKey();
+      const carol = carolPrivateKey();
+      const metadata = SignatureMetadata.new().withAssertion(NOTE, "Signed by Alice");
+
+      const signedWithMetadata = helloEnvelope().addSignatureWithMetadata(alice, metadata);
+
+      // Carol's key should not verify
+      expect(signedWithMetadata.hasSignatureFrom(carol.publicKey())).toBe(false);
     });
   });
 

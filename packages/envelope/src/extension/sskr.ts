@@ -32,66 +32,6 @@ export { SSKRSpec, SSKRGroupSpec, SSKRShareCbor, SSKRSecret };
 // Envelope Prototype Extensions for SSKR
 // ============================================================================
 
-declare module "../base/envelope" {
-  interface Envelope {
-    /// Split this envelope into SSKR shares.
-    ///
-    /// This method splits the symmetric key used to encrypt the envelope into
-    /// SSKR shares, and returns multiple copies of the original envelope,
-    /// each with a different SSKR share added as an assertion. The envelope
-    /// subject should already be encrypted with the provided `contentKey`.
-    ///
-    /// The returned structure is a nested array that preserves the group
-    /// structure of the SSKR shares. Each outer array represents a group,
-    /// and each inner array contains the shares for that group.
-    ///
-    /// @param spec - The SSKR specification that defines the group structure
-    /// @param contentKey - The symmetric key used to encrypt the envelope
-    /// @returns A nested array of envelopes organized by groups
-    sskrSplit(spec: SSKRSpec, contentKey: SymmetricKey): Envelope[][];
-
-    /// Split this envelope into a flattened set of SSKR shares.
-    ///
-    /// This method works like `sskrSplit()` but returns a flat array of all
-    /// shares rather than preserving the group structure. This is convenient
-    /// when the group structure is not needed for distribution.
-    ///
-    /// @param spec - The SSKR specification that defines the group structure
-    /// @param contentKey - The symmetric key used to encrypt the envelope
-    /// @returns A flat array of all envelopes containing SSKR shares
-    sskrSplitFlattened(spec: SSKRSpec, contentKey: SymmetricKey): Envelope[];
-
-    /// Split this envelope into SSKR shares using a custom random number generator.
-    ///
-    /// This method is like `sskrSplit()` but takes a custom RNG, which is useful
-    /// for testing with deterministic randomness.
-    ///
-    /// @param spec - The SSKR specification that defines the group structure
-    /// @param contentKey - The symmetric key used to encrypt the envelope
-    /// @param rng - The random number generator to use
-    /// @returns A nested array of envelopes organized by groups
-    sskrSplitUsing(
-      spec: SSKRSpec,
-      contentKey: SymmetricKey,
-      rng: RandomNumberGenerator,
-    ): Envelope[][];
-  }
-
-  namespace Envelope {
-    /// Reconstruct the original envelope from a set of SSKR shares.
-    ///
-    /// Given a set of envelopes with SSKR share assertions, this method
-    /// attempts to combine the shares to reconstruct the original symmetric
-    /// key. If successful, it uses the key to decrypt the envelope and
-    /// return the original envelope subject.
-    ///
-    /// @param envelopes - An array of envelopes containing SSKR shares
-    /// @returns The original envelope if reconstruction is successful
-    /// @throws EnvelopeError if not enough valid shares are provided
-    function sskrJoin(envelopes: Envelope[]): Envelope;
-  }
-}
-
 /// Helper function to add an SSKR share assertion to the envelope
 const addSskrShare = (envelope: Envelope, share: SSKRShareCbor): Envelope => {
   return envelope.addAssertion(SSKR_SHARE, share);

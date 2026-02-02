@@ -5,14 +5,9 @@
  */
 
 import type { ExecAsync } from "../exec.js";
-import { readEnvelope, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
-import { PrivateKeyBase, PrivateKeys } from "@bcts/components";
+import { readEnvelope, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
+import { PrivateKeyBase, PrivateKeys, SymmetricKey } from "@bcts/components";
 import { PrivateKeyBase as EnvelopePrivateKeyBase } from "@bcts/envelope";
-import {
-  symmetricKeyFromURString,
-  envelopeIsLockedWithPassword,
-  envelopeIsLockedWithSshAgent,
-} from "../placeholders.js";
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
 
@@ -74,20 +69,24 @@ export function defaultArgs(): CommandArgs {
 export class DecryptCommand implements ExecAsync {
   constructor(private readonly args: CommandArgs) {}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async exec(): Promise<string> {
     const envelope = readEnvelope(this.args.envelope);
 
     if (this.args.key) {
       // If a content key is provided, decrypt the subject using it
-      // TODO: SymmetricKey.fromURString not implemented
-      symmetricKeyFromURString(this.args.key);
+      const key = SymmetricKey.fromURString(this.args.key);
+      const decrypted = envelope.decryptSubject(key);
+      return decrypted.urString();
     }
 
     if (this.args.password !== undefined) {
-      // If a password is provided, unlock the subject using it
-      // TODO: Envelope.isLockedWithPassword and unlockSubject not implemented
-      envelopeIsLockedWithPassword();
+      const password = await readPassword(
+        "Decryption password:",
+        this.args.password || undefined,
+        this.args.askpass,
+      );
+      const decrypted = envelope.unlockSubject(new TextEncoder().encode(password));
+      return decrypted.urString();
     }
 
     if (this.args.recipient) {
@@ -113,9 +112,8 @@ export class DecryptCommand implements ExecAsync {
     }
 
     if (this.args.sshId !== undefined) {
-      // If an SSH identity is provided, decrypt the subject using the SSH agent
-      // TODO: Envelope.isLockedWithSshAgent and unlockSubject not implemented
-      envelopeIsLockedWithSshAgent();
+      // SSH agent decryption is not yet implemented
+      throw new Error("SSH agent decryption is not yet implemented in the TypeScript version.");
     }
 
     throw new Error(

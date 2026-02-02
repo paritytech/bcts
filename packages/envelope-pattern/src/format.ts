@@ -156,18 +156,37 @@ export function envelopeSummary(env: Envelope): string {
 
   let summary: string;
   switch (c.type) {
-    case "node":
-      summary = `NODE ${env.summary(Number.MAX_SAFE_INTEGER)}`;
+    case "node": {
+      const subjectSummary = env.subject().summary(Number.MAX_SAFE_INTEGER);
+      const assertions = env.assertions();
+      if (assertions.length > 0) {
+        const assertionSummaries = assertions.map((a) => {
+          const ac = a.case();
+          if (ac.type === "assertion") {
+            const pred = ac.assertion.predicate().summary(Number.MAX_SAFE_INTEGER);
+            const obj = ac.assertion.object().summary(Number.MAX_SAFE_INTEGER);
+            return `${pred}: ${obj}`;
+          }
+          return a.summary(Number.MAX_SAFE_INTEGER);
+        });
+        summary = `NODE ${subjectSummary} [ ${assertionSummaries.join(", ")} ]`;
+      } else {
+        summary = `NODE ${subjectSummary}`;
+      }
       break;
+    }
     case "leaf":
       summary = `LEAF ${env.summary(Number.MAX_SAFE_INTEGER)}`;
       break;
     case "wrapped":
       summary = `WRAPPED ${env.summary(Number.MAX_SAFE_INTEGER)}`;
       break;
-    case "assertion":
-      summary = `ASSERTION ${env.summary(Number.MAX_SAFE_INTEGER)}`;
+    case "assertion": {
+      const pred = c.assertion.predicate().summary(Number.MAX_SAFE_INTEGER);
+      const obj = c.assertion.object().summary(Number.MAX_SAFE_INTEGER);
+      summary = `ASSERTION ${pred}: ${obj}`;
       break;
+    }
     case "elided":
       summary = "ELIDED";
       break;

@@ -37,10 +37,9 @@ describe("Non-correlation Tests", () => {
       const e2 = e1.addSalt();
 
       // Verify the salted envelope has the expected structure
-      // Note: In TypeScript implementation, salt is stored as a string predicate
       const formatted = e2.format();
       expect(formatted).toContain('"Hello."');
-      expect(formatted).toContain('"salt"');
+      expect(formatted).toContain("'salt'");
 
       // So even though its content is the same, it doesn't correlate.
       expect(isEquivalentTo(e1, e2)).toBe(false);
@@ -54,12 +53,11 @@ describe("Non-correlation Tests", () => {
       const e2 = e1.addSalt();
 
       // The tree format should show the structure with salt
-      // Note: In TypeScript implementation, salt is stored as a string predicate
       const treeFormat = e2.treeFormat();
       expect(treeFormat).toContain("NODE");
       expect(treeFormat).toContain('"Hello."');
       expect(treeFormat).toContain("ASSERTION");
-      expect(treeFormat).toContain('"salt"');
+      expect(treeFormat).toContain("KNOWN_VALUE");
     });
   });
 
@@ -121,7 +119,7 @@ describe("Non-correlation Tests", () => {
       // Verify the structure
       const formatted = e1.format();
       expect(formatted).toContain('"Alpha"');
-      expect(formatted).toContain('"salt"');
+      expect(formatted).toContain("'salt'");
       expect(formatted).toContain('"note"');
       expect(formatted).toContain("Lorem ipsum");
     });
@@ -178,7 +176,9 @@ describe("Non-correlation Tests", () => {
       // Should have multiple salt assertions
       const saltAssertions = e1.assertions().filter((a) => {
         try {
-          return a.asPredicate()?.asText() === "salt";
+          const pred = a.asPredicate();
+          const kv = pred?.asKnownValue();
+          return kv !== undefined && kv.name() === "salt";
         } catch {
           return false;
         }

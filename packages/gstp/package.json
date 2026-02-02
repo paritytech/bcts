@@ -1,6 +1,6 @@
 {
   "name": "@bcts/gstp",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Gordian Sealed Transaction Protocol - A secure, authenticated, transport-agnostic data exchange protocol with distributed state management via Encrypted State Continuations (ESC)",
   "license": "BSD-2-Clause-Patent",
@@ -79,7 +79,7 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.2.0",
     "eslint": "^9.39.2",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",

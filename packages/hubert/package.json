@@ -1,6 +1,6 @@
 {
   "name": "@bcts/hubert",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "Hubert - Distributed infrastructure for secure multiparty transactions using Gordian Envelope",
   "license": "BSD-2-Clause-Patent",
@@ -103,8 +103,8 @@
     "@noble/curves": "^2.0.1",
     "better-sqlite3": "^12.6.2",
     "bittorrent-dht": "^11.0.7",
-    "commander": "^13.1.0",
-    "fastify": "^5.7.1",
+    "commander": "^14.0.3",
+    "fastify": "^5.7.4",
     "kubo-rpc-client": "^6.0.2"
   },
   "devDependencies": {
@@ -112,9 +112,9 @@
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.2.0",
     "eslint": "^9.39.2",
-    "globals": "^17.1.0",
+    "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
     "tsdown": "^0.20.1",

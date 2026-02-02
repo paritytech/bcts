@@ -87,31 +87,6 @@ const navigationItems: NavigationMenuItem[] = [
     ]
   },
   {
-    label: 'TypeScript Code',
-    icon: 'i-heroicons-code-bracket-square',
-    defaultOpen: false,
-    children: [
-      {
-        label: 'Selective Disclosure',
-        icon: 'i-heroicons-eye',
-        to: 'https://github.com/leonardocustodio/bcts/blob/main/apps/examples/src/selective-disclosure.ts',
-        target: '_blank'
-      },
-      {
-        label: 'Sealed Messages',
-        icon: 'i-heroicons-envelope',
-        to: 'https://github.com/leonardocustodio/bcts/blob/main/apps/examples/src/sealed-message-multi-recipient.ts',
-        target: '_blank'
-      },
-      {
-        label: 'Private Asserts',
-        icon: 'i-heroicons-lock-closed',
-        to: 'https://github.com/leonardocustodio/bcts/blob/main/apps/examples/src/per-assertion-encryption.ts',
-        target: '_blank'
-      }
-    ]
-  },
-  {
     type: 'label',
     label: 'Resources'
   },

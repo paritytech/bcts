@@ -15,8 +15,27 @@ import type { Pattern } from "../index";
 // Forward declaration for Pattern factory
 let createStructureWrappedPattern: ((pattern: WrappedPattern) => Pattern) | undefined;
 
+// Forward declaration for pattern dispatch (avoids circular imports)
+let dispatchPatternPathsWithCaptures:
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
+let dispatchPatternCompile:
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
+let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
+
 export function registerWrappedPatternFactory(factory: (pattern: WrappedPattern) => Pattern): void {
   createStructureWrappedPattern = factory;
+}
+
+export function registerWrappedPatternDispatch(dispatch: {
+  pathsWithCaptures: (pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>];
+  compile: (pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void;
+  toString: (pattern: Pattern) => string;
+}): void {
+  dispatchPatternPathsWithCaptures = dispatch.pathsWithCaptures;
+  dispatchPatternCompile = dispatch.compile;
+  dispatchPatternToString = dispatch.toString;
 }
 
 /**
@@ -96,9 +115,8 @@ export class WrappedPattern implements Matcher {
       case "Unwrap": {
         // Match the content of the wrapped envelope
         const unwrapped = subject.tryUnwrap?.();
-        if (unwrapped !== undefined) {
-          const innerMatcher = this._pattern.pattern as unknown as Matcher;
-          const innerPaths = innerMatcher.paths(unwrapped);
+        if (unwrapped !== undefined && dispatchPatternPathsWithCaptures !== undefined) {
+          const [innerPaths] = dispatchPatternPathsWithCaptures(this._pattern.pattern, unwrapped);
           paths = innerPaths.map((path) => {
             // Add the current envelope to the path
             return [haystack, ...path];
@@ -145,8 +163,9 @@ export class WrappedPattern implements Matcher {
         code.push({ type: "PushAxis", axis });
 
         // Then match the pattern
-        const innerMatcher = this._pattern.pattern as unknown as Matcher;
-        innerMatcher.compile(code, literals, captures);
+        if (dispatchPatternCompile !== undefined) {
+          dispatchPatternCompile(this._pattern.pattern, code, literals, captures);
+        }
         break;
       }
     }
@@ -161,8 +180,10 @@ export class WrappedPattern implements Matcher {
       case "Any":
         return "wrapped";
       case "Unwrap": {
-        // Check if it's the "any" pattern by string comparison
-        const patternStr = (this._pattern.pattern as unknown as { toString(): string }).toString();
+        const patternStr =
+          dispatchPatternToString !== undefined
+            ? dispatchPatternToString(this._pattern.pattern)
+            : "*";
         if (patternStr === "*") {
           return "unwrap";
         }

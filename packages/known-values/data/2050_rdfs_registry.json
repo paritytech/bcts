@@ -1,0 +1,126 @@
+{
+  "ontology": {
+    "name": "rdfs",
+    "source_url": "http://www.w3.org/2000/01/rdf-schema#",
+    "start_code_point": 2050,
+    "processing_strategy": "StandardRDF"
+  },
+  "generated": {
+    "tool": "KnownValueAssigner",
+    "version": "1.0.0"
+  },
+  "entries": [
+    {
+      "codepoint": 2050,
+      "name": "rdfs:Class",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#Class",
+      "description": "The class of classes."
+    },
+    {
+      "codepoint": 2051,
+      "name": "rdfs:Container",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#Container",
+      "description": "The class of RDF containers."
+    },
+    {
+      "codepoint": 2052,
+      "name": "rdfs:ContainerMembershipProperty",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#ContainerMembershipProperty",
+      "description": "The class of container membership properties, rdf:_1, rdf:_2, ..., all of which are sub-properties of 'member'."
+    },
+    {
+      "codepoint": 2053,
+      "name": "rdfs:Datatype",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#Datatype",
+      "description": "The class of RDF datatypes."
+    },
+    {
+      "codepoint": 2054,
+      "name": "rdfs:Literal",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#Literal",
+      "description": "The class of literal values, eg. textual strings and integers."
+    },
+    {
+      "codepoint": 2055,
+      "name": "rdfs:Resource",
+      "type": "class",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#Resource",
+      "description": "The class resource, everything."
+    },
+    {
+      "codepoint": 4,
+      "name": "note",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#comment",
+      "description": "A description of the subject resource."
+    },
+    {
+      "codepoint": 2056,
+      "name": "rdfs:domain",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#domain",
+      "description": "A domain of the subject property."
+    },
+    {
+      "codepoint": 2057,
+      "name": "rdfs:isDefinedBy",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#isDefinedBy",
+      "description": "The definition of the subject resource."
+    },
+    {
+      "codepoint": 2058,
+      "name": "rdfs:label",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#label",
+      "description": "A human-readable name for the subject."
+    },
+    {
+      "codepoint": 2059,
+      "name": "rdfs:member",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#member",
+      "description": "A member of the subject resource."
+    },
+    {
+      "codepoint": 2060,
+      "name": "rdfs:range",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#range",
+      "description": "A range of the subject property."
+    },
+    {
+      "codepoint": 2061,
+      "name": "rdfs:seeAlso",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#seeAlso",
+      "description": "Further information about the subject resource."
+    },
+    {
+      "codepoint": 2062,
+      "name": "rdfs:subClassOf",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+      "description": "The subject is a subclass of a class."
+    },
+    {
+      "codepoint": 2063,
+      "name": "rdfs:subPropertyOf",
+      "type": "property",
+      "uri": "http://www.w3.org/2000/01/rdf-schema#subPropertyOf",
+      "description": "The subject is a subproperty of a property."
+    }
+  ],
+  "statistics": {
+    "total_entries": 15,
+    "code_point_range": {
+      "start": 2050,
+      "end": 2064
+    }
+  }
+}

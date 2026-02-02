@@ -11,7 +11,7 @@ import * as generate from "../src/cmd/generate/index.js";
 import * as sign from "../src/cmd/sign.js";
 import * as verify from "../src/cmd/verify.js";
 import * as format from "../src/cmd/format.js";
-import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
+import { ALICE_KNOWS_BOB_EXAMPLE } from "./common.js";
 
 const SEED =
   "ur:seed/oyadhdcxhsinuesrennenlhfaopycnrfrkdmfnsrvltowmtbmyfwdafxvwmthersktcpetdweocfztrd";
@@ -28,16 +28,14 @@ describe("keys command", () => {
       expect(prvkeys).toMatch(/^ur:crypto-prvkeys\//);
     });
 
-    // Skip: Seed derivation is not yet implemented in TypeScript
-    it.skip("test_generate_private_key_base_from_seed", () => {
+    it("test_generate_private_key_base_from_seed", () => {
       const expectedPrvkeys =
         "ur:crypto-prvkeys/lftansgohdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdstbtagyeh";
 
+      // Default signing scheme is Schnorr (matching Rust CLI default)
       const prvkeys = generate.prvKeys.exec({
         ...generate.prvKeys.defaultArgs(),
         input: SEED,
-        signing: generate.PrvKeysSigningScheme.Ed25519,
-        encryption: generate.PrvKeysEncryptionScheme.X25519,
       });
       expect(prvkeys).toBe(expectedPrvkeys);
     });
@@ -93,16 +91,17 @@ describe("keys command", () => {
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
       });
 
-      // Verify the format
-      const expectedFormat = `"Alice" [
-    "knows": "Bob"
-    'signed': ${expectedSignatureSummary}
-]`;
+      // Verify the format contains expected assertions
+      // Note: assertion ordering depends on digests which vary with
+      // non-deterministic signatures (random aux_rand in BIP-340),
+      // so we check for each assertion line independently.
       const formatted = format.exec({
         ...format.defaultArgs(),
         envelope: signed,
       });
-      expectOutput(formatted, expectedFormat);
+      expect(formatted).toContain('"Alice"');
+      expect(formatted).toContain('"knows": "Bob"');
+      expect(formatted).toContain(`'signed': ${expectedSignatureSummary}`);
 
       // Verify the signature
       await verify.exec({
@@ -112,8 +111,7 @@ describe("keys command", () => {
       });
     }
 
-    // Skip: Schnorr signing scheme is not yet implemented in TypeScript
-    it.skip("test_schnorr", async () => {
+    it("test_schnorr", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.Schnorr,
         "ur:crypto-prvkeys/lftansgohdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdstbtagyeh",
@@ -122,8 +120,7 @@ describe("keys command", () => {
       );
     });
 
-    // Skip: ECDSA signing scheme is not yet implemented in TypeScript
-    it.skip("test_ecdsa", async () => {
+    it("test_ecdsa", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.Ecdsa,
         "ur:crypto-prvkeys/lftansgolfadhdcxpfsndiahcxsfrhjoltglmebwwnnstovocffejytdbwihdkrtdykebkiebglbtteetansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdsuoamcehg",
@@ -169,8 +166,7 @@ describe("keys command", () => {
   });
 
   describe("Ed25519 signing (implemented)", () => {
-    // Skip: sign command expects signers (plural array) but test uses signer (singular)
-    it.skip("test_ed25519_sign_verify", async () => {
+    it("test_ed25519_sign_verify", async () => {
       // Generate random Ed25519 prvkeys
       const prvkeys = generate.prvKeys.exec({
         ...generate.prvKeys.defaultArgs(),

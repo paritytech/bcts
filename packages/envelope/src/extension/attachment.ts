@@ -17,21 +17,26 @@ import { Envelope } from "../base/envelope";
 import { type Digest } from "../base/digest";
 import { EnvelopeError } from "../base/error";
 import type { EnvelopeEncodableValue } from "../base/envelope-encodable";
+import {
+  ATTACHMENT as ATTACHMENT_KV,
+  VENDOR as VENDOR_KV,
+  CONFORMS_TO as CONFORMS_TO_KV,
+} from "@bcts/known-values";
 
 /**
  * Known value for the 'attachment' predicate.
  */
-export const ATTACHMENT = "attachment";
+export const ATTACHMENT = ATTACHMENT_KV;
 
 /**
  * Known value for the 'vendor' predicate.
  */
-export const VENDOR = "vendor";
+export const VENDOR = VENDOR_KV;
 
 /**
  * Known value for the 'conformsTo' predicate.
  */
-export const CONFORMS_TO = "conformsTo";
+export const CONFORMS_TO = CONFORMS_TO_KV;
 
 /**
  * A container for vendor-specific metadata attachments.
@@ -58,6 +63,15 @@ export class Attachments {
   add(payload: EnvelopeEncodableValue, vendor: string, conformsTo?: string): void {
     const attachment = Envelope.newAttachment(payload, vendor, conformsTo);
     this._envelopes.set(attachment.digest().hex(), attachment);
+  }
+
+  /**
+   * Adds a pre-constructed attachment envelope directly.
+   *
+   * @param envelope - The attachment envelope to add
+   */
+  addEnvelope(envelope: Envelope): void {
+    this._envelopes.set(envelope.digest().hex(), envelope);
   }
 
   /**
@@ -94,6 +108,31 @@ export class Attachments {
    */
   isEmpty(): boolean {
     return this._envelopes.size === 0;
+  }
+
+  /**
+   * Returns the number of attachments in the container.
+   */
+  len(): number {
+    return this._envelopes.size;
+  }
+
+  /**
+   * Returns an iterator over all attachment envelopes.
+   */
+  iter(): IterableIterator<[string, Envelope]> {
+    return this._envelopes.entries();
+  }
+
+  /**
+   * Check equality with another Attachments container.
+   */
+  equals(other: Attachments): boolean {
+    if (this._envelopes.size !== other._envelopes.size) return false;
+    for (const [key] of this._envelopes) {
+      if (!other._envelopes.has(key)) return false;
+    }
+    return true;
   }
 
   /**
@@ -294,10 +333,10 @@ if (Envelope?.prototype) {
       throw EnvelopeError.invalidAttachment("Envelope is not an assertion");
     }
 
-    // Verify predicate is 'attachment'
+    // Verify predicate is 'attachment' (using digest comparison for KnownValue predicates)
     const predicate = c.assertion.predicate();
-    const predicateText = predicate.asText();
-    if (predicateText !== ATTACHMENT) {
+    const expectedPredicate = Envelope.new(ATTACHMENT);
+    if (!predicate.digest().equals(expectedPredicate.digest())) {
       throw EnvelopeError.invalidAttachment("Assertion predicate is not 'attachment'");
     }
 

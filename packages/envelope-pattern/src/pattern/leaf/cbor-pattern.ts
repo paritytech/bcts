@@ -156,7 +156,7 @@ export class CBORPattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    const envCase = haystack.case();
+    const envCase = haystack.subject().case();
 
     // Special case for KnownValue envelope
     if (envCase.type === "knownValue") {
@@ -206,7 +206,7 @@ export class CBORPattern implements Matcher {
     }
 
     // Standard case for CBOR leaf
-    const leafCbor = haystack.asLeaf();
+    const leafCbor = haystack.subject().asLeaf();
     if (leafCbor === undefined) {
       return [[], new Map<string, Path[]>()];
     }

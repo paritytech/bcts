@@ -10,6 +10,7 @@
 import { Envelope, type EnvelopeEncodable } from "@bcts/envelope";
 import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT, type KnownValue } from "@bcts/known-values";
 import type { EnvelopeEncodableValue } from "@bcts/envelope";
+import { type Cbor } from "@bcts/dcbor";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
@@ -19,8 +20,12 @@ import {
   PublicKeys,
   PrivateKeys,
   type PrivateKeyBase,
+  type SigningPublicKey,
+  type EncapsulationPublicKey,
   type Verifier,
   type Signature,
+  type KeyDerivationMethod,
+  defaultKeyDerivationMethod,
 } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { type Privilege } from "./privilege";
@@ -47,6 +52,7 @@ export enum XIDPrivateKeyOptions {
 export interface XIDPrivateKeyEncryptConfig {
   type: XIDPrivateKeyOptions.Encrypt;
   password: Uint8Array;
+  method?: KeyDerivationMethod;
 }
 
 /**
@@ -121,8 +127,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
    * Create a new Key with private key base (derives keys from it).
    */
   static newWithPrivateKeyBase(privateKeyBase: PrivateKeyBase): Key {
-    const privateKeys = privateKeyBase.ed25519PrivateKeys();
-    const publicKeys = privateKeyBase.ed25519PublicKeys();
+    const privateKeys = privateKeyBase.schnorrPrivateKeys();
+    const publicKeys = privateKeyBase.schnorrPublicKeys();
     return Key.newWithPrivateKeys(privateKeys, publicKeys);
   }
 
@@ -170,6 +176,20 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
    */
   reference(): Reference {
     return this._publicKeys.reference();
+  }
+
+  /**
+   * Get the signing public key.
+   */
+  signingPublicKey(): SigningPublicKey {
+    return this._publicKeys.signingPublicKey();
+  }
+
+  /**
+   * Get the encapsulation public key.
+   */
+  encapsulationPublicKey(): EncapsulationPublicKey {
+    return this._publicKeys.encapsulationPublicKey();
   }
 
   // ============================================================================
@@ -271,9 +291,13 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
               const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
+              const method: KeyDerivationMethod =
+                privateKeyOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (
-                privateKeysEnvelope as unknown as { encryptSubject(p: Uint8Array): Envelope }
-              ).encryptSubject(privateKeyOptions.password);
+                privateKeysEnvelope as unknown as {
+                  lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;
+                }
+              ).lockSubject(method, privateKeyOptions.password);
               envelope = envelope.addAssertion(kv(PRIVATE_KEY), encrypted);
               envelope = envelope.addAssertion(kv(SALT), salt.toData());
             }
@@ -316,19 +340,29 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       asByteString(): Uint8Array | undefined;
       subject(): Envelope;
       assertionsWithPredicate(p: unknown): Envelope[];
-      decryptSubject(p: Uint8Array): Envelope;
+      unlockSubject(p: Uint8Array): Envelope;
+      isLockedWithPassword(): boolean;
     };
     const env = envelope as EnvelopeExt;
 
-    // Extract PublicKeys from subject (stored as tagged CBOR)
-    // The envelope may be a node (with assertions) or a leaf
+    // Extract PublicKeys from subject.
+    // Rust-generated documents store PublicKeys as tagged CBOR directly in the leaf.
+    // TS-generated documents may store the tagged CBOR binary inside a byte string.
     const envCase = env.case();
     const subject = envCase.type === "node" ? env.subject() : env;
+    let publicKeys: PublicKeys;
     const publicKeysData = (subject as EnvelopeExt).asByteString();
-    if (publicKeysData === undefined) {
-      throw XIDError.component(new Error("Could not extract public keys from envelope"));
+    if (publicKeysData !== undefined) {
+      // TS format: tagged CBOR binary stored as a byte string
+      publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
+    } else {
+      // Rust format: tagged CBOR stored directly as the leaf CBOR value
+      const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
+      if (leaf === undefined) {
+        throw XIDError.component(new Error("Could not extract public keys from envelope"));
+      }
+      publicKeys = PublicKeys.fromTaggedCbor(leaf);
     }
-    const publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
 
     // Extract optional private key
     let privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;
@@ -356,13 +390,12 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       if (assertionCase.type === "assertion") {
         const privateKeyObject = assertionCase.assertion.object() as EnvelopeExt;
 
-        // Check if encrypted
-        const objCase = privateKeyObject.case();
-        if (objCase.type === "encrypted") {
+        // Check if locked with password (uses hasSecret assertion with EncryptedKey)
+        if (privateKeyObject.isLockedWithPassword()) {
           if (password !== undefined) {
             try {
-              const decrypted = privateKeyObject.decryptSubject(password) as EnvelopeExt;
-              const decryptedData = decrypted.asByteString();
+              const decrypted = privateKeyObject.unlockSubject(password) as EnvelopeExt;
+              const decryptedData = (decrypted.subject() as EnvelopeExt).asByteString();
               if (decryptedData !== undefined) {
                 // Parse PrivateKeys from tagged CBOR
                 const privateKeys = PrivateKeys.fromTaggedCborData(decryptedData);
@@ -429,6 +462,39 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
     const permissions = Permissions.tryFromEnvelope(envelope);
 
     return new Key(publicKeys, privateKeyData, nickname, endpoints, permissions);
+  }
+
+  /**
+   * Get the private key envelope, optionally decrypting it.
+   *
+   * Returns:
+   * - undefined if no private keys
+   * - The decrypted private key envelope if unencrypted
+   * - The decrypted envelope if encrypted + correct password
+   * - The encrypted envelope as-is if encrypted + no password
+   * - Throws on wrong password
+   */
+  privateKeyEnvelope(password?: string): Envelope | undefined {
+    if (this._privateKeyData === undefined) {
+      return undefined;
+    }
+    const { data } = this._privateKeyData;
+    if (data.type === "decrypted") {
+      return Envelope.new(data.privateKeys.taggedCborData());
+    }
+    // Encrypted case
+    if (password !== undefined) {
+      try {
+        const decrypted = (
+          data.envelope as unknown as { unlockSubject(p: Uint8Array): Envelope }
+        ).unlockSubject(new TextEncoder().encode(password));
+        return decrypted;
+      } catch {
+        throw XIDError.invalidPassword();
+      }
+    }
+    // No password — return encrypted envelope as-is
+    return data.envelope;
   }
 
   /**

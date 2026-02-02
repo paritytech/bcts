@@ -98,7 +98,7 @@ export class ArrayPattern implements Matcher {
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     // Try to extract CBOR from the envelope
-    const cbor = haystack.asLeaf();
+    const cbor = haystack.subject().asLeaf();
     if (cbor === undefined) {
       return [[], new Map<string, Path[]>()];
     }

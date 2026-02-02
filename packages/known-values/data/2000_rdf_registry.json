@@ -1,0 +1,168 @@
+{
+  "ontology": {
+    "name": "rdf",
+    "source_url": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "start_code_point": 2000,
+    "processing_strategy": "StandardRDF"
+  },
+  "generated": {
+    "tool": "KnownValueAssigner",
+    "version": "1.0.0"
+  },
+  "entries": [
+    {
+      "codepoint": 2000,
+      "name": "rdf:Alt",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#Alt",
+      "description": "The class of containers of alternatives."
+    },
+    {
+      "codepoint": 2001,
+      "name": "rdf:Bag",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#Bag",
+      "description": "The class of unordered containers."
+    },
+    {
+      "codepoint": 2002,
+      "name": "rdf:CompoundLiteral",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#CompoundLiteral",
+      "description": "A class representing a compound literal."
+    },
+    {
+      "codepoint": 2003,
+      "name": "rdf:HTML",
+      "type": "datatype",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#HTML",
+      "description": "The datatype of RDF literals storing fragments of HTML content"
+    },
+    {
+      "codepoint": 2004,
+      "name": "rdf:JSON",
+      "type": "datatype",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#JSON",
+      "description": "The datatype of RDF literals storing JSON content."
+    },
+    {
+      "codepoint": 2005,
+      "name": "rdf:List",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#List",
+      "description": "The class of RDF Lists."
+    },
+    {
+      "codepoint": 2006,
+      "name": "rdf:PlainLiteral",
+      "type": "datatype",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#PlainLiteral",
+      "description": "The class of plain (i.e. untyped) literal values, as used in RIF and OWL 2"
+    },
+    {
+      "codepoint": 2007,
+      "name": "rdf:Property",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property",
+      "description": "The class of RDF properties."
+    },
+    {
+      "codepoint": 2008,
+      "name": "rdf:Seq",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq",
+      "description": "The class of ordered containers."
+    },
+    {
+      "codepoint": 2009,
+      "name": "rdf:Statement",
+      "type": "class",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#Statement",
+      "description": "The class of RDF statements."
+    },
+    {
+      "codepoint": 2010,
+      "name": "rdf:XMLLiteral",
+      "type": "datatype",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#XMLLiteral",
+      "description": "The datatype of XML literal values."
+    },
+    {
+      "codepoint": 2011,
+      "name": "rdf:direction",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#direction",
+      "description": "The base direction component of a CompoundLiteral."
+    },
+    {
+      "codepoint": 2012,
+      "name": "rdf:first",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#first",
+      "description": "The first item in the subject RDF list."
+    },
+    {
+      "codepoint": 12,
+      "name": "language",
+      "type": "datatype",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#langString",
+      "description": "The datatype of language-tagged string values"
+    },
+    {
+      "codepoint": 2013,
+      "name": "rdf:language",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#language",
+      "description": "The language component of a CompoundLiteral."
+    },
+    {
+      "codepoint": 2014,
+      "name": "rdf:object",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#object",
+      "description": "The object of the subject RDF statement."
+    },
+    {
+      "codepoint": 2015,
+      "name": "rdf:predicate",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate",
+      "description": "The predicate of the subject RDF statement."
+    },
+    {
+      "codepoint": 2016,
+      "name": "rdf:rest",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest",
+      "description": "The rest of the subject RDF list after the first item."
+    },
+    {
+      "codepoint": 2017,
+      "name": "rdf:subject",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject",
+      "description": "The subject of the subject RDF statement."
+    },
+    {
+      "codepoint": 1,
+      "name": "isA",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+      "description": "The subject is an instance of a class."
+    },
+    {
+      "codepoint": 2018,
+      "name": "rdf:value",
+      "type": "property",
+      "uri": "http://www.w3.org/1999/02/22-rdf-syntax-ns#value",
+      "description": "Idiomatic property used for structured values."
+    }
+  ],
+  "statistics": {
+    "total_entries": 21,
+    "code_point_range": {
+      "start": 2000,
+      "end": 2020
+    }
+  }
+}

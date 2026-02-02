@@ -14,6 +14,8 @@ import {
 import { Envelope } from "@bcts/envelope";
 
 import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";
+import { validate as validateMarks } from "./validate.js";
+import type { ValidationIssue, ValidationReport } from "./validate.js";
 import {
   type ProvenanceMarkResolution,
   linkLength,
@@ -287,6 +289,42 @@ export class ProvenanceMark {
   }
 
   /**
+   * A compact 8-letter identifier derived from the upper-case ByteWords
+   * identifier by taking the first and last letter of each ByteWords word
+   * (4 words x 2 letters = 8 letters).
+   *
+   * Example: "ABLE ACID ALSO APEX" -> "AEADAOAX"
+   * If prefix is true, prepends the provenance mark prefix character.
+   */
+  bytewordsMinimalIdentifier(prefix: boolean): string {
+    const full = encodeBytewordsIdentifier(this._hash.slice(0, 4));
+
+    const words = full.split(/\s+/);
+    let out = "";
+    if (words.length === 4) {
+      for (const w of words) {
+        if (w.length === 0) continue;
+        out += w[0].toUpperCase();
+        out += w[w.length - 1].toUpperCase();
+      }
+    }
+
+    // Conservative fallback: if the input wasn't in the expected
+    // space-separated 4-word format, remove whitespace and chunk the
+    // remaining letters.
+    if (out.length !== 8) {
+      out = "";
+      const compact = full.replace(/[^a-zA-Z]/g, "").toUpperCase();
+      for (let i = 0; i + 3 < compact.length; i += 4) {
+        out += compact[i];
+        out += compact[i + 3];
+      }
+    }
+
+    return prefix ? `\u{1F151} ${out}` : out;
+  }
+
+  /**
    * Get the first four bytes of the hash as Bytemoji.
    */
   bytemojiIdentifier(prefix: boolean): string {
@@ -309,30 +347,54 @@ export class ProvenanceMark {
 
   /**
    * Check if this mark precedes another mark, throwing on validation errors.
+   * Errors carry a structured `validationIssue` in their details, matching Rust's
+   * `Error::Validation(ValidationIssue)` pattern.
    */
   precedesOpt(next: ProvenanceMark): void {
     // `next` can't be a genesis
     if (next._seq === 0) {
-      throw new ProvenanceMarkError(ProvenanceMarkErrorType.ValidationError, undefined, {
-        message: "non-genesis mark at sequence 0",
-      });
+      const issue: ValidationIssue = { type: "NonGenesisAtZero" };
+      throw new ProvenanceMarkError(
+        ProvenanceMarkErrorType.ValidationError,
+        "non-genesis mark at sequence 0",
+        { validationIssue: issue },
+      );
     }
     if (arraysEqual(next._key, next._chainId)) {
-      throw new ProvenanceMarkError(ProvenanceMarkErrorType.ValidationError, undefined, {
-        message: "genesis mark must have key equal to chain_id",
-      });
+      const issue: ValidationIssue = { type: "InvalidGenesisKey" };
+      throw new ProvenanceMarkError(
+        ProvenanceMarkErrorType.ValidationError,
+        "genesis mark must have key equal to chain_id",
+        { validationIssue: issue },
+      );
     }
     // `next` must have the next highest sequence number
     if (this._seq !== next._seq - 1) {
-      throw new ProvenanceMarkError(ProvenanceMarkErrorType.ValidationError, undefined, {
-        message: `sequence gap: expected ${this._seq + 1}, got ${next._seq}`,
-      });
+      const issue: ValidationIssue = {
+        type: "SequenceGap",
+        expected: this._seq + 1,
+        actual: next._seq,
+      };
+      throw new ProvenanceMarkError(
+        ProvenanceMarkErrorType.ValidationError,
+        `sequence gap: expected ${this._seq + 1}, got ${next._seq}`,
+        { validationIssue: issue },
+      );
     }
     // `next` must have an equal or later date
     if (this._date > next._date) {
-      throw new ProvenanceMarkError(ProvenanceMarkErrorType.ValidationError, undefined, {
-        message: `date ordering: ${this._date.toISOString()} > ${next._date.toISOString()}`,
-      });
+      const dateStr = this._date.toISOString().replace(".000Z", "Z");
+      const nextDateStr = next._date.toISOString().replace(".000Z", "Z");
+      const issue: ValidationIssue = {
+        type: "DateOrdering",
+        previous: dateStr,
+        next: nextDateStr,
+      };
+      throw new ProvenanceMarkError(
+        ProvenanceMarkErrorType.ValidationError,
+        `date ordering: ${dateStr} > ${nextDateStr}`,
+        { validationIssue: issue },
+      );
     }
     // `next` must reveal the key that was used to generate this mark's hash
     const expectedHash = ProvenanceMark.makeHash(
@@ -345,15 +407,16 @@ export class ProvenanceMark {
       this._infoBytes,
     );
     if (!arraysEqual(this._hash, expectedHash)) {
-      throw new ProvenanceMarkError(ProvenanceMarkErrorType.ValidationError, undefined, {
-        message: "hash mismatch",
-        expected: Array.from(expectedHash)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
-        actual: Array.from(this._hash)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
-      });
+      const issue: ValidationIssue = {
+        type: "HashMismatch",
+        expected: bytesToHex(expectedHash),
+        actual: bytesToHex(this._hash),
+      };
+      throw new ProvenanceMarkError(
+        ProvenanceMarkErrorType.ValidationError,
+        `hash mismatch: expected ${bytesToHex(expectedHash)}, got ${bytesToHex(this._hash)}`,
+        { validationIssue: issue },
+      );
     }
   }
 
@@ -618,43 +681,47 @@ export class ProvenanceMark {
   }
 
   // ============================================================================
+  // Validation (delegate to ValidationReport)
+  // ============================================================================
+
+  /**
+   * Validate a collection of provenance marks.
+   *
+   * Matches Rust: `ProvenanceMark::validate()` which delegates to
+   * `ValidationReport::validate()`.
+   */
+  static validate(marks: ProvenanceMark[]): ValidationReport {
+    return validateMarks(marks);
+  }
+
+  // ============================================================================
   // Envelope Support (EnvelopeEncodable)
   // ============================================================================
 
   /**
    * Convert this provenance mark to a Gordian Envelope.
    *
-   * The envelope contains the tagged CBOR representation of the mark.
-   *
-   * Note: Use provenanceMarkToEnvelope() for a standalone function alternative.
+   * Creates a leaf envelope containing the tagged CBOR representation.
+   * Matches Rust: `Envelope::new(mark.to_cbor())` which creates a CBOR leaf.
    */
   intoEnvelope(): Envelope {
-    return Envelope.new(this.toCborData());
+    return Envelope.newLeaf(this.taggedCbor());
   }
 
   /**
    * Extract a ProvenanceMark from a Gordian Envelope.
+   *
+   * Matches Rust: `envelope.subject().try_leaf()?.try_into()`
    *
    * @param envelope - The envelope to extract from
    * @returns The extracted provenance mark
    * @throws ProvenanceMarkError if extraction fails
    */
   static fromEnvelope(envelope: Envelope): ProvenanceMark {
-    // The envelope contains the CBOR-encoded bytes of the mark
-    // Use asByteString to extract the raw bytes, then decode
-    const bytes = envelope.asByteString();
-    if (bytes !== undefined) {
-      return ProvenanceMark.fromCborData(bytes);
-    }
-
-    // Try extracting from subject if it's a node
-    const envCase = envelope.case();
-    if (envCase.type === "node") {
-      const subject = envCase.subject;
-      const subjectBytes = subject.asByteString();
-      if (subjectBytes !== undefined) {
-        return ProvenanceMark.fromCborData(subjectBytes);
-      }
+    // Extract the CBOR leaf from the envelope subject, matching Rust's try_leaf()
+    const leaf = envelope.subject().asLeaf();
+    if (leaf !== undefined) {
+      return ProvenanceMark.fromTaggedCbor(leaf);
     }
 
     throw new ProvenanceMarkError(ProvenanceMarkErrorType.CborError, undefined, {

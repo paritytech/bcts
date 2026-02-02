@@ -90,8 +90,9 @@ export class KnownValuePattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    // Check if the envelope is a known value via case()
-    const envCase = haystack.case();
+    // Check if the envelope subject is a known value via case()
+    const subject = haystack.subject();
+    const envCase = subject.case();
 
     if (envCase.type === "knownValue") {
       // Get the KnownValue and create CBOR for pattern matching
@@ -102,7 +103,7 @@ export class KnownValuePattern implements Matcher {
     }
 
     // Also try matching as a leaf (for tagged CBOR containing known values)
-    const leafCbor = haystack.asLeaf();
+    const leafCbor = subject.asLeaf();
     if (leafCbor !== undefined) {
       if (knownValuePatternMatches(this._inner, leafCbor)) {
         return [[[haystack]], new Map<string, Path[]>()];

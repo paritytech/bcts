@@ -56,13 +56,13 @@ export const cborEnvelopeSummary = (
   // Handle negative integers
   if (isNegative(cbor)) {
     // In CBOR, negative integers are stored as -(n+1), so we need to compute the actual value
-    const n = cbor as unknown as bigint;
-    return String(-1n - n);
+    const n = cbor.value;
+    return typeof n === "bigint" ? String(-1n - n) : String(-1 - n);
   }
 
   // Handle byte strings
   if (isBytes(cbor)) {
-    const bytes = cbor as unknown as Uint8Array;
+    const bytes = cbor.value;
     return `Bytes(${bytes.length})`;
   }
 

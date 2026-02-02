@@ -1,6 +1,6 @@
 {
   "name": "@bcts/frost-hubert",
-  "version": "1.0.0-alpha.17",
+  "version": "1.0.0-alpha.18",
   "type": "module",
   "description": "FROST DKG and signing using Hubert as the distributed substrate",
   "license": "BSD-2-Clause-Patent",
@@ -100,14 +100,14 @@
     "@bcts/xid": "workspace:*",
     "@frosts/core": "0.2.2-alpha.3",
     "@frosts/ed25519": "0.2.2-alpha.3",
-    "commander": "^13.1.0"
+    "commander": "^14.0.3"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/rand": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.10",
+    "@types/node": "^25.2.0",
     "eslint": "^9.39.2",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",

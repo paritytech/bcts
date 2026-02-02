@@ -105,7 +105,8 @@ describe("XID", () => {
       const xid = XID.fromHex(TEST_HEX);
       const str = xid.toString();
 
-      expect(str).toBe(`XID(${TEST_HEX})`);
+      // toString() uses short format (first 4 bytes), matching Rust's Display trait
+      expect(str).toBe(`XID(${xid.shortDescription()})`);
     });
   });
 
@@ -236,7 +237,8 @@ describe("XID", () => {
 
       expect(xid.toHex()).toBe(TEST_HEX);
       expect(xid.shortDescription()).toBe("de285368");
-      expect(xid.toString()).toBe(`XID(${TEST_HEX})`);
+      // toString() uses short format (first 4 bytes), matching Rust Display
+      expect(xid.toString()).toBe("XID(de285368)");
     });
   });
 
