@@ -118,7 +118,7 @@ Envelope.prototype.addSignatureOpt = function (
   const digest = this.subject().digest();
   let signatureEnvelope = Envelope.new(signer.signWithOptions(digest.data(), options));
 
-  if (metadata !== undefined && metadata.hasAssertions()) {
+  if (metadata?.hasAssertions() === true) {
     // Add metadata assertions to the signature envelope
     for (const [predicate, object] of metadata.assertions()) {
       signatureEnvelope = signatureEnvelope.addAssertion(
@@ -272,7 +272,7 @@ Envelope.prototype.hasSignatureFromReturningMetadata = function (
         if (!verifier.verify(outerSignature, signatureObjectSubject.digest().data())) {
           continue; // Outer signature doesn't match key, try next
         }
-      } catch (e) {
+      } catch (_e) {
         if (outerSigFound) {
           // Found 'signed' assertion but couldn't extract Signature
           throw EnvelopeError.invalidOuterSignatureType();

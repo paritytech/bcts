@@ -230,7 +230,7 @@ export function extractSubject<T>(envelope: Envelope, decoder: CborDecoder<T>): 
       }
     case "knownValue":
       try {
-        return decoder(c.value.taggedCbor() as Cbor);
+        return decoder(c.value.taggedCbor());
       } catch (error) {
         throw EnvelopeError.cbor(
           "failed to decode subject",
@@ -249,7 +249,7 @@ export function extractSubject<T>(envelope: Envelope, decoder: CborDecoder<T>): 
       }
     case "elided":
       try {
-        return decoder(c.digest.taggedCbor() as Cbor);
+        return decoder(c.digest.taggedCbor());
       } catch {
         throw EnvelopeError.invalidFormat();
       }

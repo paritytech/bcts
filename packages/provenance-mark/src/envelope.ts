@@ -9,8 +9,8 @@
  */
 
 import {
-  Envelope,
-  FormatContext,
+  type Envelope,
+  type FormatContext,
   withFormatContextMut,
   registerTagsIn as envelopeRegisterTagsIn,
 } from "@bcts/envelope";

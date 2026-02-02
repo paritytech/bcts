@@ -50,7 +50,7 @@ const PRIVATE_KEY_BASE_DEFAULT_SIZE = 32;
 
 /** Key derivation salt strings - must match Rust's bc-crypto derive functions */
 const SALT_SIGNING = "signing";
-const SALT_AGREEMENT = "agreement";
+const _SALT_AGREEMENT = "agreement";
 
 /**
  * PrivateKeyBase - Root cryptographic material for deterministic key derivation.

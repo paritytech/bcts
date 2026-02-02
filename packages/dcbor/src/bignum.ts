@@ -92,7 +92,7 @@ export function stripLeadingZeros(bytes: Uint8Array): Uint8Array {
 export function bigintToBytes(value: bigint): Uint8Array {
   if (value === 0n) return new Uint8Array(0);
   const hex = value.toString(16);
-  const padded = hex.length % 2 ? "0" + hex : hex;
+  const padded = hex.length % 2 !== 0 ? `0${hex}` : hex;
   const bytes = new Uint8Array(padded.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(padded.substring(i * 2, i * 2 + 2), 16);
@@ -186,7 +186,7 @@ export function biguintFromUntaggedCbor(cbor: Cbor): bigint {
   if (cbor.type !== MajorType.ByteString) {
     throw new CborError({ type: "WrongType" });
   }
-  const bytes = cbor.value as Uint8Array;
+  const bytes = cbor.value;
   validateBignumMagnitude(bytes, false);
   return bytesToBigint(bytes);
 }
@@ -212,7 +212,7 @@ export function bigintFromNegativeUntaggedCbor(cbor: Cbor): bigint {
   if (cbor.type !== MajorType.ByteString) {
     throw new CborError({ type: "WrongType" });
   }
-  const bytes = cbor.value as Uint8Array;
+  const bytes = cbor.value;
   validateBignumMagnitude(bytes, true);
   const n = bytesToBigint(bytes);
   const magnitude = n + 1n;
@@ -251,7 +251,7 @@ export function cborToBiguint(cbor: Cbor): bigint {
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });
         }
-        const bytes = inner.value as Uint8Array;
+        const bytes = inner.value;
         validateBignumMagnitude(bytes, false);
         return bytesToBigint(bytes);
       } else if (tagValue === TAG_3_NEGATIVE_BIGNUM) {
@@ -259,10 +259,11 @@ export function cborToBiguint(cbor: Cbor): bigint {
       }
       throw new CborError({ type: "WrongType" });
     }
+    case MajorType.ByteString:
+    case MajorType.Text:
+    case MajorType.Array:
+    case MajorType.Map:
     case MajorType.Simple:
-      // Covers floats (Simple::Float) - reject them
-      throw new CborError({ type: "WrongType" });
-    default:
       throw new CborError({ type: "WrongType" });
   }
 }
@@ -303,7 +304,7 @@ export function cborToBigint(cbor: Cbor): bigint {
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });
         }
-        const bytes = inner.value as Uint8Array;
+        const bytes = inner.value;
         validateBignumMagnitude(bytes, false);
         const mag = bytesToBigint(bytes);
         if (mag === 0n) {
@@ -315,7 +316,7 @@ export function cborToBigint(cbor: Cbor): bigint {
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });
         }
-        const bytes = inner.value as Uint8Array;
+        const bytes = inner.value;
         validateBignumMagnitude(bytes, true);
         const n = bytesToBigint(bytes);
         const magnitude = n + 1n;
@@ -323,10 +324,11 @@ export function cborToBigint(cbor: Cbor): bigint {
       }
       throw new CborError({ type: "WrongType" });
     }
+    case MajorType.ByteString:
+    case MajorType.Text:
+    case MajorType.Array:
+    case MajorType.Map:
     case MajorType.Simple:
-      // Covers floats (Simple::Float) - reject them
-      throw new CborError({ type: "WrongType" });
-    default:
       throw new CborError({ type: "WrongType" });
   }
 }

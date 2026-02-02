@@ -241,7 +241,7 @@ export const registerTags = (): void => {
 // ============================================================================
 
 /// Helper to create an error result for summarizers
-const summarizerError = (e: unknown) => {
+const summarizerError = (e: unknown): { ok: false; error: { type: "Custom"; message: string } } => {
   const message = e instanceof Error ? e.message : String(e);
   return { ok: false as const, error: { type: "Custom" as const, message } };
 };
