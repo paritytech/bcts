@@ -475,7 +475,7 @@ describe("Rust Parity: _insert stale name removal", () => {
     // The new name should work
     const overridden = store.knownValueNamed("overriddenIsA");
     expect(overridden).toBeDefined();
-    expect(overridden!.value()).toBe(1);
+    expect(overridden?.value()).toBe(1);
   });
 
   test("should handle multiple overrides on same codepoint", () => {
@@ -490,7 +490,7 @@ describe("Rust Parity: _insert stale name removal", () => {
     store.insert(new KnownValue(1, "secondOverride"));
     expect(store.knownValueNamed("firstOverride")).toBeUndefined();
     expect(store.knownValueNamed("secondOverride")).toBeDefined();
-    expect(store.knownValueNamed("secondOverride")!.value()).toBe(1);
+    expect(store.knownValueNamed("secondOverride")?.value()).toBe(1);
   });
 
   test("should handle override with unnamed value", () => {
@@ -505,8 +505,8 @@ describe("Rust Parity: _insert stale name removal", () => {
     // Should still be retrievable by value
     const found = store.knownValueForValue(1);
     expect(found).toBeDefined();
-    expect(found!.value()).toBe(1);
-    expect(found!.assignedName()).toBeUndefined();
+    expect(found?.value()).toBe(1);
+    expect(found?.assignedName()).toBeUndefined();
   });
 });
 

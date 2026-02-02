@@ -60,7 +60,7 @@ describe("Directory Loading Integration Tests", () => {
     // Hardcoded values should still be present
     const isA = store.knownValueNamed("isA");
     expect(isA).toBeDefined();
-    expect(isA!.value()).toBe(1);
+    expect(isA?.value()).toBe(1);
   });
 
   // Rust: test_load_from_temp_directory
@@ -82,7 +82,7 @@ describe("Directory Loading Integration Tests", () => {
 
       const loaded = store.knownValueNamed("integrationTestValue");
       expect(loaded).toBeDefined();
-      expect(loaded!.value()).toBe(99999);
+      expect(loaded?.value()).toBe(99999);
 
       // Original values should still be present
       expect(store.knownValueNamed("isA")).toBeDefined();
@@ -114,7 +114,7 @@ describe("Directory Loading Integration Tests", () => {
       // The new name should work
       const overridden = store.knownValueNamed("overriddenIsA");
       expect(overridden).toBeDefined();
-      expect(overridden!.value()).toBe(1);
+      expect(overridden?.value()).toBe(1);
     } finally {
       cleanupTempDir(tempDir);
     }
@@ -216,7 +216,7 @@ describe("Directory Loading Integration Tests", () => {
       // Second directory should win (later in list)
       const value = store.knownValueNamed("secondVersion");
       expect(value).toBeDefined();
-      expect(value!.value()).toBe(30000);
+      expect(value?.value()).toBe(30000);
 
       // First name should be gone
       expect(store.knownValueNamed("firstVersion")).toBeUndefined();
