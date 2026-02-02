@@ -810,7 +810,8 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     generatorOptions: XIDGeneratorOptionsValue = XIDGeneratorOptions.Omit,
     signingOptions: XIDSigningOptions = { type: "none" },
   ): Envelope {
-    let envelope = Envelope.new(this._xid.toData());
+    // Use tagged CBOR representation, matching Rust's Envelope::new(self.xid)
+    let envelope = Envelope.newLeaf(this._xid.taggedCbor());
 
     // Add resolution methods
     for (const method of this._resolutionMethods) {
@@ -964,13 +965,28 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     // The envelope may be a node (with assertions) or a leaf
     const envCase = envelope.case();
     const subject = envCase.type === "node" ? envelopeExt.subject() : envelope;
-    const xidData = (
-      subject as unknown as { asByteString(): Uint8Array | undefined }
-    ).asByteString();
-    if (xidData === undefined) {
+
+    // Try to extract XID from the subject leaf.
+    // Rust-generated documents store the XID as tagged CBOR (Tag 40015 + byte string).
+    // TS-generated documents may store it as a raw byte string.
+    const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
+    if (leaf === undefined) {
       throw XIDError.invalidXid();
     }
-    const xid = XID.from(xidData);
+    let xid: XID;
+    try {
+      // Try tagged CBOR first (matches Rust's Envelope::new(xid))
+      xid = XID.fromTaggedCbor(leaf);
+    } catch {
+      // Fall back to raw byte string
+      const xidData = (
+        subject as unknown as { asByteString(): Uint8Array | undefined }
+      ).asByteString();
+      if (xidData === undefined) {
+        throw XIDError.invalidXid();
+      }
+      xid = XID.from(xidData);
+    }
     const doc = XIDDocument.fromXid(xid);
 
     // Process assertions

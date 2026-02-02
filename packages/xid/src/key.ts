@@ -10,6 +10,7 @@
 import { Envelope, type EnvelopeEncodable } from "@bcts/envelope";
 import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT, type KnownValue } from "@bcts/known-values";
 import type { EnvelopeEncodableValue } from "@bcts/envelope";
+import { type Cbor } from "@bcts/dcbor";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
@@ -320,15 +321,24 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
     };
     const env = envelope as EnvelopeExt;
 
-    // Extract PublicKeys from subject (stored as tagged CBOR)
-    // The envelope may be a node (with assertions) or a leaf
+    // Extract PublicKeys from subject.
+    // Rust-generated documents store PublicKeys as tagged CBOR directly in the leaf.
+    // TS-generated documents may store the tagged CBOR binary inside a byte string.
     const envCase = env.case();
     const subject = envCase.type === "node" ? env.subject() : env;
+    let publicKeys: PublicKeys;
     const publicKeysData = (subject as EnvelopeExt).asByteString();
-    if (publicKeysData === undefined) {
-      throw XIDError.component(new Error("Could not extract public keys from envelope"));
+    if (publicKeysData !== undefined) {
+      // TS format: tagged CBOR binary stored as a byte string
+      publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
+    } else {
+      // Rust format: tagged CBOR stored directly as the leaf CBOR value
+      const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
+      if (leaf === undefined) {
+        throw XIDError.component(new Error("Could not extract public keys from envelope"));
+      }
+      publicKeys = PublicKeys.fromTaggedCbor(leaf);
     }
-    const publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
 
     // Extract optional private key
     let privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;

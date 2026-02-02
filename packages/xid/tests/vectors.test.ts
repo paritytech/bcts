@@ -52,9 +52,9 @@ describe("XID Document Test Vectors", () => {
       // Extract the XID
       const xid = xidDocument.xid();
 
-      // Verify XID string format: XID(<full 64-char hex>)
+      // Verify XID string format: XID(<first 4 bytes = 8 hex chars>), matching Rust Display
       const xidString = xid.toString();
-      expect(xidString).toMatch(/^XID\([0-9a-f]{64}\)$/);
+      expect(xidString).toMatch(/^XID\([0-9a-f]{8}\)$/);
 
       // Round-trip through envelope
       const envelope = xidDocument.intoEnvelope();
@@ -519,9 +519,9 @@ describe("XID Identifier Format Tests", () => {
 
       const xid = xidDocument.xid();
 
-      // Display format: XID(full 64-char hex)
+      // Display format: XID(first 4 bytes = 8 hex chars), matching Rust Display
       const display = xid.toString();
-      expect(display).toMatch(/^XID\([0-9a-f]{64}\)$/);
+      expect(display).toMatch(/^XID\([0-9a-f]{8}\)$/);
 
       // Short identifier (first 4 bytes = 8 hex chars)
       const shortId = xid.shortDescription();
@@ -716,8 +716,8 @@ describe("XID CBOR Hex Verification", () => {
     const xid = xidDocument.xid();
     const xidHex = xid.toHex();
 
-    // Format: XID(<64 hex chars>)
-    expect(xid.toString()).toBe(`XID(${xidHex})`);
+    // Format: XID(<first 4 bytes>), matching Rust Display
+    expect(xid.toString()).toBe(`XID(${xid.shortDescription()})`);
   });
 });
 
@@ -773,7 +773,8 @@ describe("XID Known Test Vector (Rust Parity)", () => {
 
   it("should produce correct toString for known XID", () => {
     const xid = XID.fromHex(TEST_XID_HEX);
-    expect(xid.toString()).toBe(`XID(${TEST_XID_HEX})`);
+    // toString() uses short format (first 4 bytes), matching Rust Display
+    expect(xid.toString()).toBe(`XID(${xid.shortDescription()})`);
   });
 
   it("should produce correct CBOR diagnostic notation for known XID", () => {

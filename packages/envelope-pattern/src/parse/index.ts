@@ -37,6 +37,10 @@ import {
   byteString,
   anyDate,
   date,
+  dateRange,
+  dateEarliest,
+  dateLatest,
+  dateRegex,
   anyKnownValue,
   knownValue,
   anyArray,
@@ -688,7 +692,45 @@ function parseTag(lexer: Lexer): Result<Pattern> {
  * Parse date content from date'...' pattern.
  */
 function parseDateContent(content: string, span: Span): Result<Pattern> {
-  // Try to parse as ISO date
+  // Check for regex syntax: /pattern/
+  if (content.startsWith("/") && content.endsWith("/")) {
+    const regexStr = content.slice(1, -1);
+    try {
+      return ok(dateRegex(new RegExp(regexStr)));
+    } catch {
+      return err(invalidRegex(span));
+    }
+  }
+
+  // Check for range syntax: date1...date2, date1..., ...date2
+  const rangeIdx = content.indexOf("...");
+  if (rangeIdx !== -1) {
+    const left = content.slice(0, rangeIdx).trim();
+    const right = content.slice(rangeIdx + 3).trim();
+
+    if (left.length === 0 && right.length > 0) {
+      // ...date2 → latest
+      const parsed = Date.parse(right);
+      if (isNaN(parsed)) return err({ type: "InvalidDateFormat", span });
+      return ok(dateLatest(CborDate.fromDatetime(new Date(parsed))));
+    }
+    if (left.length > 0 && right.length === 0) {
+      // date1... → earliest
+      const parsed = Date.parse(left);
+      if (isNaN(parsed)) return err({ type: "InvalidDateFormat", span });
+      return ok(dateEarliest(CborDate.fromDatetime(new Date(parsed))));
+    }
+    if (left.length > 0 && right.length > 0) {
+      // date1...date2 → range
+      const parsedStart = Date.parse(left);
+      const parsedEnd = Date.parse(right);
+      if (isNaN(parsedStart) || isNaN(parsedEnd)) return err({ type: "InvalidDateFormat", span });
+      return ok(dateRange(CborDate.fromDatetime(new Date(parsedStart)), CborDate.fromDatetime(new Date(parsedEnd))));
+    }
+    return err({ type: "InvalidDateFormat", span });
+  }
+
+  // Simple exact date
   const parsed = Date.parse(content);
   if (isNaN(parsed)) {
     return err({ type: "InvalidDateFormat", span });

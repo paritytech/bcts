@@ -67,8 +67,8 @@ function unfold(envelope: Envelope): string {
       const object = current.tryObject();
       if (object) {
         const subject = object.subject();
-        const subjValue = subject.tryLeaf();
-        if (typeof subjValue === "string") {
+        const subjValue = subject.asText();
+        if (subjValue !== undefined) {
           result += subjValue;
         }
         const assertions = object.assertions();
@@ -176,7 +176,7 @@ describe("Repeat Pattern Tests", () => {
     // Tests for different repeat modes (greedy, lazy, possessive)
     // These require full VM implementation
 
-    it.skip("greedy mode matches maximum first", () => {
+    it("greedy mode matches maximum first", () => {
       const envelope = wrapN(Envelope.new(42), 4);
       const pattern = traverse([
         repeat(unwrapEnvelope(), 0, undefined, Reluctance.Greedy),
@@ -187,7 +187,7 @@ describe("Repeat Pattern Tests", () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("lazy mode matches minimum first", () => {
+    it("lazy mode matches minimum first", () => {
       const envelope = wrapN(Envelope.new(42), 4);
       const pattern = traverse([
         repeat(unwrapEnvelope(), 0, undefined, Reluctance.Lazy),
@@ -198,7 +198,7 @@ describe("Repeat Pattern Tests", () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("possessive mode does not backtrack", () => {
+    it("possessive mode does not backtrack", () => {
       const envelope = wrapN(Envelope.new(42), 4);
       const pattern = traverse([
         repeat(unwrapEnvelope(), 0, undefined, Reluctance.Possessive),
@@ -213,20 +213,20 @@ describe("Repeat Pattern Tests", () => {
   describe("Repeat Range Modes", () => {
     // Tests for range-based repeat with different modes
 
-    it.skip("range greedy matches maximum in range", () => {
+    it("range greedy matches maximum in range", () => {
       const envelope = wrapN(Envelope.new(42), 3);
       const pattern = traverse([repeat(unwrapEnvelope(), 2, 3, Reluctance.Greedy), anyCbor()]);
       expect(patternMatches(pattern, envelope)).toBe(true);
     });
 
-    it.skip("range lazy matches minimum in range", () => {
+    it("range lazy matches minimum in range", () => {
       const envelope = wrapN(Envelope.new(42), 3);
       const pattern = traverse([repeat(unwrapEnvelope(), 2, 3, Reluctance.Lazy), anyCbor()]);
       const paths = patternPaths(pattern, envelope);
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("range possessive does not backtrack", () => {
+    it("range possessive does not backtrack", () => {
       const envelope = wrapN(Envelope.new(42), 3);
       const pattern = traverse([repeat(unwrapEnvelope(), 2, 3, Reluctance.Possessive), anyCbor()]);
       const paths = patternPaths(pattern, envelope);
@@ -237,21 +237,21 @@ describe("Repeat Pattern Tests", () => {
   describe("Optional Modes", () => {
     // Tests for optional (0..1) repeat with different modes
 
-    it.skip("optional greedy matches when possible", () => {
+    it("optional greedy matches when possible", () => {
       const envelope = wrapN(Envelope.new(42), 1);
       const pattern = traverse([repeat(unwrapEnvelope(), 0, 1, Reluctance.Greedy), number(42)]);
       const paths = patternPaths(pattern, envelope);
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("optional lazy prefers not matching", () => {
+    it("optional lazy prefers not matching", () => {
       const envelope = wrapN(Envelope.new(42), 1);
       const pattern = traverse([repeat(unwrapEnvelope(), 0, 1, Reluctance.Lazy), anyCbor()]);
       const paths = patternPaths(pattern, envelope);
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("optional matches on unwrapped envelope", () => {
+    it("optional matches on unwrapped envelope", () => {
       const envelope = Envelope.new(42);
       const pattern = traverse([repeat(unwrapEnvelope(), 0, 1, Reluctance.Greedy), anyCbor()]);
       const paths = patternPaths(pattern, envelope);
@@ -262,7 +262,7 @@ describe("Repeat Pattern Tests", () => {
   describe("Complex Repeat Patterns", () => {
     // Tests for complex nested repeat patterns
 
-    it.skip("repeat with assertion traversal", () => {
+    it("repeat with assertion traversal", () => {
       const envelope = Envelope.new("Alice")
         .addAssertion("knows", "Bob")
         .addAssertion("likes", "Carol");
@@ -273,7 +273,7 @@ describe("Repeat Pattern Tests", () => {
       expect(paths.length).toBe(2);
     });
 
-    it.skip("repeat with assertion and object traversal", () => {
+    it("repeat with assertion and object traversal", () => {
       const envelope = Envelope.new("Alice").addAssertion(
         "knows",
         Envelope.new("Bob").addAssertion("likes", "Carol"),
@@ -285,7 +285,7 @@ describe("Repeat Pattern Tests", () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    it.skip("repeat any modes with wrapped data", () => {
+    it("repeat any modes with wrapped data", () => {
       const envelope = wrapN(Envelope.new("data"), 2);
 
       const makePattern = (mode: Reluctance): Pattern =>
@@ -317,14 +317,14 @@ describe("Repeat Pattern Tests", () => {
       expect(folded.hasAssertions()).toBe(true);
     });
 
-    it.skip("unfold extracts original string", () => {
+    it("unfold extracts original string", () => {
       const str = "hello";
       const folded = fold(str);
       const unfolded = unfold(folded);
       expect(unfolded).toBe(str);
     });
 
-    it.skip("repeat with exact count on folded string", () => {
+    it("repeat with exact count on folded string", () => {
       const str = "hello";
       const envelope = fold(str);
 

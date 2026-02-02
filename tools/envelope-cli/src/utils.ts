@@ -278,20 +278,19 @@ export function envelopeFromUr(ur: UR): Envelope {
     // Ignore
   }
 
-  // Try as XID document (ur:xid contains envelope untagged CBOR)
+  // Try as XID (ur:xid contains untagged CBOR)
   if (ur.urTypeStr() === "xid") {
-    // First try: parse as envelope CBOR (XID document URs store envelope data)
+    // First try: parse as bare XID (just the 32-byte identifier)
     try {
-      return Envelope.fromUntaggedCbor(ur.cbor());
+      const xid = XID.fromUR(ur);
+      return Envelope.newLeaf(xid.taggedCbor());
     } catch {
       // Ignore
     }
 
-    // Second try: parse as bare XID (just the 32-byte identifier)
+    // Second try: parse as envelope CBOR (XID document URs store envelope data)
     try {
-      const xid = XID.fromTaggedCbor(ur.cbor());
-      const doc = XIDDocument.fromXid(xid);
-      return doc.toEnvelope();
+      return Envelope.fromUntaggedCbor(ur.cbor());
     } catch {
       // Ignore
     }

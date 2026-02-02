@@ -14,6 +14,7 @@ import { SigningOption } from "../src/cmd/xid/signing-args.js";
 import { VerifyOption } from "../src/cmd/xid/verify-args.js";
 import { defaultOutputOptions } from "../src/cmd/xid/output-options.js";
 import { XIDPrivilege } from "../src/cmd/xid/xid-privilege.js";
+import { URI } from "@bcts/components";
 import { ALICE_PUBKEYS, BOB_PUBKEYS } from "./common.js";
 
 const NO_PASSWORD_ARGS: xid.ReadWritePasswordArgs = {
@@ -68,8 +69,7 @@ describe("xid command", () => {
       expect(formatted).toContain("'allow': 'All'");
     });
 
-    // Skip: XID extract returns elided envelope instead of XID leaf
-    it.skip("test_xid_extract_bare_xid", () => {
+    it("test_xid_extract_bare_xid", () => {
       const bareXid = extract.exec({
         type: extract.SubjectType.Xid,
         envelope: XID_DOC,
@@ -120,8 +120,7 @@ describe("xid command", () => {
       expect(xidId2).toBe(xidId1);
     });
 
-    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
-    it.skip("test_xid_id_multiple_formats", () => {
+    it("test_xid_id_multiple_formats", () => {
       const xidId = xid.id.exec({
         format: [xid.IDFormat.Ur, xid.IDFormat.Hex, xid.IDFormat.Bytewords, xid.IDFormat.Bytemoji],
         verifySignature: false,
@@ -184,21 +183,51 @@ describe("xid command", () => {
       expect(formatted).toContain("'nickname': \"Alice's Key\"");
     });
 
-    // Skip: PrivateKeyBase input not fully supported yet
+    // Skip: PrivateKeyBase UR parsing not yet implemented in @bcts/components
     it.skip("test_xid_new_from_prvkey_base", () => {});
-    // Skip: Private key options not fully implemented
     it.skip("test_xid_new_private_omit", () => {});
-    // Skip: Private key elision not fully implemented
     it.skip("test_xid_new_private_elide", () => {});
-    // Skip: Endpoints not fully implemented
-    it.skip("test_xid_new_with_endpoints", () => {});
-    // Skip: Permissions not fully implemented
-    it.skip("test_xid_new_with_permissions", () => {});
+
+    it("test_xid_new_with_endpoints", async () => {
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PUBKEYS;
+      args.keyArgs.endpoints = [
+        URI.new("https://endpoint.example.com/"),
+        URI.new("btc:5e54156cfe0e62d9a56c72b84a5c40b84e2fd7dfe786c7d5c667e11ab85c45c6"),
+      ];
+      args.outputOpts.privateOpts = PrivateOptions.Omit;
+      args.generatorOpts = GeneratorOptions.Omit;
+      const newXidDoc = await xid.newCmd.exec(args);
+
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: newXidDoc,
+      });
+      expect(formatted).toContain("'endpoint':");
+      expect(formatted).toContain("endpoint.example.com");
+    });
+
+    it("test_xid_new_with_permissions", async () => {
+      const args = xid.newCmd.defaultArgs();
+      args.keyArgs.keys = ALICE_PUBKEYS;
+      args.keyArgs.permissions = [XIDPrivilege.Encrypt, XIDPrivilege.Sign];
+      args.outputOpts.privateOpts = PrivateOptions.Omit;
+      args.generatorOpts = GeneratorOptions.Omit;
+      const newXidDoc = await xid.newCmd.exec(args);
+
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: newXidDoc,
+      });
+      // Should have specific permissions instead of 'All'
+      expect(formatted).toContain("'allow': 'Encrypt'");
+      expect(formatted).toContain("'allow': 'Sign'");
+      expect(formatted).not.toContain("'allow': 'All'");
+    });
   });
 
   describe("export", () => {
-    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
-    it.skip("test_xid_export_envelope_format", () => {
+    it("test_xid_export_envelope_format", () => {
       const exported = xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
         format: xid.ExportFormat.Envelope,
@@ -209,8 +238,7 @@ describe("xid command", () => {
       expect(exported).toMatch(/^ur:envelope\//);
     });
 
-    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
-    it.skip("test_xid_export_xid_format", () => {
+    it("test_xid_export_xid_format", () => {
       const exported = xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
         format: xid.ExportFormat.Xid,
@@ -223,8 +251,7 @@ describe("xid command", () => {
       );
     });
 
-    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
-    it.skip("test_xid_export_json_not_implemented", () => {
+    it("test_xid_export_json_not_implemented", () => {
       expect(() =>
         xid.exportCmd.exec({
           ...xid.exportCmd.defaultArgs(),
@@ -340,12 +367,173 @@ describe("xid command", () => {
       expect(inception).toMatch(/^ur:envelope\//);
     });
 
-    // Skip: Key removal requires matching by reference, complex setup
-    it.skip("test_xid_key_remove", () => {});
-    // Skip: Key update requires matching by reference, complex setup
-    it.skip("test_xid_key_update", () => {});
-    // Skip: Key find by name requires nickname + lookup
-    it.skip("test_xid_key_find_name", () => {});
+    it("test_xid_key_remove", async () => {
+      // Create doc with Alice + Bob (Bob has Encrypt+Sign)
+      const aliceArgs = xid.newCmd.defaultArgs();
+      aliceArgs.keyArgs.keys = ALICE_PUBKEYS;
+      aliceArgs.keyArgs.nickname = "Alice";
+      aliceArgs.outputOpts.privateOpts = PrivateOptions.Omit;
+      aliceArgs.generatorOpts = GeneratorOptions.Omit;
+      let xidDoc = await xid.newCmd.exec(aliceArgs);
+
+      xidDoc = await xid.key.add.exec({
+        keyArgs: {
+          keys: BOB_PUBKEYS,
+          nickname: "Bob",
+          privateOpts: PrivateOptions.Omit,
+          endpoints: [],
+          permissions: [XIDPrivilege.Encrypt, XIDPrivilege.Sign],
+        },
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      expect(xid.key.count.exec({ verifyArgs: NO_VERIFY_ARGS, envelope: xidDoc })).toBe("2");
+
+      // Remove Alice's key
+      xidDoc = await xid.key.remove.exec({
+        keys: ALICE_PUBKEYS,
+        privateOpts: PrivateOptions.Omit,
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      // Only Bob's key remains
+      expect(xid.key.count.exec({ verifyArgs: NO_VERIFY_ARGS, envelope: xidDoc })).toBe("1");
+
+      // Inception key should not be found (Alice was the inception key)
+      const inception = await xid.key.find.inception.exec({
+        private: false,
+        passwordArgs: NO_PASSWORD_ARGS.read,
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidDoc,
+      });
+      expect(inception).toBe("");
+
+      // Format should show only Bob
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: xidDoc,
+      });
+      expect(formatted).toContain("\"Bob\"");
+      expect(formatted).not.toContain("\"Alice\"");
+    });
+    it("test_xid_key_update", async () => {
+      // Create doc with Alice (nickname) + Bob (nickname), both with All permissions
+      const aliceArgs = xid.newCmd.defaultArgs();
+      aliceArgs.keyArgs.keys = ALICE_PUBKEYS;
+      aliceArgs.keyArgs.nickname = "Alice";
+      aliceArgs.outputOpts.privateOpts = PrivateOptions.Omit;
+      aliceArgs.generatorOpts = GeneratorOptions.Omit;
+      let xidDoc = await xid.newCmd.exec(aliceArgs);
+
+      xidDoc = await xid.key.add.exec({
+        keyArgs: {
+          keys: BOB_PUBKEYS,
+          nickname: "Bob",
+          privateOpts: PrivateOptions.Omit,
+          endpoints: [],
+          permissions: [],
+        },
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      expect(xid.key.count.exec({ verifyArgs: NO_VERIFY_ARGS, envelope: xidDoc })).toBe("2");
+
+      // Update Bob's key: change permissions to Encrypt + Sign
+      xidDoc = await xid.key.update.exec({
+        keyArgs: {
+          keys: BOB_PUBKEYS,
+          nickname: "",
+          privateOpts: PrivateOptions.Omit,
+          endpoints: [],
+          permissions: [XIDPrivilege.Encrypt, XIDPrivilege.Sign],
+        },
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      // Still 2 keys
+      expect(xid.key.count.exec({ verifyArgs: NO_VERIFY_ARGS, envelope: xidDoc })).toBe("2");
+
+      // Format and verify
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: xidDoc,
+      });
+
+      // Alice still has 'All'
+      expect(formatted).toContain("\"Alice\"");
+      expect(formatted).toContain("\"Bob\"");
+      // Bob should have Encrypt and Sign
+      expect(formatted).toContain("'allow': 'Encrypt'");
+      expect(formatted).toContain("'allow': 'Sign'");
+    });
+    it("test_xid_key_find_name", async () => {
+      // Create doc with Alice (nickname) + Bob (nickname)
+      const aliceArgs = xid.newCmd.defaultArgs();
+      aliceArgs.keyArgs.keys = ALICE_PUBKEYS;
+      aliceArgs.keyArgs.nickname = "Alice";
+      aliceArgs.outputOpts.privateOpts = PrivateOptions.Omit;
+      aliceArgs.generatorOpts = GeneratorOptions.Omit;
+      let xidDoc = await xid.newCmd.exec(aliceArgs);
+
+      xidDoc = await xid.key.add.exec({
+        keyArgs: {
+          keys: BOB_PUBKEYS,
+          nickname: "Bob",
+          privateOpts: PrivateOptions.Omit,
+          endpoints: [],
+          permissions: [],
+        },
+        generatorOpts: GeneratorOptions.Omit,
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      // Find Alice's key by name
+      const aliceKey = await xid.key.find.name.exec({
+        name: "Alice",
+        private: false,
+        passwordArgs: NO_PASSWORD_ARGS.read,
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidDoc,
+      });
+      expect(aliceKey).toMatch(/^ur:envelope\//);
+
+      // Format Alice's key and verify
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: aliceKey,
+      });
+      expect(formatted).toContain("\"Alice\"");
+      expect(formatted).toContain("'allow': 'All'");
+
+      // Find non-existent name returns empty
+      const wolfKey = await xid.key.find.name.exec({
+        name: "Wolf",
+        private: false,
+        passwordArgs: NO_PASSWORD_ARGS.read,
+        verifyArgs: NO_VERIFY_ARGS,
+        envelope: xidDoc,
+      });
+      expect(wolfKey).toBe("");
+    });
   });
 
   describe("method management", () => {
@@ -559,9 +747,47 @@ describe("xid command", () => {
       expect(xid.delegate.count.exec({ envelope: xidDoc })).toBe("0");
     });
 
-    // Skip: Delegate update requires complex permission modification setup
-    it.skip("test_xid_delegate_update", () => {});
-    // Skip: Delegate find by name requires nickname set on delegate
+    it("test_xid_delegate_update", async () => {
+      let xidDoc = await makeXidDoc();
+      const bobDoc = await makeBobXidDoc();
+
+      // Add Bob as delegate with Sign + Encrypt
+      xidDoc = await xid.delegate.add.exec({
+        delegate: bobDoc,
+        allow: [XIDPrivilege.Sign, XIDPrivilege.Encrypt],
+        outputOpts: defaultOutputOptions(),
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+      expect(xid.delegate.count.exec({ envelope: xidDoc })).toBe("1");
+
+      // Update Bob's delegate permissions to Auth + Sign
+      xidDoc = await xid.delegate.update.exec({
+        delegate: bobDoc,
+        allow: [XIDPrivilege.Auth, XIDPrivilege.Sign],
+        outputOpts: defaultOutputOptions(),
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      // Still 1 delegate
+      expect(xid.delegate.count.exec({ envelope: xidDoc })).toBe("1");
+
+      // Verify updated permissions
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: xidDoc,
+      });
+      expect(formatted).toContain("'allow': 'Auth'");
+      expect(formatted).toContain("'allow': 'Sign'");
+      // Old permission should be gone
+      expect(formatted).not.toContain("'allow': 'Encrypt'");
+    });
+    // Skip: No delegate find-by-name command (Rust only has delegate find by XID)
     it.skip("test_xid_delegate_find_name", () => {});
   });
 
@@ -667,7 +893,52 @@ describe("xid command", () => {
       expect(xid.service.count.exec({ envelope: xidDoc })).toBe("0");
     });
 
-    // Skip: Service update requires complex setup with existing service modification
-    it.skip("test_xid_service_update", () => {});
+    it("test_xid_service_update", async () => {
+      let xidDoc = await makeXidDoc();
+
+      // Add a service
+      xidDoc = await xid.service.add.exec({
+        serviceArgs: {
+          uri: "https://example.com/api",
+          name: "Example API",
+          keys: [ALICE_PUBKEYS],
+          delegates: [],
+          permissions: [XIDPrivilege.Auth],
+        },
+        outputOpts: defaultOutputOptions(),
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+      expect(xid.service.count.exec({ envelope: xidDoc })).toBe("1");
+
+      // Update the service: change permissions (Auth → Sign + Encrypt)
+      xidDoc = await xid.service.update.exec({
+        serviceArgs: {
+          uri: "https://example.com/api",
+          keys: [],
+          delegates: [],
+          permissions: [XIDPrivilege.Sign, XIDPrivilege.Encrypt],
+        },
+        outputOpts: defaultOutputOptions(),
+        passwordArgs: NO_PASSWORD_ARGS,
+        verifyArgs: NO_VERIFY_ARGS,
+        signingArgs: NO_SIGNING_ARGS,
+        envelope: xidDoc,
+      });
+
+      // Still 1 service
+      expect(xid.service.count.exec({ envelope: xidDoc })).toBe("1");
+
+      // Verify updated permissions
+      const formatted = format.exec({
+        ...format.defaultArgs(),
+        envelope: xidDoc,
+      });
+      expect(formatted).toContain("\"Example API\"");
+      expect(formatted).toContain("'allow': 'Sign'");
+      expect(formatted).toContain("'allow': 'Encrypt'");
+    });
   });
 });

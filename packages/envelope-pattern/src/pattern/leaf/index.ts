@@ -141,8 +141,7 @@ export function leafPatternPathsWithCaptures(
 ): [Path[], Map<string, Path[]>] {
   switch (pattern.type) {
     case "Cbor":
-      // CBOR patterns from dcbor-pattern need special handling
-      return [[], new Map<string, Path[]>()];
+      return pattern.pattern.pathsWithCaptures(haystack);
     case "Number":
       return pattern.pattern.pathsWithCaptures(haystack);
     case "Text":

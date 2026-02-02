@@ -105,6 +105,7 @@ import {
   registerNodePatternFactory,
   registerObscuredPatternFactory,
   registerWrappedPatternFactory,
+  registerWrappedPatternDispatch,
 } from "./structure";
 
 // Import meta patterns
@@ -415,6 +416,27 @@ export function date(d: CborDate): Pattern {
  */
 export function dateRange(earliest: CborDate, latest: CborDate): Pattern {
   return patternLeaf(leafDate(DatePattern.range(earliest, latest)));
+}
+
+/**
+ * Creates a new Pattern that matches Date values on or after the specified date.
+ */
+export function dateEarliest(d: CborDate): Pattern {
+  return patternLeaf(leafDate(DatePattern.earliest(d)));
+}
+
+/**
+ * Creates a new Pattern that matches Date values on or before the specified date.
+ */
+export function dateLatest(d: CborDate): Pattern {
+  return patternLeaf(leafDate(DatePattern.latest(d)));
+}
+
+/**
+ * Creates a new Pattern that matches Date values whose ISO-8601 string matches the regex.
+ */
+export function dateRegex(pattern: RegExp): Pattern {
+  return patternLeaf(leafDate(DatePattern.regex(pattern)));
 }
 
 /**
@@ -770,6 +792,11 @@ function registerAllFactories(): void {
   registerNodePatternFactory((p) => patternStructure(structureNode(p)));
   registerObscuredPatternFactory((p) => patternStructure(structureObscured(p)));
   registerWrappedPatternFactory((p) => patternStructure(structureWrapped(p)));
+  registerWrappedPatternDispatch({
+    pathsWithCaptures: patternPathsWithCaptures,
+    compile: patternCompile,
+    toString: patternToString,
+  });
 
   // Meta pattern factories
   registerAnyPatternFactory((p) => patternMeta(metaAny(p)));

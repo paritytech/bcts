@@ -212,32 +212,27 @@ describe("Leaf Parsing Tests", () => {
       }
     });
 
-    // Note: date'...' syntax may not be fully implemented
-    it.skip("parses specific date pattern", () => {
+    it("parses specific date pattern", () => {
       const result = parse("date'2023-12-25'");
       expect(result.ok).toBe(true);
     });
 
-    // Note: date'...range...' syntax may not be fully implemented
-    it.skip("parses date range pattern", () => {
+    it("parses date range pattern", () => {
       const result = parse("date'2023-12-24...2023-12-26'");
       expect(result.ok).toBe(true);
     });
 
-    // Note: date'...earliest...' syntax may not be fully implemented
-    it.skip("parses earliest date pattern", () => {
+    it("parses earliest date pattern", () => {
       const result = parse("date'2023-12-24...'");
       expect(result.ok).toBe(true);
     });
 
-    // Note: date'...latest' syntax may not be fully implemented
-    it.skip("parses latest date pattern", () => {
+    it("parses latest date pattern", () => {
       const result = parse("date'...2023-12-26'");
       expect(result.ok).toBe(true);
     });
 
-    // Note: date regex syntax may not be fully implemented
-    it.skip("parses date regex pattern", () => {
+    it("parses date regex pattern", () => {
       const result = parse("date'/2023-.*/'");
       expect(result.ok).toBe(true);
     });

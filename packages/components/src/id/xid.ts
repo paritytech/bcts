@@ -247,10 +247,11 @@ export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREnc
   }
 
   /**
-   * Get string representation.
+   * Get string representation (short format, matching Rust Display).
+   * Uses first 4 bytes of the XID as hex, e.g., "XID(71274df1)".
    */
   toString(): string {
-    return `XID(${this.toHex()})`;
+    return `XID(${this.shortDescription()})`;
   }
 
   // ============================================================================

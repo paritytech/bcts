@@ -241,8 +241,7 @@ describe("Credential Pattern Tests", () => {
       }
     });
 
-    // TODO: Wrapped repeat pattern traversal requires further VM work
-    it.skip("search wrapped repeat finds all nodes", () => {
+    it("search wrapped repeat finds all nodes", () => {
       const credential = createTestCredential().wrap();
       const result = parse("search((wrapped)*->node)");
       expect(result.ok).toBe(true);
