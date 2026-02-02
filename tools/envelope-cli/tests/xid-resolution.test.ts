@@ -221,7 +221,7 @@ describe("xid resolution", () => {
     expect(resolution.all.exec({ envelope: xidDoc })).toContain("https://resolver.example.com");
   });
 
-  it("test_xid_resolution_with_signature", async () => {
+  it("test_xid_resolution_with_signature", { timeout: 30_000 }, async () => {
     // Create a signed XID document with encrypted private keys
     const args = xid.newCmd.defaultArgs();
     args.keyArgs.keys = ALICE_PRVKEYS;

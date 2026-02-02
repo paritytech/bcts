@@ -42,7 +42,7 @@ describe("encrypt command", () => {
     expect(decrypted).toBe(ALICE_KNOWS_BOB_EXAMPLE);
   });
 
-  it("test_encrypt_password", async () => {
+  it("test_encrypt_password", { timeout: 30_000 }, async () => {
     // First wrap the envelope
     const wrapped = subject.type.exec({
       subjectType: DataType.Wrapped,

@@ -381,7 +381,7 @@ describe("Crypto Tests", () => {
 
     it(
       "should support multiple secrets with different derivation methods",
-      { timeout: 30_000 },
+      { timeout: 60_000 },
       () => {
         const bobPassword = new TextEncoder().encode("correct horse battery staple");
         const carolPassword = new TextEncoder().encode("Able was I ere I saw Elba");

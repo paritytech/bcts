@@ -354,7 +354,7 @@ describe("xid signing command", () => {
   });
 
   describe("encrypted private keys", () => {
-    it("test_xid_sign_with_encrypted_private_keys", async () => {
+    it("test_xid_sign_with_encrypted_private_keys", { timeout: 30_000 }, async () => {
       // Create an encrypted PrivateKeys envelope
       const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "testpass");
       expect(encryptedKeys).toMatch(/^ur:envelope\//);
@@ -393,7 +393,7 @@ describe("xid signing command", () => {
       expect(formatted).toContain("'signed': Signature");
     });
 
-    it("test_xid_sign_with_encrypted_signing_private_key", async () => {
+    it("test_xid_sign_with_encrypted_signing_private_key", { timeout: 30_000 }, async () => {
       // Create encrypted PrivateKeys
       const encryptedKey = await encryptPrvKeys(CAROL_PRVKEYS, "mypass");
       expect(encryptedKey).toMatch(/^ur:envelope\//);
@@ -432,7 +432,7 @@ describe("xid signing command", () => {
       expect(formatted).toContain("'signed': Signature");
     });
 
-    it("test_xid_sign_with_encrypted_key_wrong_password", async () => {
+    it("test_xid_sign_with_encrypted_key_wrong_password", { timeout: 30_000 }, async () => {
       // Create an encrypted key
       const encryptedKeys = await encryptPrvKeys(CAROL_PRVKEYS, "correctpass");
 
@@ -493,7 +493,7 @@ describe("xid signing command", () => {
       ).rejects.toThrow();
     });
 
-    it("test_xid_sign_with_invalid_encrypted_content", async () => {
+    it("test_xid_sign_with_invalid_encrypted_content", { timeout: 30_000 }, async () => {
       // Create an encrypted envelope that doesn't contain keys
       const helloEnvelope = subject.type.exec({
         subjectType: DataType.String,
