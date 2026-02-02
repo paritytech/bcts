@@ -10,4 +10,4 @@ The pattern language is designed to be expressive yet concise, allowing you to m
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-envelope-pattern-rust](https://github.com/BlockchainCommons/bc-envelope-pattern-rust) **v0.11.0** ([commit](https://github.com/BlockchainCommons/bc-envelope-pattern-rust/tree/35c8ea1af47eed148649c5462e66aed9a5064620)).
+This TypeScript implementation is based on [bc-envelope-pattern-rust](https://github.com/BlockchainCommons/bc-envelope-pattern-rust) **v0.13.0** ([commit](https://github.com/BlockchainCommons/bc-envelope-pattern-rust/tree/0be775ec5c954a29f7cf842c80da36bc8be91b43)).

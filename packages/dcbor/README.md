@@ -10,4 +10,4 @@ The current specification of the norms and practices guiding the creation of thi
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) **v0.24.1** ([commit](https://github.com/BlockchainCommons/bc-dcbor-rust/tree/012be742e89098d1e0630f1f480463b6bdd2e068)).
+This TypeScript implementation is based on [bc-dcbor-rust](https://github.com/BlockchainCommons/bc-dcbor-rust) **v0.25.1** ([commit](https://github.com/BlockchainCommons/bc-dcbor-rust/tree/8344a256cc858b3a626a89e0b805ef0bda4d3b50)).

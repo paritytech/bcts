@@ -10,4 +10,4 @@ It is intended for use in testing, debugging, and other scenarios where a human-
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-dcbor-parse-rust](https://github.com/BlockchainCommons/bc-dcbor-parse-rust) **v0.10.0** ([commit](https://github.com/BlockchainCommons/bc-dcbor-parse-rust/tree/df2c4279982a35e1c1ead8ecd9f8bb16c9bd6add)).
+This TypeScript implementation is based on [bc-dcbor-parse-rust](https://github.com/BlockchainCommons/bc-dcbor-parse-rust) **v0.11.1** ([commit](https://github.com/BlockchainCommons/bc-dcbor-parse-rust/tree/3c91f62edf5b2892e6f32eac68c055d9d4b22df8)).

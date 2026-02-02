@@ -15,7 +15,7 @@ Features:
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [seedtool-cli-rust](https://github.com/BlockchainCommons/seedtool-cli-rust).
+This TypeScript implementation is based on [seedtool-cli-rust](https://github.com/BlockchainCommons/seedtool-cli-rust) **v0.4.0** ([commit](https://github.com/BlockchainCommons/seedtool-cli-rust/tree/3d4e8d203a7db928713e731d416b71993dd45c28)).
 
 ## Installation
 

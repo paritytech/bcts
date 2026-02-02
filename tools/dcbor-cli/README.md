@@ -14,7 +14,7 @@ Features:
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-dcbor-cli](https://github.com/BlockchainCommons/bc-dcbor-cli) **v0.16.0** ([commit](https://github.com/BlockchainCommons/bc-dcbor-cli/tree/1977ba6e2934f58d49b0dbf10d171988d9cb31d3)).
+This TypeScript implementation is based on [bc-dcbor-cli](https://github.com/BlockchainCommons/bc-dcbor-cli) **v0.17.1** ([commit](https://github.com/BlockchainCommons/bc-dcbor-cli/tree/d7aadaca996bdcd559846f24380f289787dd1c30)).
 
 ## Installation
 
