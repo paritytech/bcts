@@ -122,8 +122,7 @@ describe("CBOR Pattern Integration Tests", () => {
   });
 
   describe("Complex CBOR Structures", () => {
-    // Note: Complex map parsing with string keys may have implementation differences
-    it.skip("matches map with string keys", () => {
+    it("matches map with string keys", () => {
       // Note: Map as Envelope subject requires CBOR wrapping
       const envelope = Envelope.new(
         new Map<string, unknown>([

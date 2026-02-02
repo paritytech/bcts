@@ -9,6 +9,7 @@
 
 import { parse as parseDcborPattern } from "@bcts/dcbor-pattern";
 import { Lexer } from "./token";
+import { parseCborInner } from "./utils";
 import {
   type Result,
   type Span,
@@ -791,7 +792,24 @@ function parseCbor(lexer: Lexer): Result<Pattern> {
     return ok(cborPattern(dcborPattern));
   }
 
-  // Parse inner content - this is a regular pattern expression
+  // Parse inner content as CBOR diagnostic notation (matching Rust parse_cbor)
+  const remaining = lexer.remainder();
+  const cborResult = parseCborInner(remaining);
+  if (cborResult.ok) {
+    const [pattern, consumed] = cborResult.value;
+    lexer.bump(consumed);
+    // Skip whitespace before closing paren
+    while (lexer.peek() === " " || lexer.peek() === "\t" || lexer.peek() === "\n") {
+      lexer.bump(1);
+    }
+    const close = lexer.next();
+    if (close?.token.type !== "ParenClose") {
+      return err({ type: "ExpectedCloseParen", span: lexer.span() });
+    }
+    return ok(pattern);
+  }
+
+  // Fallback: try parsing as a regular pattern expression
   const inner = parseOr(lexer);
   if (!inner.ok) return inner;
 

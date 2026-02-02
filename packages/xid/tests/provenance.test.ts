@@ -3,10 +3,10 @@
  * Ported from bc-xid-rust/tests/provenance.rs
  */
 
-import { PrivateKeyBase } from "@bcts/components";
+import { PrivateKeyBase, KeyDerivationMethod } from "@bcts/components";
 import { ProvenanceMarkGenerator, ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { cbor } from "@bcts/dcbor";
-import { Provenance, XIDGeneratorOptions, XIDDocument } from "../src";
+import { Provenance, XIDGeneratorOptions, XIDDocument, XIDPrivateKeyOptions, XIDVerifySignature } from "../src";
 
 describe("Provenance", () => {
   describe("Basic provenance", () => {
@@ -391,6 +391,264 @@ describe("Provenance", () => {
       // Try to advance with generator at seq 2 (expecting seq 1)
       expect(() => {
         xidDoc.nextProvenanceMarkWithProvidedGenerator(generator, undefined, cbor("Test"));
+      }).toThrow();
+    });
+  });
+
+  describe("Encrypted with different methods", () => {
+    it("should encrypt with Argon2id, PBKDF2, and Scrypt", () => {
+      const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generatorForMark.next(date, cbor("Test mark"));
+
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const password = new TextEncoder().encode("test_password_123");
+
+      const provenance = Provenance.newWithGenerator(generator, mark);
+
+      // Test encryption with Argon2id
+      const envelopeArgon2id = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
+      const provenanceArgon2id = Provenance.tryFromEnvelope(envelopeArgon2id, password);
+      expect(provenance.equals(provenanceArgon2id)).toBe(true);
+
+      // Test encryption with PBKDF2
+      const envelopePbkdf2 = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.PBKDF2,
+      });
+      const provenancePbkdf2 = Provenance.tryFromEnvelope(envelopePbkdf2, password);
+      expect(provenance.equals(provenancePbkdf2)).toBe(true);
+
+      // Test encryption with Scrypt
+      const envelopeScrypt = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Scrypt,
+      });
+      const provenanceScrypt = Provenance.tryFromEnvelope(envelopeScrypt, password);
+      expect(provenance.equals(provenanceScrypt)).toBe(true);
+
+      // Each encryption produces a different envelope (different salts/nonces)
+      expect(envelopeArgon2id.urString()).not.toBe(envelopePbkdf2.urString());
+      expect(envelopePbkdf2.urString()).not.toBe(envelopeScrypt.urString());
+      expect(envelopeArgon2id.urString()).not.toBe(envelopeScrypt.urString());
+    });
+  });
+
+  describe("Generator envelope", () => {
+    it("should return undefined when no generator", () => {
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generator.next(date, cbor("Test mark"));
+      const provenance = Provenance.new(mark);
+
+      const result = provenance.generatorEnvelope();
+      expect(result).toBeUndefined();
+    });
+
+    it("should return envelope for unencrypted generator", () => {
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generator.next(date, cbor("Test mark"));
+      const provenance = Provenance.newWithGenerator(generator, mark);
+
+      const envelope = provenance.generatorEnvelope();
+      expect(envelope).toBeDefined();
+    });
+
+    it("should return encrypted envelope when no password provided", () => {
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generator.next(date, cbor("Test mark"));
+      const provenance = Provenance.newWithGenerator(generator, mark);
+      const password = "test-password";
+
+      // Encrypt the provenance
+      const envelopeEncrypted = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password: new TextEncoder().encode(password),
+      });
+
+      const provenanceEncrypted = Provenance.tryFromEnvelope(envelopeEncrypted);
+
+      // Get encrypted envelope without password
+      const encryptedEnvelope = provenanceEncrypted.generatorEnvelope();
+      expect(encryptedEnvelope).toBeDefined();
+
+      // Should be encrypted
+      const formatted = encryptedEnvelope!.format();
+      expect(formatted).toContain("ENCRYPTED");
+      expect(formatted).toContain("hasSecret");
+    });
+
+    it("should decrypt envelope with correct password", () => {
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generator.next(date, cbor("Test mark"));
+      const provenance = Provenance.newWithGenerator(generator, mark);
+      const password = "test-password";
+
+      // Encrypt the provenance
+      const envelopeEncrypted = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password: new TextEncoder().encode(password),
+      });
+
+      const provenanceEncrypted = Provenance.tryFromEnvelope(envelopeEncrypted);
+
+      // Get decrypted envelope with correct password
+      const decryptedEnvelope = provenanceEncrypted.generatorEnvelope(password);
+      expect(decryptedEnvelope).toBeDefined();
+    });
+
+    it("should throw on wrong password", () => {
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test_passphrase",
+      );
+      const date = new Date(Date.UTC(2025, 0, 1));
+      const mark = generator.next(date, cbor("Test mark"));
+      const provenance = Provenance.newWithGenerator(generator, mark);
+      const password = "test-password";
+
+      // Encrypt the provenance
+      const envelopeEncrypted = provenance.intoEnvelopeOpt({
+        type: XIDGeneratorOptions.Encrypt,
+        password: new TextEncoder().encode(password),
+      });
+
+      const provenanceEncrypted = Provenance.tryFromEnvelope(envelopeEncrypted);
+
+      // Try to decrypt with wrong password
+      expect(() => {
+        provenanceEncrypted.generatorEnvelope("wrong-password");
+      }).toThrow();
+    });
+  });
+
+  describe("Advancing with encrypted generator", () => {
+    it("should advance with embedded encrypted generator", () => {
+      const privateKeyBase = PrivateKeyBase.new();
+
+      const passphrase = "test_passphrase";
+      const date1 = new Date(Date.UTC(2025, 0, 1));
+
+      const xidDoc = XIDDocument.new(
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
+        {
+          type: "passphrase",
+          passphrase,
+          resolution: ProvenanceMarkResolution.High,
+          date: date1,
+          info: cbor("Genesis mark"),
+        },
+      );
+
+      // Verify initial state
+      const mark1 = xidDoc.provenance();
+      expect(mark1).toBeDefined();
+      expect(mark1?.seq()).toBe(0);
+
+      // Encrypt the generator
+      const password = new TextEncoder().encode("encryption_password");
+      const envelope = xidDoc.toEnvelope(
+        XIDPrivateKeyOptions.Omit,
+        { type: XIDGeneratorOptions.Encrypt, password },
+        { type: "none" },
+      );
+
+      // Reload document (generator is now encrypted)
+      const xidDocEncrypted = XIDDocument.fromEnvelope(
+        envelope,
+        undefined,
+        XIDVerifySignature.None,
+      );
+
+      // Verify generator is encrypted (not accessible without password)
+      expect(xidDocEncrypted.provenanceGenerator()).toBeUndefined();
+
+      // Advance with correct password
+      const date2 = new Date(Date.UTC(2025, 0, 2));
+      xidDocEncrypted.nextProvenanceMarkWithEmbeddedGenerator(
+        password,
+        date2,
+        cbor("Second mark"),
+      );
+
+      // Verify advancement
+      const mark2 = xidDocEncrypted.provenance();
+      expect(mark2).toBeDefined();
+      expect(mark2?.seq()).toBe(1);
+
+      // Generator should now be decrypted
+      const generator = xidDocEncrypted.provenanceGenerator();
+      expect(generator).toBeDefined();
+      expect(generator?.nextSeq()).toBe(2);
+    });
+
+    it("should error on wrong password for encrypted generator", () => {
+      const privateKeyBase = PrivateKeyBase.new();
+
+      const passphrase = "test_passphrase";
+      const date = new Date(Date.UTC(2025, 0, 1));
+
+      const xidDoc = XIDDocument.new(
+        { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
+        {
+          type: "passphrase",
+          passphrase,
+          resolution: ProvenanceMarkResolution.High,
+          date,
+          info: cbor("Genesis mark"),
+        },
+      );
+
+      // Encrypt the generator
+      const password = new TextEncoder().encode("correct_password");
+      const envelope = xidDoc.toEnvelope(
+        XIDPrivateKeyOptions.Omit,
+        { type: XIDGeneratorOptions.Encrypt, password },
+        { type: "none" },
+      );
+
+      // Reload document (generator is now encrypted)
+      const xidDocEncrypted = XIDDocument.fromEnvelope(
+        envelope,
+        undefined,
+        XIDVerifySignature.None,
+      );
+
+      // Try to advance with wrong password
+      const wrongPassword = new TextEncoder().encode("wrong_password");
+      expect(() => {
+        xidDocEncrypted.nextProvenanceMarkWithEmbeddedGenerator(
+          wrongPassword,
+          undefined,
+          cbor("Test"),
+        );
       }).toThrow();
     });
   });

@@ -510,9 +510,9 @@ describe("xid edge", () => {
     });
     expect(edge.count.exec({ envelope: xidDoc })).toBe("1");
 
-    // Add another operation (method) with verify + sign, edge should persist
-    const methodAdd = await import("../src/cmd/xid/method/add.js");
-    xidDoc = await methodAdd.exec({
+    // Add another operation (resolution) with verify + sign, edge should persist
+    const resolution = await import("../src/cmd/xid/resolution/index.js");
+    xidDoc = await resolution.add.exec({
       uri: "https://example.com/resolve",
       outputOpts: defaultOutputOptions(),
       passwordArgs: NO_PASSWORD_ARGS,

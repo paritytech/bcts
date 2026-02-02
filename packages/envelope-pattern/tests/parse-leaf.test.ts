@@ -360,14 +360,12 @@ describe("Leaf Parsing Tests", () => {
       expect(result.ok).toBe(true);
     });
 
-    // Note: cbor with map/tagged value parsing may have implementation differences
-    it.skip("parses cbor with map value", () => {
+    it("parses cbor with map value", () => {
       const result = parse("cbor({1: 2})");
       expect(result.ok).toBe(true);
     });
 
-    // Note: cbor with tagged value parsing may have implementation differences
-    it.skip("parses cbor with tagged value", () => {
+    it("parses cbor with tagged value", () => {
       const result = parse('cbor(1("t"))');
       expect(result.ok).toBe(true);
     });
@@ -377,8 +375,7 @@ describe("Leaf Parsing Tests", () => {
       expect(result.ok).toBe(true);
     });
 
-    // Note: cbor with map string keys parsing may have implementation differences
-    it.skip("parses cbor with map string keys", () => {
+    it("parses cbor with map string keys", () => {
       const result = parse('cbor({"a": 1})');
       expect(result.ok).toBe(true);
     });

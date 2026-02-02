@@ -44,6 +44,7 @@ export enum XIDGeneratorOptions {
 export interface XIDGeneratorEncryptConfig {
   type: XIDGeneratorOptions.Encrypt;
   password: Uint8Array;
+  method?: KeyDerivationMethod;
 }
 
 /**
@@ -196,6 +197,47 @@ export class Provenance implements EnvelopeEncodable {
   }
 
   /**
+   * Get the generator envelope, optionally decrypting it.
+   *
+   * Returns:
+   * - undefined if no generator
+   * - An envelope containing the generator if unencrypted
+   * - The decrypted envelope if encrypted + correct password
+   * - The encrypted envelope as-is if encrypted + no password
+   * - Throws on wrong password
+   */
+  generatorEnvelope(password?: string): Envelope | undefined {
+    type EnvelopeExt = Envelope & {
+      unlockSubject(p: Uint8Array): Envelope;
+      subject(): Envelope;
+      tryUnwrap(): Envelope;
+    };
+
+    if (this._generator === undefined) {
+      return undefined;
+    }
+    const { data } = this._generator;
+    if (data.type === "decrypted") {
+      const generatorBytes = encodeGeneratorJSON(data.generator.toJSON());
+      return Envelope.new(generatorBytes);
+    }
+    // Encrypted case
+    if (password !== undefined) {
+      try {
+        const decrypted = (data.envelope as EnvelopeExt).unlockSubject(
+          new TextEncoder().encode(password),
+        ) as EnvelopeExt;
+        const unwrapped = (decrypted.subject() as EnvelopeExt).tryUnwrap();
+        return unwrapped;
+      } catch {
+        throw XIDError.invalidPassword();
+      }
+    }
+    // No password — return encrypted envelope as-is
+    return data.envelope;
+  }
+
+  /**
    * Convert to envelope with specified options.
    */
   intoEnvelopeOpt(generatorOptions: XIDGeneratorOptionsValue = XIDGeneratorOptions.Omit): Envelope {
@@ -241,7 +283,7 @@ export class Provenance implements EnvelopeEncodable {
               const generatorBytes3 = encodeGeneratorJSON(data.generator.toJSON());
               const generatorEnvelope = Envelope.new(generatorBytes3) as EnvelopeExt;
               const wrapped = generatorEnvelope.wrap() as EnvelopeExt;
-              const method: KeyDerivationMethod = defaultKeyDerivationMethod();
+              const method: KeyDerivationMethod = generatorOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (wrapped as unknown as EnvelopeExt).lockSubject(
                 method,
                 generatorOptions.password,

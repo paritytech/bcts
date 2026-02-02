@@ -12,7 +12,7 @@ import { KEY, DELEGATE, NAME, CAPABILITY, ALLOW, type KnownValue } from "@bcts/k
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
-import type { Reference } from "@bcts/components";
+import { Reference, type PublicKeys, type XID } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { privilegeFromEnvelope } from "./privilege";
 import { XIDError } from "./error";
@@ -145,6 +145,22 @@ export class Service implements HasPermissions, EnvelopeEncodable {
    */
   addDelegateReference(delegateReference: Reference): void {
     this.addDelegateReferenceHex(delegateReference.toHex());
+  }
+
+  /**
+   * Add a key by its public keys provider (convenience method).
+   * Matches Rust's `add_key(&mut self, key: &dyn PublicKeysProvider)`.
+   */
+  addKey(keyProvider: { publicKeys(): PublicKeys }): void {
+    this.addKeyReference(keyProvider.publicKeys().reference());
+  }
+
+  /**
+   * Add a delegate by its XID provider (convenience method).
+   * Matches Rust's `add_delegate(&mut self, delegate: &dyn XIDProvider)`.
+   */
+  addDelegate(xidProvider: { xid(): XID }): void {
+    this.addDelegateReference(Reference.hash(xidProvider.xid().toData()));
   }
 
   /**

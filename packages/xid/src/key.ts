@@ -20,6 +20,8 @@ import {
   PublicKeys,
   PrivateKeys,
   type PrivateKeyBase,
+  type SigningPublicKey,
+  type EncapsulationPublicKey,
   type Verifier,
   type Signature,
   type KeyDerivationMethod,
@@ -50,6 +52,7 @@ export enum XIDPrivateKeyOptions {
 export interface XIDPrivateKeyEncryptConfig {
   type: XIDPrivateKeyOptions.Encrypt;
   password: Uint8Array;
+  method?: KeyDerivationMethod;
 }
 
 /**
@@ -175,6 +178,20 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
     return this._publicKeys.reference();
   }
 
+  /**
+   * Get the signing public key.
+   */
+  signingPublicKey(): SigningPublicKey {
+    return this._publicKeys.signingPublicKey();
+  }
+
+  /**
+   * Get the encapsulation public key.
+   */
+  encapsulationPublicKey(): EncapsulationPublicKey {
+    return this._publicKeys.encapsulationPublicKey();
+  }
+
   // ============================================================================
   // Verifier Interface
   // ============================================================================
@@ -274,7 +291,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
               const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
-              const method: KeyDerivationMethod = defaultKeyDerivationMethod();
+              const method: KeyDerivationMethod = privateKeyOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (
                 privateKeysEnvelope as unknown as {
                   lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;

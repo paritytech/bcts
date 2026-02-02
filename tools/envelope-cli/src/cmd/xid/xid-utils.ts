@@ -250,10 +250,20 @@ export async function getPrivateKeyUr(
     throw new Error("No private key present in this key");
   }
 
-  // Try to extract PrivateKeys from the subject
+  // Try to extract PrivateKeys from the subject.
+  // Matches Rust: PrivateKeys::try_from(envelope.subject())
   // If successful, we have decrypted keys - return as ur:crypto-prvkeys
   // If it fails, we have an encrypted envelope - return as ur:envelope
   try {
+    // Private keys are stored as tagged CBOR bytes in a leaf envelope.
+    // After unlockSubject, the subject is a byte string leaf.
+    const subject = envelope.subject();
+    const bytes = subject.asByteString();
+    if (bytes !== undefined) {
+      const privateKeys = PrivateKeys.fromTaggedCborData(bytes);
+      return privateKeys.urString();
+    }
+    // Fallback: try extractSubject for other subject types
     const privateKeys = envelope.extractSubject(
       (cbor) => PrivateKeys.fromTaggedCbor(cbor),
     );
