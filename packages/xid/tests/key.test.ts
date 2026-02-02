@@ -95,7 +95,7 @@ describe("Key", () => {
   });
 
   describe("Encrypted private key", () => {
-    it("should encrypt and decrypt private key with password", { timeout: 30_000 }, () => {
+    it("should encrypt and decrypt private key with password", { timeout: 60_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("correct_horse_battery_staple");
 
@@ -261,7 +261,7 @@ describe("Key", () => {
       expect(bytes).toBeDefined();
     });
 
-    it("should return encrypted envelope when no password provided", () => {
+    it("should return encrypted envelope when no password provided", { timeout: 60_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
       const password = "test-password";

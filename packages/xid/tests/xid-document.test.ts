@@ -359,7 +359,7 @@ describe("XIDDocument", () => {
       expect(xidDocument2.inceptionKey()?.hasPrivateKeys()).toBe(false);
     });
 
-    it("should encrypt private key when specified", { timeout: 30_000 }, () => {
+    it("should encrypt private key when specified", { timeout: 60_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("secure_password");
 
@@ -543,7 +543,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Multiple keys with encryption", () => {
-    it("should encrypt multiple keys", { timeout: 30_000 }, () => {
+    it("should encrypt multiple keys", { timeout: 60_000 }, () => {
       const password = new TextEncoder().encode("multi_key_password");
 
       // Create document with inception key

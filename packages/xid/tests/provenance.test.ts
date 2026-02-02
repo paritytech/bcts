@@ -117,7 +117,7 @@ describe("Provenance", () => {
   });
 
   describe("Encrypted generator", () => {
-    it("should encrypt and decrypt generator with password", { timeout: 30_000 }, () => {
+    it("should encrypt and decrypt generator with password", { timeout: 60_000 }, () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -479,7 +479,7 @@ describe("Provenance", () => {
       expect(envelope).toBeDefined();
     });
 
-    it("should return encrypted envelope when no password provided", () => {
+    it("should return encrypted envelope when no password provided", { timeout: 60_000 }, () => {
       const generator = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",

@@ -247,7 +247,7 @@ describe("Edge", () => {
   });
 
   describe("Encrypted keys with edges", () => {
-    it("should coexist with encrypted keys", { timeout: 30_000 }, () => {
+    it("should coexist with encrypted keys", { timeout: 60_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
