@@ -1,6 +1,7 @@
 // Ported from provenance-mark-rust/src/validate.rs
 
 import type { ProvenanceMark } from "./mark.js";
+import { ProvenanceMarkError } from "./error.js";
 
 /**
  * Format for validation report output.
@@ -257,21 +258,45 @@ export function formatReport(report: ValidationReport, format: ValidationReportF
  */
 function reportToJSON(report: ValidationReport): unknown {
   return {
-    marks: report.marks.map((m) => m.toUrlEncoding()),
+    marks: report.marks.map((m) => m.urString()),
     chains: report.chains.map((chain) => ({
       chain_id: hexEncode(chain.chainId),
       has_genesis: chain.hasGenesis,
-      marks: chain.marks.map((m) => m.toUrlEncoding()),
+      marks: chain.marks.map((m) => m.urString()),
       sequences: chain.sequences.map((seq) => ({
         start_seq: seq.startSeq,
         end_seq: seq.endSeq,
         marks: seq.marks.map((fm) => ({
-          mark: fm.mark.toUrlEncoding(),
-          issues: fm.issues,
+          mark: fm.mark.urString(),
+          issues: fm.issues.map(issueToJSON),
         })),
       })),
     })),
   };
+}
+
+/**
+ * Convert a ValidationIssue to JSON matching Rust's serde format.
+ *
+ * Rust uses `#[serde(tag = "type", content = "data")]` which wraps
+ * struct variant data in a `"data"` field. Unit variants have no
+ * `"data"` field.
+ */
+function issueToJSON(issue: ValidationIssue): unknown {
+  switch (issue.type) {
+    case "HashMismatch":
+      return { type: "HashMismatch", data: { expected: issue.expected, actual: issue.actual } };
+    case "SequenceGap":
+      return { type: "SequenceGap", data: { expected: issue.expected, actual: issue.actual } };
+    case "DateOrdering":
+      return { type: "DateOrdering", data: { previous: issue.previous, next: issue.next } };
+    case "KeyMismatch":
+      return { type: "KeyMismatch" };
+    case "NonGenesisAtZero":
+      return { type: "NonGenesisAtZero" };
+    case "InvalidGenesisKey":
+      return { type: "InvalidGenesisKey" };
+  }
 }
 
 /**
@@ -301,8 +326,17 @@ function buildSequenceBins(marks: ProvenanceMark[]): SequenceReport[] {
           sequences.push(createSequenceReport(currentSequence));
         }
 
-        // Parse the error to determine the issue type
-        const issue = parseValidationError(e, prev, mark);
+        // Extract structured issue directly from the error
+        // Matches Rust: Error::Validation(v) => v, _ => ValidationIssue::KeyMismatch
+        let issue: ValidationIssue;
+        if (
+          e instanceof ProvenanceMarkError &&
+          e.details?.["validationIssue"] !== undefined
+        ) {
+          issue = e.details["validationIssue"] as ValidationIssue;
+        } else {
+          issue = { type: "KeyMismatch" }; // Fallback
+        }
 
         // Start new sequence with this mark, flagged with the issue
         currentSequence = [{ mark, issues: [issue] }];
@@ -319,53 +353,6 @@ function buildSequenceBins(marks: ProvenanceMark[]): SequenceReport[] {
 }
 
 /**
- * Parse a validation error into a ValidationIssue.
- */
-function parseValidationError(
-  e: unknown,
-  prev: ProvenanceMark,
-  next: ProvenanceMark,
-): ValidationIssue {
-  const message = e instanceof Error ? e.message : "";
-
-  if (message !== "" && message.includes("non-genesis mark at sequence 0")) {
-    return { type: "NonGenesisAtZero" };
-  }
-  if (message !== "" && message.includes("genesis mark must have key equal to chain_id")) {
-    return { type: "InvalidGenesisKey" };
-  }
-  if (message !== "" && message.includes("sequence gap")) {
-    const seqGapRegex = /expected (\d+), got (\d+)/;
-    const match = seqGapRegex.exec(message);
-    if (match !== null) {
-      return {
-        type: "SequenceGap",
-        expected: parseInt(match[1], 10),
-        actual: parseInt(match[2], 10),
-      };
-    }
-  }
-  if (message !== "" && message.includes("date ordering")) {
-    return {
-      type: "DateOrdering",
-      previous: prev.date().toISOString(),
-      next: next.date().toISOString(),
-    };
-  }
-  if (message !== "" && message.includes("hash mismatch")) {
-    const hashRegex = /expected: (\w+), actual: (\w+)/;
-    const match = hashRegex.exec(message);
-    if (match !== null) {
-      return { type: "HashMismatch", expected: match[1], actual: match[2] };
-    }
-    return { type: "HashMismatch", expected: "", actual: "" };
-  }
-
-  // Fallback
-  return { type: "KeyMismatch" };
-}
-
-/**
  * Create a sequence report from flagged marks.
  */
 function createSequenceReport(marks: FlaggedMark[]): SequenceReport {
@@ -379,10 +366,11 @@ function createSequenceReport(marks: FlaggedMark[]): SequenceReport {
  */
 export function validate(marks: ProvenanceMark[]): ValidationReport {
   // Deduplicate exact duplicates
+  // Matches Rust semantics: PartialEq compares (res, message())
   const seen = new Set<string>();
   const deduplicatedMarks: ProvenanceMark[] = [];
   for (const mark of marks) {
-    const key = mark.toUrlEncoding();
+    const key = `${mark.res()}:${hexEncode(mark.message())}`;
     if (!seen.has(key)) {
       seen.add(key);
       deduplicatedMarks.push(mark);

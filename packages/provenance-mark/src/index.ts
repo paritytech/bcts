@@ -97,5 +97,7 @@ export {
   provenanceMarkFromEnvelope,
   provenanceMarkGeneratorToEnvelope,
   provenanceMarkGeneratorFromEnvelope,
-  type TagsContext,
 } from "./envelope.js";
+
+// Re-export FormatContext for registerTagsIn callers
+export { FormatContext } from "@bcts/envelope";
