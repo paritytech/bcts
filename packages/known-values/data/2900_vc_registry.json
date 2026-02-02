@@ -1,0 +1,217 @@
+{
+  "ontology": {
+    "name": "vc",
+    "source_url": "https://www.w3.org/ns/credentials/v2",
+    "start_code_point": 2900,
+    "processing_strategy": "ContextMap"
+  },
+  "generated": {
+    "tool": "KnownValueAssigner",
+    "version": "1.0.0"
+  },
+  "entries": [
+    {
+      "codepoint": 2900,
+      "name": "vc:description",
+      "type": "property",
+      "uri": "https://schema.org/description",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2901,
+      "name": "vc:encodingFormat",
+      "type": "property",
+      "uri": "https://schema.org/encodingFormat",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2902,
+      "name": "vc:name",
+      "type": "property",
+      "uri": "https://schema.org/name",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2903,
+      "name": "vc:DataIntegrityProof",
+      "type": "property",
+      "uri": "https://w3id.org/security#DataIntegrityProof",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2904,
+      "name": "vc:digestMultibase",
+      "type": "property",
+      "uri": "https://w3id.org/security#digestMultibase",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2905,
+      "name": "vc:iss",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jose#iss",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2906,
+      "name": "vc:jku",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jose#jku",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2907,
+      "name": "vc:kid",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jose#kid",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2908,
+      "name": "vc:sub",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jose#sub",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2909,
+      "name": "vc:x5u",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jose#x5u",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2910,
+      "name": "vc:...",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#...",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2911,
+      "name": "vc:_sd",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#_sd",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2912,
+      "name": "vc:_sd_alg",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#_sd_alg",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2913,
+      "name": "vc:aud",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#aud",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2914,
+      "name": "vc:cnf",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#cnf",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2915,
+      "name": "vc:exp",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#exp",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2916,
+      "name": "vc:iat",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#iat",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2917,
+      "name": "vc:nbf",
+      "type": "property",
+      "uri": "https://www.iana.org/assignments/jwt#nbf",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2918,
+      "name": "vc:EnvelopedVerifiableCredential",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#EnvelopedVerifiableCredential",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2919,
+      "name": "vc:EnvelopedVerifiablePresentation",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#EnvelopedVerifiablePresentation",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2920,
+      "name": "vc:JsonSchema",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#JsonSchema",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2921,
+      "name": "vc:JsonSchemaCredential",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#JsonSchemaCredential",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2922,
+      "name": "vc:VerifiableCredential",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#VerifiableCredential",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2923,
+      "name": "vc:VerifiablePresentation",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#VerifiablePresentation",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2924,
+      "name": "vc:digestSRI",
+      "type": "property",
+      "uri": "https://www.w3.org/2018/credentials#digestSRI",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2925,
+      "name": "vc:BitstringStatusList",
+      "type": "property",
+      "uri": "https://www.w3.org/ns/credentials/status#BitstringStatusList",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2926,
+      "name": "vc:BitstringStatusListCredential",
+      "type": "property",
+      "uri": "https://www.w3.org/ns/credentials/status#BitstringStatusListCredential",
+      "description": "Defined in vc"
+    },
+    {
+      "codepoint": 2927,
+      "name": "vc:BitstringStatusListEntry",
+      "type": "property",
+      "uri": "https://www.w3.org/ns/credentials/status#BitstringStatusListEntry",
+      "description": "Defined in vc"
+    }
+  ],
+  "statistics": {
+    "total_entries": 28,
+    "code_point_range": {
+      "start": 2900,
+      "end": 2927
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { KnownValue } from "./known-value";
-import { getAndLockConfig, loadFromConfig } from "./directory-loader";
+import { loadBundledRegistries } from "./bundled-registries";
 import { KnownValuesStore } from "./known-values-store";
 
 // For definitions see: https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2023-002-known-value.md#appendix-a-registry
@@ -425,11 +425,9 @@ export class LazyKnownValues {
         CHILD,
       ]);
 
-      // Load additional values from configured directories.
-      // Values from directories override hardcoded values when codepoints match.
-      const config = getAndLockConfig();
-      const result = loadFromConfig(config);
-      for (const value of result.intoValues()) {
+      // Load bundled registry values from JSON data files.
+      // These are embedded at build time and available in all environments.
+      for (const value of loadBundledRegistries()) {
         store.insert(value);
       }
 

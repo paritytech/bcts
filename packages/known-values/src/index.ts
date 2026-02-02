@@ -1,24 +1,6 @@
 export { KnownValue, TAG_KNOWN_VALUE, KNOWN_VALUE_TAG, type KnownValueInput } from "./known-value";
 export { KnownValuesStore } from "./known-values-store";
-export {
-  // Directory loading types
-  type RegistryEntry,
-  type OntologyInfo,
-  type GeneratedInfo,
-  type RegistryFile,
-  LoadError,
-  ConfigError,
-  LoadResult,
-  DirectoryConfig,
-  // Directory loading functions
-  setDirectoryConfig,
-  addSearchPaths,
-  loadFromDirectory,
-  loadFromConfig,
-  getAndLockConfig,
-  parseRegistryJson,
-  _resetConfigLock,
-} from "./directory-loader";
+export { loadBundledRegistries, type RegistryEntry, type RegistryFile } from "./bundled-registries";
 export {
   // =============================================================================
   // Raw Value Constants (_RAW)

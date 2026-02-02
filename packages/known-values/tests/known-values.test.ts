@@ -525,10 +525,11 @@ describe("Rust Parity: SELF constant (706)", () => {
     expect(SELF.valueBigInt()).toBe(SELF_RAW);
   });
 
-  test("SELF should NOT be in default KNOWN_VALUES store", () => {
-    // Matching Rust: SELF is exported as a constant but NOT in the default
-    // KnownValuesStore initialization list
+  test("SELF should be in default KNOWN_VALUES store via bundled registry", () => {
+    // SELF is loaded from the bundled 0_blockchain_commons_registry.json
     const store = KNOWN_VALUES.get();
-    expect(store.knownValueNamed("Self")).toBeUndefined();
+    const self = store.knownValueNamed("Self");
+    expect(self).toBeDefined();
+    expect(self?.value()).toBe(706);
   });
 });
