@@ -124,9 +124,7 @@ program
 // XID command group
 // ============================================================================
 
-const xidCmd = program
-  .command("xid")
-  .description("Work with XID documents");
+const xidCmd = program.command("xid").description("Work with XID documents");
 
 xidCmd
   .command("new")
@@ -167,220 +165,364 @@ xidCmd
 
 // XID key subcommands
 const keyCmd = xidCmd.command("key").description("Work with XID document keys");
-keyCmd.command("add").description("Add a key to the XID document").action(() => {
-  console.error("xid key add: not yet wired to CLI");
-  process.exit(1);
-});
-keyCmd.command("remove").description("Remove a key from the XID document").action(() => {
-  console.error("xid key remove: not yet wired to CLI");
-  process.exit(1);
-});
-keyCmd.command("update").description("Update a key in the XID document").action(() => {
-  console.error("xid key update: not yet wired to CLI");
-  process.exit(1);
-});
-keyCmd.command("at").description("Get the key at the given index").action(() => {
-  console.error("xid key at: not yet wired to CLI");
-  process.exit(1);
-});
-keyCmd.command("all").description("List all keys in the XID document").action(() => {
-  console.error("xid key all: not yet wired to CLI");
-  process.exit(1);
-});
-keyCmd.command("count").description("Count keys in the XID document").action(() => {
-  console.error("xid key count: not yet wired to CLI");
-  process.exit(1);
-});
+keyCmd
+  .command("add")
+  .description("Add a key to the XID document")
+  .action(() => {
+    console.error("xid key add: not yet wired to CLI");
+    process.exit(1);
+  });
+keyCmd
+  .command("remove")
+  .description("Remove a key from the XID document")
+  .action(() => {
+    console.error("xid key remove: not yet wired to CLI");
+    process.exit(1);
+  });
+keyCmd
+  .command("update")
+  .description("Update a key in the XID document")
+  .action(() => {
+    console.error("xid key update: not yet wired to CLI");
+    process.exit(1);
+  });
+keyCmd
+  .command("at")
+  .description("Get the key at the given index")
+  .action(() => {
+    console.error("xid key at: not yet wired to CLI");
+    process.exit(1);
+  });
+keyCmd
+  .command("all")
+  .description("List all keys in the XID document")
+  .action(() => {
+    console.error("xid key all: not yet wired to CLI");
+    process.exit(1);
+  });
+keyCmd
+  .command("count")
+  .description("Count keys in the XID document")
+  .action(() => {
+    console.error("xid key count: not yet wired to CLI");
+    process.exit(1);
+  });
 const keyFindCmd = keyCmd.command("find").description("Find keys by criteria");
-keyFindCmd.command("inception").description("Find the inception key").action(() => {
-  console.error("xid key find inception: not yet wired to CLI");
-  process.exit(1);
-});
-keyFindCmd.command("name").description("Find key by nickname").action(() => {
-  console.error("xid key find name: not yet wired to CLI");
-  process.exit(1);
-});
-keyFindCmd.command("public").description("Find key by public key").action(() => {
-  console.error("xid key find public: not yet wired to CLI");
-  process.exit(1);
-});
+keyFindCmd
+  .command("inception")
+  .description("Find the inception key")
+  .action(() => {
+    console.error("xid key find inception: not yet wired to CLI");
+    process.exit(1);
+  });
+keyFindCmd
+  .command("name")
+  .description("Find key by nickname")
+  .action(() => {
+    console.error("xid key find name: not yet wired to CLI");
+    process.exit(1);
+  });
+keyFindCmd
+  .command("public")
+  .description("Find key by public key")
+  .action(() => {
+    console.error("xid key find public: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID method subcommands
 const methodCmd = xidCmd.command("method").description("Work with resolution methods");
-methodCmd.command("add").description("Add a resolution method").action(() => {
-  console.error("xid method add: not yet wired to CLI");
-  process.exit(1);
-});
-methodCmd.command("remove").description("Remove a resolution method").action(() => {
-  console.error("xid method remove: not yet wired to CLI");
-  process.exit(1);
-});
-methodCmd.command("at").description("Get method at index").action(() => {
-  console.error("xid method at: not yet wired to CLI");
-  process.exit(1);
-});
-methodCmd.command("all").description("List all methods").action(() => {
-  console.error("xid method all: not yet wired to CLI");
-  process.exit(1);
-});
-methodCmd.command("count").description("Count methods").action(() => {
-  console.error("xid method count: not yet wired to CLI");
-  process.exit(1);
-});
+methodCmd
+  .command("add")
+  .description("Add a resolution method")
+  .action(() => {
+    console.error("xid method add: not yet wired to CLI");
+    process.exit(1);
+  });
+methodCmd
+  .command("remove")
+  .description("Remove a resolution method")
+  .action(() => {
+    console.error("xid method remove: not yet wired to CLI");
+    process.exit(1);
+  });
+methodCmd
+  .command("at")
+  .description("Get method at index")
+  .action(() => {
+    console.error("xid method at: not yet wired to CLI");
+    process.exit(1);
+  });
+methodCmd
+  .command("all")
+  .description("List all methods")
+  .action(() => {
+    console.error("xid method all: not yet wired to CLI");
+    process.exit(1);
+  });
+methodCmd
+  .command("count")
+  .description("Count methods")
+  .action(() => {
+    console.error("xid method count: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID delegate subcommands
 const delegateCmd = xidCmd.command("delegate").description("Work with delegates");
-delegateCmd.command("add").description("Add a delegate").action(() => {
-  console.error("xid delegate add: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("remove").description("Remove a delegate").action(() => {
-  console.error("xid delegate remove: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("update").description("Update delegate permissions").action(() => {
-  console.error("xid delegate update: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("at").description("Get delegate at index").action(() => {
-  console.error("xid delegate at: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("all").description("List all delegates").action(() => {
-  console.error("xid delegate all: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("count").description("Count delegates").action(() => {
-  console.error("xid delegate count: not yet wired to CLI");
-  process.exit(1);
-});
-delegateCmd.command("find").description("Find delegate by XID").action(() => {
-  console.error("xid delegate find: not yet wired to CLI");
-  process.exit(1);
-});
+delegateCmd
+  .command("add")
+  .description("Add a delegate")
+  .action(() => {
+    console.error("xid delegate add: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("remove")
+  .description("Remove a delegate")
+  .action(() => {
+    console.error("xid delegate remove: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("update")
+  .description("Update delegate permissions")
+  .action(() => {
+    console.error("xid delegate update: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("at")
+  .description("Get delegate at index")
+  .action(() => {
+    console.error("xid delegate at: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("all")
+  .description("List all delegates")
+  .action(() => {
+    console.error("xid delegate all: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("count")
+  .description("Count delegates")
+  .action(() => {
+    console.error("xid delegate count: not yet wired to CLI");
+    process.exit(1);
+  });
+delegateCmd
+  .command("find")
+  .description("Find delegate by XID")
+  .action(() => {
+    console.error("xid delegate find: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID service subcommands
 const serviceCmd = xidCmd.command("service").description("Work with services");
-serviceCmd.command("add").description("Add a service").action(() => {
-  console.error("xid service add: not yet wired to CLI");
-  process.exit(1);
-});
-serviceCmd.command("remove").description("Remove a service").action(() => {
-  console.error("xid service remove: not yet wired to CLI");
-  process.exit(1);
-});
-serviceCmd.command("update").description("Update a service").action(() => {
-  console.error("xid service update: not yet wired to CLI");
-  process.exit(1);
-});
-serviceCmd.command("at").description("Get service at index").action(() => {
-  console.error("xid service at: not yet wired to CLI");
-  process.exit(1);
-});
-serviceCmd.command("all").description("List all services").action(() => {
-  console.error("xid service all: not yet wired to CLI");
-  process.exit(1);
-});
-serviceCmd.command("count").description("Count services").action(() => {
-  console.error("xid service count: not yet wired to CLI");
-  process.exit(1);
-});
+serviceCmd
+  .command("add")
+  .description("Add a service")
+  .action(() => {
+    console.error("xid service add: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceCmd
+  .command("remove")
+  .description("Remove a service")
+  .action(() => {
+    console.error("xid service remove: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceCmd
+  .command("update")
+  .description("Update a service")
+  .action(() => {
+    console.error("xid service update: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceCmd
+  .command("at")
+  .description("Get service at index")
+  .action(() => {
+    console.error("xid service at: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceCmd
+  .command("all")
+  .description("List all services")
+  .action(() => {
+    console.error("xid service all: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceCmd
+  .command("count")
+  .description("Count services")
+  .action(() => {
+    console.error("xid service count: not yet wired to CLI");
+    process.exit(1);
+  });
 const serviceFindCmd = serviceCmd.command("find").description("Find services by criteria");
-serviceFindCmd.command("name").description("Find service by name").action(() => {
-  console.error("xid service find name: not yet wired to CLI");
-  process.exit(1);
-});
-serviceFindCmd.command("uri").description("Find service by URI").action(() => {
-  console.error("xid service find uri: not yet wired to CLI");
-  process.exit(1);
-});
+serviceFindCmd
+  .command("name")
+  .description("Find service by name")
+  .action(() => {
+    console.error("xid service find name: not yet wired to CLI");
+    process.exit(1);
+  });
+serviceFindCmd
+  .command("uri")
+  .description("Find service by URI")
+  .action(() => {
+    console.error("xid service find uri: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID resolution subcommands
 const resolutionCmd = xidCmd.command("resolution").description("Work with resolution methods");
-resolutionCmd.command("add").description("Add a resolution method").action(() => {
-  console.error("xid resolution add: not yet wired to CLI");
-  process.exit(1);
-});
-resolutionCmd.command("remove").description("Remove a resolution method").action(() => {
-  console.error("xid resolution remove: not yet wired to CLI");
-  process.exit(1);
-});
-resolutionCmd.command("at").description("Get resolution at index").action(() => {
-  console.error("xid resolution at: not yet wired to CLI");
-  process.exit(1);
-});
-resolutionCmd.command("all").description("List all resolutions").action(() => {
-  console.error("xid resolution all: not yet wired to CLI");
-  process.exit(1);
-});
-resolutionCmd.command("count").description("Count resolutions").action(() => {
-  console.error("xid resolution count: not yet wired to CLI");
-  process.exit(1);
-});
+resolutionCmd
+  .command("add")
+  .description("Add a resolution method")
+  .action(() => {
+    console.error("xid resolution add: not yet wired to CLI");
+    process.exit(1);
+  });
+resolutionCmd
+  .command("remove")
+  .description("Remove a resolution method")
+  .action(() => {
+    console.error("xid resolution remove: not yet wired to CLI");
+    process.exit(1);
+  });
+resolutionCmd
+  .command("at")
+  .description("Get resolution at index")
+  .action(() => {
+    console.error("xid resolution at: not yet wired to CLI");
+    process.exit(1);
+  });
+resolutionCmd
+  .command("all")
+  .description("List all resolutions")
+  .action(() => {
+    console.error("xid resolution all: not yet wired to CLI");
+    process.exit(1);
+  });
+resolutionCmd
+  .command("count")
+  .description("Count resolutions")
+  .action(() => {
+    console.error("xid resolution count: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID attachment subcommands
 const attachmentCmd = xidCmd.command("attachment").description("Work with attachments");
-attachmentCmd.command("add").description("Add an attachment").action(() => {
-  console.error("xid attachment add: not yet wired to CLI");
-  process.exit(1);
-});
-attachmentCmd.command("remove").description("Remove an attachment").action(() => {
-  console.error("xid attachment remove: not yet wired to CLI");
-  process.exit(1);
-});
-attachmentCmd.command("at").description("Get attachment at index").action(() => {
-  console.error("xid attachment at: not yet wired to CLI");
-  process.exit(1);
-});
-attachmentCmd.command("all").description("List all attachments").action(() => {
-  console.error("xid attachment all: not yet wired to CLI");
-  process.exit(1);
-});
-attachmentCmd.command("count").description("Count attachments").action(() => {
-  console.error("xid attachment count: not yet wired to CLI");
-  process.exit(1);
-});
-attachmentCmd.command("find").description("Find attachments by criteria").action(() => {
-  console.error("xid attachment find: not yet wired to CLI");
-  process.exit(1);
-});
+attachmentCmd
+  .command("add")
+  .description("Add an attachment")
+  .action(() => {
+    console.error("xid attachment add: not yet wired to CLI");
+    process.exit(1);
+  });
+attachmentCmd
+  .command("remove")
+  .description("Remove an attachment")
+  .action(() => {
+    console.error("xid attachment remove: not yet wired to CLI");
+    process.exit(1);
+  });
+attachmentCmd
+  .command("at")
+  .description("Get attachment at index")
+  .action(() => {
+    console.error("xid attachment at: not yet wired to CLI");
+    process.exit(1);
+  });
+attachmentCmd
+  .command("all")
+  .description("List all attachments")
+  .action(() => {
+    console.error("xid attachment all: not yet wired to CLI");
+    process.exit(1);
+  });
+attachmentCmd
+  .command("count")
+  .description("Count attachments")
+  .action(() => {
+    console.error("xid attachment count: not yet wired to CLI");
+    process.exit(1);
+  });
+attachmentCmd
+  .command("find")
+  .description("Find attachments by criteria")
+  .action(() => {
+    console.error("xid attachment find: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID edge subcommands
 const edgeCmd = xidCmd.command("edge").description("Work with edges");
-edgeCmd.command("add").description("Add an edge").action(() => {
-  console.error("xid edge add: not yet wired to CLI");
-  process.exit(1);
-});
-edgeCmd.command("remove").description("Remove an edge").action(() => {
-  console.error("xid edge remove: not yet wired to CLI");
-  process.exit(1);
-});
-edgeCmd.command("at").description("Get edge at index").action(() => {
-  console.error("xid edge at: not yet wired to CLI");
-  process.exit(1);
-});
-edgeCmd.command("all").description("List all edges").action(() => {
-  console.error("xid edge all: not yet wired to CLI");
-  process.exit(1);
-});
-edgeCmd.command("count").description("Count edges").action(() => {
-  console.error("xid edge count: not yet wired to CLI");
-  process.exit(1);
-});
-edgeCmd.command("find").description("Find edges by criteria").action(() => {
-  console.error("xid edge find: not yet wired to CLI");
-  process.exit(1);
-});
+edgeCmd
+  .command("add")
+  .description("Add an edge")
+  .action(() => {
+    console.error("xid edge add: not yet wired to CLI");
+    process.exit(1);
+  });
+edgeCmd
+  .command("remove")
+  .description("Remove an edge")
+  .action(() => {
+    console.error("xid edge remove: not yet wired to CLI");
+    process.exit(1);
+  });
+edgeCmd
+  .command("at")
+  .description("Get edge at index")
+  .action(() => {
+    console.error("xid edge at: not yet wired to CLI");
+    process.exit(1);
+  });
+edgeCmd
+  .command("all")
+  .description("List all edges")
+  .action(() => {
+    console.error("xid edge all: not yet wired to CLI");
+    process.exit(1);
+  });
+edgeCmd
+  .command("count")
+  .description("Count edges")
+  .action(() => {
+    console.error("xid edge count: not yet wired to CLI");
+    process.exit(1);
+  });
+edgeCmd
+  .command("find")
+  .description("Find edges by criteria")
+  .action(() => {
+    console.error("xid edge find: not yet wired to CLI");
+    process.exit(1);
+  });
 
 // XID provenance subcommands
 const provenanceCmd = xidCmd.command("provenance").description("Work with provenance marks");
-provenanceCmd.command("get").description("Get the current provenance mark").action(() => {
-  console.error("xid provenance get: not yet wired to CLI");
-  process.exit(1);
-});
-provenanceCmd.command("next").description("Advance the provenance mark").action(() => {
-  console.error("xid provenance next: not yet wired to CLI");
-  process.exit(1);
-});
+provenanceCmd
+  .command("get")
+  .description("Get the current provenance mark")
+  .action(() => {
+    console.error("xid provenance get: not yet wired to CLI");
+    process.exit(1);
+  });
+provenanceCmd
+  .command("next")
+  .description("Advance the provenance mark")
+  .action(() => {
+    console.error("xid provenance next: not yet wired to CLI");
+    process.exit(1);
+  });
 
 program.parse();

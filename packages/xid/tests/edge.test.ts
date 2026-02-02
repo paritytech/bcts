@@ -6,22 +6,12 @@
 import { PrivateKeyBase, KeyDerivationMethod } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
 import { IS_A, SOURCE, TARGET } from "@bcts/known-values";
-import {
-  XIDDocument,
-  XIDPrivateKeyOptions,
-  XIDGeneratorOptions,
-  XIDVerifySignature,
-} from "../src";
+import { XIDDocument, XIDPrivateKeyOptions, XIDGeneratorOptions, XIDVerifySignature } from "../src";
 
 /**
  * Helper to create a basic edge envelope with the three required assertions.
  */
-function makeEdge(
-  subject: string,
-  isA: string,
-  source: Envelope,
-  target: Envelope,
-): Envelope {
+function makeEdge(subject: string, isA: string, source: Envelope, target: Envelope): Envelope {
   return Envelope.new(subject)
     .addAssertion(IS_A, isA)
     .addAssertion(SOURCE, source)
@@ -280,11 +270,7 @@ describe("Edge", () => {
       );
 
       // Round-trip with decryption
-      const recovered = XIDDocument.fromEnvelope(
-        envelope,
-        password,
-        XIDVerifySignature.None,
-      );
+      const recovered = XIDDocument.fromEnvelope(envelope, password, XIDVerifySignature.None);
       expect(xidDocument.equals(recovered)).toBe(true);
       expect(recovered.hasEdges()).toBe(true);
     });

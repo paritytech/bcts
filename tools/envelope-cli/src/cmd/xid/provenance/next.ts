@@ -46,44 +46,31 @@ export class ProvenanceNextCommand implements ExecAsync {
     );
 
     // Parse optional date parameter
-    const date = this.args.date !== undefined
-      ? CborDate.fromString(this.args.date).datetime()
-      : undefined;
+    const date =
+      this.args.date !== undefined ? CborDate.fromString(this.args.date).datetime() : undefined;
 
     // Parse optional info parameter
-    const info = this.args.info !== undefined
-      ? Envelope.fromUrString(this.args.info).untaggedCbor()
-      : undefined;
+    const info =
+      this.args.info !== undefined
+        ? Envelope.fromUrString(this.args.info).untaggedCbor()
+        : undefined;
 
     if (this.args.externalGenerator !== undefined) {
       // User provided a generator
       const generatorEnvelope = Envelope.fromUrString(this.args.externalGenerator);
       const generator = ProvenanceMarkGenerator.fromEnvelope(generatorEnvelope);
-      xidDocument.nextProvenanceMarkWithProvidedGenerator(
-        generator,
-        date,
-        info,
-      );
+      xidDocument.nextProvenanceMarkWithProvidedGenerator(generator, date, info);
     } else {
       // Use embedded generator
       const password = await readDecryptPassword(
         this.args.passwordArgs.read,
         "Decryption password:",
       );
-      const passwordBytes = password !== undefined
-        ? new TextEncoder().encode(password)
-        : undefined;
-      xidDocument.nextProvenanceMarkWithEmbeddedGenerator(
-        passwordBytes,
-        date,
-        info,
-      );
+      const passwordBytes = password !== undefined ? new TextEncoder().encode(password) : undefined;
+      xidDocument.nextProvenanceMarkWithEmbeddedGenerator(passwordBytes, date, info);
     }
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     const sharedPassword = await readDecryptPassword(
       this.args.passwordArgs.read,

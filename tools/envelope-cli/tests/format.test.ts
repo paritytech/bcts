@@ -27,13 +27,15 @@ describe("format command", () => {
     expect(result).toContain("ARID(174842ea)");
     expect(result).toContain("'isA': \"credential\"");
     expect(result).toContain("'holder': ARID(78bc3000)");
-    expect(result).toContain("\"familyName\": \"SMITH\"");
-    expect(result).toContain("\"givenName\": \"JOHN\"");
-    expect(result).toContain("\"image\": \"John Smith smiling\"");
+    expect(result).toContain('"familyName": "SMITH"');
+    expect(result).toContain('"givenName": "JOHN"');
+    expect(result).toContain('"image": "John Smith smiling"');
     expect(result).toContain("'note': \"This is an image of John Smith.\"");
     expect(result).toContain("ELIDED (8)");
     expect(result).toContain("'issuer': ARID(04363d5f)");
-    expect(result).toContain("URI(https://exampleledger.com/arid/04363d5ff99733bc0f1577baba440af1cf344ad9e454fad9d128c00fef6505e8)");
+    expect(result).toContain(
+      "URI(https://exampleledger.com/arid/04363d5ff99733bc0f1577baba440af1cf344ad9e454fad9d128c00fef6505e8)",
+    );
     expect(result).toContain("'note': \"Issued by the State of Example\"");
     expect(result).toContain("ELIDED (2)");
     expect(result).toContain("'signed': Signature");

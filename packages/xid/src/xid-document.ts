@@ -6,7 +6,14 @@
  * Ported from bc-xid-rust/src/xid_document.rs
  */
 
-import { Envelope, Attachments, Edges, type Edgeable, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
+import {
+  Envelope,
+  Attachments,
+  Edges,
+  type Edgeable,
+  type EnvelopeEncodable,
+  type EnvelopeEncodableValue,
+} from "@bcts/envelope";
 import type { Digest } from "@bcts/envelope";
 import {
   KEY,

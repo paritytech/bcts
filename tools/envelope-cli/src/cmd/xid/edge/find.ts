@@ -34,9 +34,7 @@ export class EdgeFindCommand implements Exec {
       const isAEnvelope = readEnvelope(this.args.isA);
       edges = edges.filter((edge) => {
         const isAAssertions = edge.assertionsWithPredicate(IS_A);
-        return isAAssertions.some((a) =>
-          a.object().digest().equals(isAEnvelope.digest()),
-        );
+        return isAAssertions.some((a) => a.object().digest().equals(isAEnvelope.digest()));
       });
     }
 
@@ -44,9 +42,7 @@ export class EdgeFindCommand implements Exec {
       const sourceEnvelope = readEnvelope(this.args.source);
       edges = edges.filter((edge) => {
         const sourceAssertions = edge.assertionsWithPredicate(SOURCE);
-        return sourceAssertions.some((a) =>
-          a.object().digest().equals(sourceEnvelope.digest()),
-        );
+        return sourceAssertions.some((a) => a.object().digest().equals(sourceEnvelope.digest()));
       });
     }
 
@@ -54,17 +50,13 @@ export class EdgeFindCommand implements Exec {
       const targetEnvelope = readEnvelope(this.args.target);
       edges = edges.filter((edge) => {
         const targetAssertions = edge.assertionsWithPredicate(TARGET);
-        return targetAssertions.some((a) =>
-          a.object().digest().equals(targetEnvelope.digest()),
-        );
+        return targetAssertions.some((a) => a.object().digest().equals(targetEnvelope.digest()));
       });
     }
 
     if (this.args.subject !== undefined) {
       const subjectEnvelope = readEnvelope(this.args.subject);
-      edges = edges.filter((edge) =>
-        edge.subject().digest().equals(subjectEnvelope.digest()),
-      );
+      edges = edges.filter((edge) => edge.subject().digest().equals(subjectEnvelope.digest()));
     }
 
     return edges.map((e) => e.urString()).join("\n");

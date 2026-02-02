@@ -41,10 +41,7 @@ export class ResolutionAddCommand implements ExecAsync {
 
     xidDocument.addResolutionMethod(uri.toString());
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

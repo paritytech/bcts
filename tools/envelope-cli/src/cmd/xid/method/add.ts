@@ -40,10 +40,7 @@ export class MethodAddCommand implements ExecAsync {
 
     xidDocument.addResolutionMethod(this.args.method);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

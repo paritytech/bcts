@@ -113,9 +113,7 @@ export class DecryptCommand implements ExecAsync {
 
     if (this.args.sshId !== undefined) {
       // SSH agent decryption is not yet implemented
-      throw new Error(
-        "SSH agent decryption is not yet implemented in the TypeScript version.",
-      );
+      throw new Error("SSH agent decryption is not yet implemented in the TypeScript version.");
     }
 
     throw new Error(

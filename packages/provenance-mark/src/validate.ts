@@ -329,10 +329,7 @@ function buildSequenceBins(marks: ProvenanceMark[]): SequenceReport[] {
         // Extract structured issue directly from the error
         // Matches Rust: Error::Validation(v) => v, _ => ValidationIssue::KeyMismatch
         let issue: ValidationIssue;
-        if (
-          e instanceof ProvenanceMarkError &&
-          e.details?.["validationIssue"] !== undefined
-        ) {
+        if (e instanceof ProvenanceMarkError && e.details?.["validationIssue"] !== undefined) {
           issue = e.details["validationIssue"] as ValidationIssue;
         } else {
           issue = { type: "KeyMismatch" }; // Fallback

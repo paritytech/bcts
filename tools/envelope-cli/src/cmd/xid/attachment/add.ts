@@ -49,27 +49,16 @@ export class AttachmentAddCommand implements ExecAsync {
     if (this.args.attachment !== undefined) {
       // Pre-made attachment envelope
       const attachmentEnvelope = readEnvelope(this.args.attachment);
-      xidDocument.addAttachment(
-        attachmentEnvelope,
-        this.args.vendor ?? "",
-        this.args.conformsTo,
-      );
+      xidDocument.addAttachment(attachmentEnvelope, this.args.vendor ?? "", this.args.conformsTo);
     } else if (this.args.vendor !== undefined && this.args.payload !== undefined) {
       // Construct from parts
       const payloadEnvelope = readEnvelope(this.args.payload);
-      xidDocument.addAttachment(
-        payloadEnvelope,
-        this.args.vendor,
-        this.args.conformsTo,
-      );
+      xidDocument.addAttachment(payloadEnvelope, this.args.vendor, this.args.conformsTo);
     } else {
       throw new Error("Either --attachment or --vendor and --payload must be specified");
     }
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

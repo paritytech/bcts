@@ -29,12 +29,7 @@ export {
   type Verifier,
   type SigningOptions,
 } from "@bcts/components";
-import {
-  Signature,
-  type Signer,
-  type Verifier,
-  type SigningOptions,
-} from "@bcts/components";
+import { Signature, type Signer, type Verifier, type SigningOptions } from "@bcts/components";
 
 /**
  * Known value for the 'signed' predicate.
@@ -271,8 +266,8 @@ Envelope.prototype.hasSignatureFromReturningMetadata = function (
       try {
         const outerSignatureObject = signatureObject.objectForPredicate(SIGNED);
         outerSigFound = true;
-        const outerSignature = outerSignatureObject.extractSubject(
-          (cbor) => Signature.fromTaggedCbor(cbor),
+        const outerSignature = outerSignatureObject.extractSubject((cbor) =>
+          Signature.fromTaggedCbor(cbor),
         );
         if (!verifier.verify(outerSignature, signatureObjectSubject.digest().data())) {
           continue; // Outer signature doesn't match key, try next
@@ -289,8 +284,8 @@ Envelope.prototype.hasSignatureFromReturningMetadata = function (
       // Step 2: Unwrap and verify inner signature
       const signatureMetadataEnvelope = signatureObjectSubject.tryUnwrap();
       try {
-        const innerSignature = signatureMetadataEnvelope.extractSubject(
-          (cbor) => Signature.fromTaggedCbor(cbor),
+        const innerSignature = signatureMetadataEnvelope.extractSubject((cbor) =>
+          Signature.fromTaggedCbor(cbor),
         );
         if (!verifier.verify(innerSignature, this.subject().digest().data())) {
           throw EnvelopeError.unverifiedInnerSignature();
@@ -303,9 +298,7 @@ Envelope.prototype.hasSignatureFromReturningMetadata = function (
     } else {
       // Simple case: no metadata
       try {
-        const signature = signatureObject.extractSubject(
-          (cbor) => Signature.fromTaggedCbor(cbor),
-        );
+        const signature = signatureObject.extractSubject((cbor) => Signature.fromTaggedCbor(cbor));
         if (verifier.verify(signature, this.subject().digest().data())) {
           return signatureObject;
         }

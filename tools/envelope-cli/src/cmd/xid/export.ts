@@ -20,7 +20,11 @@ import type { SigningArgs } from "./signing-args.js";
 import { SigningOption, signingOptions } from "./signing-args.js";
 import type { VerifyArgs } from "./verify-args.js";
 import { VerifyOption, verifySignature } from "./verify-args.js";
-import { envelopeToXidUrString, readXidDocumentWithPassword, xidDocumentToUrString } from "./xid-utils.js";
+import {
+  envelopeToXidUrString,
+  readXidDocumentWithPassword,
+  xidDocumentToUrString,
+} from "./xid-utils.js";
 
 /**
  * Command arguments for the export command.
@@ -59,10 +63,7 @@ export function defaultArgs(): CommandArgs {
 /**
  * Collect digests of privateKey assertions from all keys in the XID document.
  */
-function collectPrivateKeyDigests(
-  envelope: Envelope,
-  digests: Set<Digest>,
-): void {
+function collectPrivateKeyDigests(envelope: Envelope, digests: Set<Digest>): void {
   const keyAssertions = envelope.assertionsWithPredicate(KEY);
   for (const keyAssertion of keyAssertions) {
     const keyObject = keyAssertion.tryObject();
@@ -76,10 +77,7 @@ function collectPrivateKeyDigests(
 /**
  * Collect digests of provenanceGenerator assertions from provenance marks.
  */
-function collectGeneratorDigests(
-  envelope: Envelope,
-  digests: Set<Digest>,
-): void {
+function collectGeneratorDigests(envelope: Envelope, digests: Set<Digest>): void {
   const provAssertion = envelope.optionalAssertionWithPredicate(PROVENANCE);
   if (provAssertion !== undefined) {
     const provObject = provAssertion.tryObject();
@@ -135,9 +133,7 @@ export class ExportCommand implements ExecAsync {
 
     // Get the inner XID document
     // A signed envelope has its subject wrapped: { XID [...] } [ 'signed': Signature ]
-    const inner = envelope.subject().isWrapped()
-      ? envelope.subject().tryUnwrap()
-      : envelope;
+    const inner = envelope.subject().isWrapped() ? envelope.subject().tryUnwrap() : envelope;
 
     // Find privateKey assertions to elide
     if (privateOpts === PrivateOptions.Elide) {
@@ -150,9 +146,7 @@ export class ExportCommand implements ExecAsync {
     }
 
     // Elide the collected digests from the original envelope
-    const elided = digestsToElide.size === 0
-      ? envelope
-      : envelope.elideRemovingSet(digestsToElide);
+    const elided = digestsToElide.size === 0 ? envelope : envelope.elideRemovingSet(digestsToElide);
 
     // Return as XID UR
     return envelopeToXidUrString(elided);
@@ -170,10 +164,7 @@ export class ExportCommand implements ExecAsync {
     );
 
     // Get signing options
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     // Convert to UR string with the specified output options
     return xidDocumentToUrString(

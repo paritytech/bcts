@@ -6,7 +6,13 @@
 import { PrivateKeyBase, KeyDerivationMethod } from "@bcts/components";
 import { ProvenanceMarkGenerator, ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { cbor } from "@bcts/dcbor";
-import { Provenance, XIDGeneratorOptions, XIDDocument, XIDPrivateKeyOptions, XIDVerifySignature } from "../src";
+import {
+  Provenance,
+  XIDGeneratorOptions,
+  XIDDocument,
+  XIDPrivateKeyOptions,
+  XIDVerifySignature,
+} from "../src";
 
 describe("Provenance", () => {
   describe("Basic provenance", () => {
@@ -592,11 +598,7 @@ describe("Provenance", () => {
 
       // Advance with correct password
       const date2 = new Date(Date.UTC(2025, 0, 2));
-      xidDocEncrypted.nextProvenanceMarkWithEmbeddedGenerator(
-        password,
-        date2,
-        cbor("Second mark"),
-      );
+      xidDocEncrypted.nextProvenanceMarkWithEmbeddedGenerator(password, date2, cbor("Second mark"));
 
       // Verify advancement
       const mark2 = xidDocEncrypted.provenance();

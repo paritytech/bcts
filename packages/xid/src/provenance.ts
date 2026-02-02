@@ -283,7 +283,8 @@ export class Provenance implements EnvelopeEncodable {
               const generatorBytes3 = encodeGeneratorJSON(data.generator.toJSON());
               const generatorEnvelope = Envelope.new(generatorBytes3) as EnvelopeExt;
               const wrapped = generatorEnvelope.wrap() as EnvelopeExt;
-              const method: KeyDerivationMethod = generatorOptions.method ?? defaultKeyDerivationMethod();
+              const method: KeyDerivationMethod =
+                generatorOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (wrapped as unknown as EnvelopeExt).lockSubject(
                 method,
                 generatorOptions.password,

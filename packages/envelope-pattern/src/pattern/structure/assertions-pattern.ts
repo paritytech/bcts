@@ -142,7 +142,10 @@ export class AssertionsPattern implements Matcher {
           const predicate = assertion.asPredicate?.();
           const object = assertion.asObject?.();
           if (predicate !== undefined && object !== undefined) {
-            if (matchPattern(this._pattern.predicatePattern, predicate) && matchPattern(this._pattern.objectPattern, object)) {
+            if (
+              matchPattern(this._pattern.predicatePattern, predicate) &&
+              matchPattern(this._pattern.objectPattern, object)
+            ) {
               paths.push([assertion]);
             }
           }

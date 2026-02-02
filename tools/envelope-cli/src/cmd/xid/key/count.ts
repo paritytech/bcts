@@ -24,10 +24,7 @@ export class KeyCountCommand implements Exec {
   constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
-    const xidDocument = readXidDocument(
-      this.args.envelope,
-      verifySignature(this.args.verifyArgs),
-    );
+    const xidDocument = readXidDocument(this.args.envelope, verifySignature(this.args.verifyArgs));
     return xidDocument.keys().length.toString();
   }
 }

@@ -88,10 +88,7 @@ export class ServiceUpdateCommand implements ExecAsync {
       }
     }
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

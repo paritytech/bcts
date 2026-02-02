@@ -46,10 +46,7 @@ export class EdgeRemoveCommand implements ExecAsync {
       throw new Error("Edge not found");
     }
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

@@ -6,12 +6,7 @@
 
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";
-import {
-  SymmetricKey,
-  PublicKeys,
-  SSKRGroupSpec,
-  SSKRSpec,
-} from "@bcts/components";
+import { SymmetricKey, PublicKeys, SSKRGroupSpec, SSKRSpec } from "@bcts/components";
 import { Envelope, PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
 
 // SSKR extension methods are added to Envelope.prototype at import time

@@ -47,15 +47,9 @@ export class KeyAtCommand implements ExecAsync {
     } else {
       // Return public key (original behavior)
       const envelope = readEnvelope(this.args.envelope);
-      XIDDocument.fromEnvelope(
-        envelope,
-        undefined,
-        verifySignature(this.args.verifyArgs),
-      ); // Validation only
+      XIDDocument.fromEnvelope(envelope, undefined, verifySignature(this.args.verifyArgs)); // Validation only
       // Unwrap if signed to get at the KEY assertions
-      const innerEnvelope = envelope.subject().isWrapped()
-        ? envelope.subject().unwrap()
-        : envelope;
+      const innerEnvelope = envelope.subject().isWrapped() ? envelope.subject().unwrap() : envelope;
       const keyAssertions = innerEnvelope.assertionsWithPredicate(KEY);
       if (this.args.index >= keyAssertions.length) {
         throw new Error("Index out of bounds");

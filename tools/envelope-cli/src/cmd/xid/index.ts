@@ -23,7 +23,11 @@ export { GeneratorOptions, PrivateOptions } from "./new.js";
 
 // Re-export utility types
 export type { OutputOptions } from "./output-options.js";
-export type { ReadWritePasswordArgs, ReadPasswordArgs, WritePasswordArgs } from "./password-args.js";
+export type {
+  ReadWritePasswordArgs,
+  ReadPasswordArgs,
+  WritePasswordArgs,
+} from "./password-args.js";
 export type { VerifyArgs } from "./verify-args.js";
 export type { SigningArgs } from "./signing-args.js";
 export type { KeyArgsLike } from "./key-args.js";

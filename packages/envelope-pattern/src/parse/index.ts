@@ -8,8 +8,8 @@
  */
 
 import { parse as parseDcborPattern } from "@bcts/dcbor-pattern";
+import { parseDcborItemPartial } from "@bcts/dcbor-parse";
 import { Lexer } from "./token";
-import { parseCborInner } from "./utils";
 import {
   type Result,
   type Span,
@@ -47,6 +47,7 @@ import {
   anyArray,
   anyTag,
   anyCbor,
+  cborValue,
   cborPattern,
   nullPattern,
   // Structure pattern constructors
@@ -726,7 +727,12 @@ function parseDateContent(content: string, span: Span): Result<Pattern> {
       const parsedStart = Date.parse(left);
       const parsedEnd = Date.parse(right);
       if (isNaN(parsedStart) || isNaN(parsedEnd)) return err({ type: "InvalidDateFormat", span });
-      return ok(dateRange(CborDate.fromDatetime(new Date(parsedStart)), CborDate.fromDatetime(new Date(parsedEnd))));
+      return ok(
+        dateRange(
+          CborDate.fromDatetime(new Date(parsedStart)),
+          CborDate.fromDatetime(new Date(parsedEnd)),
+        ),
+      );
     }
     return err({ type: "InvalidDateFormat", span });
   }
@@ -759,6 +765,10 @@ function parseKnownValueContent(content: string): Result<Pattern> {
 
 /**
  * Parse CBOR pattern.
+ *
+ * Matches Rust parse_cbor: tries dcbor-pattern regex first (/keyword/),
+ * then CBOR diagnostic notation via parseDcborItemPartial, then falls
+ * back to parseOr for envelope pattern expressions.
  */
 function parseCbor(lexer: Lexer): Result<Pattern> {
   // Check for optional content in parentheses
@@ -770,33 +780,36 @@ function parseCbor(lexer: Lexer): Result<Pattern> {
   lexer.next(); // consume (
 
   // Check for dcbor-pattern regex syntax: cbor(/keyword/)
-  const peek = lexer.peekToken();
-  if (peek?.token.type === "Regex") {
-    lexer.next(); // consume Regex token
-    const regexToken = peek.token;
-    if (!regexToken.value.ok) return err(regexToken.value.error);
-    const keyword = regexToken.value.value;
+  // Use peek() (character-level, non-destructive) instead of peekToken()
+  // to avoid the lexer advancing past the CBOR content.
+  if (lexer.peek() === "/") {
+    const regexTokenResult = lexer.next(); // tokenize /pattern/
+    if (regexTokenResult?.token.type === "Regex") {
+      const regexToken = regexTokenResult.token;
+      if (!regexToken.value.ok) return err(regexToken.value.error);
+      const keyword = regexToken.value.value;
 
-    // Parse the keyword as a dcbor-pattern expression
-    const dcborResult = parseDcborPattern(keyword);
-    if (!dcborResult.ok) {
-      return err(unexpectedToken(regexToken, peek.span));
+      // Parse the keyword as a dcbor-pattern expression
+      const dcborResult = parseDcborPattern(keyword);
+      if (!dcborResult.ok) {
+        return err(unexpectedToken(regexToken, regexTokenResult.span));
+      }
+
+      const close = lexer.next();
+      if (close?.token.type !== "ParenClose") {
+        return err({ type: "ExpectedCloseParen", span: lexer.span() });
+      }
+
+      return ok(cborPattern(dcborResult.value));
     }
-    const dcborPattern = dcborResult.value;
-
-    const close = lexer.next();
-    if (close?.token.type !== "ParenClose") {
-      return err({ type: "ExpectedCloseParen", span: lexer.span() });
-    }
-
-    return ok(cborPattern(dcborPattern));
   }
 
-  // Parse inner content as CBOR diagnostic notation (matching Rust parse_cbor)
+  // Try to parse inner content as CBOR diagnostic notation
+  // (matching Rust utils::parse_cbor_inner which calls parse_dcbor_item_partial)
   const remaining = lexer.remainder();
-  const cborResult = parseCborInner(remaining);
+  const cborResult = parseDcborItemPartial(remaining);
   if (cborResult.ok) {
-    const [pattern, consumed] = cborResult.value;
+    const [cborData, consumed] = cborResult.value;
     lexer.bump(consumed);
     // Skip whitespace before closing paren
     while (lexer.peek() === " " || lexer.peek() === "\t" || lexer.peek() === "\n") {
@@ -806,7 +819,7 @@ function parseCbor(lexer: Lexer): Result<Pattern> {
     if (close?.token.type !== "ParenClose") {
       return err({ type: "ExpectedCloseParen", span: lexer.span() });
     }
-    return ok(pattern);
+    return ok(cborValue(cborData));
   }
 
   // Fallback: try parsing as a regular pattern expression

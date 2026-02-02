@@ -44,15 +44,9 @@ export class KeyAllCommand implements ExecAsync {
     } else {
       // Return public keys (original behavior)
       const envelope = readEnvelope(this.args.envelope);
-      XIDDocument.fromEnvelope(
-        envelope,
-        undefined,
-        verifySignature(this.args.verifyArgs),
-      ); // Validation only
+      XIDDocument.fromEnvelope(envelope, undefined, verifySignature(this.args.verifyArgs)); // Validation only
       // Unwrap if signed to get at the KEY assertions
-      const innerEnvelope = envelope.subject().isWrapped()
-        ? envelope.subject().unwrap()
-        : envelope;
+      const innerEnvelope = envelope.subject().isWrapped() ? envelope.subject().unwrap() : envelope;
       const keyAssertions = innerEnvelope.assertionsWithPredicate(KEY);
       const keys = keyAssertions.map((k) => k.object().urString());
       return keys.join("\n");

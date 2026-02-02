@@ -31,7 +31,7 @@ describe("RFC 8949 Appendix A test vectors", () => {
   it("rfc8949 test vector 2^64", () => {
     const expectedHex = "c249010000000000000000";
     // 2^64 = 18446744073709551616
-    const expectedValue = (1n << 64n);
+    const expectedValue = 1n << 64n;
 
     // Encoding test
     const encoded = biguintToCbor(expectedValue);
@@ -72,7 +72,9 @@ describe("RFC 8949 Appendix A test vectors", () => {
     // 0x49 = 0b010_01001 = major type 2 (byte string), length 9
     expect(bytes[1]).toBe(0x49);
     // 0x010000000000000000 = 9 bytes of content
-    expect(Array.from(bytes.slice(2))).toEqual([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    expect(Array.from(bytes.slice(2))).toEqual([
+      0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]);
   });
 });
 

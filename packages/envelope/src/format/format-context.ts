@@ -256,7 +256,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_DIGEST.value, cbor);
       const digest = Digest.fromTaggedCbor(tagged);
       return { ok: true, value: `Digest(${digest.shortDescription()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // ARID: "ARID(shortDesc)"
@@ -265,7 +267,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_ARID.value, cbor);
       const arid = ARID.fromTaggedCbor(tagged);
       return { ok: true, value: `ARID(${arid.shortDescription()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // URI: "URI(uri)"
@@ -274,7 +278,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_URI.value, cbor);
       const uri = URI.fromTaggedCbor(tagged);
       return { ok: true, value: `URI(${uri.toString()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // UUID: "UUID(uuid)"
@@ -283,7 +289,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_UUID.value, cbor);
       const uuid = UUID.fromTaggedCbor(tagged);
       return { ok: true, value: `UUID(${uuid.toString()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // Nonce: "Nonce"
@@ -292,7 +300,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_NONCE.value, cbor);
       Nonce.fromTaggedCbor(tagged);
       return { ok: true, value: "Nonce" };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // Salt: "Salt"
@@ -301,7 +311,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SALT.value, cbor);
       Salt.fromTaggedCbor(tagged);
       return { ok: true, value: "Salt" };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // Seed: "Seed"
@@ -310,7 +322,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SEED.value, cbor);
       Seed.fromTaggedCbor(tagged);
       return { ok: true, value: "Seed" };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // Signature: "Signature" for Ed25519/Schnorr (defaults), "Signature(scheme)" otherwise
@@ -324,7 +338,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
         return { ok: true, value: "Signature" };
       }
       return { ok: true, value: `Signature(${sig.signatureType()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // SealedMessage: "SealedMessage" for X25519 (default), "SealedMessage(scheme)" otherwise
@@ -337,7 +353,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
         return { ok: true, value: "SealedMessage" };
       }
       return { ok: true, value: `SealedMessage(${scheme})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // EncryptedKey: toString()
@@ -346,7 +364,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_ENCRYPTED_KEY.value, cbor);
       const ek = EncryptedKey.fromTaggedCbor(tagged);
       return { ok: true, value: ek.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // PrivateKeyBase: toString()
@@ -355,7 +375,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_PRIVATE_KEY_BASE.value, cbor);
       const pkb = PrivateKeyBase.fromTaggedCbor(tagged);
       return { ok: true, value: pkb.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // PrivateKeys: toString()
@@ -364,7 +386,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_PRIVATE_KEYS.value, cbor);
       const pk = PrivateKeys.fromTaggedCbor(tagged);
       return { ok: true, value: pk.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // PublicKeys: toString()
@@ -373,7 +397,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_PUBLIC_KEYS.value, cbor);
       const pk = PublicKeys.fromTaggedCbor(tagged);
       return { ok: true, value: pk.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // SigningPrivateKey: toString()
@@ -382,7 +408,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SIGNING_PRIVATE_KEY.value, cbor);
       const spk = SigningPrivateKey.fromTaggedCbor(tagged);
       return { ok: true, value: spk.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // SigningPublicKey: toString()
@@ -391,7 +419,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SIGNING_PUBLIC_KEY.value, cbor);
       const spk = SigningPublicKey.fromTaggedCbor(tagged);
       return { ok: true, value: spk.toString() };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // SSKRShare: "SSKRShare"
@@ -400,7 +430,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SSKR_SHARE.value, cbor);
       SSKRShareCbor.fromTaggedCbor(tagged);
       return { ok: true, value: "SSKRShare" };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 
   // XID: "XID(shortDesc)"
@@ -409,7 +441,9 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_XID.value, cbor);
       const xid = XID.fromTaggedCbor(tagged);
       return { ok: true, value: `XID(${xid.shortDescription()})` };
-    } catch (e) { return summarizerError(e); }
+    } catch (e) {
+      return summarizerError(e);
+    }
   });
 };
 

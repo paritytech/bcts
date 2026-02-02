@@ -197,26 +197,32 @@ export const registerTagsIn = (tagsStore: TagsStore): void => {
   tagsStore.insertAll([biguintTag, bigintTag]);
 
   // Summarizer for tag 2 (positive bignum)
-  tagsStore.setSummarizer(TAG_POSITIVE_BIGNUM, (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
-    try {
-      const value = biguintFromUntaggedCbor(untaggedCbor);
-      return { ok: true, value: `bignum(${value})` };
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { ok: false, error: { type: "Custom", message } };
-    }
-  });
+  tagsStore.setSummarizer(
+    TAG_POSITIVE_BIGNUM,
+    (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
+      try {
+        const value = biguintFromUntaggedCbor(untaggedCbor);
+        return { ok: true, value: `bignum(${value})` };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { ok: false, error: { type: "Custom", message } };
+      }
+    },
+  );
 
   // Summarizer for tag 3 (negative bignum)
-  tagsStore.setSummarizer(TAG_NEGATIVE_BIGNUM, (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
-    try {
-      const value = bigintFromNegativeUntaggedCbor(untaggedCbor);
-      return { ok: true, value: `bignum(${value})` };
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { ok: false, error: { type: "Custom", message } };
-    }
-  });
+  tagsStore.setSummarizer(
+    TAG_NEGATIVE_BIGNUM,
+    (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
+      try {
+        const value = bigintFromNegativeUntaggedCbor(untaggedCbor);
+        return { ok: true, value: `bignum(${value})` };
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { ok: false, error: { type: "Custom", message } };
+      }
+    },
+  );
 };
 
 /**

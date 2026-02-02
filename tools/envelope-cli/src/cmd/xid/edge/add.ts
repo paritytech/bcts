@@ -42,10 +42,7 @@ export class EdgeAddCommand implements ExecAsync {
     const edgeEnvelope = readEnvelope(this.args.edge);
     xidDocument.addEdge(edgeEnvelope);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

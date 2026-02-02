@@ -77,10 +77,7 @@ export class ServiceAddCommand implements ExecAsync {
 
     xidDocument.addService(service);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

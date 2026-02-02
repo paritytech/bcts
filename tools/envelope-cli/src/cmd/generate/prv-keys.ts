@@ -76,9 +76,7 @@ function parseInput(input: string): PrivateKeyBase {
     // Not a Seed
   }
 
-  throw new Error(
-    "Input must be ur:crypto-prvkey-base or ur:seed.",
-  );
+  throw new Error("Input must be ur:crypto-prvkey-base or ur:seed.");
 }
 
 /**

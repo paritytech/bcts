@@ -119,8 +119,7 @@ describe("Signature Extension", () => {
     it("should reject metadata signature from wrong key", () => {
       const alice = SigningPrivateKey.random();
       const bob = SigningPrivateKey.random();
-      const metadata = SignatureMetadata.new()
-        .withAssertion(NOTE, "Signed by Alice");
+      const metadata = SignatureMetadata.new().withAssertion(NOTE, "Signed by Alice");
 
       const document = Envelope.new("Secret");
       const signedWithMetadata = document.addSignatureWithMetadata(alice, metadata);

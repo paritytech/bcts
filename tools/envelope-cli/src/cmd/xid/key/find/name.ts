@@ -28,10 +28,7 @@ export class KeyFindNameCommand implements ExecAsync {
   constructor(private readonly args: CommandArgs) {}
 
   async exec(): Promise<string> {
-    const xidDocument = readXidDocument(
-      this.args.envelope,
-      verifySignature(this.args.verifyArgs),
-    );
+    const xidDocument = readXidDocument(this.args.envelope, verifySignature(this.args.verifyArgs));
     const keys = xidDocument.keys();
 
     if (this.args.private) {

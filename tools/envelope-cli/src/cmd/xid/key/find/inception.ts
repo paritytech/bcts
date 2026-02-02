@@ -27,10 +27,7 @@ export class KeyFindInceptionCommand implements ExecAsync {
   constructor(private readonly args: CommandArgs) {}
 
   async exec(): Promise<string> {
-    const xidDocument = readXidDocument(
-      this.args.envelope,
-      verifySignature(this.args.verifyArgs),
-    );
+    const xidDocument = readXidDocument(this.args.envelope, verifySignature(this.args.verifyArgs));
     const inceptionKey = xidDocument.inceptionKey();
     if (inceptionKey === undefined) {
       return "";

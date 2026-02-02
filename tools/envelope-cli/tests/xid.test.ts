@@ -464,8 +464,8 @@ describe("xid command", () => {
         ...format.defaultArgs(),
         envelope: xidDoc,
       });
-      expect(formatted).toContain("\"Bob\"");
-      expect(formatted).not.toContain("\"Alice\"");
+      expect(formatted).toContain('"Bob"');
+      expect(formatted).not.toContain('"Alice"');
     });
     it("test_xid_key_update", async () => {
       // Create doc with Alice (nickname) + Bob (nickname), both with All permissions
@@ -519,8 +519,8 @@ describe("xid command", () => {
       });
 
       // Alice still has 'All'
-      expect(formatted).toContain("\"Alice\"");
-      expect(formatted).toContain("\"Bob\"");
+      expect(formatted).toContain('"Alice"');
+      expect(formatted).toContain('"Bob"');
       // Bob should have Encrypt and Sign
       expect(formatted).toContain("'allow': 'Encrypt'");
       expect(formatted).toContain("'allow': 'Sign'");
@@ -564,7 +564,7 @@ describe("xid command", () => {
         ...format.defaultArgs(),
         envelope: aliceKey,
       });
-      expect(formatted).toContain("\"Alice\"");
+      expect(formatted).toContain('"Alice"');
       expect(formatted).toContain("'allow': 'All'");
 
       // Find non-existent name returns empty
@@ -644,7 +644,9 @@ describe("xid command", () => {
       expect(() => xid.method.at.exec({ index: 0, envelope: xidDoc })).not.toThrow();
 
       // Index 1 should fail
-      expect(() => xid.method.at.exec({ index: 1, envelope: xidDoc })).toThrow("Index out of bounds");
+      expect(() => xid.method.at.exec({ index: 1, envelope: xidDoc })).toThrow(
+        "Index out of bounds",
+      );
     });
 
     it("test_xid_method_remove", async () => {
@@ -979,7 +981,7 @@ describe("xid command", () => {
         ...format.defaultArgs(),
         envelope: xidDoc,
       });
-      expect(formatted).toContain("\"Example API\"");
+      expect(formatted).toContain('"Example API"');
       expect(formatted).toContain("'allow': 'Sign'");
       expect(formatted).toContain("'allow': 'Encrypt'");
     });
@@ -1029,7 +1031,11 @@ describe("xid command", () => {
         generatorOpts: GeneratorOptions.Omit,
         passwordArgs: {
           read: { askpass: false, password: "secret" },
-          write: { encryptAskpass: false, encryptMethod: PasswordMethod.Argon2id, encryptPassword: "secret" },
+          write: {
+            encryptAskpass: false,
+            encryptMethod: PasswordMethod.Argon2id,
+            encryptPassword: "secret",
+          },
         },
         verifyArgs: NO_VERIFY_ARGS,
         signingArgs: NO_SIGNING_ARGS,
@@ -1111,7 +1117,10 @@ describe("xid command", () => {
         verifyArgs: NO_VERIFY_ARGS,
         envelope: xidEncrypted,
       });
-      const formattedInception = format.exec({ ...format.defaultArgs(), envelope: inceptionEncrypted });
+      const formattedInception = format.exec({
+        ...format.defaultArgs(),
+        envelope: inceptionEncrypted,
+      });
       expect(formattedInception).toContain("ENCRYPTED");
 
       // Test 7: key find name --private with password (returns ur:crypto-prvkeys)

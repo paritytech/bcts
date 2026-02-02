@@ -6,11 +6,7 @@
 
 import { Envelope } from "@bcts/envelope";
 import { CborDate } from "@bcts/dcbor";
-import {
-  XIDDocument,
-  type XIDInceptionKeyOptions,
-  type XIDGenesisMarkOptions,
-} from "@bcts/xid";
+import { XIDDocument, type XIDInceptionKeyOptions, type XIDGenesisMarkOptions } from "@bcts/xid";
 import { randomData } from "@bcts/rand";
 import type { ExecAsync } from "../../exec.js";
 import { GeneratorOptions } from "./generator-options.js";
@@ -22,11 +18,7 @@ import type { ReadWritePasswordArgs } from "./password-args.js";
 import { PasswordMethod, readEncryptPassword } from "./password-args.js";
 import type { SigningArgs } from "./signing-args.js";
 import { SigningOption, signingOptions } from "./signing-args.js";
-import {
-  updateKey,
-  xidDocumentToUrString,
-  type InputKey,
-} from "./xid-utils.js";
+import { updateKey, xidDocumentToUrString, type InputKey } from "./xid-utils.js";
 
 // Re-export for backward compatibility
 export { GeneratorOptions } from "./generator-options.js";
@@ -125,13 +117,13 @@ export class NewCommand implements ExecAsync {
         break;
       case GeneratorOptions.Include:
       case GeneratorOptions.Encrypt: {
-        const date = this.args.date !== undefined
-          ? CborDate.fromString(this.args.date).datetime()
-          : undefined;
+        const date =
+          this.args.date !== undefined ? CborDate.fromString(this.args.date).datetime() : undefined;
 
-        const info = this.args.info !== undefined
-          ? Envelope.fromUrString(this.args.info).untaggedCbor()
-          : undefined;
+        const info =
+          this.args.info !== undefined
+            ? Envelope.fromUrString(this.args.info).untaggedCbor()
+            : undefined;
 
         // Generate random seed
         const seed = randomData(32);
@@ -161,16 +153,13 @@ export class NewCommand implements ExecAsync {
       updateKey(
         key,
         this.args.keyArgs.nickname,
-        this.args.keyArgs.endpoints.map((e) => typeof e === "string" ? e : e.toString()),
+        this.args.keyArgs.endpoints.map((e) => (typeof e === "string" ? e : e.toString())),
         this.args.keyArgs.permissions,
       );
     }
 
     // Build signing options
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

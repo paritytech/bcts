@@ -171,11 +171,15 @@ describe("XIDDocument", () => {
         { type: "none" },
       );
 
-      expect(xidDocument.isInceptionSigningKey(privateKeyBase.schnorrPublicKeys().signingPublicKey())).toBe(true);
+      expect(
+        xidDocument.isInceptionSigningKey(privateKeyBase.schnorrPublicKeys().signingPublicKey()),
+      ).toBe(true);
 
       // Add another key that's not inception
       const privateKeyBase2 = PrivateKeyBase.new();
-      expect(xidDocument.isInceptionSigningKey(privateKeyBase2.schnorrPublicKeys().signingPublicKey())).toBe(false);
+      expect(
+        xidDocument.isInceptionSigningKey(privateKeyBase2.schnorrPublicKeys().signingPublicKey()),
+      ).toBe(false);
     });
   });
 
@@ -791,19 +795,25 @@ describe("XIDDocument", () => {
       const password = new TextEncoder().encode("test_password");
 
       // Test Argon2id
-      const envelopeArgon2id = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelopeArgon2id = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Test PBKDF2
-      const envelopePbkdf2 = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.PBKDF2 },
-      );
+      const envelopePbkdf2 = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.PBKDF2,
+      });
 
       // Test Scrypt
-      const envelopeScrypt = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Scrypt },
-      );
+      const envelopeScrypt = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Scrypt,
+      });
 
       // All methods should be decryptable with the same password
       for (const envelope of [envelopeArgon2id, envelopePbkdf2, envelopeScrypt]) {
@@ -824,9 +834,11 @@ describe("XIDDocument", () => {
       const password2 = new TextEncoder().encode("second_password");
 
       // Encrypt with first password
-      const envelope1 = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password: password1, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelope1 = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password: password1,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Load with first password
       const docDecrypted = XIDDocument.fromEnvelope(envelope1, password1, XIDVerifySignature.None);
@@ -834,16 +846,22 @@ describe("XIDDocument", () => {
       expect(docDecrypted.inceptionKey()?.hasPrivateKeys()).toBe(true);
 
       // Re-encrypt with second password
-      const envelope2 = docDecrypted.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password: password2, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelope2 = docDecrypted.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password: password2,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // First password should not work on second envelope
       const docWrongPwd = XIDDocument.fromEnvelope(envelope2, password1, XIDVerifySignature.None);
       expect(docWrongPwd.inceptionKey()?.hasPrivateKeys()).toBe(false);
 
       // Second password should work
-      const docReencrypted = XIDDocument.fromEnvelope(envelope2, password2, XIDVerifySignature.None);
+      const docReencrypted = XIDDocument.fromEnvelope(
+        envelope2,
+        password2,
+        XIDVerifySignature.None,
+      );
       expect(docReencrypted.equals(xidDocument)).toBe(true);
       expect(docReencrypted.inceptionKey()?.hasPrivateKeys()).toBe(true);
 
@@ -862,17 +880,25 @@ describe("XIDDocument", () => {
       const password = new TextEncoder().encode("shared_password");
 
       // Encrypt with Argon2id
-      const envelopeArgon2id = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelopeArgon2id = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Load and decrypt
-      const docDecrypted = XIDDocument.fromEnvelope(envelopeArgon2id, password, XIDVerifySignature.None);
+      const docDecrypted = XIDDocument.fromEnvelope(
+        envelopeArgon2id,
+        password,
+        XIDVerifySignature.None,
+      );
 
       // Re-encrypt with Scrypt
-      const envelopeScrypt = docDecrypted.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Scrypt },
-      );
+      const envelopeScrypt = docDecrypted.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Scrypt,
+      });
 
       // Verify the method changed
       const formatArgon2id = envelopeArgon2id.format();
@@ -881,7 +907,11 @@ describe("XIDDocument", () => {
       expect(formatScrypt).toContain("Scrypt");
 
       // Both should decrypt with the same password
-      const docFromScrypt = XIDDocument.fromEnvelope(envelopeScrypt, password, XIDVerifySignature.None);
+      const docFromScrypt = XIDDocument.fromEnvelope(
+        envelopeScrypt,
+        password,
+        XIDVerifySignature.None,
+      );
       expect(docFromScrypt.equals(xidDocument)).toBe(true);
     });
   });
@@ -901,12 +931,18 @@ describe("XIDDocument", () => {
       expect(docFromPlaintext.equals(xidDocument)).toBe(true);
 
       // Encrypt it
-      const envelopeEncrypted = docFromPlaintext.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelopeEncrypted = docFromPlaintext.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Decrypt it
-      const docDecrypted = XIDDocument.fromEnvelope(envelopeEncrypted, password, XIDVerifySignature.None);
+      const docDecrypted = XIDDocument.fromEnvelope(
+        envelopeEncrypted,
+        password,
+        XIDVerifySignature.None,
+      );
       expect(docDecrypted.equals(xidDocument)).toBe(true);
       expect(docDecrypted.inceptionKey()?.hasPrivateKeys()).toBe(true);
 
@@ -927,9 +963,11 @@ describe("XIDDocument", () => {
       const password = new TextEncoder().encode("secret_password");
 
       // Create document with encrypted private keys
-      const envelopeEncrypted = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelopeEncrypted = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Load without password - encrypted keys are preserved but not accessible
       const docNoPassword = XIDDocument.fromEnvelope(envelopeEncrypted);
@@ -946,7 +984,11 @@ describe("XIDDocument", () => {
       expect(format).toContain("hasSecret");
 
       // Load with password - should decrypt the keys
-      const docWithPassword = XIDDocument.fromEnvelope(envelopeAfterModification, password, XIDVerifySignature.None);
+      const docWithPassword = XIDDocument.fromEnvelope(
+        envelopeAfterModification,
+        password,
+        XIDVerifySignature.None,
+      );
       expect(docWithPassword.resolutionMethods().has("https://resolver.example.com")).toBe(true);
       expect(docWithPassword.inceptionKey()?.hasPrivateKeys()).toBe(true);
     });
@@ -955,10 +997,7 @@ describe("XIDDocument", () => {
   describe("Private key envelope for key", () => {
     it("should get unencrypted private key envelope", () => {
       const privateKeyBase = PrivateKeyBase.new();
-      const doc = XIDDocument.new(
-        { type: "privateKeyBase", privateKeyBase },
-        { type: "none" },
-      );
+      const doc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
       const pubkeys = doc.inceptionKey()!.publicKeys();
 
       // Get unencrypted private key
@@ -966,7 +1005,9 @@ describe("XIDDocument", () => {
       expect(envelope).toBeDefined();
 
       // Should be able to extract bytes from the subject
-      const bytes = (envelope!.subject() as unknown as { asByteString(): Uint8Array | undefined }).asByteString();
+      const bytes = (
+        envelope!.subject() as unknown as { asByteString(): Uint8Array | undefined }
+      ).asByteString();
       expect(bytes).toBeDefined();
     });
 
@@ -975,13 +1016,11 @@ describe("XIDDocument", () => {
       const password = "test-password";
 
       // Create document with encrypted key
-      const doc = XIDDocument.new(
-        { type: "privateKeyBase", privateKeyBase },
-        { type: "none" },
-      );
-      const envelopeEncrypted = doc.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password: new TextEncoder().encode(password) },
-      );
+      const doc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
+      const envelopeEncrypted = doc.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password: new TextEncoder().encode(password),
+      });
 
       const docEncrypted = XIDDocument.fromEnvelope(envelopeEncrypted);
       const pubkeys = docEncrypted.inceptionKey()!.publicKeys();
@@ -1005,10 +1044,7 @@ describe("XIDDocument", () => {
 
     it("should return undefined for key not found", () => {
       const privateKeyBase = PrivateKeyBase.new();
-      const doc = XIDDocument.new(
-        { type: "privateKeyBase", privateKeyBase },
-        { type: "none" },
-      );
+      const doc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
 
       // Try to get key that doesn't exist
       const otherPubkeys = PrivateKeyBase.new().schnorrPublicKeys();
@@ -1019,10 +1055,7 @@ describe("XIDDocument", () => {
     it("should return undefined when no private key", () => {
       // Create document with public key only
       const pubkeys = PrivateKeyBase.new().ed25519PublicKeys();
-      const doc = XIDDocument.new(
-        { type: "publicKeys", publicKeys: pubkeys },
-        { type: "none" },
-      );
+      const doc = XIDDocument.new({ type: "publicKeys", publicKeys: pubkeys }, { type: "none" });
 
       // Should return undefined (no private key present)
       const result = doc.privateKeyEnvelopeForKey(pubkeys);
@@ -1043,11 +1076,10 @@ describe("XIDDocument", () => {
       const signingPrivateKeys = signingKeyBase.schnorrPrivateKeys();
 
       // Sign with the separate key
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "privateKeys", privateKeys: signingPrivateKeys },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "privateKeys",
+        privateKeys: signingPrivateKeys,
+      });
 
       // The envelope should have a signature
       expect(envelope.format()).toContain("'signed': Signature");
@@ -1065,11 +1097,10 @@ describe("XIDDocument", () => {
       const signingPrivateKey = signingKeyBase.schnorrPrivateKeys().signingPrivateKey();
 
       // Sign with the separate signing private key
-      const envelope = xidDocument.toEnvelope(
-        XIDPrivateKeyOptions.Omit,
-        XIDGeneratorOptions.Omit,
-        { type: "signingPrivateKey", signingPrivateKey },
-      );
+      const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+        type: "signingPrivateKey",
+        signingPrivateKey,
+      });
 
       // The envelope should have a signature
       expect(envelope.format()).toContain("'signed': Signature");
@@ -1182,9 +1213,11 @@ describe("XIDDocument", () => {
       expect(xidDocument.hasAttachments()).toBe(true);
 
       // Encrypt private keys
-      const envelope = xidDocument.toEnvelope(
-        { type: XIDPrivateKeyOptions.Encrypt, password, method: KeyDerivationMethod.Argon2id },
-      );
+      const envelope = xidDocument.toEnvelope({
+        type: XIDPrivateKeyOptions.Encrypt,
+        password,
+        method: KeyDerivationMethod.Argon2id,
+      });
 
       // Decrypt and verify attachments are preserved
       const xidDocument2 = XIDDocument.fromEnvelope(envelope, password, XIDVerifySignature.None);
@@ -1200,7 +1233,11 @@ describe("XIDDocument", () => {
       );
 
       // Add attachments before signing
-      xidDocument.addAttachment("signed_data", "com.example.signed", "com.example.signed.schema.v1");
+      xidDocument.addAttachment(
+        "signed_data",
+        "com.example.signed",
+        "com.example.signed.schema.v1",
+      );
 
       // Sign the document with inception key - attachments should be inside the signature
       const envelope = xidDocument.toEnvelope(

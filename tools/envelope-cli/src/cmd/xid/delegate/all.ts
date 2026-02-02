@@ -27,9 +27,7 @@ export class DelegateAllCommand implements Exec {
     const envelope = readEnvelope(this.args.envelope);
     XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.None); // Validation only
     const delegateAssertions = envelope.assertionsWithPredicate(DELEGATE);
-    const delegates = delegateAssertions.map((d) =>
-      envelopeToXidUrString(d.object()),
-    );
+    const delegates = delegateAssertions.map((d) => envelopeToXidUrString(d.object()));
     return delegates.join("\n");
   }
 }

@@ -49,15 +49,14 @@ async function makeXidDocForBob(): Promise<string> {
 }
 
 function aliceXid(xidDoc: string): string {
-  return xid.id.exec({ envelope: xidDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+  return xid.id.exec({
+    envelope: xidDoc,
+    format: [xid.IDFormat.Ur],
+    verifyArgs: { verify: VerifyOption.None },
+  });
 }
 
-function makeEdge(
-  subject: string,
-  isA: string,
-  sourceXidUr: string,
-  targetXidUr: string,
-): string {
+function makeEdge(subject: string, isA: string, sourceXidUr: string, targetXidUr: string): string {
   const sourceEnvelope = readEnvelope(sourceXidUr);
   const targetEnvelope = readEnvelope(targetXidUr);
   let envelope = Envelope.new(subject);
@@ -78,7 +77,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edgeUr = makeEdge("relationship", "employee", aliceId, bobId);
 
@@ -98,7 +101,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edge1 = makeEdge("relationship1", "employee", aliceId, bobId);
     const edge2 = makeEdge("relationship2", "manager", bobId, aliceId);
@@ -134,7 +141,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edge1 = makeEdge("rel1", "employee", aliceId, bobId);
     const edge2 = makeEdge("rel2", "manager", bobId, aliceId);
@@ -168,7 +179,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edgeUr = makeEdge("relationship", "employee", aliceId, bobId);
 
@@ -200,7 +215,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edge1 = makeEdge("rel1", "employee", aliceId, bobId);
     const edge2 = makeEdge("rel2", "manager", bobId, aliceId);
@@ -237,7 +256,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edge1 = makeEdge("rel1", "employee", aliceId, bobId);
     const edge2 = makeEdge("rel2", "manager", bobId, aliceId);
@@ -274,7 +297,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edgeUr = makeEdge("relationship", "employee", aliceId, bobId);
 
@@ -378,7 +405,11 @@ describe("xid edge", () => {
     let xidDoc = await makeXidDoc();
     const bobDoc = await makeXidDocForBob();
     const aliceId = aliceXid(xidDoc);
-    const bobId = xid.id.exec({ envelope: bobDoc, format: [xid.IDFormat.Ur], verifyArgs: { verify: VerifyOption.None } });
+    const bobId = xid.id.exec({
+      envelope: bobDoc,
+      format: [xid.IDFormat.Ur],
+      verifyArgs: { verify: VerifyOption.None },
+    });
 
     const edge1 = makeEdge("self-desc", "foaf:Person", aliceId, aliceId);
     const edge2 = makeEdge("knows-bob", "schema:colleague", aliceId, bobId);

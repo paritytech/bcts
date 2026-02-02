@@ -44,17 +44,19 @@ export function registerTags(): void {
 export function registerTagsIn(context: FormatContext): void {
   envelopeRegisterTagsIn(context);
 
-  context.tags().setSummarizer(
-    BigInt(PROVENANCE_MARK.value),
-    (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
-      try {
-        const mark = ProvenanceMark.fromUntaggedCbor(untaggedCbor);
-        return { ok: true, value: mark.toString() };
-      } catch {
-        return { ok: false, error: { type: "Custom", message: "invalid provenance mark" } };
-      }
-    },
-  );
+  context
+    .tags()
+    .setSummarizer(
+      BigInt(PROVENANCE_MARK.value),
+      (untaggedCbor: Cbor, _flat: boolean): SummarizerResult => {
+        try {
+          const mark = ProvenanceMark.fromUntaggedCbor(untaggedCbor);
+          return { ok: true, value: mark.toString() };
+        } catch {
+          return { ok: false, error: { type: "Custom", message: "invalid provenance mark" } };
+        }
+      },
+    );
 }
 
 // ============================================================================

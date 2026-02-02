@@ -29,10 +29,7 @@ export class KeyFindPublicCommand implements ExecAsync {
 
   async exec(): Promise<string> {
     const publicKeys = readPublicKey(this.args.keys);
-    const xidDocument = readXidDocument(
-      this.args.envelope,
-      verifySignature(this.args.verifyArgs),
-    );
+    const xidDocument = readXidDocument(this.args.envelope, verifySignature(this.args.verifyArgs));
     const keys = xidDocument.keys();
 
     if (this.args.private) {

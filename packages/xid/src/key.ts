@@ -291,7 +291,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
               const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
-              const method: KeyDerivationMethod = privateKeyOptions.method ?? defaultKeyDerivationMethod();
+              const method: KeyDerivationMethod =
+                privateKeyOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (
                 privateKeysEnvelope as unknown as {
                   lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;

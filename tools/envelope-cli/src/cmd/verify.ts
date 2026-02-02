@@ -106,9 +106,7 @@ export class VerifyCommand implements Exec {
 
         // Try extract_subject for each key type
         try {
-          const key = keyEnvelope.extractSubject(
-            (cbor) => PrivateKeyBase.fromTaggedCbor(cbor),
-          );
+          const key = keyEnvelope.extractSubject((cbor) => PrivateKeyBase.fromTaggedCbor(cbor));
           verifiers.push(key.ed25519PublicKeys());
           continue;
         } catch {
@@ -116,9 +114,7 @@ export class VerifyCommand implements Exec {
         }
 
         try {
-          const key = keyEnvelope.extractSubject(
-            (cbor) => PublicKeys.fromTaggedCbor(cbor),
-          );
+          const key = keyEnvelope.extractSubject((cbor) => PublicKeys.fromTaggedCbor(cbor));
           verifiers.push(key);
           continue;
         } catch {
@@ -126,9 +122,7 @@ export class VerifyCommand implements Exec {
         }
 
         try {
-          const key = keyEnvelope.extractSubject(
-            (cbor) => SigningPrivateKey.fromTaggedCbor(cbor),
-          );
+          const key = keyEnvelope.extractSubject((cbor) => SigningPrivateKey.fromTaggedCbor(cbor));
           verifiers.push(key);
           continue;
         } catch {
@@ -136,9 +130,7 @@ export class VerifyCommand implements Exec {
         }
 
         try {
-          const key = keyEnvelope.extractSubject(
-            (cbor) => SigningPublicKey.fromTaggedCbor(cbor),
-          );
+          const key = keyEnvelope.extractSubject((cbor) => SigningPublicKey.fromTaggedCbor(cbor));
           verifiers.push(key);
           continue;
         } catch {

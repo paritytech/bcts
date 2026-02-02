@@ -67,11 +67,13 @@ describe("Directory Loading Integration Tests", () => {
   test("load from temp directory", () => {
     const tempDir = createTempDir();
     try {
-      writeJsonFile(tempDir, "test_registry.json", JSON.stringify({
-        entries: [
-          { codepoint: 99999, name: "integrationTestValue" },
-        ],
-      }));
+      writeJsonFile(
+        tempDir,
+        "test_registry.json",
+        JSON.stringify({
+          entries: [{ codepoint: 99999, name: "integrationTestValue" }],
+        }),
+      );
 
       const store = new KnownValuesStore([IS_A, NOTE]);
       const count = store.loadFromDirectory(tempDir);
@@ -95,11 +97,13 @@ describe("Directory Loading Integration Tests", () => {
     const tempDir = createTempDir();
     try {
       // Override IS_A (codepoint 1) with a custom name
-      writeJsonFile(tempDir, "override.json", JSON.stringify({
-        entries: [
-          { codepoint: 1, name: "overriddenIsA" },
-        ],
-      }));
+      writeJsonFile(
+        tempDir,
+        "override.json",
+        JSON.stringify({
+          entries: [{ codepoint: 1, name: "overriddenIsA" }],
+        }),
+      );
 
       const store = new KnownValuesStore([IS_A]);
       store.loadFromDirectory(tempDir);
@@ -120,12 +124,20 @@ describe("Directory Loading Integration Tests", () => {
   test("multiple files in directory", () => {
     const tempDir = createTempDir();
     try {
-      writeJsonFile(tempDir, "registry1.json", JSON.stringify({
-        entries: [{ codepoint: 10001, name: "valueOne" }],
-      }));
-      writeJsonFile(tempDir, "registry2.json", JSON.stringify({
-        entries: [{ codepoint: 10002, name: "valueTwo" }],
-      }));
+      writeJsonFile(
+        tempDir,
+        "registry1.json",
+        JSON.stringify({
+          entries: [{ codepoint: 10001, name: "valueOne" }],
+        }),
+      );
+      writeJsonFile(
+        tempDir,
+        "registry2.json",
+        JSON.stringify({
+          entries: [{ codepoint: 10002, name: "valueTwo" }],
+        }),
+      );
 
       const store = new KnownValuesStore();
       const count = store.loadFromDirectory(tempDir);
@@ -144,14 +156,22 @@ describe("Directory Loading Integration Tests", () => {
     const tempDir2 = createTempDir();
     try {
       // First directory has value A
-      writeJsonFile(tempDir1, "a.json", JSON.stringify({
-        entries: [{ codepoint: 20001, name: "fromDirOne" }],
-      }));
+      writeJsonFile(
+        tempDir1,
+        "a.json",
+        JSON.stringify({
+          entries: [{ codepoint: 20001, name: "fromDirOne" }],
+        }),
+      );
 
       // Second directory has value B
-      writeJsonFile(tempDir2, "b.json", JSON.stringify({
-        entries: [{ codepoint: 20002, name: "fromDirTwo" }],
-      }));
+      writeJsonFile(
+        tempDir2,
+        "b.json",
+        JSON.stringify({
+          entries: [{ codepoint: 20002, name: "fromDirTwo" }],
+        }),
+      );
 
       const config = DirectoryConfig.withPaths([tempDir1, tempDir2]);
       const store = new KnownValuesStore();
@@ -172,13 +192,21 @@ describe("Directory Loading Integration Tests", () => {
     const tempDir2 = createTempDir();
     try {
       // Both directories have same codepoint with different names
-      writeJsonFile(tempDir1, "first.json", JSON.stringify({
-        entries: [{ codepoint: 30000, name: "firstVersion" }],
-      }));
+      writeJsonFile(
+        tempDir1,
+        "first.json",
+        JSON.stringify({
+          entries: [{ codepoint: 30000, name: "firstVersion" }],
+        }),
+      );
 
-      writeJsonFile(tempDir2, "second.json", JSON.stringify({
-        entries: [{ codepoint: 30000, name: "secondVersion" }],
-      }));
+      writeJsonFile(
+        tempDir2,
+        "second.json",
+        JSON.stringify({
+          entries: [{ codepoint: 30000, name: "secondVersion" }],
+        }),
+      );
 
       // Process dir1 first, then dir2
       const config = DirectoryConfig.withPaths([tempDir1, tempDir2]);
@@ -228,9 +256,13 @@ describe("Directory Loading Integration Tests", () => {
     const tempDir = createTempDir();
     try {
       // One valid file
-      writeJsonFile(tempDir, "valid.json", JSON.stringify({
-        entries: [{ codepoint: 40001, name: "validValue" }],
-      }));
+      writeJsonFile(
+        tempDir,
+        "valid.json",
+        JSON.stringify({
+          entries: [{ codepoint: 40001, name: "validValue" }],
+        }),
+      );
 
       // One invalid file
       writeJsonFile(tempDir, "invalid.json", "{ invalid json }");
@@ -297,12 +329,16 @@ describe("Directory Loading Integration Tests", () => {
   test("load result methods", () => {
     const tempDir = createTempDir();
     try {
-      writeJsonFile(tempDir, "test.json", JSON.stringify({
-        entries: [
-          { codepoint: 60001, name: "resultTest1" },
-          { codepoint: 60002, name: "resultTest2" },
-        ],
-      }));
+      writeJsonFile(
+        tempDir,
+        "test.json",
+        JSON.stringify({
+          entries: [
+            { codepoint: 60001, name: "resultTest1" },
+            { codepoint: 60002, name: "resultTest2" },
+          ],
+        }),
+      );
 
       const config = DirectoryConfig.withPaths([tempDir]);
       const result = loadFromConfig(config);
@@ -339,9 +375,13 @@ describe("Directory Loading Integration Tests", () => {
     const tempDir = createTempDir();
     try {
       // JSON file should be loaded
-      writeJsonFile(tempDir, "valid.json", JSON.stringify({
-        entries: [{ codepoint: 70001, name: "jsonValue" }],
-      }));
+      writeJsonFile(
+        tempDir,
+        "valid.json",
+        JSON.stringify({
+          entries: [{ codepoint: 70001, name: "jsonValue" }],
+        }),
+      );
 
       // Non-JSON files should be ignored
       fs.writeFileSync(path.join(tempDir, "readme.txt"), "Some text");
@@ -367,9 +407,7 @@ describe("Directory Loader Unit Tests", () => {
   test("parse registry JSON with ontology and statistics", () => {
     const json = JSON.stringify({
       ontology: { name: "test" },
-      entries: [
-        { codepoint: 9999, name: "testValue", type: "property" },
-      ],
+      entries: [{ codepoint: 9999, name: "testValue", type: "property" }],
       statistics: {},
     });
 
@@ -393,13 +431,15 @@ describe("Directory Loader Unit Tests", () => {
   // Rust: test_parse_full_entry
   test("parse full entry with all optional fields", () => {
     const json = JSON.stringify({
-      entries: [{
-        codepoint: 100,
-        name: "fullEntry",
-        type: "class",
-        uri: "https://example.com/vocab#fullEntry",
-        description: "A complete entry with all fields",
-      }],
+      entries: [
+        {
+          codepoint: 100,
+          name: "fullEntry",
+          type: "class",
+          uri: "https://example.com/vocab#fullEntry",
+          description: "A complete entry with all fields",
+        },
+      ],
     });
 
     const registry = parseRegistryJson(json);
@@ -533,11 +573,13 @@ describe("Standalone loadFromDirectory", () => {
   test("returns KnownValue array from valid directory", () => {
     const tempDir = createTempDir();
     try {
-      writeJsonFile(tempDir, "test.json", JSON.stringify({
-        entries: [
-          { codepoint: 80001, name: "standaloneValue" },
-        ],
-      }));
+      writeJsonFile(
+        tempDir,
+        "test.json",
+        JSON.stringify({
+          entries: [{ codepoint: 80001, name: "standaloneValue" }],
+        }),
+      );
 
       const values = loadFromDirectory(tempDir);
       expect(values.length).toBe(1);

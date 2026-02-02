@@ -43,10 +43,7 @@ export class ResolutionRemoveCommand implements ExecAsync {
       throw new Error(`Resolution method not found: ${uri.toString()}`);
     }
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

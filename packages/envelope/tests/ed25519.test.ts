@@ -269,8 +269,7 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
     it("should reject metadata signature from wrong key", () => {
       const alice = alicePrivateKey();
       const carol = carolPrivateKey();
-      const metadata = SignatureMetadata.new()
-        .withAssertion(NOTE, "Signed by Alice");
+      const metadata = SignatureMetadata.new().withAssertion(NOTE, "Signed by Alice");
 
       const signedWithMetadata = helloEnvelope().addSignatureWithMetadata(alice, metadata);
 

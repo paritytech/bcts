@@ -57,10 +57,7 @@ export class KeyAddCommand implements ExecAsync {
         break;
       }
       case "PrivateAndPublicKeys":
-        key = Key.newWithPrivateKeys(
-          inputKey.privateKeys,
-          inputKey.publicKeys,
-        );
+        key = Key.newWithPrivateKeys(inputKey.privateKeys, inputKey.publicKeys);
         break;
     }
 
@@ -73,10 +70,7 @@ export class KeyAddCommand implements ExecAsync {
 
     xidDocument.addKey(key);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     const outputOpts = {
       privateOpts: this.args.keyArgs.privateOpts,

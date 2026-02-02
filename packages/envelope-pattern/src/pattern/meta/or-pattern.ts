@@ -8,7 +8,13 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { matchPattern, dispatchPathsWithCaptures, dispatchCompile, dispatchIsComplex, dispatchPatternToString } from "../matcher";
+import {
+  matchPattern,
+  dispatchPathsWithCaptures,
+  dispatchCompile,
+  dispatchIsComplex,
+  dispatchPatternToString,
+} from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -111,15 +117,11 @@ export class OrPattern implements Matcher {
   isComplex(): boolean {
     // The pattern is complex if it contains more than one pattern, or if
     // the one pattern is complex itself.
-    return (
-      this._patterns.length > 1 || this._patterns.some((p) => dispatchIsComplex(p))
-    );
+    return this._patterns.length > 1 || this._patterns.some((p) => dispatchIsComplex(p));
   }
 
   toString(): string {
-    return this._patterns
-      .map((p) => dispatchPatternToString(p))
-      .join(" | ");
+    return this._patterns.map((p) => dispatchPatternToString(p)).join(" | ");
   }
 
   /**

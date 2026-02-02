@@ -1,9 +1,9 @@
 import { KnownValue, type KnownValueInput } from "./known-value";
 import {
-    loadFromDirectory as directoryLoadFromDirectory,
-    loadFromConfig as directoryLoadFromConfig,
-    type DirectoryConfig,
-    type LoadResult,
+  loadFromDirectory as directoryLoadFromDirectory,
+  loadFromConfig as directoryLoadFromConfig,
+  type DirectoryConfig,
+  type LoadResult,
 } from "./directory-loader";
 
 /**

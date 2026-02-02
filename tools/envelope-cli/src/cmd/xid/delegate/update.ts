@@ -65,10 +65,7 @@ export class DelegateUpdateCommand implements ExecAsync {
 
     xidDocument.addDelegate(newDelegate);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     return xidDocumentToUrString(
       xidDocument,

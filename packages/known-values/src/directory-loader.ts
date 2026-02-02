@@ -134,12 +134,7 @@ export class LoadError extends Error {
   readonly filePath?: string | undefined;
   override readonly cause?: Error | undefined;
 
-  private constructor(
-    errorType: "io" | "json",
-    message: string,
-    filePath?: string,
-    cause?: Error,
-  ) {
+  private constructor(errorType: "io" | "json", message: string, filePath?: string, cause?: Error) {
     super(message);
     this.name = "LoadError";
     this.errorType = errorType;
@@ -170,9 +165,7 @@ export class LoadError extends Error {
  */
 export class ConfigError extends Error {
   constructor() {
-    super(
-      "Cannot modify directory configuration after KNOWN_VALUES has been accessed",
-    );
+    super("Cannot modify directory configuration after KNOWN_VALUES has been accessed");
     this.name = "ConfigError";
   }
 }
@@ -451,10 +444,7 @@ export function loadFromDirectory(dirPath: string): KnownValue[] {
     try {
       registry = parseRegistryJson(content);
     } catch (e) {
-      throw LoadError.json(
-        filePath,
-        e instanceof Error ? e : new Error(String(e)),
-      );
+      throw LoadError.json(filePath, e instanceof Error ? e : new Error(String(e)));
     }
 
     for (const registryEntry of registry.entries) {
@@ -476,17 +466,16 @@ function loadSingleFile(filePath: string): KnownValue[] {
   const content = fs.readFileSync(filePath, "utf-8");
   const registry = parseRegistryJson(content);
 
-  return registry.entries.map(
-    (entry) => new KnownValue(entry.codepoint, entry.name),
-  );
+  return registry.entries.map((entry) => new KnownValue(entry.codepoint, entry.name));
 }
 
 /**
  * Loads from a directory with tolerance for individual file failures.
  */
-function loadFromDirectoryTolerant(
-  dirPath: string,
-): { values: KnownValue[]; errors: Array<[string, LoadError]> } {
+function loadFromDirectoryTolerant(dirPath: string): {
+  values: KnownValue[];
+  errors: Array<[string, LoadError]>;
+} {
   if (!fs || !path) {
     return { values: [], errors: [] };
   }
@@ -521,10 +510,7 @@ function loadFromDirectoryTolerant(
       } else {
         errors.push([
           filePath,
-          LoadError.json(
-            filePath,
-            e instanceof Error ? e : new Error(String(e)),
-          ),
+          LoadError.json(filePath, e instanceof Error ? e : new Error(String(e))),
         ]);
       }
     }
@@ -562,10 +548,7 @@ export function loadFromConfig(config: DirectoryConfig): LoadResult {
       if (e instanceof LoadError) {
         result.errors.push([dirPath, e]);
       } else {
-        result.errors.push([
-          dirPath,
-          LoadError.io(e instanceof Error ? e : new Error(String(e))),
-        ]);
+        result.errors.push([dirPath, LoadError.io(e instanceof Error ? e : new Error(String(e)))]);
       }
     }
   }

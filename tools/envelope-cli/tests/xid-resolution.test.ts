@@ -248,7 +248,11 @@ describe("xid resolution", () => {
       },
       passwordArgs: {
         read: { askpass: false, password: "secret" },
-        write: { encryptAskpass: false, encryptMethod: PasswordMethod.Argon2id, encryptPassword: "secret" },
+        write: {
+          encryptAskpass: false,
+          encryptMethod: PasswordMethod.Argon2id,
+          encryptPassword: "secret",
+        },
       },
       verifyArgs: { verify: VerifyOption.Inception },
       signingArgs: { sign: SigningOption.Inception },

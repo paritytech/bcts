@@ -181,8 +181,8 @@ describe("attachment command", () => {
       const att0Fmt = format.exec({ ...format.defaultArgs(), envelope: att0 });
       const att1Fmt = format.exec({ ...format.defaultArgs(), envelope: att1 });
       const fmts = [att0Fmt, att1Fmt];
-      expect(fmts.some(f => f.includes("v1-payload"))).toBe(true);
-      expect(fmts.some(f => f.includes("v2-payload"))).toBe(true);
+      expect(fmts.some((f) => f.includes("v1-payload"))).toBe(true);
+      expect(fmts.some((f) => f.includes("v2-payload"))).toBe(true);
 
       // Index 2 should fail
       expect(() =>

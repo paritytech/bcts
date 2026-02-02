@@ -78,24 +78,21 @@ export async function signingOptions(
 
       // Use the same password that unlocks the XID document
       let password: string;
-      if (passwordArgs !== undefined && (passwordArgs.password !== undefined || passwordArgs.askpass)) {
-        password = await readPassword(
-          "Password:",
-          passwordArgs.password,
-          passwordArgs.askpass,
-        );
+      if (
+        passwordArgs !== undefined &&
+        (passwordArgs.password !== undefined || passwordArgs.askpass)
+      ) {
+        password = await readPassword("Password:", passwordArgs.password, passwordArgs.askpass);
       } else {
         throw new Error("Encrypted signing key requires password (use --password)");
       }
 
-      const decryptedEnvelope = envelope.unlockSubject(
-        new TextEncoder().encode(password),
-      );
+      const decryptedEnvelope = envelope.unlockSubject(new TextEncoder().encode(password));
 
       // Try to extract PrivateKeys from the decrypted subject
       try {
-        const privateKeys = decryptedEnvelope.extractSubject(
-          (cbor) => PrivateKeys.fromTaggedCbor(cbor),
+        const privateKeys = decryptedEnvelope.extractSubject((cbor) =>
+          PrivateKeys.fromTaggedCbor(cbor),
         );
         return { type: "privateKeys", privateKeys };
       } catch {
@@ -104,8 +101,8 @@ export async function signingOptions(
 
       // Try to extract SigningPrivateKey from the decrypted subject
       try {
-        const signingPrivateKey = decryptedEnvelope.extractSubject(
-          (cbor) => SigningPrivateKey.fromTaggedCbor(cbor),
+        const signingPrivateKey = decryptedEnvelope.extractSubject((cbor) =>
+          SigningPrivateKey.fromTaggedCbor(cbor),
         );
         return { type: "signingPrivateKey", signingPrivateKey };
       } catch {

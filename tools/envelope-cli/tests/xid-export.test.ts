@@ -23,13 +23,7 @@ import { GeneratorOptions } from "../src/cmd/xid/generator-options.js";
 import { PasswordMethod } from "../src/cmd/xid/password-args.js";
 import { SigningOption } from "../src/cmd/xid/signing-args.js";
 import { VerifyOption } from "../src/cmd/xid/verify-args.js";
-import {
-  ALICE_PRVKEYS,
-  BOB_PUBKEYS,
-  CAROL_PUBKEYS,
-  DAVE_PUBKEYS,
-  expectOutput,
-} from "./common.js";
+import { ALICE_PRVKEYS, BOB_PUBKEYS, CAROL_PUBKEYS, DAVE_PUBKEYS, expectOutput } from "./common.js";
 
 const NO_PASSWORD_ARGS: xid.ReadWritePasswordArgs = {
   read: { askpass: false },
@@ -43,9 +37,7 @@ const INCEPTION_SIGNING_ARGS: xid.SigningArgs = { sign: SigningOption.Inception 
 /**
  * Create a signed XID document with Alice's private keys.
  */
-async function makeSignedXid(options?: {
-  generatorInclude?: boolean;
-}): Promise<string> {
+async function makeSignedXid(options?: { generatorInclude?: boolean }): Promise<string> {
   const args = xid.newCmd.defaultArgs();
   args.keyArgs.keys = ALICE_PRVKEYS;
   args.keyArgs.nickname = "Alice";

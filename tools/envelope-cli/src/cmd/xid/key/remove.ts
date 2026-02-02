@@ -43,10 +43,7 @@ export class KeyRemoveCommand implements ExecAsync {
 
     xidDocument.removeKey(publicKeys);
 
-    const signing = await signingOptions(
-      this.args.signingArgs,
-      this.args.passwordArgs.read,
-    );
+    const signing = await signingOptions(this.args.signingArgs, this.args.passwordArgs.read);
 
     const outputOpts = {
       privateOpts: this.args.privateOpts,

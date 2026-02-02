@@ -2,12 +2,7 @@
  * XID utilities - 1:1 port of cmd/xid/xid_utils.rs
  */
 
-import {
-  PrivateKeyBase,
-  PrivateKeys,
-  PublicKeys,
-  URI,
-} from "@bcts/components";
+import { PrivateKeyBase, PrivateKeys, PublicKeys, URI } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import {
@@ -127,10 +122,7 @@ export function readKey(key?: string): InputKey {
       );
     } catch (e) {
       // Two-key parse failed — fall through to single key
-      if (
-        e instanceof Error &&
-        e.message.includes("When providing two keys")
-      ) {
+      if (e instanceof Error && e.message.includes("When providing two keys")) {
         throw e;
       }
     }
@@ -232,10 +224,7 @@ export async function readXidDocumentWithPassword(
  * - For encrypted keys with correct password: ur:crypto-prvkeys
  * - For encrypted keys with wrong password: Returns an error
  */
-export async function getPrivateKeyUr(
-  key: Key,
-  passwordArgs: ReadPasswordArgs,
-): Promise<string> {
+export async function getPrivateKeyUr(key: Key, passwordArgs: ReadPasswordArgs): Promise<string> {
   let password: string | undefined;
   if (passwordArgs.password !== undefined) {
     password = await readPassword(
@@ -264,9 +253,7 @@ export async function getPrivateKeyUr(
       return privateKeys.urString();
     }
     // Fallback: try extractSubject for other subject types
-    const privateKeys = envelope.extractSubject(
-      (cbor) => PrivateKeys.fromTaggedCbor(cbor),
-    );
+    const privateKeys = envelope.extractSubject((cbor) => PrivateKeys.fromTaggedCbor(cbor));
     return privateKeys.urString();
   } catch {
     // Subject is not PrivateKeys (it's ENCRYPTED) - return the envelope
@@ -329,11 +316,13 @@ export async function xidDocumentToUrString(
       throw new Error("Password args required for encryption");
     }
     // Use shared password if available, otherwise read it
-    const password = sharedPassword ?? await readPassword(
-      "Encryption password:",
-      passwordArgs.encryptPassword,
-      passwordArgs.encryptAskpass,
-    );
+    const password =
+      sharedPassword ??
+      (await readPassword(
+        "Encryption password:",
+        passwordArgs.encryptPassword,
+        passwordArgs.encryptAskpass,
+      ));
     privateKeyOptions = {
       type: XIDPrivateKeyOptions.Encrypt,
       password: new TextEncoder().encode(password),
@@ -349,11 +338,13 @@ export async function xidDocumentToUrString(
       throw new Error("Password args required for encryption");
     }
     // Use shared password if available, otherwise read it
-    const password = sharedPassword ?? await readPassword(
-      "Generator password:",
-      passwordArgs.encryptPassword,
-      passwordArgs.encryptAskpass,
-    );
+    const password =
+      sharedPassword ??
+      (await readPassword(
+        "Generator password:",
+        passwordArgs.encryptPassword,
+        passwordArgs.encryptAskpass,
+      ));
     generatorOptions = {
       type: XIDGeneratorOptions.Encrypt,
       password: new TextEncoder().encode(password),
@@ -362,10 +353,6 @@ export async function xidDocumentToUrString(
     generatorOptions = toXIDGeneratorOptions(generatorOpts);
   }
 
-  const envelope = xidDocument.toEnvelope(
-    privateKeyOptions,
-    generatorOptions,
-    signingOptions,
-  );
+  const envelope = xidDocument.toEnvelope(privateKeyOptions, generatorOptions, signingOptions);
   return envelopeToXidUrString(envelope);
 }
