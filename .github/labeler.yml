@@ -1,94 +1,159 @@
 # GitHub Actions labeler configuration for BCTS monorepo
 # https://github.com/actions/labeler
+#
+# Each label requires at least one non-package.json file to change.
+# This prevents labeling PRs that only bump versions in package.json.
 
 github-actions:
   - changed-files:
       - any-glob-to-any-file: '.github/**'
 
+"playground":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/playground/**'
+          - '!apps/playground/package.json'
+
 "rand":
   - changed-files:
-      - any-glob-to-any-file: 'packages/rand/**'
+      - any-glob-to-any-file:
+          - 'packages/rand/**'
+          - '!packages/rand/package.json'
 
 "dcbor":
   - changed-files:
-      - any-glob-to-any-file: 'packages/dcbor/**'
+      - any-glob-to-any-file:
+          - 'packages/dcbor/**'
+          - '!packages/dcbor/package.json'
 
 "tags":
   - changed-files:
-      - any-glob-to-any-file: 'packages/tags/**'
+      - any-glob-to-any-file:
+          - 'packages/tags/**'
+          - '!packages/tags/package.json'
 
 "crypto":
   - changed-files:
-      - any-glob-to-any-file: 'packages/crypto/**'
+      - any-glob-to-any-file:
+          - 'packages/crypto/**'
+          - '!packages/crypto/package.json'
 
 "uniform-resources":
   - changed-files:
-      - any-glob-to-any-file: 'packages/uniform-resources/**'
+      - any-glob-to-any-file:
+          - 'packages/uniform-resources/**'
+          - '!packages/uniform-resources/package.json'
 
 "shamir":
   - changed-files:
-      - any-glob-to-any-file: 'packages/shamir/**'
+      - any-glob-to-any-file:
+          - 'packages/shamir/**'
+          - '!packages/shamir/package.json'
 
 "sskr":
   - changed-files:
-      - any-glob-to-any-file: 'packages/sskr/**'
+      - any-glob-to-any-file:
+          - 'packages/sskr/**'
+          - '!packages/sskr/package.json'
 
 "components":
   - changed-files:
-      - any-glob-to-any-file: 'packages/components/**'
+      - any-glob-to-any-file:
+          - 'packages/components/**'
+          - '!packages/components/package.json'
 
 "known-values":
   - changed-files:
-      - any-glob-to-any-file: 'packages/known-values/**'
+      - any-glob-to-any-file:
+          - 'packages/known-values/**'
+          - '!packages/known-values/package.json'
 
 "envelope":
   - changed-files:
-      - any-glob-to-any-file: 'packages/envelope/**'
+      - any-glob-to-any-file:
+          - 'packages/envelope/**'
+          - '!packages/envelope/package.json'
 
 "provenance-mark":
   - changed-files:
-      - any-glob-to-any-file: 'packages/provenance-mark/**'
+      - any-glob-to-any-file:
+          - 'packages/provenance-mark/**'
+          - '!packages/provenance-mark/package.json'
 
 "xid":
   - changed-files:
-      - any-glob-to-any-file: 'packages/xid/**'
+      - any-glob-to-any-file:
+          - 'packages/xid/**'
+          - '!packages/xid/package.json'
 
 "gstp":
   - changed-files:
-      - any-glob-to-any-file: 'packages/gstp/**'
+      - any-glob-to-any-file:
+          - 'packages/gstp/**'
+          - '!packages/gstp/package.json'
 
 "dcbor-parse":
   - changed-files:
-      - any-glob-to-any-file: 'packages/dcbor-parse/**'
+      - any-glob-to-any-file:
+          - 'packages/dcbor-parse/**'
+          - '!packages/dcbor-parse/package.json'
 
 "dcbor-pattern":
   - changed-files:
-      - any-glob-to-any-file: 'packages/dcbor-pattern/**'
+      - any-glob-to-any-file:
+          - 'packages/dcbor-pattern/**'
+          - '!packages/dcbor-pattern/package.json'
 
 "envelope-pattern":
   - changed-files:
-      - any-glob-to-any-file: 'packages/envelope-pattern/**'
+      - any-glob-to-any-file:
+          - 'packages/envelope-pattern/**'
+          - '!packages/envelope-pattern/package.json'
+
+"hubert":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/hubert/**'
+          - '!packages/hubert/package.json'
+
+"frost-hubert":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/frost-hubert/**'
+          - '!packages/frost-hubert/package.json'
+
+"lifehash":
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'packages/lifehash/**'
+          - '!packages/lifehash/package.json'
 
 "dcbor-cli":
   - changed-files:
-      - any-glob-to-any-file: 'tools/dcbor-cli/**'
+      - any-glob-to-any-file:
+          - 'tools/dcbor-cli/**'
+          - '!tools/dcbor-cli/package.json'
 
 "envelope-cli":
   - changed-files:
-      - any-glob-to-any-file: 'tools/envelope-cli/**'
+      - any-glob-to-any-file:
+          - 'tools/envelope-cli/**'
+          - '!tools/envelope-cli/package.json'
 
 "provenance-mark-cli":
   - changed-files:
-      - any-glob-to-any-file: 'tools/provenance-mark-cli/**'
+      - any-glob-to-any-file:
+          - 'tools/provenance-mark-cli/**'
+          - '!tools/provenance-mark-cli/package.json'
 
 "seedtool-cli":
   - changed-files:
-      - any-glob-to-any-file: 'tools/seedtool-cli/**'
+      - any-glob-to-any-file:
+          - 'tools/seedtool-cli/**'
+          - '!tools/seedtool-cli/package.json'
 
-"examples":
+"lifehash-cli":
   - changed-files:
-      - any-glob-to-any-file: 'apps/example/**'
-
-"playground":
-  - changed-files:
-      - any-glob-to-any-file: 'apps/playground/**'
+      - any-glob-to-any-file:
+          - 'tools/lifehash-cli/**'
+          - '!tools/lifehash-cli/package.json'
