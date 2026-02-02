@@ -12,8 +12,7 @@ import { DataType } from "../src/data-types.js";
 
 describe("assertion command", () => {
   describe("subject assertion", () => {
-    // Skip: UR/CBOR library has internal issues with toData()
-    it.skip("test_assertion", () => {
+    it("test_assertion", () => {
       const e = subject.assertion.exec({
         predType: DataType.String,
         predValue: "Alpha",
@@ -29,8 +28,7 @@ describe("assertion command", () => {
       expect(formatted).toBe('"Alpha": "Beta"');
     });
 
-    // Skip: UR/CBOR library has internal issues with toData()
-    it.skip("test_assertion_2", () => {
+    it("test_assertion_2", () => {
       const e = subject.assertion.exec({
         predType: DataType.Number,
         predValue: "1",
@@ -46,8 +44,7 @@ describe("assertion command", () => {
       expect(formatted).toBe("1: 2");
     });
 
-    // Skip: UR/CBOR library has internal issues with toData()
-    it.skip("test_assertion_3", () => {
+    it("test_assertion_3", () => {
       const e = subject.assertion.exec({
         predType: DataType.Known,
         predValue: "note",
@@ -170,8 +167,7 @@ describe("assertion command", () => {
   });
 
   describe("at", () => {
-    // Skip: UR/CBOR library has internal issues with toData()
-    it.skip("test_assertion_at", () => {
+    it("test_assertion_at", () => {
       const e = assertion.at.exec({
         index: 0,
         envelope: ALICE_KNOWS_BOB_EXAMPLE,
@@ -187,8 +183,7 @@ describe("assertion command", () => {
   });
 
   describe("create", () => {
-    // Skip: Format output differs from Rust (shows "salt": Bytes(undefined) instead of 'salt': Salt)
-    it.skip("test_assertion_create", () => {
+    it("test_assertion_create", () => {
       const assertionEnvelope = assertion.create.exec({
         salted: true,
         predType: DataType.String,
@@ -212,8 +207,7 @@ describe("assertion command", () => {
   });
 
   describe("remove", () => {
-    // Skip: UR/CBOR library has internal issues with toData()
-    it.skip("test_assertion_remove_envelope", () => {
+    it("test_assertion_remove_envelope", () => {
       const assertionEnvelope = assertion.at.exec({
         index: 0,
         envelope: ALICE_KNOWS_BOB_EXAMPLE,

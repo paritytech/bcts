@@ -133,12 +133,13 @@ function parseBoolean(s: string): Envelope {
 }
 
 /**
- * Parse a CBOR envelope from a hex string.
+ * Parse a CBOR value from a hex string into a leaf envelope.
+ * Unlike parseEnvelope, this wraps raw CBOR as a leaf, not a tagged envelope.
  */
 function parseCbor(s: string): Envelope {
   const bytes = hexToBytes(s);
   const cborValue = decodeCbor(bytes);
-  return Envelope.fromTaggedCbor(cborValue);
+  return Envelope.newLeaf(cborValue);
 }
 
 /**

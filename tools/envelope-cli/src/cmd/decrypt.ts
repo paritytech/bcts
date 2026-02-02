@@ -6,10 +6,9 @@
 
 import type { ExecAsync } from "../exec.js";
 import { readEnvelope, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
-import { PrivateKeyBase, PrivateKeys } from "@bcts/components";
+import { PrivateKeyBase, PrivateKeys, SymmetricKey } from "@bcts/components";
 import { PrivateKeyBase as EnvelopePrivateKeyBase } from "@bcts/envelope";
 import {
-  symmetricKeyFromURString,
   envelopeIsLockedWithPassword,
   envelopeIsLockedWithSshAgent,
 } from "../placeholders.js";
@@ -80,8 +79,9 @@ export class DecryptCommand implements ExecAsync {
 
     if (this.args.key) {
       // If a content key is provided, decrypt the subject using it
-      // TODO: SymmetricKey.fromURString not implemented
-      symmetricKeyFromURString(this.args.key);
+      const key = SymmetricKey.fromURString(this.args.key);
+      const decrypted = envelope.decryptSubject(key);
+      return decrypted.urString();
     }
 
     if (this.args.password !== undefined) {

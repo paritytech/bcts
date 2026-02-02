@@ -93,7 +93,7 @@ export class SignCommand implements Exec {
       if (signer === undefined) {
         throw new Error("no signer found");
       }
-      const metadata = SignatureMetadata.new().withAssertion(NOTE.toString(), this.args.note);
+      const metadata = SignatureMetadata.new().withAssertion(NOTE, this.args.note);
       return envelope.addSignatureWithMetadata(signer, metadata).urString();
     }
 

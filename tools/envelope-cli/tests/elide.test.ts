@@ -13,8 +13,7 @@ import { ALICE_KNOWS_BOB_EXAMPLE, expectOutput } from "./common.js";
 import { DataType } from "../src/data-types.js";
 
 describe("elide command", () => {
-  // Skip: UR/CBOR library has internal issues with toData()
-  it.skip("test_elide_1", () => {
+  it("test_elide_1", () => {
     const target: string[] = [];
 
     // Top level
@@ -83,8 +82,7 @@ describe("elide command", () => {
     expectOutput(formatted, expected);
   });
 
-  // Skip: parseDigests receiving undefined due to parameter mismatch
-  it.skip("test_elide_2", () => {
+  it("test_elide_2", () => {
     // Get digest of "knows" predicate
     const knowsEnvelope = subject.type.exec({
       subjectType: DataType.String,

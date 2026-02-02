@@ -40,8 +40,7 @@ const XID_DOC =
 
 describe("xid command", () => {
   describe("format", () => {
-    // Skip: Hardcoded XID_DOC format verification needs investigation
-    it.skip("test_xid_format", () => {
+    it("test_xid_format", () => {
       const formatted = format.exec({
         ...format.defaultArgs(),
         envelope: XID_DOC,
@@ -53,8 +52,7 @@ describe("xid command", () => {
       expect(formatted).toContain("'allow': 'All'");
     });
 
-    // Skip: Hardcoded XID_DOC assertion extraction
-    it.skip("test_xid_assertion_extraction", () => {
+    it("test_xid_assertion_extraction", () => {
       const keyAssertion = assertion.at.exec({
         index: 0,
         envelope: XID_DOC,
@@ -70,7 +68,7 @@ describe("xid command", () => {
       expect(formatted).toContain("'allow': 'All'");
     });
 
-    // Skip: Hardcoded XID_DOC bare XID extraction
+    // Skip: XID extract returns elided envelope instead of XID leaf
     it.skip("test_xid_extract_bare_xid", () => {
       const bareXid = extract.exec({
         type: extract.SubjectType.Xid,
@@ -122,7 +120,7 @@ describe("xid command", () => {
       expect(xidId2).toBe(xidId1);
     });
 
-    // Skip: Hardcoded XID_DOC format verification
+    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
     it.skip("test_xid_id_multiple_formats", () => {
       const xidId = xid.id.exec({
         format: [xid.IDFormat.Ur, xid.IDFormat.Hex, xid.IDFormat.Bytewords, xid.IDFormat.Bytemoji],
@@ -170,8 +168,7 @@ describe("xid command", () => {
       expect(count).toBe("1");
     });
 
-    // Skip: Nickname not yet verified in format output
-    it.skip("test_xid_new_with_nickname", async () => {
+    it("test_xid_new_with_nickname", async () => {
       const args = xid.newCmd.defaultArgs();
       args.keyArgs.keys = ALICE_PUBKEYS;
       args.keyArgs.nickname = "Alice's Key";
@@ -200,7 +197,7 @@ describe("xid command", () => {
   });
 
   describe("export", () => {
-    // Skip: Hardcoded XID_DOC export
+    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
     it.skip("test_xid_export_envelope_format", () => {
       const exported = xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
@@ -212,7 +209,7 @@ describe("xid command", () => {
       expect(exported).toMatch(/^ur:envelope\//);
     });
 
-    // Skip: Hardcoded XID_DOC export
+    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
     it.skip("test_xid_export_xid_format", () => {
       const exported = xid.exportCmd.exec({
         ...xid.exportCmd.defaultArgs(),
@@ -226,7 +223,7 @@ describe("xid command", () => {
       );
     });
 
-    // Skip: Hardcoded XID_DOC export
+    // Skip: XIDDocument.fromEnvelopeInner parsing fails on hardcoded XID_DOC
     it.skip("test_xid_export_json_not_implemented", () => {
       expect(() =>
         xid.exportCmd.exec({
