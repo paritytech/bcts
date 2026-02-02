@@ -5,7 +5,7 @@
  */
 
 import type { Digest } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
+import type { Envelope } from "@bcts/envelope";
 import { KEY, PRIVATE_KEY, PROVENANCE, PROVENANCE_GENERATOR } from "@bcts/known-values";
 import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
 import type { ExecAsync } from "../../exec.js";

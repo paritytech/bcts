@@ -7,7 +7,7 @@
 import type { ExecAsync } from "../../../exec.js";
 import type { GeneratorOptions } from "../generator-options.js";
 import type { ReadWritePasswordArgs } from "../password-args.js";
-import { PrivateOptions } from "../private-options.js";
+import type { PrivateOptions } from "../private-options.js";
 import type { SigningArgs } from "../signing-args.js";
 import { signingOptions } from "../signing-args.js";
 import type { VerifyArgs } from "../verify-args.js";

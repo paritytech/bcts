@@ -80,7 +80,7 @@ export class TraversePattern implements Matcher {
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    if (!_patternPathsWithCaptures) {
+    if (_patternPathsWithCaptures === undefined) {
       throw new Error("TraversePattern dispatch functions not registered");
     }
     const headPaths = _patternPathsWithCaptures(this._first, haystack)[0];
@@ -115,7 +115,7 @@ export class TraversePattern implements Matcher {
   }
 
   compile(code: Instr[], literals: Pattern[], captures: string[]): void {
-    if (!_patternCompile) {
+    if (_patternCompile === undefined) {
       throw new Error("TraversePattern dispatch functions not registered");
     }
     // Compile the first pattern
@@ -132,7 +132,7 @@ export class TraversePattern implements Matcher {
   }
 
   isComplex(): boolean {
-    if (!_patternIsComplex) {
+    if (_patternIsComplex === undefined) {
       throw new Error("TraversePattern dispatch functions not registered");
     }
     return _patternIsComplex(this._first) || this._rest !== undefined;

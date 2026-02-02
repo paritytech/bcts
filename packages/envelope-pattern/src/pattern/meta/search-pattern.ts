@@ -11,6 +11,7 @@ import type { Path } from "../../format";
 import { dispatchPaths, dispatchPatternToString } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaSearchPattern: ((pattern: SearchPattern) => Pattern) | undefined;

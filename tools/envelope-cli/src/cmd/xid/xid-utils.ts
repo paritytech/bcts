@@ -3,10 +3,10 @@
  */
 
 import { PrivateKeyBase, PrivateKeys, PublicKeys, URI } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
+import type { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import {
-  Key,
+  type Key,
   XIDDocument,
   XIDPrivateKeyOptions,
   XIDGeneratorOptions,

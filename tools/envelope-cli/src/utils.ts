@@ -7,7 +7,7 @@
 import { Envelope } from "@bcts/envelope";
 import { Digest } from "@bcts/components";
 import { UR } from "@bcts/uniform-resources";
-import { XID, XIDDocument } from "@bcts/xid";
+import { XID } from "@bcts/xid";
 import * as readline from "readline";
 import { execSync, spawnSync } from "child_process";
 import * as fs from "fs";

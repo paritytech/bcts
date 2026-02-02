@@ -2,7 +2,7 @@
  * Key arguments - 1:1 port of cmd/xid/key_args.rs
  */
 
-import { PublicKeys, URI } from "@bcts/components";
+import type { PublicKeys, URI } from "@bcts/components";
 import { PrivateOptions } from "./private-options.js";
 import { type XIDPrivilege } from "./xid-privilege.js";
 import { readKey, readPublicKey, type InputKey } from "./xid-utils.js";

@@ -7,7 +7,7 @@
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";
 import { SymmetricKey, PublicKeys, SSKRGroupSpec, SSKRSpec } from "@bcts/components";
-import { Envelope, PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
+import { type Envelope, PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
 
 // SSKR extension methods are added to Envelope.prototype at import time
 // but the module augmentation uses relative paths that don't resolve across packages.
@@ -46,7 +46,7 @@ export function defaultArgs(): Partial<CommandArgs> {
  * Parse a group specification string like "2-of-3" into [threshold, total].
  */
 function parseGroupSpec(spec: string): [number, number] {
-  const match = spec.match(/^(\d{1,2})-of-(\d{1,2})$/);
+  const match = /^(\d{1,2})-of-(\d{1,2})$/.exec(spec);
   if (!match) {
     throw new Error(`Invalid group specification: "${spec}". Expected format: "M-of-N"`);
   }

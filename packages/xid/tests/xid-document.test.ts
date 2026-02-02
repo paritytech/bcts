@@ -16,7 +16,7 @@ import {
   SigningPublicKey,
   KeyDerivationMethod,
 } from "@bcts/components";
-import { Envelope } from "@bcts/envelope";
+import type { Envelope } from "@bcts/envelope";
 import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import {
   XIDDocument,

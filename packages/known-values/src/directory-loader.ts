@@ -44,13 +44,18 @@ import { KnownValue } from "./known-value";
 // Node.js modules — loaded dynamically to support browser environments
 // ---------------------------------------------------------------------------
 
+/* eslint-disable @typescript-eslint/consistent-type-imports */
 let fs: typeof import("node:fs") | undefined;
 let path: typeof import("node:path") | undefined;
 let os: typeof import("node:os") | undefined;
+/* eslint-enable @typescript-eslint/consistent-type-imports */
 
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, no-undef
   fs = require("node:fs");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, no-undef
   path = require("node:path");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, no-undef
   os = require("node:os");
 } catch {
   // Not in Node.js — directory loading will be unavailable
@@ -185,7 +190,7 @@ export class LoadResult {
   /** Files that were successfully processed. */
   readonly filesProcessed: string[];
   /** Non-fatal errors encountered during loading. */
-  readonly errors: Array<[string, LoadError]>;
+  readonly errors: [string, LoadError][];
 
   constructor() {
     this.values = new Map();
@@ -272,14 +277,14 @@ export class DirectoryConfig {
    * Falls back to `./.known-values/` if the home directory cannot be determined.
    */
   static defaultDirectory(): string {
-    if (os && path) {
+    if (os !== undefined && path !== undefined) {
       try {
         return path.join(os.homedir(), ".known-values");
       } catch {
         // homedir() can throw in some environments
       }
     }
-    if (path) {
+    if (path !== undefined) {
       return path.join(".", ".known-values");
     }
     return ".known-values";
@@ -343,9 +348,7 @@ export function addSearchPaths(paths: string[]): void {
   if (configLocked) {
     throw new ConfigError();
   }
-  if (customConfig === undefined) {
-    customConfig = DirectoryConfig.defaultOnly();
-  }
+  customConfig ??= DirectoryConfig.defaultOnly();
   for (const p of paths) {
     customConfig.addPath(p);
   }
@@ -403,7 +406,7 @@ export function parseRegistryJson(jsonString: string): RegistryFile {
  * Equivalent to Rust's `load_from_directory()`.
  */
 export function loadFromDirectory(dirPath: string): KnownValue[] {
-  if (!fs || !path) {
+  if (fs === undefined || path === undefined) {
     return [];
   }
 
@@ -459,7 +462,7 @@ export function loadFromDirectory(dirPath: string): KnownValue[] {
  * Loads known values from a single JSON file (internal helper).
  */
 function loadSingleFile(filePath: string): KnownValue[] {
-  if (!fs) {
+  if (fs === undefined) {
     return [];
   }
 
@@ -474,14 +477,14 @@ function loadSingleFile(filePath: string): KnownValue[] {
  */
 function loadFromDirectoryTolerant(dirPath: string): {
   values: KnownValue[];
-  errors: Array<[string, LoadError]>;
+  errors: [string, LoadError][];
 } {
-  if (!fs || !path) {
+  if (fs === undefined || path === undefined) {
     return { values: [], errors: [] };
   }
 
   const values: KnownValue[] = [];
-  const errors: Array<[string, LoadError]> = [];
+  const errors: [string, LoadError][] = [];
 
   if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
     return { values, errors };

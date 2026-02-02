@@ -16,6 +16,7 @@ import {
 } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
+import type { Matcher } from "../matcher";
 
 // Forward declaration for Pattern factory (used for late binding)
 export let createMetaAndPattern: ((pattern: AndPattern) => Pattern) | undefined;
