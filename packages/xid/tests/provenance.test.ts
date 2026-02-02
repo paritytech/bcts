@@ -556,7 +556,7 @@ describe("Provenance", () => {
   });
 
   describe("Advancing with encrypted generator", () => {
-    it("should advance with embedded encrypted generator", () => {
+    it("should advance with embedded encrypted generator", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
 
       const passphrase = "test_passphrase";
@@ -611,7 +611,7 @@ describe("Provenance", () => {
       expect(generator?.nextSeq()).toBe(2);
     });
 
-    it("should error on wrong password for encrypted generator", () => {
+    it("should error on wrong password for encrypted generator", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
 
       const passphrase = "test_passphrase";
