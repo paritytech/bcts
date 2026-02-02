@@ -121,14 +121,13 @@ describe("Structure Pattern Matching Tests", () => {
       expect(paths.length).toBeGreaterThan(0);
     });
 
-    // These tests require the subject pattern to properly match subject content types
-    it.skip("matches text subjects with specific pattern", () => {
+    it("matches text subjects with specific pattern", () => {
       const envelope = Envelope.new("Alice");
       const textSubjectPat = subject(anyText());
       expect(patternMatches(textSubjectPat, envelope)).toBe(true);
     });
 
-    it.skip("does not match when subject type doesn't match", () => {
+    it("does not match when subject type doesn't match", () => {
       const textEnvelope = Envelope.new("Alice");
       const numberSubjectPat = subject(anyNumber());
       expect(patternMatches(numberSubjectPat, textEnvelope)).toBe(false);
@@ -141,8 +140,7 @@ describe("Structure Pattern Matching Tests", () => {
       expect(patternMatches(wrapped(), envelope)).toBe(false);
     });
 
-    // Wrapped envelope matching requires proper case enum detection
-    it.skip("matches wrapped envelopes", () => {
+    it("matches wrapped envelopes", () => {
       const envelope = Envelope.new(42).wrap();
       expect(patternMatches(wrapped(), envelope)).toBe(true);
     });
@@ -199,14 +197,13 @@ describe("Structure Pattern Matching Tests", () => {
     });
   });
 
-  // Node pattern tests need assertion count detection which may not be fully implemented
   describe("Node Pattern", () => {
-    it.skip("does not match leaf envelopes", () => {
+    it("does not match leaf envelopes", () => {
       const leafEnvelope = Envelope.new("Just a leaf");
       expect(patternMatches(anyNode(), leafEnvelope)).toBe(false);
     });
 
-    it.skip("matches envelopes with assertions (nodes)", () => {
+    it("matches envelopes with assertions (nodes)", () => {
       const singleAssertionEnvelope = Envelope.new("Alice").addAssertion("knows", "Bob");
       expect(patternMatches(anyNode(), singleAssertionEnvelope)).toBe(true);
     });
