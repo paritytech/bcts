@@ -47,7 +47,7 @@ export interface CommandArgs {
 /**
  * Default command arguments.
  */
-export function defaultArgs(): Partial<CommandArgs> {
+export function defaultArgs(): CommandArgs {
   return {
     signing: SigningScheme.Schnorr,
     encryption: EncryptionScheme.X25519,

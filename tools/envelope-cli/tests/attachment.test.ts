@@ -175,8 +175,8 @@ describe("attachment command", () => {
       // Both attachments should be present (order may differ from Rust due to digest sort)
       const atts = new Set([att0, att1]);
       expect(atts.size).toBe(2);
-      const _attV1 = attachmentV1();
-      const _attV2 = attachmentV2();
+      attachmentV1();
+      attachmentV2();
       // Check content via format instead of exact UR (ordering within attachment may differ)
       const att0Fmt = format.exec({ ...format.defaultArgs(), envelope: att0 });
       const att1Fmt = format.exec({ ...format.defaultArgs(), envelope: att1 });

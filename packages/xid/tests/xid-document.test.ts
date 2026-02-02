@@ -999,6 +999,7 @@ describe("XIDDocument", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const doc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
       const pubkeys = doc.inceptionKey()?.publicKeys();
+      if (pubkeys === undefined) throw new Error("expected pubkeys");
 
       // Get unencrypted private key
       const envelope = doc.privateKeyEnvelopeForKey(pubkeys);
@@ -1024,6 +1025,7 @@ describe("XIDDocument", () => {
 
       const docEncrypted = XIDDocument.fromEnvelope(envelopeEncrypted);
       const pubkeys = docEncrypted.inceptionKey()?.publicKeys();
+      if (pubkeys === undefined) throw new Error("expected pubkeys");
 
       // Without password - should get encrypted envelope
       const encryptedEnv = docEncrypted.privateKeyEnvelopeForKey(pubkeys);
@@ -1156,6 +1158,7 @@ describe("XIDDocument", () => {
 
       // Use toSignedEnvelope
       const signingKey = xidDocument.inceptionKey()?.privateKeys();
+      if (signingKey === undefined) throw new Error("expected signingKey");
       const envelope = xidDocument.toSignedEnvelope(signingKey);
 
       // Subject should be wrapped (signed)

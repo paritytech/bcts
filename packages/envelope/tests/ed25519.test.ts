@@ -263,7 +263,8 @@ describe("Signature Tests (ECDSA - adapted from Ed25519)", () => {
 
       // The metadata envelope should contain the note
       const noteObj = metadataEnvelope?.objectForPredicate(NOTE);
-      expect(noteObj.subject().asText()).toBe("Signed by Alice");
+      expect(noteObj).toBeDefined();
+      expect(noteObj?.subject().asText()).toBe("Signed by Alice");
     });
 
     it("should reject metadata signature from wrong key", () => {
