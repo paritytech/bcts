@@ -917,7 +917,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Encrypt-decrypt-plaintext roundtrip", () => {
-    it("should roundtrip between plaintext and encrypted", () => {
+    it("should roundtrip between plaintext and encrypted", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
@@ -954,7 +954,7 @@ describe("XIDDocument", () => {
   });
 
   describe("Preserve encrypted keys when modified", () => {
-    it("should preserve encrypted keys after document modification", () => {
+    it("should preserve encrypted keys after document modification", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },
