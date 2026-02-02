@@ -334,5 +334,4 @@ export class KnownValuesStore {
       this.knownValuesByAssignedName.set(assignedName, knownValue);
     }
   }
-
 }

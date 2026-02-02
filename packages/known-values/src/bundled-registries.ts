@@ -29,7 +29,12 @@ export interface RegistryEntry {
  */
 export interface RegistryFile {
   /** Metadata about this registry. */
-  ontology?: { name?: string; source_url?: string; start_code_point?: number; processing_strategy?: string };
+  ontology?: {
+    name?: string;
+    source_url?: string;
+    start_code_point?: number;
+    processing_strategy?: string;
+  };
   /** Information about how this file was generated. */
   generated?: { tool?: string; version?: string };
   /** The known value entries in this registry. */
