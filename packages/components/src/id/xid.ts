@@ -52,6 +52,8 @@ import {
 } from "@bcts/uniform-resources";
 import { CryptoError } from "../error.js";
 import { bytesToHex, toBase64 } from "../utils.js";
+import { Digest } from "../digest.js";
+import type { SigningPublicKey } from "../signing/signing-public-key.js";
 
 /** XID prefix for bytewords/bytemoji identifiers */
 const XID_PREFIX = "🅧";
@@ -134,9 +136,33 @@ export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREnc
     return new XID(data);
   }
 
+  /**
+   * Create a new XID from the given public key (the "genesis key").
+   *
+   * The XID is the SHA-256 digest of the CBOR encoding of the public key.
+   * This matches Rust's `XID::new(genesis_key: impl AsRef<SigningPublicKey>)`.
+   */
+  static newFromSigningKey(signingPublicKey: SigningPublicKey): XID {
+    const keyCborData = signingPublicKey.taggedCborData();
+    const digest = Digest.fromImage(keyCborData);
+    return XID.fromData(digest.toData());
+  }
+
   // ============================================================================
   // Instance Methods
   // ============================================================================
+
+  /**
+   * Validate the XID against the given public key.
+   *
+   * Returns true if the SHA-256 hash of the key's CBOR encoding matches
+   * the XID data. This matches Rust's `XID::validate(&self, key: &SigningPublicKey)`.
+   */
+  validate(signingPublicKey: SigningPublicKey): boolean {
+    const keyData = signingPublicKey.taggedCborData();
+    const digest = Digest.fromImage(keyData);
+    return this.equals(XID.fromData(digest.toData()));
+  }
 
   /**
    * Return the data of the XID.

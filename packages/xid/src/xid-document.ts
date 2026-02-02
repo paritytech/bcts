@@ -149,9 +149,9 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     const inceptionKey = XIDDocument.inceptionKeyForOptions(keyOptions);
     const provenance = XIDDocument.genesisMarkWithOptions(markOptions);
 
-    // Use the reference from PublicKeys (which uses tagged CBOR hash)
-    // XID is created from the digest data of the reference
-    const xid = XID.from(inceptionKey.publicKeys().reference().getDigest().toData());
+    // XID is the SHA-256 digest of the CBOR encoding of the inception signing public key
+    // This matches Rust: XID::new(inception_key.public_keys().signing_public_key())
+    const xid = XID.newFromSigningKey(inceptionKey.publicKeys().signingPublicKey());
     const doc = new XIDDocument(xid, new Set(), new Map(), new Map(), new Map(), provenance);
 
     doc.addKey(inceptionKey);
@@ -293,12 +293,11 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   }
 
   /**
-   * Check if the given public keys is the inception signing key.
+   * Check if the given signing public key is the inception signing key.
+   * Matches Rust: `is_inception_signing_key(&self, signing_public_key: &SigningPublicKey) -> bool`
    */
-  isInceptionKey(publicKeys: PublicKeys): boolean {
-    // The XID is derived from the reference of the inception PublicKeys
-    const xidReference = publicKeys.reference();
-    return bytesEqual(xidReference.getDigest().toData(), this._xid.toData());
+  isInceptionSigningKey(signingPublicKey: SigningPublicKey): boolean {
+    return this._xid.validate(signingPublicKey);
   }
 
   /**
@@ -306,7 +305,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
    */
   inceptionKey(): Key | undefined {
     for (const key of this._keys.values()) {
-      if (this.isInceptionKey(key.publicKeys())) {
+      if (this.isInceptionSigningKey(key.publicKeys().signingPublicKey())) {
         return key;
       }
     }
@@ -943,7 +942,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
         }
 
         // Verify XID matches inception key
-        if (!doc.isInceptionKey(inceptionKey.publicKeys())) {
+        if (!doc.isInceptionSigningKey(inceptionKey.publicKeys().signingPublicKey())) {
           throw XIDError.invalidXid();
         }
 

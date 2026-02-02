@@ -169,11 +169,11 @@ describe("XIDDocument", () => {
         { type: "none" },
       );
 
-      expect(xidDocument.isInceptionKey(privateKeyBase.ed25519PublicKeys())).toBe(true);
+      expect(xidDocument.isInceptionSigningKey(privateKeyBase.ed25519PublicKeys().signingPublicKey())).toBe(true);
 
       // Add another key that's not inception
       const privateKeyBase2 = PrivateKeyBase.new();
-      expect(xidDocument.isInceptionKey(privateKeyBase2.ed25519PublicKeys())).toBe(false);
+      expect(xidDocument.isInceptionSigningKey(privateKeyBase2.ed25519PublicKeys().signingPublicKey())).toBe(false);
     });
   });
 
