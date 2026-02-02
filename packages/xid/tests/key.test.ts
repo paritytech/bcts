@@ -94,8 +94,7 @@ describe("Key", () => {
     });
   });
 
-  describe.skip("Encrypted private key", () => {
-    // Skipped: encryptSubject API requires different key type
+  describe("Encrypted private key", () => {
     it("should encrypt and decrypt private key with password", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("correct_horse_battery_staple");

@@ -299,8 +299,7 @@ describe("XIDDocument", () => {
     });
   });
 
-  describe.skip("Private key options", () => {
-    // Skipped: requires envelope features not yet compatible
+  describe("Private key options", () => {
     it("should omit private key by default", () => {
       const privateKeyBase = PrivateKeyBase.new();
 
@@ -475,8 +474,7 @@ describe("XIDDocument", () => {
     });
   });
 
-  describe.skip("Encrypted generator", () => {
-    // Skipped: requires encryption APIs not yet compatible
+  describe("Encrypted generator", () => {
     it("should encrypt and decrypt generator in document", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("generator_password");
@@ -538,8 +536,7 @@ describe("XIDDocument", () => {
     });
   });
 
-  describe.skip("Multiple keys with encryption", () => {
-    // Skipped: requires encryption APIs not yet compatible
+  describe("Multiple keys with encryption", () => {
     it("should encrypt multiple keys", () => {
       const password = new TextEncoder().encode("multi_key_password");
 
@@ -571,8 +568,7 @@ describe("XIDDocument", () => {
     });
   });
 
-  describe.skip("Mode switching", () => {
-    // Skipped: requires encryption and envelope features not yet compatible
+  describe("Mode switching", () => {
     it("should switch between storage modes", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const password = new TextEncoder().encode("mode_switch_password");

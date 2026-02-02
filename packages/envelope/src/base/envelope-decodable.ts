@@ -241,8 +241,22 @@ export function extractSubject<T>(envelope: Envelope, decoder: CborDecoder<T>): 
       return extractSubject(c.envelope, decoder);
     case "node":
       return extractSubject(c.subject, decoder);
-    default:
-      throw EnvelopeError.cbor("envelope's subject is not a leaf");
+    case "assertion":
+      try {
+        return decoder(c.assertion.toCbor());
+      } catch {
+        throw EnvelopeError.invalidFormat();
+      }
+    case "elided":
+      try {
+        return decoder(c.digest.taggedCbor() as Cbor);
+      } catch {
+        throw EnvelopeError.invalidFormat();
+      }
+    case "encrypted":
+      throw EnvelopeError.invalidFormat();
+    case "compressed":
+      throw EnvelopeError.invalidFormat();
   }
 }
 

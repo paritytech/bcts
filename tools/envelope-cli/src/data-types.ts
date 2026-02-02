@@ -240,7 +240,7 @@ function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
   if (resolvedTagValue !== undefined) {
     const urCbor = ur.cbor();
     const tagged = toTaggedValue(resolvedTagValue, urCbor);
-    return Envelope.fromTaggedCbor(tagged);
+    return Envelope.newLeaf(tagged);
   }
 
   throw new Error(`Unknown UR type: ${ur.urTypeStr()}`);

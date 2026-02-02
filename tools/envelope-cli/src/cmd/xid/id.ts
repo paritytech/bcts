@@ -7,6 +7,8 @@
 import { XIDDocument } from "@bcts/xid";
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";
+import type { VerifyArgs } from "./verify-args.js";
+import { verifySignature } from "./verify-args.js";
 
 /**
  * Output format for the XID identifier.
@@ -28,8 +30,8 @@ export enum IDFormat {
 export interface CommandArgs {
   /** Output format(s) of the XID identifier */
   format: IDFormat[];
-  /** Whether to verify the signature */
-  verifySignature: boolean;
+  /** Signature verification arguments */
+  verifyArgs: VerifyArgs;
   /** The XID document envelope */
   envelope?: string;
 }
@@ -40,7 +42,6 @@ export interface CommandArgs {
 export function defaultArgs(): Partial<CommandArgs> {
   return {
     format: [IDFormat.Ur],
-    verifySignature: true,
   };
 }
 
@@ -52,12 +53,8 @@ export class IdCommand implements Exec {
 
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
-    const xidDocument = XIDDocument.fromEnvelope(envelope);
-
-    if (this.args.verifySignature) {
-      // verifySignature() method doesn't exist on XIDDocument in TS
-      console.warn("Warning: Signature verification is not yet implemented in TypeScript XID");
-    }
+    const verify = verifySignature(this.args.verifyArgs);
+    const xidDocument = XIDDocument.fromEnvelope(envelope, undefined, verify);
 
     const results = this.args.format.map((format) => {
       switch (format) {

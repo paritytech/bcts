@@ -166,8 +166,7 @@ describe("XID Document Test Vectors", () => {
     });
   });
 
-  describe.skip("Document with Provenance", () => {
-    // Skipped: provenance requires compatible signing for toSignedEnvelope
+  describe("Document with Provenance", () => {
     it("should create document with provenance mark", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
@@ -238,8 +237,7 @@ describe("XID Document Test Vectors", () => {
       expect(xidDocument.equals(xidDocument2)).toBe(true);
     });
 
-    it.skip("should elide private key when specified", () => {
-      // Skipped: elide requires envelope elision support
+    it("should elide private key when specified", () => {
       const privateKeyBase = makeFakePrivateKeyBase();
 
       const xidDocument = XIDDocument.new(
@@ -714,7 +712,7 @@ describe("XID CBOR Hex Verification", () => {
     );
 
     const xid = xidDocument.xid();
-    const xidHex = xid.toHex();
+    void xid.toHex();
 
     // Format: XID(<first 4 bytes>), matching Rust Display
     expect(xid.toString()).toBe(`XID(${xid.shortDescription()})`);

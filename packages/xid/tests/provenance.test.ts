@@ -54,7 +54,7 @@ describe("Provenance", () => {
       expect(provenanceOmittingGenerator.equals(provenance2)).toBe(true);
     });
 
-    it.skip("should include generator when specified", () => {
+    it("should include generator when specified", () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -78,7 +78,7 @@ describe("Provenance", () => {
       expect(provenanceIncludingGenerator.equals(provenance2)).toBe(true);
     });
 
-    it.skip("should elide generator when specified", () => {
+    it("should elide generator when specified", () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -110,8 +110,7 @@ describe("Provenance", () => {
     });
   });
 
-  describe.skip("Encrypted generator", () => {
-    // Skipped: encryptSubject API requires different key type
+  describe("Encrypted generator", () => {
     it("should encrypt and decrypt generator with password", () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
@@ -151,8 +150,7 @@ describe("Provenance", () => {
     });
   });
 
-  describe.skip("Generator storage modes", () => {
-    // Skipped: includes encryption and equivalence checks that aren't available
+  describe("Generator storage modes", () => {
     it("should handle all storage modes correctly", () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,

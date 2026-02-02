@@ -94,7 +94,7 @@ describe("xid command", () => {
       const xidDoc = await makeXidDoc();
       const xidId = xid.id.exec({
         format: [xid.IDFormat.Ur],
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
         envelope: xidDoc,
       });
 
@@ -107,13 +107,13 @@ describe("xid command", () => {
       const xidDoc = await makeXidDoc();
       const xidId1 = xid.id.exec({
         format: [xid.IDFormat.Ur],
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
         envelope: xidDoc,
       });
 
       const xidId2 = xid.id.exec({
         format: [xid.IDFormat.Ur],
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
         envelope: xidDoc,
       });
 
@@ -123,7 +123,7 @@ describe("xid command", () => {
     it("test_xid_id_multiple_formats", () => {
       const xidId = xid.id.exec({
         format: [xid.IDFormat.Ur, xid.IDFormat.Hex, xid.IDFormat.Bytewords, xid.IDFormat.Bytemoji],
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
         envelope: XID_DOC,
       });
 
@@ -151,7 +151,7 @@ describe("xid command", () => {
       // Verify the XID ID is deterministic (from the same public keys)
       const xidId = xid.id.exec({
         format: [xid.IDFormat.Ur],
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
         envelope: newXidDoc,
       });
       expect(xidId).toMatch(/^ur:xid\//);
@@ -232,7 +232,7 @@ describe("xid command", () => {
         ...xid.exportCmd.defaultArgs(),
         format: xid.ExportFormat.Envelope,
         envelope: XID_DOC,
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
       });
 
       expect(exported).toMatch(/^ur:envelope\//);
@@ -243,7 +243,7 @@ describe("xid command", () => {
         ...xid.exportCmd.defaultArgs(),
         format: xid.ExportFormat.Xid,
         envelope: XID_DOC,
-        verifySignature: false,
+        verifyArgs: NO_VERIFY_ARGS,
       });
 
       expect(exported).toBe(
@@ -257,7 +257,7 @@ describe("xid command", () => {
           ...xid.exportCmd.defaultArgs(),
           format: xid.ExportFormat.Json,
           envelope: XID_DOC,
-          verifySignature: false,
+          verifyArgs: NO_VERIFY_ARGS,
         }),
       ).toThrow("not yet implemented");
     });

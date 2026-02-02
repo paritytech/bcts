@@ -22,6 +22,8 @@ import {
   type PrivateKeyBase,
   type Verifier,
   type Signature,
+  type KeyDerivationMethod,
+  defaultKeyDerivationMethod,
 } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { type Privilege } from "./privilege";
@@ -272,9 +274,12 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
               const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
+              const method: KeyDerivationMethod = defaultKeyDerivationMethod();
               const encrypted = (
-                privateKeysEnvelope as unknown as { encryptSubject(p: Uint8Array): Envelope }
-              ).encryptSubject(privateKeyOptions.password);
+                privateKeysEnvelope as unknown as {
+                  lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;
+                }
+              ).lockSubject(method, privateKeyOptions.password);
               envelope = envelope.addAssertion(kv(PRIVATE_KEY), encrypted);
               envelope = envelope.addAssertion(kv(SALT), salt.toData());
             }
@@ -317,7 +322,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       asByteString(): Uint8Array | undefined;
       subject(): Envelope;
       assertionsWithPredicate(p: unknown): Envelope[];
-      decryptSubject(p: Uint8Array): Envelope;
+      unlockSubject(p: Uint8Array): Envelope;
+      isLockedWithPassword(): boolean;
     };
     const env = envelope as EnvelopeExt;
 
@@ -366,13 +372,12 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       if (assertionCase.type === "assertion") {
         const privateKeyObject = assertionCase.assertion.object() as EnvelopeExt;
 
-        // Check if encrypted
-        const objCase = privateKeyObject.case();
-        if (objCase.type === "encrypted") {
+        // Check if locked with password (uses hasSecret assertion with EncryptedKey)
+        if (privateKeyObject.isLockedWithPassword()) {
           if (password !== undefined) {
             try {
-              const decrypted = privateKeyObject.decryptSubject(password) as EnvelopeExt;
-              const decryptedData = decrypted.asByteString();
+              const decrypted = privateKeyObject.unlockSubject(password) as EnvelopeExt;
+              const decryptedData = (decrypted.subject() as EnvelopeExt).asByteString();
               if (decryptedData !== undefined) {
                 // Parse PrivateKeys from tagged CBOR
                 const privateKeys = PrivateKeys.fromTaggedCborData(decryptedData);
@@ -463,8 +468,8 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
     if (password !== undefined) {
       try {
         const decrypted = (
-          data.envelope as unknown as { decryptSubject(p: Uint8Array): Envelope }
-        ).decryptSubject(new TextEncoder().encode(password));
+          data.envelope as unknown as { unlockSubject(p: Uint8Array): Envelope }
+        ).unlockSubject(new TextEncoder().encode(password));
         return decrypted;
       } catch {
         throw XIDError.invalidPassword();
