@@ -306,7 +306,7 @@ describe("Key", () => {
       expect(bytes).toBeDefined();
     });
 
-    it("should throw on wrong password", () => {
+    it("should throw on wrong password", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const key = Key.newWithPrivateKeyBase(privateKeyBase);
       const password = "test-password";

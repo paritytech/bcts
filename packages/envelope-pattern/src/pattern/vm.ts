@@ -987,17 +987,18 @@ function compileMetaPattern(
       break;
     }
     case "Traverse": {
+      // Matches Rust's recursive compilation: each ExtendTraversal gets a
+      // matching CombineTraversal so saved paths are properly restored.
       const patterns = pattern.pattern.patterns();
-      for (let i = 0; i < patterns.length; i++) {
-        const pat = patterns[i];
-        if (pat === undefined) continue;
-        compilePattern(pat, code, literals, captureNames);
-        if (i < patterns.length - 1) {
+      if (patterns.length > 0) {
+        compilePattern(patterns[0], code, literals, captureNames);
+        for (let i = 1; i < patterns.length; i++) {
           code.push({ type: "ExtendTraversal" });
+          compilePattern(patterns[i], code, literals, captureNames);
         }
-      }
-      if (patterns.length > 1) {
-        code.push({ type: "CombineTraversal" });
+        for (let i = 1; i < patterns.length; i++) {
+          code.push({ type: "CombineTraversal" });
+        }
       }
       break;
     }

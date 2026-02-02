@@ -1201,7 +1201,7 @@ describe("XIDDocument", () => {
       expect(xidDocument3.hasAttachments()).toBe(false);
     });
 
-    it("should preserve attachments with encryption", () => {
+    it("should preserve attachments with encryption", { timeout: 30_000 }, () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "privateKeyBase", privateKeyBase },

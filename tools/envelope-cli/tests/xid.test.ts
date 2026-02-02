@@ -827,7 +827,7 @@ describe("xid command", () => {
         ...format.defaultArgs(),
         envelope: xidDoc,
       });
-      expect(formatted).toContain("'allow': 'Auth'");
+      expect(formatted).toContain("'allow': 'Authorize'");
       expect(formatted).toContain("'allow': 'Sign'");
       // Old permission should be gone
       expect(formatted).not.toContain("'allow': 'Encrypt'");

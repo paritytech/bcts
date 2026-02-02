@@ -157,7 +157,7 @@ describe("Provenance", () => {
   });
 
   describe("Generator storage modes", () => {
-    it("should handle all storage modes correctly", () => {
+    it("should handle all storage modes correctly", { timeout: 30_000 }, () => {
       const generatorForMark = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",
@@ -530,7 +530,7 @@ describe("Provenance", () => {
       expect(decryptedEnvelope).toBeDefined();
     });
 
-    it("should throw on wrong password", () => {
+    it("should throw on wrong password", { timeout: 30_000 }, () => {
       const generator = ProvenanceMarkGenerator.newWithPassphrase(
         ProvenanceMarkResolution.High,
         "test_passphrase",

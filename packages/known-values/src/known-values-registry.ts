@@ -195,7 +195,7 @@ export const PROVENANCE_GENERATOR = new KnownValue(68, "provenanceGenerator");
 //
 
 export const PRIVILEGE_ALL = new KnownValue(70, "All");
-export const PRIVILEGE_AUTH = new KnownValue(71, "Auth");
+export const PRIVILEGE_AUTH = new KnownValue(71, "Authorize");
 export const PRIVILEGE_SIGN = new KnownValue(72, "Sign");
 export const PRIVILEGE_ENCRYPT = new KnownValue(73, "Encrypt");
 export const PRIVILEGE_ELIDE = new KnownValue(74, "Elide");
@@ -241,9 +241,9 @@ export const MASTER_KEY_TYPE = new KnownValue(203, "MasterKey");
 //
 
 export const ASSET = new KnownValue(300, "asset");
-export const BITCOIN_VALUE = new KnownValue(301, "BTC");
-export const ETHEREUM_VALUE = new KnownValue(302, "ETH");
-export const TEZOS_VALUE = new KnownValue(303, "XTZ");
+export const BITCOIN_VALUE = new KnownValue(301, "Bitcoin");
+export const ETHEREUM_VALUE = new KnownValue(302, "Ethereum");
+export const TEZOS_VALUE = new KnownValue(303, "Tezos");
 // 304-399 *unassigned*
 
 //
@@ -262,8 +262,8 @@ export const TEST_NET_VALUE = new KnownValue(402, "TestNet");
 export const BIP32_KEY_TYPE = new KnownValue(500, "BIP32Key");
 export const CHAIN_CODE = new KnownValue(501, "chainCode");
 export const DERIVATION_PATH_TYPE = new KnownValue(502, "DerivationPath");
-export const PARENT_PATH = new KnownValue(503, "parent");
-export const CHILDREN_PATH = new KnownValue(504, "children");
+export const PARENT_PATH = new KnownValue(503, "parentPath");
+export const CHILDREN_PATH = new KnownValue(504, "childrenPath");
 export const PARENT_FINGERPRINT = new KnownValue(505, "parentFingerprint");
 export const PSBT_TYPE = new KnownValue(506, "PSBT");
 export const OUTPUT_DESCRIPTOR_TYPE = new KnownValue(507, "OutputDescriptor");
@@ -274,7 +274,7 @@ export const OUTPUT_DESCRIPTOR = new KnownValue(508, "outputDescriptor");
 // Graphs
 //
 
-export const GRAPH = new KnownValue(600, "graph");
+export const GRAPH = new KnownValue(600, "Graph");
 export const SOURCE_TARGET_GRAPH = new KnownValue(601, "SourceTargetGraph");
 export const PARENT_CHILD_GRAPH = new KnownValue(602, "ParentChildGraph");
 export const DIGRAPH = new KnownValue(603, "Digraph");
@@ -427,6 +427,7 @@ export class LazyKnownValues {
 
       // Load bundled registry values from JSON data files.
       // These are embedded at build time and available in all environments.
+      // Matching Rust behavior: later inserts overwrite earlier ones.
       for (const value of loadBundledRegistries()) {
         store.insert(value);
       }
