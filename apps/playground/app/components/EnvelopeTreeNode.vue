@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import draggable from 'vuedraggable'
+import { VueDraggable } from 'vue-draggable-plus'
 
 type ValueType = 'string' | 'number' | 'bigint' | 'bytes' | 'bool' | 'null'
 type NodeType = 'subject' | 'assertion' | 'wrapped' | 'signed' | 'encrypted' | 'compressed' | 'elided' | 'salted'
@@ -405,49 +405,46 @@ const menuItems = computed(() => {
       />
 
       <!-- Subject assertions (draggable) -->
-      <draggable
+      <VueDraggable
         v-if="node.type === 'subject' && node.assertions?.length"
         v-model="localAssertions"
-        item-key="id"
         handle=".drag-handle"
         ghost-class="opacity-50"
-        animation="200"
+        :animation="200"
         @end="onDragEnd"
       >
-        <template #item="{ element: assertion }">
-          <div class="assertion-item relative group/drag">
-            <!-- Drag handle -->
-            <div
-              class="drag-handle absolute left-0 top-1/2 -translate-y-1/2 w-4 h-6 flex items-center justify-center cursor-grab opacity-0 group-hover/drag:opacity-100 transition-opacity"
-              :style="{ marginLeft: `${(depth + 1) * 16 - 18}px` }"
-            >
-              <UIcon name="i-heroicons-bars-2" class="w-3.5 h-3.5 text-gray-400" />
-            </div>
-            <EnvelopeTreeNode
-              :node="assertion"
-              :depth="depth + 1"
-              :selected-id="selectedId"
-              @select="emit('select', $event)"
-              @toggle="emit('toggle', $event)"
-              @add-assertion="emit('addAssertion', $event)"
-              @wrap="emit('wrap', $event)"
-              @unwrap="emit('unwrap', $event)"
-              @sign="emit('sign', $event)"
-              @encrypt="emit('encrypt', $event)"
-              @compress="emit('compress', $event)"
-              @elide="emit('elide', $event)"
-              @salt="emit('salt', $event)"
-              @selective-elide="emit('selectiveElide', $event)"
-              @multi-encrypt="emit('multiEncrypt', $event)"
-              @remove="emit('remove', $event)"
-              @add-type="emit('addType', $event)"
-              @add-attachment="emit('addAttachment', $event)"
-              @create-proof="emit('createProof', $event)"
-              @reorder-assertions="emit('reorderAssertions', $event[0] as string, $event[1] as unknown as EnvelopeNode[])"
-            />
+        <div v-for="assertion in localAssertions" :key="assertion.id" class="assertion-item relative group/drag">
+          <!-- Drag handle -->
+          <div
+            class="drag-handle absolute left-0 top-1/2 -translate-y-1/2 w-4 h-6 flex items-center justify-center cursor-grab opacity-0 group-hover/drag:opacity-100 transition-opacity"
+            :style="{ marginLeft: `${(depth + 1) * 16 - 18}px` }"
+          >
+            <UIcon name="i-heroicons-bars-2" class="w-3.5 h-3.5 text-gray-400" />
           </div>
-        </template>
-      </draggable>
+          <EnvelopeTreeNode
+            :node="assertion"
+            :depth="depth + 1"
+            :selected-id="selectedId"
+            @select="emit('select', $event)"
+            @toggle="emit('toggle', $event)"
+            @add-assertion="emit('addAssertion', $event)"
+            @wrap="emit('wrap', $event)"
+            @unwrap="emit('unwrap', $event)"
+            @sign="emit('sign', $event)"
+            @encrypt="emit('encrypt', $event)"
+            @compress="emit('compress', $event)"
+            @elide="emit('elide', $event)"
+            @salt="emit('salt', $event)"
+            @selective-elide="emit('selectiveElide', $event)"
+            @multi-encrypt="emit('multiEncrypt', $event)"
+            @remove="emit('remove', $event)"
+            @add-type="emit('addType', $event)"
+            @add-attachment="emit('addAttachment', $event)"
+            @create-proof="emit('createProof', $event)"
+            @reorder-assertions="emit('reorderAssertions', $event[0] as string, $event[1] as unknown as EnvelopeNode[])"
+          />
+        </div>
+      </VueDraggable>
     </template>
   </div>
 </template>

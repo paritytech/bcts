@@ -2411,7 +2411,7 @@ async function copyProof() {
       </div>
 
       <!-- Subject Modal -->
-      <UModal v-model:open="showSubjectModal" title="Create Subject">
+      <UModal v-model:open="showSubjectModal" title="Create Subject" description="Choose a type and value for the envelope subject.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create Subject</h3>
@@ -2472,7 +2472,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Assertion Modal -->
-      <UModal v-model:open="showAssertionModal" title="Add Assertion">
+      <UModal v-model:open="showAssertionModal" title="Add Assertion" description="Define a predicate and object value for the assertion.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Assertion</h3>
@@ -2541,7 +2541,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Salt Modal -->
-      <UModal v-model:open="showSaltModal" title="Add Salt">
+      <UModal v-model:open="showSaltModal" title="Add Salt" description="Configure salt to decorrelate the envelope digest.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Salt</h3>
@@ -2613,7 +2613,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Elide Selection Modal -->
-      <UModal v-model:open="showElideSelectModal" title="Selective Elision">
+      <UModal v-model:open="showElideSelectModal" title="Selective Elision" description="Choose which parts of the envelope to reveal or hide.">
         <template #content>
           <div class="p-6 max-h-[80vh] flex flex-col">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Selective Elision</h3>
@@ -2689,7 +2689,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Recipients Modal -->
-      <UModal v-model:open="showRecipientsModal" title="Multi-Recipient Encryption">
+      <UModal v-model:open="showRecipientsModal" title="Multi-Recipient Encryption" description="Select recipients who can decrypt this envelope.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Multi-Recipient Encryption</h3>
@@ -2790,7 +2790,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Key Management Modal -->
-      <UModal v-model:open="showKeyManagementModal" title="Key Management">
+      <UModal v-model:open="showKeyManagementModal" title="Key Management" description="Manage signing keys, encryption keys, and recipients.">
         <template #content>
           <div class="p-6 max-w-lg">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Key Management</h3>
@@ -2919,7 +2919,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Export Modal -->
-      <UModal v-model:open="showExportModal" title="Export Envelope">
+      <UModal v-model:open="showExportModal" title="Export Envelope" description="Export the envelope in hex, base64, tree, or UR format.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Export Envelope</h3>
@@ -2973,7 +2973,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Import Modal -->
-      <UModal v-model:open="showImportModal" title="Import Envelope">
+      <UModal v-model:open="showImportModal" title="Import Envelope" description="Import an envelope from hex, base64, or UR data.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import Envelope</h3>
@@ -3030,7 +3030,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Templates Modal -->
-      <UModal v-model:open="showTemplatesModal" title="Envelope Templates">
+      <UModal v-model:open="showTemplatesModal" title="Envelope Templates" description="Choose a template to create a pre-structured envelope.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Envelope Templates</h3>
@@ -3061,7 +3061,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Type Modal -->
-      <UModal v-model:open="showTypeModal" title="Add Type">
+      <UModal v-model:open="showTypeModal" title="Add Type" description="Add a semantic type classification to the envelope.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Type</h3>
@@ -3091,7 +3091,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Attachment Modal -->
-      <UModal v-model:open="showAttachmentModal" title="Add Attachment">
+      <UModal v-model:open="showAttachmentModal" title="Add Attachment" description="Add vendor-specific metadata as an attachment.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Attachment</h3>
@@ -3142,7 +3142,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 3: Proof Modal -->
-      <UModal v-model:open="showProofModal" title="Inclusion Proof">
+      <UModal v-model:open="showProofModal" title="Inclusion Proof" description="Generate a cryptographic proof of element inclusion.">
         <template #content>
           <div class="p-6 max-w-2xl">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Inclusion Proof</h3>
@@ -3252,7 +3252,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 4: QR Code Modal -->
-      <UModal v-model:open="showQRModal" title="QR Code">
+      <UModal v-model:open="showQRModal" title="QR Code" description="Scan this QR code to import the envelope on another device.">
         <template #content>
           <div class="p-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Envelope QR Code</h3>
@@ -3300,7 +3300,7 @@ async function copyProof() {
       </UModal>
 
       <!-- Phase 4: Wizard Modal -->
-      <UModal v-model:open="showWizardModal" title="Create Envelope">
+      <UModal v-model:open="showWizardModal" title="Create Envelope" description="Step-by-step wizard to build a new envelope.">
         <template #content>
           <div class="p-6 min-w-[400px]">
             <!-- Progress indicator -->
