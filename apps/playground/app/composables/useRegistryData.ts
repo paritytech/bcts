@@ -7,7 +7,7 @@
 
 import type { Tag } from "@bcts/dcbor";
 import * as tags from "@bcts/tags";
-import * as knownValues from "@bcts/known-values";
+import { loadBundledRegistries } from "@bcts/known-values";
 
 export interface TagItem {
   value: number;
@@ -122,19 +122,36 @@ const tagCategories: Record<number, { category: string; deprecated?: boolean }> 
   410: { category: "Output Descriptors" },
 };
 
-// Category mappings for known values (by value ranges)
+// Category mappings for known values (by value ranges matching registry files)
 function getKnownValueCategory(value: number): string {
-  if (value <= 24) return "General";
-  if (value >= 50 && value <= 52) return "Attachments";
-  if (value >= 60 && value <= 68) return "XID Documents";
-  if (value >= 70 && value <= 86) return "XID Privileges";
-  if (value >= 100 && value <= 108) return "Expressions";
-  if (value >= 200 && value <= 203) return "Cryptography";
-  if (value >= 300 && value <= 303) return "Crypto Assets";
-  if (value >= 400 && value <= 402) return "Networks";
-  if (value >= 500 && value <= 508) return "Bitcoin";
-  if (value >= 600 && value <= 705) return "Graphs";
-  return "General";
+  // Blockchain Commons registry (0-999) — use fine-grained sub-categories
+  if (value < 1000) {
+    if (value <= 24) return "General";
+    if (value >= 50 && value <= 52) return "Attachments";
+    if (value >= 60 && value <= 68) return "XID Documents";
+    if (value >= 70 && value <= 86) return "XID Privileges";
+    if (value >= 100 && value <= 108) return "Expressions";
+    if (value >= 200 && value <= 203) return "Cryptography";
+    if (value >= 300 && value <= 303) return "Crypto Assets";
+    if (value >= 400 && value <= 402) return "Networks";
+    if (value >= 500 && value <= 508) return "Bitcoin";
+    if (value >= 600 && value <= 705) return "Graphs";
+    return "General";
+  }
+  // Ontology registries (by start_code_point ranges)
+  if (value < 2000) return "Community";
+  if (value < 2050) return "RDF";
+  if (value < 2100) return "RDFS";
+  if (value < 2200) return "OWL2";
+  if (value < 2300) return "DCE";
+  if (value < 2500) return "DCT";
+  if (value < 2700) return "FOAF";
+  if (value < 2800) return "SKOS";
+  if (value < 2900) return "Solid";
+  if (value < 3000) return "VC";
+  if (value < 10000) return "GS1";
+  if (value < 100000) return "Schema";
+  return "Community";
 }
 
 // Build tags data from the @bcts/tags package
@@ -231,128 +248,26 @@ function buildTagsData(): TagItem[] {
   });
 }
 
-// Build known values data from the @bcts/known-values package
+// Build known values data from the @bcts/known-values bundled registries
 function buildKnownValuesData(): KnownValueItem[] {
-  const kvExports: knownValues.KnownValue[] = [
-    knownValues.UNIT,
-    knownValues.IS_A,
-    knownValues.ID,
-    knownValues.SIGNED,
-    knownValues.NOTE,
-    knownValues.HAS_RECIPIENT,
-    knownValues.SSKR_SHARE,
-    knownValues.CONTROLLER,
-    knownValues.KEY,
-    knownValues.DEREFERENCE_VIA,
-    knownValues.ENTITY,
-    knownValues.NAME,
-    knownValues.LANGUAGE,
-    knownValues.ISSUER,
-    knownValues.HOLDER,
-    knownValues.SALT,
-    knownValues.DATE,
-    knownValues.UNKNOWN_VALUE,
-    knownValues.VERSION_VALUE,
-    knownValues.HAS_SECRET,
-    knownValues.DIFF_EDITS,
-    knownValues.VALID_FROM,
-    knownValues.VALID_UNTIL,
-    knownValues.POSITION,
-    knownValues.NICKNAME,
-    // Attachments
-    knownValues.ATTACHMENT,
-    knownValues.VENDOR,
-    knownValues.CONFORMS_TO,
-    // XID Documents
-    knownValues.ALLOW,
-    knownValues.DENY,
-    knownValues.ENDPOINT,
-    knownValues.DELEGATE,
-    knownValues.PROVENANCE,
-    knownValues.PRIVATE_KEY,
-    knownValues.SERVICE,
-    knownValues.CAPABILITY,
-    knownValues.PROVENANCE_GENERATOR,
-    // XID Privileges
-    knownValues.PRIVILEGE_ALL,
-    knownValues.PRIVILEGE_AUTH,
-    knownValues.PRIVILEGE_SIGN,
-    knownValues.PRIVILEGE_ENCRYPT,
-    knownValues.PRIVILEGE_ELIDE,
-    knownValues.PRIVILEGE_ISSUE,
-    knownValues.PRIVILEGE_ACCESS,
-    knownValues.PRIVILEGE_DELEGATE,
-    knownValues.PRIVILEGE_VERIFY,
-    knownValues.PRIVILEGE_UPDATE,
-    knownValues.PRIVILEGE_TRANSFER,
-    knownValues.PRIVILEGE_ELECT,
-    knownValues.PRIVILEGE_BURN,
-    knownValues.PRIVILEGE_REVOKE,
-    // Expressions
-    knownValues.BODY,
-    knownValues.RESULT,
-    knownValues.ERROR,
-    knownValues.OK_VALUE,
-    knownValues.PROCESSING_VALUE,
-    knownValues.SENDER,
-    knownValues.SENDER_CONTINUATION,
-    knownValues.RECIPIENT_CONTINUATION,
-    knownValues.CONTENT,
-    // Cryptography
-    knownValues.SEED_TYPE,
-    knownValues.PRIVATE_KEY_TYPE,
-    knownValues.PUBLIC_KEY_TYPE,
-    knownValues.MASTER_KEY_TYPE,
-    // Crypto Assets
-    knownValues.ASSET,
-    knownValues.BITCOIN_VALUE,
-    knownValues.ETHEREUM_VALUE,
-    knownValues.TEZOS_VALUE,
-    // Networks
-    knownValues.NETWORK,
-    knownValues.MAIN_NET_VALUE,
-    knownValues.TEST_NET_VALUE,
-    // Bitcoin
-    knownValues.BIP32_KEY_TYPE,
-    knownValues.CHAIN_CODE,
-    knownValues.DERIVATION_PATH_TYPE,
-    knownValues.PARENT_PATH,
-    knownValues.CHILDREN_PATH,
-    knownValues.PARENT_FINGERPRINT,
-    knownValues.PSBT_TYPE,
-    knownValues.OUTPUT_DESCRIPTOR_TYPE,
-    knownValues.OUTPUT_DESCRIPTOR,
-    // Graphs
-    knownValues.GRAPH,
-    knownValues.SOURCE_TARGET_GRAPH,
-    knownValues.PARENT_CHILD_GRAPH,
-    knownValues.DIGRAPH,
-    knownValues.ACYCLIC_GRAPH,
-    knownValues.MULTIGRAPH,
-    knownValues.PSEUDOGRAPH,
-    knownValues.GRAPH_FRAGMENT,
-    knownValues.DAG,
-    knownValues.TREE,
-    knownValues.FOREST,
-    knownValues.COMPOUND_GRAPH,
-    knownValues.HYPERGRAPH,
-    knownValues.DIHYPERGRAPH,
-    knownValues.NODE,
-    knownValues.EDGE,
-    knownValues.SOURCE,
-    knownValues.TARGET,
-    knownValues.PARENT,
-    knownValues.CHILD,
-  ];
+  const allValues = loadBundledRegistries();
 
-  return kvExports.map((kv) => {
+  const seen = new Set<number>();
+  const items: KnownValueItem[] = [];
+
+  for (const kv of allValues) {
     const value = kv.value();
-    return {
+    if (seen.has(value)) continue;
+    seen.add(value);
+    const rawName = kv.name();
+    items.push({
       value,
-      name: kv.name(),
+      name: rawName.includes(":") ? rawName.substring(rawName.indexOf(":") + 1) : rawName,
       category: getKnownValueCategory(value),
-    };
-  });
+    });
+  }
+
+  return items;
 }
 
 // Cached data

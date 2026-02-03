@@ -12,148 +12,173 @@ github-actions:
   - changed-files:
       - any-glob-to-any-file:
           - 'apps/playground/**'
+      - all-globs-to-all-files:
           - '!apps/playground/package.json'
 
 "rand":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/rand/**'
+      - all-globs-to-all-files:
           - '!packages/rand/package.json'
 
 "dcbor":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/dcbor/**'
+      - all-globs-to-all-files:
           - '!packages/dcbor/package.json'
 
 "tags":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/tags/**'
+      - all-globs-to-all-files:
           - '!packages/tags/package.json'
 
 "crypto":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/crypto/**'
+      - all-globs-to-all-files:
           - '!packages/crypto/package.json'
 
 "uniform-resources":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/uniform-resources/**'
+      - all-globs-to-all-files:
           - '!packages/uniform-resources/package.json'
 
 "shamir":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/shamir/**'
+      - all-globs-to-all-files:
           - '!packages/shamir/package.json'
 
 "sskr":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/sskr/**'
+      - all-globs-to-all-files:
           - '!packages/sskr/package.json'
 
 "components":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/components/**'
+      - all-globs-to-all-files:
           - '!packages/components/package.json'
 
 "known-values":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/known-values/**'
+      - all-globs-to-all-files:
           - '!packages/known-values/package.json'
 
 "envelope":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/envelope/**'
+      - all-globs-to-all-files:
           - '!packages/envelope/package.json'
 
 "provenance-mark":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/provenance-mark/**'
+      - all-globs-to-all-files:
           - '!packages/provenance-mark/package.json'
 
 "xid":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/xid/**'
+      - all-globs-to-all-files:
           - '!packages/xid/package.json'
 
 "gstp":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/gstp/**'
+      - all-globs-to-all-files:
           - '!packages/gstp/package.json'
 
 "dcbor-parse":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/dcbor-parse/**'
+      - all-globs-to-all-files:
           - '!packages/dcbor-parse/package.json'
 
 "dcbor-pattern":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/dcbor-pattern/**'
+      - all-globs-to-all-files:
           - '!packages/dcbor-pattern/package.json'
 
 "envelope-pattern":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/envelope-pattern/**'
+      - all-globs-to-all-files:
           - '!packages/envelope-pattern/package.json'
 
 "hubert":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/hubert/**'
+      - all-globs-to-all-files:
           - '!packages/hubert/package.json'
 
 "frost-hubert":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/frost-hubert/**'
+      - all-globs-to-all-files:
           - '!packages/frost-hubert/package.json'
 
 "lifehash":
   - changed-files:
       - any-glob-to-any-file:
           - 'packages/lifehash/**'
+      - all-globs-to-all-files:
           - '!packages/lifehash/package.json'
 
 "dcbor-cli":
   - changed-files:
       - any-glob-to-any-file:
           - 'tools/dcbor-cli/**'
+      - all-globs-to-all-files:
           - '!tools/dcbor-cli/package.json'
 
 "envelope-cli":
   - changed-files:
       - any-glob-to-any-file:
           - 'tools/envelope-cli/**'
+      - all-globs-to-all-files:
           - '!tools/envelope-cli/package.json'
 
 "provenance-mark-cli":
   - changed-files:
       - any-glob-to-any-file:
           - 'tools/provenance-mark-cli/**'
+      - all-globs-to-all-files:
           - '!tools/provenance-mark-cli/package.json'
 
 "seedtool-cli":
   - changed-files:
       - any-glob-to-any-file:
           - 'tools/seedtool-cli/**'
+      - all-globs-to-all-files:
           - '!tools/seedtool-cli/package.json'
 
 "lifehash-cli":
   - changed-files:
       - any-glob-to-any-file:
           - 'tools/lifehash-cli/**'
+      - all-globs-to-all-files:
           - '!tools/lifehash-cli/package.json'

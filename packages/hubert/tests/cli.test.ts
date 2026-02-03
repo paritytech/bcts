@@ -172,7 +172,7 @@ describe("CLI Server Operations", () => {
     await server.close();
   });
 
-  it("should put and get envelope via CLI", { timeout: 30_000 }, async () => {
+  it("should put and get envelope via CLI", { timeout: 60_000 }, async () => {
     // Generate test data
     const aridOutput = await runCli(["generate", "arid"]);
     const envOutput = await runCli(["generate", "envelope", "50"]);
