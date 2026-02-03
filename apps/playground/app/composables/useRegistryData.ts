@@ -262,7 +262,7 @@ function buildKnownValuesData(): KnownValueItem[] {
     const rawName = kv.name();
     items.push({
       value,
-      name: rawName.includes(':') ? rawName.substring(rawName.indexOf(':') + 1) : rawName,
+      name: rawName.includes(":") ? rawName.substring(rawName.indexOf(":") + 1) : rawName,
       category: getKnownValueCategory(value),
     });
   }
