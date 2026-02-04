@@ -1,0 +1,148 @@
+# Version map: TypeScript packages/tools -> Reference implementation
+# Used by workflow automation to track upstream reference versions.
+
+packages:
+  rand:
+    npm: "@bcts/rand"
+    repo: "BlockchainCommons/bc-rand-rust"
+    version: "0.5.0"
+    commit: "8f53717e35300933e9ca1bc6c51bddc0854cfb9e"
+
+  shamir:
+    npm: "@bcts/shamir"
+    repo: "BlockchainCommons/bc-shamir-rust"
+    version: "0.13.0"
+    commit: "fcf8deb2b0f51566635a7de89ae6d8d6628921c7"
+
+  sskr:
+    npm: "@bcts/sskr"
+    repo: "BlockchainCommons/bc-sskr-rust"
+    version: "0.12.0"
+    commit: "177cd9305c152b6cc1b9768651e65e7d563b4e8e"
+
+  crypto:
+    npm: "@bcts/crypto"
+    repo: "BlockchainCommons/bc-crypto-rust"
+    version: "0.14.0"
+    commit: "4f2b791320730578b04943c833c4a9e6c232fc4d"
+
+  dcbor:
+    npm: "@bcts/dcbor"
+    repo: "BlockchainCommons/bc-dcbor-rust"
+    version: "0.24.1"
+    commit: "8344a256cc858b3a626a89e0b805ef0bda4d3b50"
+
+  dcbor-parse:
+    npm: "@bcts/dcbor-parse"
+    repo: "BlockchainCommons/bc-dcbor-parse-rust"
+    version: "0.10.0"
+    commit: "3c91f62edf5b2892e6f32eac68c055d9d4b22df8"
+
+  dcbor-pattern:
+    npm: "@bcts/dcbor-pattern"
+    repo: "BlockchainCommons/bc-dcbor-pattern-rust"
+    version: "0.10.0"
+    commit: "f796d7560f8d39b57b9c1e925cb932ee70860804"
+
+  tags:
+    npm: "@bcts/tags"
+    repo: "BlockchainCommons/bc-tags-rust"
+    version: "0.11.0"
+    commit: "fc30b65c82eeca3124288fb9096c31a5631adc87"
+
+  known-values:
+    npm: "@bcts/known-values"
+    repo: "BlockchainCommons/known-values-rust"
+    version: "0.13.0"
+    commit: "abbbe31454edd82bebd49a4176e0a3717e2d094c"
+
+  uniform-resources:
+    npm: "@bcts/uniform-resources"
+    repo: "BlockchainCommons/bc-ur-rust"
+    version: "0.18.0"
+    commit: "285c849a546e68c5f6b983ee517cb66348fed0a3"
+
+  components:
+    npm: "@bcts/components"
+    repo: "BlockchainCommons/bc-components-rust"
+    version: "0.31.1"
+    commit: "fe31ddd48c1a1b0dfa161e876f7ea5bbadfb5a8f"
+
+  envelope:
+    npm: "@bcts/envelope"
+    repo: "BlockchainCommons/bc-envelope-rust"
+    version: "0.39.0"
+    commit: "c39b5a30b4a03ab604ba62dfa82eef6c7192426e"
+
+  envelope-pattern:
+    npm: "@bcts/envelope-pattern"
+    repo: "BlockchainCommons/bc-envelope-pattern-rust"
+    version: "0.11.0"
+    commit: "0be775ec5c954a29f7cf842c80da36bc8be91b43"
+
+  provenance-mark:
+    npm: "@bcts/provenance-mark"
+    repo: "BlockchainCommons/provenance-mark-rust"
+    version: "0.18.0"
+    commit: "234f7fefe380b06f65e153d8f4faf664ab0ba2c4"
+
+  xid:
+    npm: "@bcts/xid"
+    repo: "BlockchainCommons/bc-xid-rust"
+    version: "0.18.0"
+    commit: "f0dc62187fc728d92063ee0ff456a9552a4698cf"
+
+  gstp:
+    npm: "@bcts/gstp"
+    repo: "BlockchainCommons/gstp-rust"
+    version: "0.13.0"
+    commit: "020a85fe101e24eaced2f830d53a43af29f9cd89"
+
+  hubert:
+    npm: "@bcts/hubert"
+    repo: "BlockchainCommons/hubert-rust"
+    version: "0.5.0"
+    commit: "3c0b5c399f2763c1f4c66ceb7b674c4e5ff3c53f"
+
+  frost-hubert:
+    npm: "@bcts/frost-hubert"
+    repo: "BlockchainCommons/frost-hubert-rust"
+    version: "0.1.0"
+    commit: "d04850aea6d84f751920a86f867ca7d0defdad7e"
+
+  lifehash:
+    npm: "@bcts/lifehash"
+    repo: "BlockchainCommons/bc-lifehash"
+    version: "0.4.1"
+    commit: "b5e8d431b918951b91b5c3cb8eee27f4469feb6b"
+
+tools:
+  dcbor-cli:
+    npm: "@bcts/dcbor-cli"
+    repo: "BlockchainCommons/bc-dcbor-cli"
+    version: "0.16.0"
+    commit: "d7aadaca996bdcd559846f24380f289787dd1c30"
+
+  envelope-cli:
+    npm: "@bcts/envelope-cli"
+    repo: "BlockchainCommons/bc-envelope-cli-rust"
+    version: "0.31.0"
+    commit: "f1e4db6075f96651d468435a7ab6cc6c05e22e00"
+
+  provenance-mark-cli:
+    npm: "@bcts/provenance-mark-cli"
+    repo: "BlockchainCommons/provenance-mark-cli-rust"
+    version: "0.6.0"
+    commit: "8ab225787e677646739817c5954f16b3e21e1b24"
+
+  seedtool-cli:
+    npm: "@bcts/seedtool-cli"
+    repo: "BlockchainCommons/seedtool-cli-rust"
+    version: "0.4.0"
+    commit: "3d4e8d203a7db928713e731d416b71993dd45c28"
+
+  lifehash-cli:
+    npm: "@bcts/lifehash-cli"
+    repo: "BlockchainCommons/lifehash-cli"
+    version: "0.1.0"
+    commit: "ce697876976ab5e66e03c7964cd061d9c6696c95"
