@@ -1,0 +1,144 @@
+name: Check Upstream Updates
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-upstream:
+    name: Check for upstream commits
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Check upstream repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -uo pipefail
+
+          updates_file=$(mktemp)
+
+          check_repo() {
+            local name="$1" type="$2" repo="$3" version="$4" commit="$5"
+
+            if [ "$commit" = "null" ] || [ -z "$commit" ]; then
+              echo "Skipping $name (no tracked commit)"
+              return 0
+            fi
+
+            echo "Checking $repo..."
+
+            local default_branch
+            default_branch=$(gh api "repos/$repo" --jq '.default_branch' 2>/dev/null) || {
+              echo "::warning::Could not fetch repo info for $repo"
+              return 0
+            }
+
+            local ahead_by compare_url
+            local compare_json
+            compare_json=$(gh api "repos/$repo/compare/${commit}...${default_branch}" 2>/dev/null) || {
+              echo "::warning::Could not compare commits for $repo (tracked commit may no longer exist)"
+              return 0
+            }
+
+            ahead_by=$(echo "$compare_json" | jq -r '.ahead_by')
+            compare_url=$(echo "$compare_json" | jq -r '.html_url')
+
+            if [ "$ahead_by" -gt 0 ] 2>/dev/null; then
+              echo "::notice::$name has $ahead_by new upstream commit(s) in $repo"
+              printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+                "$name" "$type" "$repo" "$version" "$commit" "$ahead_by" "$compare_url" \
+                >> "$updates_file"
+            else
+              echo "$name is up to date"
+            fi
+          }
+
+          # --- Process packages ---
+          while IFS=$'\t' read -r name repo version commit; do
+            check_repo "$name" "package" "$repo" "$version" "$commit"
+          done < <(
+            yq -r '.packages | to_entries[] |
+              [.key, .value.repo, (.value.version // "null"), (.value.commit // "null")]
+              | @tsv' .github/versions.yml
+          )
+
+          # --- Process tools ---
+          while IFS=$'\t' read -r name repo version commit; do
+            check_repo "$name" "tool" "$repo" "$version" "$commit"
+          done < <(
+            yq -r '.tools | to_entries[] |
+              [.key, .value.repo, (.value.version // "null"), (.value.commit // "null")]
+              | @tsv' .github/versions.yml
+          )
+
+          # --- Exit early if nothing changed ---
+          if [ ! -s "$updates_file" ]; then
+            echo "All upstream repositories are up to date."
+            rm -f "$updates_file"
+            exit 0
+          fi
+
+          # --- Ensure label exists ---
+          gh label create "upstream-update" \
+            --description "Upstream reference implementation has new commits" \
+            --color "1d76db" 2>/dev/null || true
+
+          # --- Deduplicate: skip if an open issue already exists ---
+          existing=$(gh issue list --label "upstream-update" --state open --json number --jq 'length' 2>/dev/null || echo 0)
+          if [ "$existing" -gt 0 ]; then
+            echo "An open upstream-update issue already exists — skipping."
+            rm -f "$updates_file"
+            exit 0
+          fi
+
+          # --- Build issue body ---
+          count=$(wc -l < "$updates_file" | tr -d ' ')
+          noun=$([ "$count" -eq 1 ] && echo "repository has" || echo "repositories have")
+
+          {
+            echo "## Upstream Updates Detected"
+            echo ""
+            echo "$count upstream $noun new commits since the last tracked version."
+            echo ""
+            echo "| Name | Type | Upstream Repo | Tracked | New Commits | Diff |"
+            echo "|------|------|---------------|---------|-------------|------|"
+
+            while IFS=$'\t' read -r name type repo version commit ahead compare_url; do
+              version_col="$version"
+              [ "$version_col" = "null" ] && version_col="—"
+
+              echo "| \`$name\` | $type | [$repo](https://github.com/$repo) | $version_col @ [\`${commit:0:7}\`](https://github.com/$repo/commit/$commit) | **$ahead** | [view diff]($compare_url) |"
+            done < "$updates_file"
+
+            echo ""
+            echo "---"
+            echo ""
+            echo "### What to do"
+            echo "1. Review the upstream changes using the diff links above"
+            echo "2. Port relevant changes to the TypeScript implementation"
+            echo "3. Update \`.github/versions.yml\` with the new commit hash and version"
+            echo "4. Close this issue"
+          } > /tmp/issue_body.md
+
+          gh issue create \
+            --title "Upstream updates: $count $noun new commits" \
+            --label "upstream-update" \
+            --body-file /tmp/issue_body.md
+
+          rm -f "$updates_file" /tmp/issue_body.md
+          echo "Issue created for $count upstream update(s)."
