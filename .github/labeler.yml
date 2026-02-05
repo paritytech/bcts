@@ -1,8 +1,8 @@
 # GitHub Actions labeler configuration for BCTS monorepo
 # https://github.com/actions/labeler
 #
-# Each label requires at least one non-package.json file to change.
-# This prevents labeling PRs that only bump versions in package.json.
+# Each label requires at least one non-package.json/CHANGELOG.md file to change.
+# This prevents labeling PRs that only bump versions or update changelogs.
 
 github-actions:
   - changed-files:
@@ -13,147 +13,172 @@ github-actions:
       - all-globs-to-any-file:
           - 'apps/playground/**'
           - '!apps/playground/package.json'
+          - '!apps/playground/CHANGELOG.md'
 
 "rand":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/rand/**'
           - '!packages/rand/package.json'
+          - '!packages/rand/CHANGELOG.md'
 
 "dcbor":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/dcbor/**'
           - '!packages/dcbor/package.json'
+          - '!packages/dcbor/CHANGELOG.md'
 
 "tags":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/tags/**'
           - '!packages/tags/package.json'
+          - '!packages/tags/CHANGELOG.md'
 
 "crypto":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/crypto/**'
           - '!packages/crypto/package.json'
+          - '!packages/crypto/CHANGELOG.md'
 
 "uniform-resources":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/uniform-resources/**'
           - '!packages/uniform-resources/package.json'
+          - '!packages/uniform-resources/CHANGELOG.md'
 
 "shamir":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/shamir/**'
           - '!packages/shamir/package.json'
+          - '!packages/shamir/CHANGELOG.md'
 
 "sskr":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/sskr/**'
           - '!packages/sskr/package.json'
+          - '!packages/sskr/CHANGELOG.md'
 
 "components":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/components/**'
           - '!packages/components/package.json'
+          - '!packages/components/CHANGELOG.md'
 
 "known-values":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/known-values/**'
           - '!packages/known-values/package.json'
+          - '!packages/known-values/CHANGELOG.md'
 
 "envelope":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/envelope/**'
           - '!packages/envelope/package.json'
+          - '!packages/envelope/CHANGELOG.md'
 
 "provenance-mark":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/provenance-mark/**'
           - '!packages/provenance-mark/package.json'
+          - '!packages/provenance-mark/CHANGELOG.md'
 
 "xid":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/xid/**'
           - '!packages/xid/package.json'
+          - '!packages/xid/CHANGELOG.md'
 
 "gstp":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/gstp/**'
           - '!packages/gstp/package.json'
+          - '!packages/gstp/CHANGELOG.md'
 
 "dcbor-parse":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/dcbor-parse/**'
           - '!packages/dcbor-parse/package.json'
+          - '!packages/dcbor-parse/CHANGELOG.md'
 
 "dcbor-pattern":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/dcbor-pattern/**'
           - '!packages/dcbor-pattern/package.json'
+          - '!packages/dcbor-pattern/CHANGELOG.md'
 
 "envelope-pattern":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/envelope-pattern/**'
           - '!packages/envelope-pattern/package.json'
+          - '!packages/envelope-pattern/CHANGELOG.md'
 
 "hubert":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/hubert/**'
           - '!packages/hubert/package.json'
+          - '!packages/hubert/CHANGELOG.md'
 
 "frost-hubert":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/frost-hubert/**'
           - '!packages/frost-hubert/package.json'
+          - '!packages/frost-hubert/CHANGELOG.md'
 
 "lifehash":
   - changed-files:
       - all-globs-to-any-file:
           - 'packages/lifehash/**'
           - '!packages/lifehash/package.json'
+          - '!packages/lifehash/CHANGELOG.md'
 
 "dcbor-cli":
   - changed-files:
       - all-globs-to-any-file:
           - 'tools/dcbor-cli/**'
           - '!tools/dcbor-cli/package.json'
+          - '!tools/dcbor-cli/CHANGELOG.md'
 
 "envelope-cli":
   - changed-files:
       - all-globs-to-any-file:
           - 'tools/envelope-cli/**'
           - '!tools/envelope-cli/package.json'
+          - '!tools/envelope-cli/CHANGELOG.md'
 
 "provenance-mark-cli":
   - changed-files:
       - all-globs-to-any-file:
           - 'tools/provenance-mark-cli/**'
           - '!tools/provenance-mark-cli/package.json'
+          - '!tools/provenance-mark-cli/CHANGELOG.md'
 
 "seedtool-cli":
   - changed-files:
       - all-globs-to-any-file:
           - 'tools/seedtool-cli/**'
           - '!tools/seedtool-cli/package.json'
+          - '!tools/seedtool-cli/CHANGELOG.md'
 
 "lifehash-cli":
   - changed-files:
       - all-globs-to-any-file:
           - 'tools/lifehash-cli/**'
           - '!tools/lifehash-cli/package.json'
+          - '!tools/lifehash-cli/CHANGELOG.md'
