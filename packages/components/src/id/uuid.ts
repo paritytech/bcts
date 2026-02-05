@@ -126,15 +126,7 @@ export class UUID implements CborTaggedEncodable, CborTaggedDecodable<UUID>, URE
    */
   static random(): UUID {
     const data = new Uint8Array(UUID_SIZE);
-    const crypto = globalThis.crypto as Crypto | undefined;
-    if (crypto !== undefined && typeof crypto.getRandomValues === "function") {
-      crypto.getRandomValues(data);
-    } else {
-      // Fallback: fill with available random data
-      for (let i = 0; i < UUID_SIZE; i++) {
-        data[i] = Math.floor(Math.random() * 256);
-      }
-    }
+    globalThis.crypto.getRandomValues(data);
 
     // Set version to 4 (random)
     data[6] = (data[6] & 0x0f) | 0x40;

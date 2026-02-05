@@ -1,6 +1,6 @@
 {
   "name": "@bcts/lifehash-cli",
-  "version": "1.0.0-alpha.18",
+  "version": "1.0.0-alpha.19",
   "type": "module",
   "description": "A command-line tool for generating LifeHash visual hash images as PNG files.",
   "license": "BSD-2-Clause-Patent",
