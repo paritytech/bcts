@@ -8,7 +8,7 @@
 
 🔷 **Community Implementation:** This is a TypeScript port of the Blockchain Commons' open specifications and implementations.
 
-> ⚠️ **Disclaimer:** This is an independent project. It has not been audited and is not ready for production use. APIs and interfaces are subject to change.
+> ⚠️ **Disclaimer:** This is a project in active development. It has not been audited, APIs and interfaces are subject to change.
 
 ## Overview
 
