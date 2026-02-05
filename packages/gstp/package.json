@@ -79,11 +79,11 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^9.39.2",
-    "@types/node": "^25.2.0",
+    "@types/node": "^25.2.1",
     "eslint": "^9.39.2",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.20.1",
+    "tsdown": "^0.20.3",
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

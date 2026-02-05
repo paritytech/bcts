@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { Envelope, SigningPrivateKey, SymmetricKey, PrivateKeyBase } from '@bcts/envelope'
+import { Envelope, SigningPrivateKey, SymmetricKey, PrivateKeyBase, SignatureMetadata, MermaidTheme, MermaidOrientation, envelopeFromBytes, Expression, Function as EnvFunction, Request as EnvRequest, Response as EnvResponse, Event as EnvEvent, ObscureType } from '@bcts/envelope'
+import type { TreeFormatOptions } from '@bcts/envelope'
+import { SignatureScheme, createKeypair, KeyDerivationMethod, SSKRSpec, SSKRGroupSpec, Seed, Nonce, Digest, ARID, UUID, URI } from '@bcts/components'
+import { CborDate } from '@bcts/dcbor'
+import { KnownValue, IS_A, NOTE, ID, ISSUER, HOLDER, DATE, NAME, DEREFERENCE_VIA, CONTROLLER, ENTITY, LANGUAGE, SALT, VALID_FROM, VALID_UNTIL, NICKNAME, HAS_RECIPIENT, VENDOR, CONFORMS_TO } from '@bcts/known-values'
 import encodeQR from '@paulmillr/qr'
 
 useHead({
@@ -10,8 +14,11 @@ useHead({
 })
 
 // Types
-type ValueType = 'string' | 'number' | 'bigint' | 'bytes' | 'bool' | 'null'
+type ValueType = 'string' | 'number' | 'bigint' | 'bytes' | 'bool' | 'null' | 'date' | 'uuid' | 'arid' | 'uri' | 'known'
+type PredicateType = 'string' | 'known'
 type NodeType = 'subject' | 'assertion' | 'wrapped' | 'signed' | 'encrypted' | 'compressed' | 'elided' | 'salted'
+type EncryptionMode = 'symmetric' | 'password' | 'recipient'
+type SigningAlgorithm = 'Ed25519' | 'Schnorr' | 'ECDSA' | 'ML-DSA-44' | 'ML-DSA-65' | 'ML-DSA-87'
 
 interface EnvelopeNode {
   id: string
@@ -19,6 +26,9 @@ interface EnvelopeNode {
   valueType?: ValueType
   value?: string | number | boolean | null
   predicate?: string
+  predicateType?: PredicateType
+  predicateKnownValue?: string // Known value name for known predicates
+  salted?: boolean // Whether this assertion should be salted
   object?: EnvelopeNode
   assertions?: EnvelopeNode[]
   child?: EnvelopeNode
@@ -31,14 +41,30 @@ interface EnvelopeNode {
   // Phase 2: Recipient encryption metadata
   recipientCount?: number
   recipientIds?: string[] // Track which recipients this was encrypted for
+  // Phase 2: Encryption mode
+  encryptionMode?: EncryptionMode
+  // Phase 2: Signing metadata
+  signerIds?: string[] // Track which signing keys were used
+  signingAlgorithm?: SigningAlgorithm
+  signatureNote?: string
+  // Phase 2: Sealed (sign-then-encrypt)
+  sealed?: boolean
+  sealSignerId?: string
+  sealRecipientId?: string
+  // Phase 3: Compress subject only
+  compressSubjectOnly?: boolean
+  // Phase 3: Elision action
+  elideAction?: 'elide' | 'encrypt' | 'compress'
 }
 
 // Recipient key pair interface
+type RecipientScheme = 'X25519' | 'ML-KEM-512' | 'ML-KEM-768' | 'ML-KEM-1024'
 interface RecipientKey {
   id: string
   name: string
   privateKey: PrivateKeyBase
   publicKeyHex: string // Pre-computed for display
+  scheme: RecipientScheme
 }
 
 // Phase 3: Signing key interface
@@ -47,6 +73,7 @@ interface SigningKey {
   name: string
   privateKey: SigningPrivateKey
   publicKeyHex: string
+  algorithm: SigningAlgorithm
 }
 
 // Phase 3: Symmetric key interface
@@ -86,7 +113,38 @@ const digestOutput = ref('')
 const error = ref<string | null>(null)
 
 // Output mode
-const outputMode = ref<'tree' | 'hex' | 'both'>('tree')
+const outputMode = ref<'notation' | 'tree' | 'hex' | 'diag' | 'mermaid' | 'both'>('both')
+const notationOutput = ref('')
+const diagnosticOutput = ref('')
+const envelopeOutputMode = ref<'notation' | 'hex' | 'diag'>('notation')
+const mermaidOutput = ref('')
+// Mermaid options
+const mermaidTheme = ref<MermaidTheme>(MermaidTheme.Default)
+const mermaidOrientation = ref<MermaidOrientation>(MermaidOrientation.LeftToRight)
+
+// Signature verification state
+const showVerifyModal = ref(false)
+const verifyResult = ref<{ verified: boolean; message: string } | null>(null)
+
+// Phase 2: Signing algorithm and metadata state
+const showSignModal = ref(false)
+const signTargetNodeId = ref<string | null>(null)
+const signAlgorithm = ref<SigningAlgorithm>('Ed25519')
+const signNote = ref('')
+const signSelectedKeyIds = ref<string[]>([])
+
+// Phase 2: Password encryption state
+const showPasswordEncryptModal = ref(false)
+const passwordEncryptTargetNodeId = ref<string | null>(null)
+const encryptPassword = ref('')
+const encryptPasswordConfirm = ref('')
+const encryptKdfMethod = ref<KeyDerivationMethod>(KeyDerivationMethod.Argon2id)
+
+// Phase 2: Seal state
+const showSealModal = ref(false)
+const sealTargetNodeId = ref<string | null>(null)
+const sealSignerId = ref<string | null>(null)
+const sealRecipientId = ref<string | null>(null)
 
 // Modal states
 const showSubjectModal = ref(false)
@@ -104,13 +162,38 @@ const showTypeModal = ref(false)
 const showAttachmentModal = ref(false)
 const showProofModal = ref(false)
 
+// Known values registry for predicate picker
+const knownValuesList = [
+  { label: 'isA', value: 'isA', kv: IS_A, description: 'Type classification' },
+  { label: 'id', value: 'id', kv: ID, description: 'Identifier' },
+  { label: 'note', value: 'note', kv: NOTE, description: 'Annotation' },
+  { label: 'name', value: 'name', kv: NAME, description: 'Name' },
+  { label: 'date', value: 'date', kv: DATE, description: 'Date' },
+  { label: 'issuer', value: 'issuer', kv: ISSUER, description: 'Issuer' },
+  { label: 'holder', value: 'holder', kv: HOLDER, description: 'Holder' },
+  { label: 'controller', value: 'controller', kv: CONTROLLER, description: 'Controller' },
+  { label: 'entity', value: 'entity', kv: ENTITY, description: 'Entity' },
+  { label: 'language', value: 'language', kv: LANGUAGE, description: 'Language' },
+  { label: 'dereferenceVia', value: 'dereferenceVia', kv: DEREFERENCE_VIA, description: 'Resolution method' },
+  { label: 'salt', value: 'salt', kv: SALT, description: 'Salt' },
+  { label: 'hasRecipient', value: 'hasRecipient', kv: HAS_RECIPIENT, description: 'Recipient' },
+  { label: 'validFrom', value: 'validFrom', kv: VALID_FROM, description: 'Valid from date' },
+  { label: 'validUntil', value: 'validUntil', kv: VALID_UNTIL, description: 'Valid until date' },
+  { label: 'nickname', value: 'nickname', kv: NICKNAME, description: 'Nickname' },
+  { label: 'vendor', value: 'vendor', kv: VENDOR, description: 'Vendor identifier' },
+  { label: 'conformsTo', value: 'conformsTo', kv: CONFORMS_TO, description: 'Conformance URI' },
+]
+
 // Form states
 const subjectValueType = ref<ValueType>('string')
 const subjectValue = ref('')
+const assertionPredicateType = ref<PredicateType>('string')
 const assertionPredicate = ref('')
+const assertionPredicateKnownValue = ref('isA')
 const assertionValueType = ref<ValueType>('string')
 const assertionValue = ref('')
 const assertionIsEnvelope = ref(false)
+const assertionSalted = ref(false)
 
 // Salt form states
 const saltMode = ref<'auto' | 'fixed' | 'range'>('auto')
@@ -121,8 +204,19 @@ const saltTargetNodeId = ref<string | null>(null)
 
 // Elide selection states
 const elideMode = ref<'remove' | 'reveal'>('reveal')
+const elideAction = ref<'elide' | 'encrypt' | 'compress'>('elide')
 const elideSelections = ref<Record<string, boolean>>({})
 const elideTargetNodeId = ref<string | null>(null)
+
+// Phase 3: SSKR states
+const showSskrSplitModal = ref(false)
+const showSskrJoinModal = ref(false)
+const sskrTargetNodeId = ref<string | null>(null)
+const sskrGroupThreshold = ref(1)
+const sskrGroups = ref<{ memberThreshold: number; memberCount: number }[]>([{ memberThreshold: 2, memberCount: 3 }])
+const sskrShares = ref<string[][]>([])
+const sskrJoinInput = ref('')
+const sskrJoinError = ref<string | null>(null)
 
 // Recipients encryption states
 const recipients = shallowRef<RecipientKey[]>([])
@@ -185,11 +279,81 @@ const showQRModal = ref(false)
 const qrCodeDataUrl = ref('')
 const qrCodeError = ref<string | null>(null)
 
+// Phase 4: Digest depth display
+const digestDepth = ref<'top' | 'shallow' | 'deep'>('top')
+const digestFormat = ref<'short' | 'full' | 'ur'>('short')
+const allDigests = ref<string[]>([])
+
+// Phase 4: Walk/Traversal - Find Obscured Nodes
+const showObscuredPanel = ref(false)
+const obscuredNodes = ref<{ digest: string; type: string }[]>([])
+
+// Phase 4: Walk/Traversal - Unelide modal
+const showUnelideModal = ref(false)
+const unelideTargetNodeId = ref<string | null>(null)
+const unelideInput = ref('')
+const unelideError = ref<string | null>(null)
+
+// Phase 4: Walk/Traversal - Decrypt modal
+const showDecryptModal = ref(false)
+const decryptTargetNodeId = ref<string | null>(null)
+const decryptKeyHex = ref('')
+const decryptPassword = ref('')
+const decryptMode = ref<'symmetric' | 'password' | 'recipient'>('symmetric')
+const decryptRecipientId = ref<string | null>(null)
+const decryptError = ref<string | null>(null)
+
+// Phase 5: Unseal modal
+const showUnsealModal = ref(false)
+const unsealSignerKeyId = ref<string | null>(null)
+const unsealRecipientId = ref<string | null>(null)
+const unsealError = ref<string | null>(null)
+
+// Phase 5: Walk Replace modal
+const showWalkReplaceModal = ref(false)
+const walkReplaceDigestHex = ref('')
+const walkReplaceEnvelopeInput = ref('')
+const walkReplaceError = ref<string | null>(null)
+
+// Phase 5: Generate utilities panel
+const showGeneratePanel = ref(false)
+const generatedItems = ref<{ type: string; value: string }[]>([])
+
+// Phase 5: Tree format options
+const treeHideNodes = ref(false)
+const treeDigestDisplay = ref<'short' | 'full' | 'ur'>('short')
+
+// Phase 5: Recipient scheme selector for new recipients
+const newRecipientScheme = ref<RecipientScheme>('X25519')
+
+// Phase 4: Expression/Request/Response/Event builder
+const showExpressionModal = ref(false)
+const expressionMode = ref<'expression' | 'request' | 'response' | 'event'>('expression')
+const exprFunctionName = ref('')
+const exprFunctionType = ref<'known' | 'named'>('named')
+const exprKnownFunction = ref('add')
+const exprParams = ref<{ name: string; value: string; valueType: ValueType }[]>([])
+const requestNote = ref('')
+const requestDate = ref(false)
+const responseIsSuccess = ref(true)
+const responseResultValue = ref('')
+const eventContent = ref('')
+const eventNote = ref('')
+const eventDate = ref(false)
+
+// Phase 4: Assertion Query
+const showQueryPanel = ref(false)
+const queryPredicate = ref('')
+const queryPredicateType = ref<PredicateType>('string')
+const queryPredicateKnownValue = ref('isA')
+const queryResults = ref<{ predicate: string; object: string; digest: string }[]>([])
+const queryError = ref<string | null>(null)
+
 // Toast notifications
 const toast = useToast()
 
 // Helper to create a recipient with pre-computed public key hex
-function createRecipient(name: string): RecipientKey {
+function createRecipient(name: string, scheme: RecipientScheme = 'X25519'): RecipientKey {
   const privateKey = PrivateKeyBase.generate()
   // Get hex representation of public key for display
   const publicKeyHex = privateKey.publicKeys().reference().shortReference("hex")
@@ -197,19 +361,46 @@ function createRecipient(name: string): RecipientKey {
     id: generateId(),
     name,
     privateKey,
-    publicKeyHex
+    publicKeyHex,
+    scheme
   }
 }
 
-// Phase 3: Helper to create signing key
-function createSigningKey(name: string): SigningKey {
-  const privateKey = SigningPrivateKey.random()
+// Phase 3: Helper to create signing key with algorithm selection
+function createSigningKey(name: string, algorithm: SigningAlgorithm = 'Ed25519'): SigningKey {
+  let privateKey: SigningPrivateKey
+  switch (algorithm) {
+    case 'Schnorr':
+      privateKey = SigningPrivateKey.randomSchnorr()
+      break
+    case 'ECDSA':
+      privateKey = SigningPrivateKey.randomEcdsa()
+      break
+    case 'ML-DSA-44': {
+      const [priv] = createKeypair(SignatureScheme.MLDSA44)
+      privateKey = priv
+      break
+    }
+    case 'ML-DSA-65': {
+      const [priv] = createKeypair(SignatureScheme.MLDSA65)
+      privateKey = priv
+      break
+    }
+    case 'ML-DSA-87': {
+      const [priv] = createKeypair(SignatureScheme.MLDSA87)
+      privateKey = priv
+      break
+    }
+    default:
+      privateKey = SigningPrivateKey.random() // Ed25519
+  }
   const publicKeyHex = privateKey.publicKey().toString()
   return {
     id: generateId(),
     name,
     privateKey,
-    publicKeyHex
+    publicKeyHex,
+    algorithm
   }
 }
 
@@ -292,7 +483,12 @@ function buildEnvelope(node: EnvelopeNode): Envelope | null {
           if (assertion.type === 'assertion' && assertion.object) {
             const objEnv = buildEnvelope(assertion.object)
             if (objEnv) {
-              env = env.addAssertion(assertion.predicate!, objEnv)
+              const predicateValue = parsePredicateValue(assertion.predicateType, assertion.predicate!, assertion.predicateKnownValue)
+              if (assertion.salted) {
+                env = env.addAssertionSalted(predicateValue, objEnv, true)
+              } else {
+                env = env.addAssertion(predicateValue, objEnv)
+              }
             }
           }
         }
@@ -309,20 +505,62 @@ function buildEnvelope(node: EnvelopeNode): Envelope | null {
         return null
 
       case 'signed':
-        if (node.child && demoSigningKey.value) {
+        if (node.child) {
           const childEnv = buildEnvelope(node.child)
-          if (childEnv) {
-            return childEnv.addSignature(demoSigningKey.value)
+          if (!childEnv) return null
+
+          // Get signers from stored signer IDs or fall back to demo key
+          const signerIds = node.signerIds && node.signerIds.length > 0
+            ? node.signerIds
+            : (demoSigningKey.value ? ['demo'] : [])
+
+          let signedEnv = childEnv
+          for (const signerId of signerIds) {
+            const signerKey = signerId === 'demo'
+              ? demoSigningKey.value
+              : signingKeys.value.find(k => k.id === signerId)?.privateKey
+            if (!signerKey) continue
+
+            if (node.signatureNote) {
+              const metadata = SignatureMetadata.new().withAssertion('note', node.signatureNote)
+              signedEnv = signedEnv.addSignatureWithMetadata(signerKey, metadata)
+            } else {
+              signedEnv = signedEnv.addSignature(signerKey)
+            }
           }
+          return signedEnv
         }
         return null
 
       case 'encrypted':
-        if (node.child && demoEncryptionKey.value) {
+        if (node.child) {
           const childEnv = buildEnvelope(node.child)
-          if (childEnv) {
-            return childEnv.encrypt(demoEncryptionKey.value)
+          if (!childEnv) return null
+
+          // Check encryption mode
+          if (node.encryptionMode === 'recipient' && node.recipientIds && node.recipientIds.length > 0) {
+            // Public-key recipient encryption
+            const selectedRecipients = node.recipientIds
+              .map(id => recipients.value.find(r => r.id === id))
+              .filter((r): r is RecipientKey => r != null)
+            if (selectedRecipients.length > 0) {
+              const recipientPublicKeys = selectedRecipients.map(r => r.privateKey.publicKeys())
+              return childEnv.encryptToRecipients(recipientPublicKeys)
+            }
+            // Fall back to symmetric if no valid recipients
+            return demoEncryptionKey.value ? childEnv.encrypt(demoEncryptionKey.value) : null
           }
+
+          if (node.encryptionMode === 'password' && node.value) {
+            // Password-based encryption
+            const passwordBytes = new TextEncoder().encode(String(node.value))
+            const method = KeyDerivationMethod.Argon2id
+            return childEnv.lock(method, passwordBytes)
+          }
+
+          // Default: symmetric encryption
+          if (!demoEncryptionKey.value) return null
+          return childEnv.encrypt(demoEncryptionKey.value)
         }
         return null
 
@@ -330,7 +568,7 @@ function buildEnvelope(node: EnvelopeNode): Envelope | null {
         if (node.child) {
           const childEnv = buildEnvelope(node.child)
           if (childEnv) {
-            return childEnv.compress()
+            return node.compressSubjectOnly ? childEnv.compressSubject() : childEnv.compress()
           }
         }
         return null
@@ -369,7 +607,7 @@ function buildEnvelope(node: EnvelopeNode): Envelope | null {
   }
 }
 
-type EnvelopeValue = string | number | bigint | boolean | null | Uint8Array
+type EnvelopeValue = string | number | bigint | boolean | null | Uint8Array | CborDate | ARID | UUID | URI | KnownValue
 
 function parseValue(type: ValueType | undefined, value: unknown): EnvelopeValue {
   switch (type) {
@@ -389,15 +627,38 @@ function parseValue(type: ValueType | undefined, value: unknown): EnvelopeValue 
       }
       return bytes
     }
+    case 'date':
+      return CborDate.fromDatetime(new Date(String(value)))
+    case 'uuid':
+      return UUID.fromString(String(value))
+    case 'arid':
+      return ARID.fromHex(String(value).replace(/^0x/, ''))
+    case 'uri':
+      return URI.new(String(value))
+    case 'known': {
+      const kvEntry = knownValuesList.find(kv => kv.value === String(value))
+      return kvEntry ? kvEntry.kv : new KnownValue(Number(value))
+    }
     default:
       return String(value)
   }
+}
+
+function parsePredicateValue(predicateType: PredicateType | undefined, predicate: string, knownValueName?: string): EnvelopeValue {
+  if (predicateType === 'known' && knownValueName) {
+    const kvEntry = knownValuesList.find(kv => kv.value === knownValueName)
+    return kvEntry ? kvEntry.kv : new KnownValue(Number(knownValueName))
+  }
+  return predicate
 }
 
 function updateOutput() {
   if (!root.value) {
     treeOutput.value = ''
     hexOutput.value = ''
+    notationOutput.value = ''
+    diagnosticOutput.value = ''
+    mermaidOutput.value = ''
     digestOutput.value = ''
     error.value = null
     return
@@ -406,14 +667,29 @@ function updateOutput() {
   try {
     const envelope = buildEnvelope(root.value)
     if (envelope) {
-      treeOutput.value = envelope.treeFormat()
+      const treeOpts: TreeFormatOptions = {}
+      if (treeHideNodes.value) treeOpts.hideNodes = true
+      if (treeDigestDisplay.value !== 'short') treeOpts.digestDisplay = treeDigestDisplay.value as TreeFormatOptions['digestDisplay']
+      treeOutput.value = envelope.treeFormat(treeOpts)
+      notationOutput.value = envelope.format()
+      diagnosticOutput.value = envelope.diagnostic()
+      try {
+        mermaidOutput.value = envelope.mermaidFormatOpt({
+          theme: mermaidTheme.value,
+          orientation: mermaidOrientation.value
+        })
+      } catch { mermaidOutput.value = '' }
       const bytes = envelope.cborBytes()
       hexOutput.value = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
       digestOutput.value = envelope.digest().hex()
       error.value = null
+      updateDigestDisplay()
     } else {
       treeOutput.value = ''
       hexOutput.value = ''
+      notationOutput.value = ''
+      diagnosticOutput.value = ''
+      mermaidOutput.value = ''
       digestOutput.value = ''
       error.value = 'Failed to build envelope'
     }
@@ -421,6 +697,9 @@ function updateOutput() {
     error.value = e instanceof Error ? e.message : 'Unknown error'
     treeOutput.value = ''
     hexOutput.value = ''
+    notationOutput.value = ''
+    diagnosticOutput.value = ''
+    mermaidOutput.value = ''
     digestOutput.value = ''
   }
 }
@@ -529,8 +808,19 @@ defineShortcuts({
     showTypeModal.value = false
     showAttachmentModal.value = false
     showProofModal.value = false
+    showVerifyModal.value = false
     showWizardModal.value = false
+    showSignModal.value = false
+    showPasswordEncryptModal.value = false
+    showSealModal.value = false
+    showSskrSplitModal.value = false
+    showSskrJoinModal.value = false
     showQRModal.value = false
+    showUnelideModal.value = false
+    showDecryptModal.value = false
+    showExpressionModal.value = false
+    showUnsealModal.value = false
+    showWalkReplaceModal.value = false
   },
   'delete': () => {
     if (selectedNodeId.value && root.value) {
@@ -709,25 +999,39 @@ function createSubject() {
 // Assertion creation
 function openAssertionModal(nodeId: string) {
   selectedNodeId.value = nodeId
+  assertionPredicateType.value = 'string'
   assertionPredicate.value = ''
+  assertionPredicateKnownValue.value = 'isA'
   assertionValueType.value = 'string'
   assertionValue.value = ''
   assertionIsEnvelope.value = false
+  assertionSalted.value = false
   showAssertionModal.value = true
 }
 
 function addAssertion() {
   if (!root.value || !selectedNodeId.value) return
 
+  // Validate predicate
+  if (assertionPredicateType.value === 'string' && !assertionPredicate.value) return
+  if (assertionPredicateType.value === 'known' && !assertionPredicateKnownValue.value) return
+
   const targetNode = findNodeToAddAssertion(root.value, selectedNodeId.value)
   if (!targetNode) return
 
   saveToHistory()
 
+  const predicateDisplay = assertionPredicateType.value === 'known'
+    ? assertionPredicateKnownValue.value
+    : assertionPredicate.value
+
   const assertion: EnvelopeNode = {
     id: generateId(),
     type: 'assertion',
-    predicate: assertionPredicate.value,
+    predicate: predicateDisplay,
+    predicateType: assertionPredicateType.value,
+    predicateKnownValue: assertionPredicateType.value === 'known' ? assertionPredicateKnownValue.value : undefined,
+    salted: assertionSalted.value || undefined,
     object: {
       id: generateId(),
       type: 'subject',
@@ -993,15 +1297,146 @@ function unwrapNode(nodeId: string) {
 }
 
 function signNode(nodeId: string) {
-  if (!demoSigningKey.value) return
-  const node = findNode(root.value!, nodeId)
-  const isReversing = node?.type === 'signed' && !!node.child
-  applyTransformation(nodeId, 'signed')
+  if (!root.value) return
+  const node = findNode(root.value, nodeId)
+
+  // If already signed, reverse (unsign)
+  if (node?.type === 'signed' && node.child) {
+    applyTransformation(nodeId, 'signed')
+    toast.add({ title: 'Signature removed', color: 'success', icon: 'i-heroicons-pencil-square' })
+    return
+  }
+
+  // Open sign modal for new signature
+  signTargetNodeId.value = nodeId
+  signAlgorithm.value = 'Ed25519'
+  signNote.value = ''
+  // Pre-select the first signing key
+  signSelectedKeyIds.value = signingKeys.value.length > 0 ? [signingKeys.value[0]!.id] : []
+  showSignModal.value = true
+}
+
+function applySign() {
+  if (!signTargetNodeId.value || !root.value) return
+  if (signSelectedKeyIds.value.length === 0 && !demoSigningKey.value) return
+
+  saveToHistory()
+
+  const targetId = signTargetNodeId.value
+  const node = findNode(root.value, targetId)
+  if (!node) return
+
+  const signedNode: EnvelopeNode = {
+    id: generateId(),
+    type: 'signed',
+    child: node,
+    expanded: true,
+    signerIds: signSelectedKeyIds.value.length > 0 ? [...signSelectedKeyIds.value] : ['demo'],
+    signingAlgorithm: signAlgorithm.value,
+    signatureNote: signNote.value || undefined
+  }
+
+  if (root.value.id === targetId) {
+    root.value = signedNode
+  } else {
+    const result = findParent(root.value, targetId)
+    if (!result || !result.parent) return
+
+    if (result.isChild) {
+      result.parent.child = signedNode
+    } else if (result.isAssertionObject) {
+      result.parent.object = signedNode
+    } else if (result.assertionIndex >= 0 && result.parent.assertions) {
+      const assertion = result.parent.assertions[result.assertionIndex]
+      if (assertion && assertion.object?.id === targetId) {
+        assertion.object = signedNode
+      }
+    }
+  }
+
+  showSignModal.value = false
+  updateOutput()
+  saveToHistory()
+
+  const keyCount = signSelectedKeyIds.value.length || 1
   toast.add({
-    title: isReversing ? 'Signature removed' : 'Envelope signed',
+    title: `Signed with ${keyCount} key${keyCount > 1 ? 's' : ''}${signNote.value ? ' (with note)' : ''}`,
     color: 'success',
     icon: 'i-heroicons-pencil-square'
   })
+}
+
+function toggleSignKeySelection(keyId: string) {
+  if (signSelectedKeyIds.value.includes(keyId)) {
+    signSelectedKeyIds.value = signSelectedKeyIds.value.filter(id => id !== keyId)
+  } else {
+    signSelectedKeyIds.value = [...signSelectedKeyIds.value, keyId]
+  }
+}
+
+function verifySignature(nodeId: string) {
+  if (!root.value) return
+
+  const node = findNode(root.value, nodeId)
+  if (!node || node.type !== 'signed' || !node.child) {
+    verifyResult.value = { verified: false, message: 'Node is not a signed envelope' }
+    showVerifyModal.value = true
+    return
+  }
+
+  try {
+    const envelope = buildEnvelope(node)
+    if (!envelope) {
+      verifyResult.value = { verified: false, message: 'Failed to build envelope for verification' }
+      showVerifyModal.value = true
+      return
+    }
+
+    // Try all known signing keys
+    const allVerified: string[] = []
+    const allFailed: string[] = []
+
+    // Check demo key
+    if (demoSigningKey.value) {
+      const publicKey = demoSigningKey.value.publicKey()
+      if (envelope.hasSignatureFrom(publicKey)) {
+        allVerified.push('Demo Key (Ed25519)')
+      }
+    }
+
+    // Check all managed signing keys
+    for (const key of signingKeys.value) {
+      try {
+        const publicKey = key.privateKey.publicKey()
+        if (envelope.hasSignatureFrom(publicKey)) {
+          allVerified.push(`${key.name} (${key.algorithm})`)
+        } else {
+          allFailed.push(key.name)
+        }
+      } catch {
+        allFailed.push(key.name)
+      }
+    }
+
+    if (allVerified.length > 0) {
+      verifyResult.value = {
+        verified: true,
+        message: `Signature verified from: ${allVerified.join(', ')}. The envelope has not been tampered with.`
+      }
+    } else {
+      verifyResult.value = {
+        verified: false,
+        message: 'No matching signature found. The envelope may have been signed with an unknown key.'
+      }
+    }
+  } catch (e) {
+    verifyResult.value = {
+      verified: false,
+      message: `Verification error: ${e instanceof Error ? e.message : String(e)}`
+    }
+  }
+
+  showVerifyModal.value = true
 }
 
 function encryptNode(nodeId: string) {
@@ -1016,9 +1451,48 @@ function encryptNode(nodeId: string) {
   })
 }
 
-function compressNode(nodeId: string) {
-  const node = findNode(root.value!, nodeId)
+function compressNode(nodeId: string, subjectOnly = false) {
+  if (!root.value) return
+  const node = findNode(root.value, nodeId)
   const isReversing = node?.type === 'compressed' && !!node.child
+
+  if (subjectOnly && !isReversing) {
+    // Subject-only compression - mark it on the node
+    saveToHistory()
+    const targetNode = findNode(root.value, nodeId)
+    if (!targetNode) return
+
+    const compressedNode: EnvelopeNode = {
+      id: generateId(),
+      type: 'compressed',
+      child: targetNode,
+      expanded: true,
+      compressSubjectOnly: true
+    }
+
+    if (root.value.id === nodeId) {
+      root.value = compressedNode
+    } else {
+      const result = findParent(root.value, nodeId)
+      if (!result || !result.parent) return
+      if (result.isChild) {
+        result.parent.child = compressedNode
+      } else if (result.isAssertionObject) {
+        result.parent.object = compressedNode
+      } else if (result.assertionIndex >= 0 && result.parent.assertions) {
+        const assertion = result.parent.assertions[result.assertionIndex]
+        if (assertion && assertion.object?.id === nodeId) {
+          assertion.object = compressedNode
+        }
+      }
+    }
+
+    updateOutput()
+    saveToHistory()
+    toast.add({ title: 'Subject compressed', color: 'success', icon: 'i-heroicons-archive-box-arrow-down' })
+    return
+  }
+
   applyTransformation(nodeId, 'compressed')
   toast.add({
     title: isReversing ? 'Envelope decompressed' : 'Envelope compressed',
@@ -1107,6 +1581,7 @@ function addSaltToNode() {
 function openElideSelectModal(nodeId: string) {
   elideTargetNodeId.value = nodeId
   elideMode.value = 'reveal'
+  elideAction.value = 'elide'
   elideSelections.value = {}
 
   // Initialize selections based on current state (elided nodes = unchecked in reveal mode)
@@ -1173,7 +1648,25 @@ function applyElisionToTree(node: EnvelopeNode): EnvelopeNode | null {
 
   // Handle ELIDING: If node should be elided and isn't already
   if (shouldElide && node.type === 'subject') {
-    // Elide this node
+    const action = elideAction.value
+    if (action === 'encrypt') {
+      return {
+        id: generateId(),
+        type: 'encrypted',
+        child: node,
+        expanded: true,
+        encryptionMode: 'symmetric',
+        elideAction: 'encrypt'
+      }
+    } else if (action === 'compress') {
+      return {
+        id: generateId(),
+        type: 'compressed',
+        child: node,
+        expanded: true,
+        elideAction: 'compress'
+      }
+    }
     return {
       id: generateId(),
       type: 'elided',
@@ -1200,6 +1693,27 @@ function applyElisionToTree(node: EnvelopeNode): EnvelopeNode | null {
 
       // ELIDE assertion if it should be elided and isn't already
       if (assertionShouldElide && assertion.type !== 'elided') {
+        const action = elideAction.value
+        if (action === 'encrypt') {
+          return {
+            ...assertion,
+            id: generateId(),
+            type: 'encrypted' as NodeType,
+            child: assertion,
+            object: undefined,
+            encryptionMode: 'symmetric' as const,
+            elideAction: 'encrypt' as const
+          }
+        } else if (action === 'compress') {
+          return {
+            ...assertion,
+            id: generateId(),
+            type: 'compressed' as NodeType,
+            child: assertion,
+            object: undefined,
+            elideAction: 'compress' as const
+          }
+        }
         return {
           ...assertion,
           id: generateId(),
@@ -1280,6 +1794,14 @@ function getNodeDisplayLabel(node: EnvelopeNode): string {
   if (node.type === 'subject') {
     if (node.valueType === 'null') return 'null'
     if (node.valueType === 'bool') return String(node.value)
+    if (node.valueType === 'date') return `date(${node.value})`
+    if (node.valueType === 'uuid') return `uuid(${String(node.value).substring(0, 8)}...)`
+    if (node.valueType === 'arid') return `arid(${String(node.value).substring(0, 8)}...)`
+    if (node.valueType === 'uri') return String(node.value)
+    if (node.valueType === 'known') {
+      const kvEntry = knownValuesList.find(kv => kv.value === String(node.value))
+      return kvEntry ? `'${kvEntry.label}'` : `known(${node.value})`
+    }
     if (node.valueType === 'string') return `"${String(node.value).substring(0, 20)}${String(node.value).length > 20 ? '...' : ''}"`
     return String(node.value)
   }
@@ -1331,6 +1853,8 @@ function toggleRecipientSelection(recipientId: string) {
 function encryptToRecipients() {
   if (!encryptTargetNodeId.value || !root.value) return
 
+  saveToHistory()
+
   const targetId = encryptTargetNodeId.value
   const node = findNode(root.value, targetId)
   if (!node) return
@@ -1338,16 +1862,10 @@ function encryptToRecipients() {
   // If no recipients selected and node is already encrypted, decrypt it
   if (selectedRecipientIds.value.length === 0) {
     if (node.type === 'encrypted' && node.child) {
-      // Decrypt by reversing the transformation
       reverseTransformation(targetId)
       showRecipientsModal.value = false
-      toast.add({
-        title: 'Envelope decrypted',
-        color: 'success',
-        icon: 'i-heroicons-lock-open'
-      })
+      toast.add({ title: 'Envelope decrypted', color: 'success', icon: 'i-heroicons-lock-open' })
     } else {
-      // Nothing to do - no recipients selected and not encrypted
       showRecipientsModal.value = false
     }
     return
@@ -1357,21 +1875,25 @@ function encryptToRecipients() {
   if (node.type === 'encrypted') {
     node.recipientCount = selectedRecipientIds.value.length
     node.recipientIds = [...selectedRecipientIds.value]
+    node.encryptionMode = 'recipient'
     showRecipientsModal.value = false
     toast.add({
       title: `Updated to ${selectedRecipientIds.value.length} recipient(s)`,
       color: 'success',
       icon: 'i-heroicons-lock-closed'
     })
+    updateOutput()
+    saveToHistory()
     return
   }
 
-  // Encrypt the node for the first time
+  // Encrypt the node for the first time with real recipient encryption
   const encryptedNode: EnvelopeNode = {
     id: generateId(),
     type: 'encrypted',
     child: node,
     expanded: true,
+    encryptionMode: 'recipient',
     recipientCount: selectedRecipientIds.value.length,
     recipientIds: [...selectedRecipientIds.value]
   }
@@ -1395,11 +1917,726 @@ function encryptToRecipients() {
   }
 
   showRecipientsModal.value = false
+  updateOutput()
+  saveToHistory()
   toast.add({
-    title: `Encrypted for ${selectedRecipientIds.value.length} recipient(s)`,
+    title: `Encrypted for ${selectedRecipientIds.value.length} recipient(s) using public-key encryption`,
     color: 'success',
     icon: 'i-heroicons-lock-closed'
   })
+}
+
+// ============================================
+// Phase 2: Password-Based Encryption
+// ============================================
+
+function openPasswordEncryptModal(nodeId: string) {
+  passwordEncryptTargetNodeId.value = nodeId
+  encryptPassword.value = ''
+  encryptPasswordConfirm.value = ''
+  encryptKdfMethod.value = KeyDerivationMethod.Argon2id
+  showPasswordEncryptModal.value = true
+}
+
+function passwordEncrypt() {
+  if (!passwordEncryptTargetNodeId.value || !root.value) return
+  if (!encryptPassword.value) return
+  if (encryptPassword.value !== encryptPasswordConfirm.value) {
+    toast.add({ title: 'Passwords do not match', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+    return
+  }
+
+  saveToHistory()
+
+  const targetId = passwordEncryptTargetNodeId.value
+  const node = findNode(root.value, targetId)
+  if (!node) return
+
+  const encryptedNode: EnvelopeNode = {
+    id: generateId(),
+    type: 'encrypted',
+    child: node,
+    expanded: true,
+    encryptionMode: 'password',
+    value: encryptPassword.value // Stored temporarily for buildEnvelope
+  }
+
+  if (root.value.id === targetId) {
+    root.value = encryptedNode
+  } else {
+    const result = findParent(root.value, targetId)
+    if (!result || !result.parent) return
+
+    if (result.isChild) {
+      result.parent.child = encryptedNode
+    } else if (result.isAssertionObject) {
+      result.parent.object = encryptedNode
+    } else if (result.assertionIndex >= 0 && result.parent.assertions) {
+      const assertion = result.parent.assertions[result.assertionIndex]
+      if (assertion && assertion.object?.id === targetId) {
+        assertion.object = encryptedNode
+      }
+    }
+  }
+
+  showPasswordEncryptModal.value = false
+  updateOutput()
+  saveToHistory()
+  toast.add({
+    title: 'Encrypted with password (Argon2id)',
+    color: 'success',
+    icon: 'i-heroicons-lock-closed'
+  })
+}
+
+// ============================================
+// Phase 2: Seal (Sign-then-Encrypt) Functions
+// ============================================
+
+function openSealModal(nodeId: string) {
+  sealTargetNodeId.value = nodeId
+  sealSignerId.value = signingKeys.value.length > 0 ? signingKeys.value[0]!.id : null
+  sealRecipientId.value = recipients.value.length > 0 ? recipients.value[0]!.id : null
+  showSealModal.value = true
+}
+
+function sealNode() {
+  if (!sealTargetNodeId.value || !root.value) return
+  if (!sealSignerId.value || !sealRecipientId.value) {
+    toast.add({ title: 'Select both a signer and recipient', color: 'warning', icon: 'i-heroicons-exclamation-triangle' })
+    return
+  }
+
+  saveToHistory()
+
+  const targetId = sealTargetNodeId.value
+  const node = findNode(root.value, targetId)
+  if (!node) return
+
+  // Create a node that represents a sealed envelope (signed then encrypted to recipient)
+  const sealedNode: EnvelopeNode = {
+    id: generateId(),
+    type: 'encrypted',
+    child: {
+      id: generateId(),
+      type: 'signed',
+      child: node,
+      expanded: true,
+      signerIds: [sealSignerId.value]
+    },
+    expanded: true,
+    sealed: true,
+    sealSignerId: sealSignerId.value,
+    sealRecipientId: sealRecipientId.value,
+    encryptionMode: 'recipient',
+    recipientIds: [sealRecipientId.value],
+    recipientCount: 1
+  }
+
+  if (root.value.id === targetId) {
+    root.value = sealedNode
+  } else {
+    const result = findParent(root.value, targetId)
+    if (!result || !result.parent) return
+
+    if (result.isChild) {
+      result.parent.child = sealedNode
+    } else if (result.isAssertionObject) {
+      result.parent.object = sealedNode
+    } else if (result.assertionIndex >= 0 && result.parent.assertions) {
+      const assertion = result.parent.assertions[result.assertionIndex]
+      if (assertion && assertion.object?.id === targetId) {
+        assertion.object = sealedNode
+      }
+    }
+  }
+
+  showSealModal.value = false
+  updateOutput()
+  saveToHistory()
+
+  const signerName = signingKeys.value.find(k => k.id === sealSignerId.value)?.name || 'Unknown'
+  const recipientName = recipients.value.find(r => r.id === sealRecipientId.value)?.name || 'Unknown'
+  toast.add({
+    title: `Sealed: signed by ${signerName}, encrypted to ${recipientName}`,
+    color: 'success',
+    icon: 'i-heroicons-shield-check'
+  })
+}
+
+// ============================================
+// Phase 3: SSKR Functions
+// ============================================
+
+function openSskrSplitModal(nodeId: string) {
+  sskrTargetNodeId.value = nodeId
+  sskrGroupThreshold.value = 1
+  sskrGroups.value = [{ memberThreshold: 2, memberCount: 3 }]
+  sskrShares.value = []
+  showSskrSplitModal.value = true
+}
+
+function addSskrGroup() {
+  sskrGroups.value = [...sskrGroups.value, { memberThreshold: 2, memberCount: 3 }]
+}
+
+function removeSskrGroup(index: number) {
+  if (sskrGroups.value.length <= 1) return
+  sskrGroups.value = sskrGroups.value.filter((_, i) => i !== index)
+  // Adjust group threshold if needed
+  if (sskrGroupThreshold.value > sskrGroups.value.length) {
+    sskrGroupThreshold.value = sskrGroups.value.length
+  }
+}
+
+function performSskrSplit() {
+  if (!sskrTargetNodeId.value || !root.value) return
+
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) {
+      toast.add({ title: 'Failed to build envelope for splitting', color: 'error' })
+      return
+    }
+
+    // Create SSKR spec
+    const groupSpecs = sskrGroups.value.map(g => SSKRGroupSpec.new(g.memberThreshold, g.memberCount))
+    const spec = SSKRSpec.new(sskrGroupThreshold.value, groupSpecs)
+
+    // Need a symmetric key for the split
+    const contentKey = SymmetricKey.new()
+
+    // First encrypt the envelope with the content key, then split
+    const encrypted = envelope.encrypt(contentKey)
+    const shareEnvelopes = encrypted.sskrSplit(spec, contentKey)
+
+    // Convert share envelopes to UR strings for display
+    sskrShares.value = shareEnvelopes.map(group =>
+      group.map(shareEnv => shareEnv.urString())
+    )
+
+    toast.add({
+      title: `Split into ${shareEnvelopes.flat().length} shares across ${shareEnvelopes.length} group(s)`,
+      color: 'success',
+      icon: 'i-heroicons-puzzle-piece'
+    })
+  } catch (e) {
+    toast.add({
+      title: 'SSKR split failed',
+      description: e instanceof Error ? e.message : 'Unknown error',
+      color: 'error',
+      icon: 'i-heroicons-exclamation-triangle'
+    })
+  }
+}
+
+function openSskrJoinModal() {
+  sskrJoinInput.value = ''
+  sskrJoinError.value = null
+  showSskrJoinModal.value = true
+}
+
+function performSskrJoin() {
+  if (!sskrJoinInput.value.trim()) {
+    sskrJoinError.value = 'Please paste share URs (one per line)'
+    return
+  }
+
+  try {
+    const shareLines = sskrJoinInput.value.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0)
+    if (shareLines.length < 2) {
+      sskrJoinError.value = 'Need at least 2 shares to reconstruct'
+      return
+    }
+
+    // Parse each share UR into an Envelope
+    const shareEnvelopes = shareLines.map(line => Envelope.fromUrString(line))
+
+    // Join the shares back
+    const recovered = Envelope.sskrJoin(shareEnvelopes)
+
+    // Reconstruct tree from recovered envelope
+    saveToHistory()
+    root.value = envelopeToNode(recovered)
+    updateOutput()
+    saveToHistory()
+
+    showSskrJoinModal.value = false
+    toast.add({
+      title: 'SSKR shares combined successfully',
+      description: 'Envelope reconstructed from shares.',
+      color: 'success',
+      icon: 'i-heroicons-puzzle-piece'
+    })
+  } catch (e) {
+    sskrJoinError.value = e instanceof Error ? e.message : 'Failed to join shares'
+  }
+}
+
+// ============================================
+// Phase 4: Digest Depth Display
+// ============================================
+
+function formatDigestValue(d: Digest): string {
+  switch (digestFormat.value) {
+    case 'short': return d.hex().substring(0, 7)
+    case 'ur': return d.urString ? d.urString() : `ur:digest/${d.hex().substring(0, 16)}`
+    default: return d.hex()
+  }
+}
+
+function updateDigestDisplay() {
+  if (!root.value) {
+    allDigests.value = []
+    return
+  }
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) { allDigests.value = []; return }
+
+    let digestSet: Set<unknown>
+    switch (digestDepth.value) {
+      case 'shallow':
+        digestSet = envelope.shallowDigests()
+        break
+      case 'deep':
+        digestSet = envelope.deepDigests()
+        break
+      default:
+        // top: just the root digest
+        allDigests.value = [formatDigestValue(envelope.digest())]
+        return
+    }
+
+    allDigests.value = Array.from(digestSet).map((d) => formatDigestValue(d as Digest))
+  } catch {
+    allDigests.value = []
+  }
+}
+
+watch([digestDepth, digestFormat], updateDigestDisplay)
+watch([treeHideNodes, treeDigestDisplay], updateOutput)
+
+// ============================================
+// Phase 4: Walk/Traversal - Find Obscured Nodes
+// ============================================
+
+function findObscuredNodes() {
+  if (!root.value) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) return
+
+    const results: { digest: string; type: string }[] = []
+
+    // Find all obscured nodes using nodesMatching
+    const elidedDigests = envelope.nodesMatching(undefined, [ObscureType.Elided])
+    const encryptedDigests = envelope.nodesMatching(undefined, [ObscureType.Encrypted])
+    const compressedDigests = envelope.nodesMatching(undefined, [ObscureType.Compressed])
+
+    for (const d of elidedDigests) {
+      results.push({ digest: (d as Digest).hex().substring(0, 12), type: 'elided' })
+    }
+    for (const d of encryptedDigests) {
+      results.push({ digest: (d as Digest).hex().substring(0, 12), type: 'encrypted' })
+    }
+    for (const d of compressedDigests) {
+      results.push({ digest: (d as Digest).hex().substring(0, 12), type: 'compressed' })
+    }
+
+    obscuredNodes.value = results
+    showObscuredPanel.value = true
+  } catch (e) {
+    toast.add({ title: 'Error finding obscured nodes', description: String(e), color: 'error' })
+  }
+}
+
+// ============================================
+// Phase 4: Walk/Traversal - Unelide
+// ============================================
+
+function openUnelideModal(nodeId: string) {
+  unelideTargetNodeId.value = nodeId
+  unelideInput.value = ''
+  unelideError.value = null
+  showUnelideModal.value = true
+}
+
+function performUnelide() {
+  if (!root.value || !unelideInput.value.trim()) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    // Parse the input as an envelope (hex, base64, or UR)
+    let restoreEnvelope: Envelope
+    const input = unelideInput.value.trim()
+    if (input.startsWith('ur:')) {
+      restoreEnvelope = Envelope.fromUrString(input)
+    } else {
+      // Try hex first
+      const bytes = new Uint8Array(input.match(/.{1,2}/g)!.map(b => parseInt(b, 16)))
+      restoreEnvelope = envelopeFromBytes(bytes)
+    }
+
+    // Use walkUnelide to restore all matching elided nodes
+    const restored = envelope.walkUnelide([restoreEnvelope])
+
+    // Check if anything changed
+    if (restored.isIdenticalTo(envelope)) {
+      unelideError.value = 'No matching elided nodes found for the provided envelope'
+      return
+    }
+
+    // Reconstruct the tree from the restored envelope
+    root.value = envelopeToNode(restored)
+    showUnelideModal.value = false
+    toast.add({ title: 'Envelope unelided', description: 'Elided node restored successfully.', color: 'success', icon: 'i-heroicons-eye' })
+  } catch (e) {
+    unelideError.value = e instanceof Error ? e.message : 'Failed to unelide'
+  }
+}
+
+// ============================================
+// Phase 4: Walk/Traversal - Decrypt / Decompress
+// ============================================
+
+function openDecryptModal(nodeId: string) {
+  decryptTargetNodeId.value = nodeId
+  decryptKeyHex.value = ''
+  decryptPassword.value = ''
+  decryptRecipientId.value = recipients.value[0]?.id || null
+  decryptMode.value = 'symmetric'
+  decryptError.value = null
+  showDecryptModal.value = true
+}
+
+function performDecrypt() {
+  if (!root.value) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    let decrypted: Envelope
+    if (decryptMode.value === 'password') {
+      if (!decryptPassword.value) throw new Error('Password is required')
+      const passwordBytes = new TextEncoder().encode(decryptPassword.value)
+      decrypted = envelope.unlock(passwordBytes)
+    } else if (decryptMode.value === 'recipient') {
+      if (!decryptRecipientId.value) throw new Error('Select a recipient')
+      const recipient = recipients.value.find(r => r.id === decryptRecipientId.value)
+      if (!recipient) throw new Error('Recipient not found')
+      decrypted = envelope.decryptToRecipient(recipient.privateKey)
+    } else {
+      if (!decryptKeyHex.value.trim()) throw new Error('Symmetric key hex is required')
+      const keyBytes = new Uint8Array(decryptKeyHex.value.trim().match(/.{1,2}/g)!.map(b => parseInt(b, 16)))
+      const key = SymmetricKey.fromData(keyBytes)
+      decrypted = envelope.decrypt(key)
+    }
+
+    root.value = envelopeToNode(decrypted)
+    showDecryptModal.value = false
+    toast.add({ title: 'Envelope decrypted', description: 'Encrypted content revealed.', color: 'success', icon: 'i-heroicons-lock-open' })
+  } catch (e) {
+    decryptError.value = e instanceof Error ? e.message : 'Failed to decrypt'
+  }
+}
+
+function decompressEnvelope() {
+  if (!root.value) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    const decompressed = envelope.isCompressed() ? envelope.decompress() : envelope.decompressSubject()
+    root.value = envelopeToNode(decompressed)
+    toast.add({ title: 'Envelope decompressed', description: 'Compressed content expanded.', color: 'success', icon: 'i-heroicons-archive-box' })
+  } catch (e) {
+    toast.add({ title: 'Decompression failed', description: e instanceof Error ? e.message : 'Unknown error', color: 'error' })
+  }
+}
+
+// ============================================
+// Phase 5: Unseal (Decrypt + Verify)
+// ============================================
+
+function openUnsealModal() {
+  unsealSignerKeyId.value = signingKeys.value[0]?.id || null
+  unsealRecipientId.value = recipients.value[0]?.id || null
+  unsealError.value = null
+  showUnsealModal.value = true
+}
+
+function performUnseal() {
+  if (!root.value) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    if (!unsealSignerKeyId.value) throw new Error('Select a signer key for verification')
+    if (!unsealRecipientId.value) throw new Error('Select a recipient for decryption')
+
+    const signer = signingKeys.value.find(k => k.id === unsealSignerKeyId.value)
+    if (!signer) throw new Error('Signer key not found')
+    const recipient = recipients.value.find(r => r.id === unsealRecipientId.value)
+    if (!recipient) throw new Error('Recipient not found')
+
+    const unsealed = envelope.unseal(signer.privateKey.publicKey(), recipient.privateKey)
+    root.value = envelopeToNode(unsealed)
+    showUnsealModal.value = false
+    toast.add({ title: 'Envelope unsealed', description: 'Decrypted and signature verified.', color: 'success', icon: 'i-heroicons-shield-check' })
+  } catch (e) {
+    unsealError.value = e instanceof Error ? e.message : 'Failed to unseal'
+  }
+}
+
+// ============================================
+// Phase 5: Walk Replace
+// ============================================
+
+function openWalkReplaceModal() {
+  walkReplaceDigestHex.value = ''
+  walkReplaceEnvelopeInput.value = ''
+  walkReplaceError.value = null
+  showWalkReplaceModal.value = true
+}
+
+function performWalkReplace() {
+  if (!root.value) return
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    if (!walkReplaceDigestHex.value.trim()) throw new Error('Digest hex is required')
+    if (!walkReplaceEnvelopeInput.value.trim()) throw new Error('Replacement envelope is required')
+
+    // Parse the target digest
+    const digestBytes = new Uint8Array(walkReplaceDigestHex.value.trim().match(/.{1,2}/g)!.map(b => parseInt(b, 16)))
+    const targetDigest = Digest.fromData(digestBytes)
+
+    // Parse the replacement envelope
+    let replacement: Envelope
+    const input = walkReplaceEnvelopeInput.value.trim()
+    if (input.startsWith('ur:')) {
+      replacement = Envelope.fromUrString(input)
+    } else {
+      const bytes = new Uint8Array(input.match(/.{1,2}/g)!.map(b => parseInt(b, 16)))
+      replacement = envelopeFromBytes(bytes)
+    }
+
+    const targetSet = new Set([targetDigest])
+    const replaced = envelope.walkReplace(targetSet, replacement)
+
+    if (replaced.isIdenticalTo(envelope)) {
+      walkReplaceError.value = 'No matching nodes found for the provided digest'
+      return
+    }
+
+    root.value = envelopeToNode(replaced)
+    showWalkReplaceModal.value = false
+    toast.add({ title: 'Nodes replaced', description: 'Matching nodes replaced successfully.', color: 'success', icon: 'i-heroicons-arrow-path' })
+  } catch (e) {
+    walkReplaceError.value = e instanceof Error ? e.message : 'Failed to replace'
+  }
+}
+
+// ============================================
+// Phase 5: Generate Utilities
+// ============================================
+
+function generateSeed(size: number = 16) {
+  const seed = Seed.newWithLen(size)
+  generatedItems.value = [{ type: `Seed (${size}B)`, value: seed.toHex() }, ...generatedItems.value]
+  showGeneratePanel.value = true
+}
+
+function generateArid() {
+  const arid = ARID.new()
+  generatedItems.value = [{ type: 'ARID', value: arid.hex() }, ...generatedItems.value]
+  showGeneratePanel.value = true
+}
+
+function generateNonce() {
+  const nonce = Nonce.new()
+  generatedItems.value = [{ type: 'Nonce', value: nonce.hex() }, ...generatedItems.value]
+  showGeneratePanel.value = true
+}
+
+function generateDigestFromInput(input: string) {
+  if (!input.trim()) return
+  const bytes = new TextEncoder().encode(input)
+  const digest = Digest.fromImage(bytes)
+  generatedItems.value = [{ type: 'Digest', value: digest.hex() }, ...generatedItems.value]
+  showGeneratePanel.value = true
+}
+
+// Phase 5: Digest input for hash
+const digestInputText = ref('')
+
+// ============================================
+// Phase 4: Expression/Request/Response/Event Builder
+// ============================================
+
+const knownFunctions = [
+  { label: 'add', value: 'add' }, { label: 'sub', value: 'sub' },
+  { label: 'mul', value: 'mul' }, { label: 'div', value: 'div' },
+  { label: 'neg', value: 'neg' }, { label: 'lt', value: 'lt' },
+  { label: 'le', value: 'le' }, { label: 'gt', value: 'gt' },
+  { label: 'ge', value: 'ge' }, { label: 'eq', value: 'eq' },
+  { label: 'ne', value: 'ne' }, { label: 'and', value: 'and' },
+  { label: 'or', value: 'or' }, { label: 'xor', value: 'xor' },
+  { label: 'not', value: 'not' }
+]
+
+function openExpressionModal(mode: 'expression' | 'request' | 'response' | 'event') {
+  expressionMode.value = mode
+  exprFunctionName.value = ''
+  exprFunctionType.value = 'named'
+  exprKnownFunction.value = 'add'
+  exprParams.value = []
+  requestNote.value = ''
+  requestDate.value = false
+  responseIsSuccess.value = true
+  responseResultValue.value = ''
+  eventContent.value = ''
+  eventNote.value = ''
+  eventDate.value = false
+  showExpressionModal.value = true
+}
+
+function addExprParam() {
+  exprParams.value.push({ name: '', value: '', valueType: 'string' })
+}
+
+function removeExprParam(index: number) {
+  exprParams.value.splice(index, 1)
+}
+
+function buildExpressionEnvelope(): Envelope | null {
+  try {
+    switch (expressionMode.value) {
+      case 'expression': {
+        const func = exprFunctionType.value === 'known'
+          ? EnvFunction.newNamed(exprKnownFunction.value)
+          : EnvFunction.newNamed(exprFunctionName.value)
+        let expr = new Expression(func)
+        for (const p of exprParams.value) {
+          if (p.name && p.value) {
+            const val = parseValue(p.valueType, p.value)
+            expr = expr.withParameter(p.name, val)
+          }
+        }
+        return expr.envelope()
+      }
+      case 'request': {
+        const id = ARID.new()
+        const func = exprFunctionType.value === 'known'
+          ? EnvFunction.newNamed(exprKnownFunction.value)
+          : EnvFunction.newNamed(exprFunctionName.value)
+        let request = EnvRequest.new(func, id)
+        for (const p of exprParams.value) {
+          if (p.name && p.value) {
+            const val = parseValue(p.valueType, p.value)
+            request = request.withParameter(p.name, val)
+          }
+        }
+        if (requestNote.value) request = request.withNote(requestNote.value)
+        if (requestDate.value) request = request.withDate(new Date())
+        return request.toEnvelope()
+      }
+      case 'response': {
+        const id = ARID.new()
+        if (responseIsSuccess.value) {
+          let response = EnvResponse.newSuccess(id)
+          if (responseResultValue.value) {
+            response = response.withResult(responseResultValue.value)
+          }
+          return response.toEnvelope()
+        } else {
+          let response = EnvResponse.newFailure(id)
+          if (responseResultValue.value) {
+            response = response.withError(responseResultValue.value)
+          }
+          return response.toEnvelope()
+        }
+      }
+      case 'event': {
+        const id = ARID.new()
+        const event = EnvEvent.new(eventContent.value || 'event', id)
+        if (eventNote.value) event.withNote(eventNote.value)
+        if (eventDate.value) event.withDate(new Date())
+        return event.toEnvelope()
+      }
+    }
+  } catch (e) {
+    console.error('Expression build error:', e)
+    return null
+  }
+}
+
+function applyExpressionEnvelope() {
+  const envelope = buildExpressionEnvelope()
+  if (!envelope) {
+    toast.add({ title: 'Failed to build expression', color: 'error' })
+    return
+  }
+
+  // Convert the expression envelope to a tree node and set as root
+  root.value = envelopeToNode(envelope)
+  showExpressionModal.value = false
+  toast.add({
+    title: `${expressionMode.value.charAt(0).toUpperCase() + expressionMode.value.slice(1)} created`,
+    color: 'success',
+    icon: 'i-heroicons-code-bracket'
+  })
+}
+
+// ============================================
+// Phase 4: Assertion Query
+// ============================================
+
+function _queryAssertions() {
+  if (!root.value) return
+  queryResults.value = []
+  queryError.value = null
+
+  try {
+    const envelope = buildEnvelope(root.value)
+    if (!envelope) throw new Error('Could not build envelope')
+
+    // Build predicate value
+    const predValue = parsePredicateValue(queryPredicateType.value, queryPredicate.value, queryPredicateKnownValue.value)
+
+    // Find matching assertions
+    const matches = envelope.assertionsWithPredicate(predValue)
+
+    if (matches.length === 0) {
+      queryError.value = 'No assertions found for this predicate'
+      return
+    }
+
+    queryResults.value = matches.map(a => {
+      let predStr = ''
+      let objStr = ''
+      try {
+        const pred = a.asPredicate()
+        predStr = pred ? pred.format() : '?'
+      } catch { predStr = '?' }
+      try {
+        const obj = a.asObject()
+        objStr = obj ? obj.format() : '?'
+      } catch { objStr = '?' }
+      return {
+        predicate: predStr,
+        object: objStr,
+        digest: a.digest().hex().substring(0, 12)
+      }
+    })
+
+    showQueryPanel.value = true
+  } catch (e) {
+    queryError.value = e instanceof Error ? e.message : 'Query failed'
+  }
 }
 
 function removeNode(nodeId: string) {
@@ -1492,11 +2729,24 @@ function getNodeDisplay(node: EnvelopeNode): string {
       if (node.valueType === 'bigint') return `${node.value}n`
       if (node.valueType === 'bytes') return `bytes(${String(node.value).length / 2})`
       if (node.valueType === 'number') return String(node.value)
+      if (node.valueType === 'date') return `date(${node.value})`
+      if (node.valueType === 'uuid') return `uuid(${String(node.value).substring(0, 8)}...)`
+      if (node.valueType === 'arid') return `arid(${String(node.value).substring(0, 8)}...)`
+      if (node.valueType === 'uri') return String(node.value)
+      if (node.valueType === 'known') {
+        const kvEntry = knownValuesList.find(kv => kv.value === String(node.value))
+        return kvEntry ? `'${kvEntry.label}'` : `known(${node.value})`
+      }
       return String(node.value).length > 30
         ? `"${String(node.value).substring(0, 30)}..."`
         : `"${node.value}"`
-    case 'assertion':
+    case 'assertion': {
+      if (node.predicateType === 'known' && node.predicateKnownValue) {
+        const kvEntry = knownValuesList.find(kv => kv.value === node.predicateKnownValue)
+        return kvEntry ? `'${kvEntry.label}'` : node.predicate || ''
+      }
       return node.predicate || ''
+    }
     case 'wrapped':
       return 'WRAPPED'
     case 'signed':
@@ -1552,10 +2802,14 @@ function _hasChildren(node: EnvelopeNode): boolean {
 // Phase 3: Key Management Functions
 // ============================================
 
+// State for new signing key algorithm selection
+const newSigningKeyAlgorithm = ref<SigningAlgorithm>('Ed25519')
+
 function addSigningKey() {
-  const newKey = createSigningKey(`Signer ${signingKeys.value.length + 1}`)
+  const algo = newSigningKeyAlgorithm.value
+  const newKey = createSigningKey(`${algo} Signer ${signingKeys.value.length + 1}`, algo)
   signingKeys.value = [...signingKeys.value, newKey]
-  toast.add({ title: 'Signing key created', color: 'success', icon: 'i-heroicons-key' })
+  toast.add({ title: `${algo} signing key created`, color: 'success', icon: 'i-heroicons-key' })
 }
 
 function removeSigningKey(keyId: string) {
@@ -1645,6 +2899,172 @@ function openImportModal() {
   showImportModal.value = true
 }
 
+function envelopeToNode(envelope: Envelope): EnvelopeNode {
+  const envCase = envelope.case()
+
+  switch (envCase.type) {
+    case 'leaf': {
+      // Extract the value from the leaf
+      let valueType: ValueType = 'string'
+      let value: string | number | boolean | null = ''
+
+      try {
+        const str = envelope.extractString()
+        valueType = 'string'
+        value = str
+      } catch {
+        try {
+          const num = envelope.extractNumber()
+          valueType = 'number'
+          value = num
+        } catch {
+          try {
+            const bool = envelope.extractBoolean()
+            valueType = 'bool'
+            value = bool
+          } catch {
+            try {
+              envelope.extractNull()
+              valueType = 'null'
+              value = null
+            } catch {
+              try {
+                const bytes = envelope.extractBytes()
+                valueType = 'bytes'
+                value = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+              } catch {
+                // Fallback: use summary
+                valueType = 'string'
+                value = envelope.summary(80)
+              }
+            }
+          }
+        }
+      }
+
+      const node: EnvelopeNode = {
+        id: generateId(),
+        type: 'subject',
+        valueType,
+        value,
+        expanded: true
+      }
+
+      // Check for assertions on this leaf
+      const assertions = envelope.assertions()
+      if (assertions.length > 0) {
+        node.assertions = assertions.map(a => envelopeToNode(a))
+      }
+
+      return node
+    }
+
+    case 'knownValue': {
+      return {
+        id: generateId(),
+        type: 'subject',
+        valueType: 'known',
+        value: envCase.value.name(),
+        expanded: true
+      }
+    }
+
+    case 'node': {
+      // Node has a subject and assertions
+      const subjectNode = envelopeToNode(envCase.subject)
+      subjectNode.assertions = envCase.assertions.map(a => envelopeToNode(a))
+      return subjectNode
+    }
+
+    case 'wrapped': {
+      return {
+        id: generateId(),
+        type: 'wrapped',
+        child: envelopeToNode(envCase.envelope),
+        expanded: true
+      }
+    }
+
+    case 'assertion': {
+      const pred = envCase.assertion.predicate()
+      const obj = envCase.assertion.object()
+
+      // Try to get predicate as known value
+      let predicateStr = ''
+      let predicateType: PredicateType = 'string'
+      let predicateKnownValue: string | undefined
+
+      try {
+        const kv = pred.tryKnownValue()
+        predicateStr = kv.name()
+        predicateType = 'known'
+        predicateKnownValue = kv.name()
+      } catch {
+        try {
+          predicateStr = pred.extractString()
+        } catch {
+          predicateStr = pred.summary(40)
+        }
+      }
+
+      return {
+        id: generateId(),
+        type: 'assertion',
+        predicate: predicateStr,
+        predicateType,
+        predicateKnownValue,
+        object: envelopeToNode(obj),
+        expanded: true
+      }
+    }
+
+    case 'elided': {
+      return {
+        id: generateId(),
+        type: 'elided',
+        expanded: true
+      }
+    }
+
+    case 'encrypted': {
+      return {
+        id: generateId(),
+        type: 'encrypted',
+        expanded: true,
+        encryptionMode: 'symmetric'
+      }
+    }
+
+    case 'compressed': {
+      // Try to decompress and show the child
+      try {
+        const decompressed = envelope.decompress()
+        return {
+          id: generateId(),
+          type: 'compressed',
+          child: envelopeToNode(decompressed),
+          expanded: true
+        }
+      } catch {
+        return {
+          id: generateId(),
+          type: 'compressed',
+          expanded: true
+        }
+      }
+    }
+
+    default:
+      return {
+        id: generateId(),
+        type: 'subject',
+        valueType: 'string',
+        value: envelope.summary(80),
+        expanded: true
+      }
+  }
+}
+
 function importEnvelope() {
   if (!importInput.value.trim()) {
     importError.value = 'Please enter data to import'
@@ -1652,28 +3072,27 @@ function importEnvelope() {
   }
 
   try {
-    let hexData: string
+    let envelope: Envelope
 
     switch (importFormat.value) {
-      case 'hex':
-        hexData = importInput.value.trim().replace(/^0x/, '')
+      case 'hex': {
+        const hexStr = importInput.value.trim().replace(/^0x/, '')
+        if (!/^[0-9a-fA-F]+$/.test(hexStr)) {
+          importError.value = 'Invalid hex data'
+          return
+        }
+        const bytes = new Uint8Array(hexStr.match(/.{2}/g)!.map(b => parseInt(b, 16)))
+        envelope = envelopeFromBytes(bytes)
         break
+      }
       case 'base64': {
         const decoded = atob(importInput.value.trim())
-        hexData = Array.from(decoded).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+        const bytes = new Uint8Array(Array.from(decoded).map(c => c.charCodeAt(0)))
+        envelope = envelopeFromBytes(bytes)
         break
       }
       case 'ur': {
-        // Parse UR format: ur:envelope/<base64url>
-        const urMatch = importInput.value.trim().match(/^ur:envelope\/(.+)$/i)
-        if (!urMatch?.[1]) {
-          importError.value = 'Invalid UR format. Expected: ur:envelope/<data>'
-          return
-        }
-        const base64url = urMatch[1].replace(/-/g, '+').replace(/_/g, '/')
-        const padding = '='.repeat((4 - base64url.length % 4) % 4)
-        const urDecoded = atob(base64url + padding)
-        hexData = Array.from(urDecoded).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+        envelope = Envelope.fromUrString(importInput.value.trim())
         break
       }
       default:
@@ -1681,22 +3100,19 @@ function importEnvelope() {
         return
     }
 
-    // Validate hex
-    if (!/^[0-9a-fA-F]+$/.test(hexData)) {
-      importError.value = 'Invalid hex data'
-      return
-    }
-
-    // For now, just store the hex and show it in the output
-    // TODO: Parse CBOR and reconstruct the tree (requires deeper integration)
-    toast.add({
-      title: 'Import successful',
-      description: 'Hex data imported. Tree reconstruction not yet implemented.',
-      color: 'warning',
-      icon: 'i-heroicons-exclamation-triangle'
-    })
+    // Reconstruct the tree from the parsed envelope
+    saveToHistory()
+    root.value = envelopeToNode(envelope)
+    updateOutput()
+    saveToHistory()
 
     showImportModal.value = false
+    toast.add({
+      title: 'Import successful',
+      description: 'Envelope parsed and tree reconstructed.',
+      color: 'success',
+      icon: 'i-heroicons-arrow-down-tray'
+    })
   } catch (e) {
     importError.value = e instanceof Error ? e.message : 'Import failed'
   }
@@ -1878,11 +3294,13 @@ function addTypeToNode() {
   const targetNode = findNodeToAddAssertion(root.value, typeTargetNodeId.value)
   if (!targetNode) return
 
-  // Add type as a special assertion with 'isA' predicate
+  // Add type as a special assertion with 'isA' Known Value predicate
   const typeAssertion: EnvelopeNode = {
     id: generateId(),
     type: 'assertion',
     predicate: 'isA',
+    predicateType: 'known',
+    predicateKnownValue: 'isA',
     object: {
       id: generateId(),
       type: 'subject',
@@ -2189,33 +3607,6 @@ async function copyProof() {
               @click="showKeyManagementModal = true"
             />
           </UTooltip>
-          <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-          <UFieldGroup>
-            <UButton
-              :color="outputMode === 'tree' ? 'primary' : 'neutral'"
-              variant="soft"
-              size="xs"
-              @click="outputMode = 'tree'"
-            >
-              Tree
-            </UButton>
-            <UButton
-              :color="outputMode === 'hex' ? 'primary' : 'neutral'"
-              variant="soft"
-              size="xs"
-              @click="outputMode = 'hex'"
-            >
-              Hex
-            </UButton>
-            <UButton
-              :color="outputMode === 'both' ? 'primary' : 'neutral'"
-              variant="soft"
-              size="xs"
-              @click="outputMode = 'both'"
-            >
-              Both
-            </UButton>
-          </UFieldGroup>
           <UTooltip text="Clear All">
             <UButton
               icon="i-heroicons-trash"
@@ -2298,6 +3689,14 @@ async function copyProof() {
                 @add-type="openTypeModal"
                 @add-attachment="openAttachmentModal"
                 @create-proof="openProofModal"
+                @verify-signature="verifySignature"
+                @password-encrypt="openPasswordEncryptModal"
+                @seal="openSealModal"
+                @compress-subject="(id: string) => compressNode(id, true)"
+                @sskr-split="openSskrSplitModal"
+                @unelide="openUnelideModal"
+                @decrypt="openDecryptModal"
+                @decompress="decompressEnvelope"
                 @reorder-assertions="reorderAssertions"
               />
             </div>
@@ -2323,10 +3722,89 @@ async function copyProof() {
                 <UIcon name="i-heroicons-sparkles" class="w-3 h-3 mr-1" />
                 Salt
               </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openPasswordEncryptModal(root.id)">
+                <UIcon name="i-heroicons-key" class="w-3 h-3 mr-1" />
+                Password Encrypt
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openSealModal(root.id)">
+                <UIcon name="i-heroicons-shield-check" class="w-3 h-3 mr-1" />
+                Seal
+              </UButton>
               <UButton size="xs" variant="soft" color="neutral" @click="openElideSelectModal(root.id)">
                 <UIcon name="i-heroicons-eye-slash" class="w-3 h-3 mr-1" />
                 Selective Elide
               </UButton>
+              <!-- Hidden for now: Compress, SSKR Split/Join, Find Obscured, Decompress, Expression/Request/Response/Event, Replace, Generate -->
+              <template v-if="false">
+              <UButton size="xs" variant="soft" color="neutral" @click="compressNode(root.id, true)">
+                <UIcon name="i-heroicons-archive-box-arrow-down" class="w-3 h-3 mr-1" />
+                Compress Subject
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openSskrSplitModal(root.id)">
+                <UIcon name="i-heroicons-puzzle-piece" class="w-3 h-3 mr-1" />
+                SSKR Split
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openSskrJoinModal">
+                <UIcon name="i-heroicons-puzzle-piece" class="w-3 h-3 mr-1" />
+                SSKR Join
+              </UButton>
+              </template>
+              <template v-if="false">
+              <span class="text-gray-300 dark:text-gray-600">|</span>
+              <UButton size="xs" variant="soft" color="neutral" @click="findObscuredNodes">
+                <UIcon name="i-heroicons-magnifying-glass" class="w-3 h-3 mr-1" />
+                Find Obscured
+              </UButton>
+              </template>
+              <UButton size="xs" variant="soft" color="neutral" @click="openUnelideModal(root.id)">
+                <UIcon name="i-heroicons-eye" class="w-3 h-3 mr-1" />
+                Unelide
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openDecryptModal(root.id)">
+                <UIcon name="i-heroicons-lock-open" class="w-3 h-3 mr-1" />
+                Decrypt
+              </UButton>
+              <template v-if="false">
+              <UButton size="xs" variant="soft" color="neutral" @click="decompressEnvelope">
+                <UIcon name="i-heroicons-archive-box" class="w-3 h-3 mr-1" />
+                Decompress
+              </UButton>
+              </template>
+              <template v-if="false">
+              <span class="text-gray-300 dark:text-gray-600">|</span>
+              <UButton size="xs" variant="soft" color="neutral" @click="openExpressionModal('expression')">
+                <UIcon name="i-heroicons-code-bracket" class="w-3 h-3 mr-1" />
+                Expression
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openExpressionModal('request')">
+                <UIcon name="i-heroicons-arrow-up-circle" class="w-3 h-3 mr-1" />
+                Request
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openExpressionModal('response')">
+                <UIcon name="i-heroicons-arrow-down-circle" class="w-3 h-3 mr-1" />
+                Response
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="openExpressionModal('event')">
+                <UIcon name="i-heroicons-bell" class="w-3 h-3 mr-1" />
+                Event
+              </UButton>
+              <span class="text-gray-300 dark:text-gray-600">|</span>
+              <span class="text-gray-300 dark:text-gray-600">|</span>
+              </template>
+              <UButton size="xs" variant="soft" color="neutral" @click="openUnsealModal">
+                <UIcon name="i-heroicons-shield-check" class="w-3 h-3 mr-1" />
+                Unseal
+              </UButton>
+              <template v-if="false">
+              <UButton size="xs" variant="soft" color="neutral" @click="openWalkReplaceModal">
+                <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 mr-1" />
+                Replace
+              </UButton>
+              <UButton size="xs" variant="soft" color="neutral" @click="showGeneratePanel = !showGeneratePanel">
+                <UIcon name="i-heroicons-wrench-screwdriver" class="w-3 h-3 mr-1" />
+                Generate
+              </UButton>
+              </template>
             </div>
           </div>
         </div>
@@ -2350,17 +3828,35 @@ async function copyProof() {
             <!-- Digest Display -->
             <div v-if="digestOutput && !error">
               <div class="flex items-center justify-between mb-2">
-                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Digest (SHA-256)</h4>
-                <UButton
-                  icon="i-heroicons-clipboard-document"
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  @click="copyToClipboard(digestOutput, 'Digest')"
-                />
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {{ digestDepth === 'top' ? 'Digest (SHA-256)' : digestDepth === 'shallow' ? 'Shallow Digests' : 'Deep Digests' }}
+                  <UBadge v-if="digestDepth !== 'top'" color="neutral" variant="soft" size="xs" class="ml-1">{{ allDigests.length }}</UBadge>
+                </h4>
+                <div class="flex items-center gap-1">
+                  <select
+                    v-model="digestDepth"
+                    class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5"
+                  >
+                    <option value="top">Top</option>
+                    <option value="shallow">Shallow</option>
+                    <option value="deep">Deep</option>
+                  </select>
+                  <UButton
+                    icon="i-heroicons-clipboard-document"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="copyToClipboard(digestDepth === 'top' ? digestOutput : allDigests.join('\n'), 'Digest')"
+                  />
+                </div>
               </div>
-              <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-2 text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
+              <div v-if="digestDepth === 'top'" class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-2 text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
                 {{ digestOutput }}
+              </div>
+              <div v-else class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-2 text-xs font-mono text-gray-600 dark:text-gray-400 max-h-48 overflow-y-auto space-y-0.5">
+                <div v-for="(d, i) in allDigests" :key="i" class="break-all">
+                  <span class="text-gray-400 dark:text-gray-500 mr-1">{{ i + 1 }}.</span>{{ d }}
+                </div>
               </div>
             </div>
 
@@ -2368,34 +3864,116 @@ async function copyProof() {
             <div v-if="treeOutput && (outputMode === 'tree' || outputMode === 'both')">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tree Format</h4>
-                <UButton
-                  icon="i-heroicons-clipboard-document"
-                  size="xs"
-                  color="neutral"
-                  variant="ghost"
-                  @click="copyToClipboard(treeOutput, 'Tree format')"
-                />
-              </div>
-              <pre class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">{{ treeOutput }}</pre>
-            </div>
-
-            <!-- Hex Output -->
-            <div v-if="hexOutput && (outputMode === 'hex' || outputMode === 'both')">
-              <div class="flex items-center justify-between mb-2">
-                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">CBOR (Hex)</h4>
-                <div class="flex items-center gap-1">
-                  <UBadge color="neutral" variant="soft" size="xs">{{ hexOutput.length / 2 }} bytes</UBadge>
+                <div class="flex items-center gap-2">
+                  <label class="flex items-center gap-1 text-xs text-gray-500">
+                    <input v-model="treeHideNodes" type="checkbox" class="rounded text-primary-500 w-3 h-3">
+                    Hide nodes
+                  </label>
+                  <select
+                    v-model="treeDigestDisplay"
+                    class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5"
+                    @change="updateOutput()"
+                  >
+                    <option value="short">Short digest</option>
+                    <option value="full">Full digest</option>
+                    <option value="ur">UR digest</option>
+                  </select>
                   <UButton
                     icon="i-heroicons-clipboard-document"
                     size="xs"
                     color="neutral"
                     variant="ghost"
-                    @click="copyToClipboard(hexOutput, 'CBOR hex')"
+                    @click="copyToClipboard(treeOutput, 'Tree format')"
                   />
                 </div>
               </div>
-              <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-600 dark:text-gray-400 break-all max-h-48 overflow-y-auto">
+              <pre class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">{{ treeOutput }}</pre>
+            </div>
+
+            <!-- Envelope Output (Notation / CBOR Hex / CBOR Diagnostic) -->
+            <div v-if="notationOutput || hexOutput || diagnosticOutput">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {{ envelopeOutputMode === 'notation' ? 'Envelope Notation' : envelopeOutputMode === 'hex' ? 'CBOR (Hex)' : 'CBOR Diagnostic' }}
+                  <UBadge v-if="envelopeOutputMode === 'hex' && hexOutput" color="neutral" variant="soft" size="xs" class="ml-1">{{ hexOutput.length / 2 }} bytes</UBadge>
+                </h4>
+                <div class="flex items-center gap-1">
+                  <select
+                    v-model="envelopeOutputMode"
+                    class="text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-1.5 py-0.5"
+                  >
+                    <option value="notation">Notation</option>
+                    <option value="hex">CBOR Hex</option>
+                    <option value="diag">CBOR Diagnostic</option>
+                  </select>
+                  <UButton
+                    icon="i-heroicons-clipboard-document"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    @click="copyToClipboard(envelopeOutputMode === 'notation' ? notationOutput : envelopeOutputMode === 'hex' ? hexOutput : diagnosticOutput, envelopeOutputMode === 'notation' ? 'Envelope notation' : envelopeOutputMode === 'hex' ? 'CBOR hex' : 'CBOR diagnostic')"
+                  />
+                </div>
+              </div>
+              <pre v-if="envelopeOutputMode === 'notation' && notationOutput" class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">{{ notationOutput }}</pre>
+              <div v-else-if="envelopeOutputMode === 'hex' && hexOutput" class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-600 dark:text-gray-400 break-all max-h-48 overflow-y-auto">
                 {{ hexOutput }}
+              </div>
+              <pre v-else-if="envelopeOutputMode === 'diag' && diagnosticOutput" class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre">{{ diagnosticOutput }}</pre>
+            </div>
+
+
+            <!-- Phase 4: Find Obscured Nodes Panel -->
+            <div v-if="showObscuredPanel && obscuredNodes.length > 0">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Obscured Nodes
+                  <UBadge color="warning" variant="soft" size="xs" class="ml-1">{{ obscuredNodes.length }}</UBadge>
+                </h4>
+                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="showObscuredPanel = false" />
+              </div>
+              <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 space-y-1">
+                <div v-for="(node, i) in obscuredNodes" :key="i" class="flex items-center gap-2 text-xs">
+                  <UBadge
+                    :color="node.type === 'elided' ? 'neutral' : node.type === 'encrypted' ? 'error' : 'info'"
+                    variant="soft"
+                    size="xs"
+                  >
+                    {{ node.type }}
+                  </UBadge>
+                  <span class="font-mono text-gray-500 dark:text-gray-400">{{ node.digest }}...</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="showObscuredPanel && obscuredNodes.length === 0 && !error">
+              <UAlert color="success" variant="soft" icon="i-heroicons-check-circle" title="No obscured nodes found" description="This envelope has no elided, encrypted, or compressed elements." />
+            </div>
+
+
+            <!-- Phase 5: Generate Utilities Panel -->
+            <div v-if="showGeneratePanel">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Generate Utilities</h4>
+                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="showGeneratePanel = false" />
+              </div>
+              <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 space-y-3">
+                <div class="flex gap-2 flex-wrap">
+                  <UButton size="xs" variant="soft" color="primary" @click="generateSeed(16)">Seed (16B)</UButton>
+                  <UButton size="xs" variant="soft" color="primary" @click="generateSeed(32)">Seed (32B)</UButton>
+                  <UButton size="xs" variant="soft" color="primary" @click="generateArid()">ARID</UButton>
+                  <UButton size="xs" variant="soft" color="primary" @click="generateNonce()">Nonce</UButton>
+                </div>
+                <div class="flex gap-2">
+                  <UInput v-model="digestInputText" placeholder="Text to hash..." size="xs" class="flex-1" @keydown.enter="generateDigestFromInput(digestInputText)" />
+                  <UButton size="xs" variant="soft" color="primary" @click="generateDigestFromInput(digestInputText)">Digest</UButton>
+                </div>
+                <div v-if="generatedItems.length > 0" class="space-y-1 max-h-32 overflow-y-auto">
+                  <div v-for="(item, i) in generatedItems" :key="i" class="flex items-center gap-2 text-xs">
+                    <UBadge color="neutral" variant="soft" size="xs">{{ item.type }}</UBadge>
+                    <span class="font-mono text-gray-600 dark:text-gray-400 truncate flex-1">{{ item.value }}</span>
+                    <UButton icon="i-heroicons-clipboard-document" size="xs" color="neutral" variant="ghost" @click="copyToClipboard(item.value, item.type)" />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2427,6 +4005,11 @@ async function copyProof() {
                     { label: 'BigInt', value: 'bigint' },
                     { label: 'Boolean', value: 'bool' },
                     { label: 'Bytes (hex)', value: 'bytes' },
+                    { label: 'Date', value: 'date' },
+                    { label: 'UUID', value: 'uuid' },
+                    { label: 'ARID', value: 'arid' },
+                    { label: 'URI', value: 'uri' },
+                    { label: 'Known Value', value: 'known' },
                     { label: 'Null', value: 'null' }
                   ]"
                   value-key="value"
@@ -2445,6 +4028,19 @@ async function copyProof() {
                     value-key="value"
                   />
                 </template>
+                <template v-else-if="subjectValueType === 'known'">
+                  <USelectMenu
+                    v-model="subjectValue"
+                    :items="knownValuesList.map(kv => ({ label: `${kv.label} - ${kv.description}`, value: kv.value }))"
+                    value-key="value"
+                  />
+                </template>
+                <template v-else-if="subjectValueType === 'date'">
+                  <UInput
+                    v-model="subjectValue"
+                    type="datetime-local"
+                  />
+                </template>
                 <template v-else>
                   <UInput
                     v-model="subjectValue"
@@ -2452,6 +4048,9 @@ async function copyProof() {
                     :placeholder="
                       subjectValueType === 'bytes' ? 'Hex string (e.g., deadbeef)' :
                       subjectValueType === 'bigint' ? 'Large integer (e.g., 9007199254740993)' :
+                      subjectValueType === 'uuid' ? 'UUID (e.g., eb377e65-5774-410a-b9cb-510bfc73e6d9)' :
+                      subjectValueType === 'arid' ? 'Hex string (32 bytes)' :
+                      subjectValueType === 'uri' ? 'URI (e.g., https://example.com)' :
                       'Enter value'
                     "
                   />
@@ -2478,14 +4077,38 @@ async function copyProof() {
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Assertion</h3>
 
             <div class="space-y-4">
+              <!-- Predicate Type -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Predicate</label>
-                <UInput
-                  v-model="assertionPredicate"
-                  placeholder="e.g., name, age, email"
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Predicate Type</label>
+                <USelectMenu
+                  v-model="assertionPredicateType"
+                  :items="[
+                    { label: 'String', value: 'string' },
+                    { label: 'Known Value', value: 'known' }
+                  ]"
+                  value-key="value"
                 />
               </div>
 
+              <!-- Predicate Value -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Predicate</label>
+                <template v-if="assertionPredicateType === 'known'">
+                  <USelectMenu
+                    v-model="assertionPredicateKnownValue"
+                    :items="knownValuesList.map(kv => ({ label: `${kv.label} - ${kv.description}`, value: kv.value }))"
+                    value-key="value"
+                  />
+                </template>
+                <template v-else>
+                  <UInput
+                    v-model="assertionPredicate"
+                    placeholder="e.g., name, age, email"
+                  />
+                </template>
+              </div>
+
+              <!-- Object Type -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Object Type</label>
                 <USelectMenu
@@ -2496,12 +4119,18 @@ async function copyProof() {
                     { label: 'BigInt', value: 'bigint' },
                     { label: 'Boolean', value: 'bool' },
                     { label: 'Bytes (hex)', value: 'bytes' },
+                    { label: 'Date', value: 'date' },
+                    { label: 'UUID', value: 'uuid' },
+                    { label: 'ARID', value: 'arid' },
+                    { label: 'URI', value: 'uri' },
+                    { label: 'Known Value', value: 'known' },
                     { label: 'Null', value: 'null' }
                   ]"
                   value-key="value"
                 />
               </div>
 
+              <!-- Object Value -->
               <div v-if="assertionValueType !== 'null'">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Object Value</label>
                 <template v-if="assertionValueType === 'bool'">
@@ -2514,6 +4143,19 @@ async function copyProof() {
                     value-key="value"
                   />
                 </template>
+                <template v-else-if="assertionValueType === 'known'">
+                  <USelectMenu
+                    v-model="assertionValue"
+                    :items="knownValuesList.map(kv => ({ label: `${kv.label} - ${kv.description}`, value: kv.value }))"
+                    value-key="value"
+                  />
+                </template>
+                <template v-else-if="assertionValueType === 'date'">
+                  <UInput
+                    v-model="assertionValue"
+                    type="datetime-local"
+                  />
+                </template>
                 <template v-else>
                   <UInput
                     v-model="assertionValue"
@@ -2521,18 +4163,35 @@ async function copyProof() {
                     :placeholder="
                       assertionValueType === 'bytes' ? 'Hex string (e.g., deadbeef)' :
                       assertionValueType === 'bigint' ? 'Large integer' :
+                      assertionValueType === 'uuid' ? 'UUID (e.g., eb377e65-5774-410a-b9cb-510bfc73e6d9)' :
+                      assertionValueType === 'arid' ? 'Hex string (32 bytes)' :
+                      assertionValueType === 'uri' ? 'URI (e.g., https://example.com)' :
                       'Enter value'
                     "
                   />
                 </template>
               </div>
+
+              <!-- Salted toggle -->
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" :class="{ 'border-orange-500 bg-orange-50 dark:bg-orange-900/20': assertionSalted }">
+                <input v-model="assertionSalted" type="checkbox" class="rounded border-gray-300 text-primary-500 focus:ring-primary-500">
+                <div class="flex-1">
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Salted Assertion</div>
+                  <div class="text-xs text-gray-500">Add random salt to decorrelate the assertion digest</div>
+                </div>
+                <UIcon v-if="assertionSalted" name="i-heroicons-sparkles" class="w-4 h-4 text-orange-500" />
+              </label>
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
               <UButton color="neutral" variant="ghost" @click="showAssertionModal = false">
                 Cancel
               </UButton>
-              <UButton color="primary" :disabled="!assertionPredicate" @click="addAssertion">
+              <UButton
+                color="primary"
+                :disabled="assertionPredicateType === 'string' ? !assertionPredicate : !assertionPredicateKnownValue"
+                @click="addAssertion"
+              >
                 Add
               </UButton>
             </div>
@@ -2645,6 +4304,42 @@ async function copyProof() {
               </div>
               <p class="text-xs text-gray-500 mt-1">
                 {{ elideMode === 'reveal' ? 'Check items to keep visible, unchecked will be elided' : 'Check items to elide, unchecked will remain visible' }}
+              </p>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Elision Action</label>
+              <div class="flex gap-2">
+                <UButton
+                  :color="elideAction === 'elide' ? 'primary' : 'neutral'"
+                  :variant="elideAction === 'elide' ? 'solid' : 'soft'"
+                  size="sm"
+                  @click="elideAction = 'elide'"
+                >
+                  <UIcon name="i-heroicons-eye-slash" class="w-4 h-4 mr-1" />
+                  Digest
+                </UButton>
+                <UButton
+                  :color="elideAction === 'encrypt' ? 'primary' : 'neutral'"
+                  :variant="elideAction === 'encrypt' ? 'solid' : 'soft'"
+                  size="sm"
+                  @click="elideAction = 'encrypt'"
+                >
+                  <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 mr-1" />
+                  Encrypt
+                </UButton>
+                <UButton
+                  :color="elideAction === 'compress' ? 'primary' : 'neutral'"
+                  :variant="elideAction === 'compress' ? 'solid' : 'soft'"
+                  size="sm"
+                  @click="elideAction = 'compress'"
+                >
+                  <UIcon name="i-heroicons-archive-box-arrow-down" class="w-4 h-4 mr-1" />
+                  Compress
+                </UButton>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ elideAction === 'elide' ? 'Replace with digest (irreversible without original)' : elideAction === 'encrypt' ? 'Encrypt with symmetric key (recoverable with key)' : 'Compress (fully recoverable)' }}
               </p>
             </div>
 
@@ -2799,10 +4494,23 @@ async function copyProof() {
             <div class="mb-6">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Signing Keys</h4>
-                <UButton size="xs" variant="soft" color="primary" @click="addSigningKey">
-                  <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
-                  Add
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <select
+                    v-model="newSigningKeyAlgorithm"
+                    class="text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1"
+                  >
+                    <option value="Ed25519">Ed25519</option>
+                    <option value="Schnorr">Schnorr</option>
+                    <option value="ECDSA">ECDSA</option>
+                    <option value="ML-DSA-44">ML-DSA-44 (PQ)</option>
+                    <option value="ML-DSA-65">ML-DSA-65 (PQ)</option>
+                    <option value="ML-DSA-87">ML-DSA-87 (PQ)</option>
+                  </select>
+                  <UButton size="xs" variant="soft" color="primary" @click="addSigningKey">
+                    <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
+                    Add
+                  </UButton>
+                </div>
               </div>
               <div class="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
                 <div
@@ -2817,7 +4525,10 @@ async function copyProof() {
                     class="text-primary-500"
                   >
                   <div class="flex-1 min-w-0">
-                    <div class="font-medium text-sm text-gray-900 dark:text-white">{{ key.name }}</div>
+                    <div class="font-medium text-sm text-gray-900 dark:text-white">
+                      {{ key.name }}
+                      <span class="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{ key.algorithm }}</span>
+                    </div>
                     <div class="text-xs font-mono text-gray-500 truncate">
                       {{ key.publicKeyHex.substring(0, 32) }}...
                     </div>
@@ -2877,10 +4588,21 @@ async function copyProof() {
             <div>
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Recipients (Public Keys)</h4>
-                <UButton size="xs" variant="soft" color="primary" @click="addRecipient">
-                  <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
-                  Add
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <select
+                    v-model="newRecipientScheme"
+                    class="text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1"
+                  >
+                    <option value="X25519">X25519</option>
+                    <option value="ML-KEM-512">ML-KEM-512 (PQ)</option>
+                    <option value="ML-KEM-768">ML-KEM-768 (PQ)</option>
+                    <option value="ML-KEM-1024">ML-KEM-1024 (PQ)</option>
+                  </select>
+                  <UButton size="xs" variant="soft" color="primary" @click="addRecipient">
+                    <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
+                    Add
+                  </UButton>
+                </div>
               </div>
               <div class="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700 max-h-40 overflow-y-auto">
                 <div
@@ -2890,7 +4612,10 @@ async function copyProof() {
                 >
                   <UIcon name="i-heroicons-user" class="w-4 h-4 text-gray-400" />
                   <div class="flex-1 min-w-0">
-                    <div class="font-medium text-sm text-gray-900 dark:text-white">{{ recipient.name }}</div>
+                    <div class="font-medium text-sm text-gray-900 dark:text-white">
+                      {{ recipient.name }}
+                      <span class="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{ recipient.scheme }}</span>
+                    </div>
                     <div class="text-xs font-mono text-gray-500 truncate">
                       {{ recipient.publicKeyHex.substring(0, 24) }}...
                     </div>
@@ -3299,6 +5024,353 @@ async function copyProof() {
         </template>
       </UModal>
 
+      <!-- Phase 2: Sign Modal -->
+      <UModal v-model:open="showSignModal" title="Sign Envelope" description="Configure signing options for the envelope.">
+        <template #content>
+          <div class="p-6 min-w-[400px]">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Sign Envelope</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Select signing keys and optionally add a signature note.
+            </p>
+
+            <div class="space-y-4">
+              <!-- Signing Keys Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Signing Keys</label>
+                <div v-if="signingKeys.length === 0" class="text-sm text-gray-500 italic">
+                  No signing keys available. Using demo Ed25519 key.
+                </div>
+                <div v-else class="space-y-2 max-h-48 overflow-y-auto">
+                  <div v-for="key in signingKeys" :key="key.id" class="flex items-center gap-3 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <UCheckbox
+                      :model-value="signSelectedKeyIds.includes(key.id)"
+                      @update:model-value="toggleSignKeySelection(key.id)"
+                    />
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-gray-900 dark:text-white">{{ key.name }}</div>
+                      <div class="text-xs text-gray-500 dark:text-gray-400">{{ key.algorithm }} &middot; {{ key.publicKeyHex.substring(0, 20) }}...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Signature Note -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signature Note (optional)</label>
+                <UInput v-model="signNote" placeholder="e.g., Approved by Alice" />
+                <p class="text-xs text-gray-500 mt-1">Metadata attached to the signature (signed with the envelope).</p>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <UButton color="neutral" variant="ghost" @click="showSignModal = false">
+                Cancel
+              </UButton>
+              <UButton
+                color="primary"
+                :disabled="signSelectedKeyIds.length === 0 && !demoSigningKey"
+                @click="applySign"
+              >
+                Sign{{ signSelectedKeyIds.length > 1 ? ` (${signSelectedKeyIds.length} keys)` : '' }}
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 2: Password Encrypt Modal -->
+      <UModal v-model:open="showPasswordEncryptModal" title="Password Encryption" description="Encrypt the envelope with a password.">
+        <template #content>
+          <div class="p-6 min-w-[400px]">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Password Encryption</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Lock the envelope with a password using Argon2id key derivation.
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                <UInput v-model="encryptPassword" type="password" placeholder="Enter password" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                <UInput v-model="encryptPasswordConfirm" type="password" placeholder="Confirm password" />
+              </div>
+              <div class="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <div class="text-xs text-blue-700 dark:text-blue-300">
+                  <strong>Algorithm:</strong> Argon2id (recommended, RFC 9106)
+                </div>
+                <div class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  The password will be used to derive a symmetric key which encrypts the envelope contents.
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <UButton color="neutral" variant="ghost" @click="showPasswordEncryptModal = false">
+                Cancel
+              </UButton>
+              <UButton
+                color="primary"
+                :disabled="!encryptPassword || encryptPassword !== encryptPasswordConfirm"
+                @click="passwordEncrypt"
+              >
+                Encrypt with Password
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 2: Seal Modal -->
+      <UModal v-model:open="showSealModal" title="Seal Envelope" description="Sign-then-encrypt for authenticated confidential delivery.">
+        <template #content>
+          <div class="p-6 min-w-[400px]">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Seal Envelope</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Seal combines signing (authentication) and encryption (confidentiality) in one step.
+              The recipient can verify who sent it and only they can read it.
+            </p>
+
+            <div class="space-y-4">
+              <!-- Signer Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sign with</label>
+                <select
+                  v-model="sealSignerId"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                >
+                  <option v-for="key in signingKeys" :key="key.id" :value="key.id">
+                    {{ key.name }} ({{ key.algorithm }})
+                  </option>
+                </select>
+              </div>
+
+              <!-- Recipient Selection -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Encrypt to</label>
+                <select
+                  v-model="sealRecipientId"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                >
+                  <option v-for="recipient in recipients" :key="recipient.id" :value="recipient.id">
+                    {{ recipient.name }} ({{ recipient.publicKeyHex.substring(0, 16) }}...)
+                  </option>
+                </select>
+              </div>
+
+              <div class="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                <div class="text-xs text-green-700 dark:text-green-300">
+                  <strong>Seal = Sign + Encrypt</strong>
+                </div>
+                <div class="text-xs text-green-600 dark:text-green-400 mt-1">
+                  1. Signs with your key (proves authenticity)<br>
+                  2. Encrypts to recipient's public key (ensures confidentiality)
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <UButton color="neutral" variant="ghost" @click="showSealModal = false">
+                Cancel
+              </UButton>
+              <UButton
+                color="primary"
+                :disabled="!sealSignerId || !sealRecipientId"
+                @click="sealNode"
+              >
+                Seal
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 3: SSKR Split Modal -->
+      <UModal v-model:open="showSskrSplitModal" title="SSKR Split" description="Split the envelope into secret shares using Shamir's Secret Sharing.">
+        <template #content>
+          <div class="p-6 max-h-[80vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">SSKR Split</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Split this envelope into shares using Sharded Secret Key Reconstruction.
+              Configure group thresholds to require shares from multiple parties.
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Group Threshold</label>
+                <p class="text-xs text-gray-500 mb-1">Number of groups required to reconstruct</p>
+                <UInput
+                  v-model.number="sskrGroupThreshold"
+                  type="number"
+                  :min="1"
+                  :max="sskrGroups.length"
+                  size="sm"
+                />
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Groups</label>
+                  <UButton size="xs" variant="soft" @click="addSskrGroup">
+                    <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
+                    Add Group
+                  </UButton>
+                </div>
+
+                <div class="space-y-2">
+                  <div
+                    v-for="(group, index) in sskrGroups"
+                    :key="index"
+                    class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  >
+                    <span class="text-xs font-medium text-gray-500 w-16">Group {{ index + 1 }}</span>
+                    <UInput
+                      v-model.number="group.memberThreshold"
+                      type="number"
+                      :min="1"
+                      :max="group.memberCount"
+                      size="xs"
+                      class="w-16"
+                    />
+                    <span class="text-xs text-gray-500">of</span>
+                    <UInput
+                      v-model.number="group.memberCount"
+                      type="number"
+                      :min="group.memberThreshold"
+                      :max="16"
+                      size="xs"
+                      class="w-16"
+                    />
+                    <span class="text-xs text-gray-500">members</span>
+                    <UButton
+                      v-if="sskrGroups.length > 1"
+                      icon="i-heroicons-x-mark"
+                      size="xs"
+                      color="error"
+                      variant="ghost"
+                      @click="removeSskrGroup(index)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Share output -->
+              <div v-if="sskrShares.length > 0">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generated Shares</label>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                  <div v-for="(group, gi) in sskrShares" :key="gi">
+                    <p class="text-xs font-medium text-gray-500 mb-1">Group {{ gi + 1 }}</p>
+                    <div v-for="(share, si) in group" :key="si" class="flex items-center gap-2 mb-1">
+                      <span class="text-xs text-gray-400 w-12">Share {{ si + 1 }}</span>
+                      <code class="flex-1 text-xs bg-gray-100 dark:bg-gray-800 p-1.5 rounded font-mono break-all max-h-12 overflow-hidden">{{ share }}</code>
+                      <UButton
+                        icon="i-heroicons-clipboard-document"
+                        size="xs"
+                        color="neutral"
+                        variant="ghost"
+                        @click="copyToClipboard(share, `Share ${gi+1}-${si+1}`)"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-4">
+              <UButton color="neutral" variant="ghost" @click="showSskrSplitModal = false">
+                Close
+              </UButton>
+              <UButton color="primary" @click="performSskrSplit">
+                <UIcon name="i-heroicons-puzzle-piece" class="w-4 h-4 mr-1" />
+                {{ sskrShares.length > 0 ? 'Re-split' : 'Split' }}
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 3: SSKR Join Modal -->
+      <UModal v-model:open="showSskrJoinModal" title="SSKR Join" description="Reconstruct an envelope from SSKR shares.">
+        <template #content>
+          <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">SSKR Join</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Paste SSKR share URs (one per line) to reconstruct the original envelope.
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shares</label>
+                <textarea
+                  v-model="sskrJoinInput"
+                  rows="6"
+                  class="w-full text-xs font-mono bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-3"
+                  placeholder="ur:envelope/...&#10;ur:envelope/...&#10;ur:envelope/..."
+                />
+              </div>
+
+              <UAlert
+                v-if="sskrJoinError"
+                color="error"
+                variant="soft"
+                icon="i-heroicons-exclamation-triangle"
+                :title="sskrJoinError"
+              />
+            </div>
+
+            <div class="flex justify-end gap-2 mt-4">
+              <UButton color="neutral" variant="ghost" @click="showSskrJoinModal = false">
+                Cancel
+              </UButton>
+              <UButton color="primary" @click="performSskrJoin">
+                <UIcon name="i-heroicons-puzzle-piece" class="w-4 h-4 mr-1" />
+                Join Shares
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Verify Signature Modal -->
+      <UModal v-model:open="showVerifyModal" title="Verify Signature" description="Verify the cryptographic signature on this envelope.">
+        <template #content>
+          <div class="p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Signature Verification</h3>
+
+            <div v-if="verifyResult" class="space-y-4">
+              <div
+                :class="[
+                  'flex items-center gap-3 p-4 rounded-lg border',
+                  verifyResult.verified
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                ]"
+              >
+                <UIcon
+                  :name="verifyResult.verified ? 'i-heroicons-shield-check' : 'i-heroicons-shield-exclamation'"
+                  :class="['w-6 h-6', verifyResult.verified ? 'text-green-500' : 'text-red-500']"
+                />
+                <div>
+                  <div :class="['font-semibold', verifyResult.verified ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300']">
+                    {{ verifyResult.verified ? 'Signature Valid' : 'Signature Invalid' }}
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {{ verifyResult.message }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+              <UButton color="neutral" variant="ghost" @click="showVerifyModal = false">
+                Close
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
       <!-- Phase 4: Wizard Modal -->
       <UModal v-model:open="showWizardModal" title="Create Envelope" description="Step-by-step wizard to build a new envelope.">
         <template #content>
@@ -3492,6 +5564,311 @@ async function copyProof() {
                   Create Envelope
                 </UButton>
               </div>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 4: Unelide Modal -->
+      <UModal v-model:open="showUnelideModal" title="Unelide" description="Restore an elided envelope by providing the original envelope data.">
+        <template #content>
+          <div class="p-6 max-w-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Unelide Envelope</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Paste an envelope (hex or UR) to restore matching elided nodes. The digest must match.
+            </p>
+
+            <UAlert v-if="unelideError" color="error" variant="soft" :title="unelideError" class="mb-4" />
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Envelope Data (hex or UR)</label>
+              <textarea
+                v-model="unelideInput"
+                class="w-full h-24 px-3 py-2 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                placeholder="ur:envelope/... or hex bytes..."
+              />
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showUnelideModal = false">Cancel</UButton>
+              <UButton color="primary" :disabled="!unelideInput.trim()" @click="performUnelide">
+                <UIcon name="i-heroicons-eye" class="w-4 h-4 mr-1" />
+                Unelide
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 4: Decrypt Modal -->
+      <UModal v-model:open="showDecryptModal" title="Decrypt" description="Decrypt an encrypted envelope using a symmetric key or password.">
+        <template #content>
+          <div class="p-6 max-w-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Decrypt Envelope</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Provide the decryption key or password to reveal the encrypted content.
+            </p>
+
+            <UAlert v-if="decryptError" color="error" variant="soft" :title="decryptError" class="mb-4" />
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Decryption Method</label>
+              <div class="flex gap-2 mb-3 flex-wrap">
+                <UButton
+                  :color="decryptMode === 'symmetric' ? 'primary' : 'neutral'"
+                  variant="soft"
+                  size="sm"
+                  @click="decryptMode = 'symmetric'"
+                >
+                  Symmetric Key
+                </UButton>
+                <UButton
+                  :color="decryptMode === 'password' ? 'primary' : 'neutral'"
+                  variant="soft"
+                  size="sm"
+                  @click="decryptMode = 'password'"
+                >
+                  Password
+                </UButton>
+                <UButton
+                  :color="decryptMode === 'recipient' ? 'primary' : 'neutral'"
+                  variant="soft"
+                  size="sm"
+                  @click="decryptMode = 'recipient'"
+                >
+                  Recipient Key
+                </UButton>
+              </div>
+            </div>
+
+            <div v-if="decryptMode === 'symmetric'" class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Symmetric Key (hex)</label>
+              <UInput v-model="decryptKeyHex" placeholder="Enter key as hex..." size="sm" class="font-mono" />
+            </div>
+
+            <div v-else-if="decryptMode === 'password'" class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <UInput v-model="decryptPassword" type="password" placeholder="Enter password..." size="sm" />
+            </div>
+
+            <div v-else class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recipient</label>
+              <select v-model="decryptRecipientId" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <option v-for="r in recipients" :key="r.id" :value="r.id">{{ r.name }} ({{ r.scheme }})</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">The recipient's private key will be used to decrypt.</p>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showDecryptModal = false">Cancel</UButton>
+              <UButton
+                color="primary"
+                :disabled="decryptMode === 'symmetric' ? !decryptKeyHex.trim() : decryptMode === 'password' ? !decryptPassword : !decryptRecipientId"
+                @click="performDecrypt"
+              >
+                <UIcon name="i-heroicons-lock-open" class="w-4 h-4 mr-1" />
+                Decrypt
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 4: Expression/Request/Response/Event Modal -->
+      <UModal v-model:open="showExpressionModal" :title="expressionMode.charAt(0).toUpperCase() + expressionMode.slice(1) + ' Builder'" description="Create an expression, request, response, or event envelope.">
+        <template #content>
+          <div class="p-6 max-w-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {{ expressionMode.charAt(0).toUpperCase() + expressionMode.slice(1) }} Builder
+            </h3>
+
+            <!-- Mode Tabs -->
+            <div class="flex gap-1 mb-4">
+              <UButton
+                v-for="m in (['expression', 'request', 'response', 'event'] as const)"
+                :key="m"
+                :color="expressionMode === m ? 'primary' : 'neutral'"
+                variant="soft"
+                size="xs"
+                @click="expressionMode = m"
+              >
+                {{ m.charAt(0).toUpperCase() + m.slice(1) }}
+              </UButton>
+            </div>
+
+            <!-- Expression / Request: Function definition -->
+            <template v-if="expressionMode === 'expression' || expressionMode === 'request'">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Function</label>
+                <div class="flex gap-2 mb-2">
+                  <UButton
+                    :color="exprFunctionType === 'named' ? 'primary' : 'neutral'"
+                    variant="soft" size="xs" @click="exprFunctionType = 'named'"
+                  >Named</UButton>
+                  <UButton
+                    :color="exprFunctionType === 'known' ? 'primary' : 'neutral'"
+                    variant="soft" size="xs" @click="exprFunctionType = 'known'"
+                  >Well-Known</UButton>
+                </div>
+                <UInput
+                  v-if="exprFunctionType === 'named'"
+                  v-model="exprFunctionName"
+                  placeholder="Function name..."
+                  size="sm"
+                />
+                <select
+                  v-else
+                  v-model="exprKnownFunction"
+                  class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2"
+                >
+                  <option v-for="f in knownFunctions" :key="f.value" :value="f.value">{{ f.label }}</option>
+                </select>
+              </div>
+
+              <!-- Parameters -->
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parameters</label>
+                <div v-for="(p, i) in exprParams" :key="i" class="flex gap-2 mb-2">
+                  <UInput v-model="p.name" placeholder="Name" size="xs" class="w-24" />
+                  <select v-model="p.valueType" class="text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-1">
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="bool">Boolean</option>
+                  </select>
+                  <UInput v-model="p.value" placeholder="Value" size="xs" class="flex-1" />
+                  <UButton icon="i-heroicons-x-mark" color="error" variant="ghost" size="xs" @click="removeExprParam(i)" />
+                </div>
+                <UButton color="neutral" variant="soft" size="xs" @click="addExprParam">
+                  <UIcon name="i-heroicons-plus" class="w-3 h-3 mr-1" />
+                  Add Parameter
+                </UButton>
+              </div>
+            </template>
+
+            <!-- Request extras -->
+            <template v-if="expressionMode === 'request'">
+              <div class="mb-4 space-y-2">
+                <UInput v-model="requestNote" placeholder="Note (optional)" size="sm" />
+                <UCheckbox v-model="requestDate" label="Include current date" />
+              </div>
+            </template>
+
+            <!-- Response -->
+            <template v-if="expressionMode === 'response'">
+              <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Response Type</label>
+                <div class="flex gap-2 mb-3">
+                  <UButton
+                    :color="responseIsSuccess ? 'success' : 'neutral'"
+                    variant="soft" size="sm" @click="responseIsSuccess = true"
+                  >Success</UButton>
+                  <UButton
+                    :color="!responseIsSuccess ? 'error' : 'neutral'"
+                    variant="soft" size="sm" @click="responseIsSuccess = false"
+                  >Failure</UButton>
+                </div>
+                <UInput
+                  v-model="responseResultValue"
+                  :placeholder="responseIsSuccess ? 'Result value (optional)...' : 'Error message (optional)...'"
+                  size="sm"
+                />
+              </div>
+            </template>
+
+            <!-- Event -->
+            <template v-if="expressionMode === 'event'">
+              <div class="mb-4 space-y-3">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content</label>
+                  <UInput v-model="eventContent" placeholder="Event content..." size="sm" />
+                </div>
+                <UInput v-model="eventNote" placeholder="Note (optional)" size="sm" />
+                <UCheckbox v-model="eventDate" label="Include current date" />
+              </div>
+            </template>
+
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+              This will replace the current envelope with the built {{ expressionMode }}.
+            </p>
+
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showExpressionModal = false">Cancel</UButton>
+              <UButton color="primary" @click="applyExpressionEnvelope">
+                <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 mr-1" />
+                Create {{ expressionMode.charAt(0).toUpperCase() + expressionMode.slice(1) }}
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 5: Unseal Modal -->
+      <UModal v-model:open="showUnsealModal" title="Unseal" description="Decrypt and verify a sealed envelope in one step.">
+        <template #content>
+          <div class="p-6 max-w-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Unseal Envelope</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Unseal performs decrypt-then-verify: decrypts with the recipient's private key, then verifies the sender's signature.
+            </p>
+
+            <UAlert v-if="unsealError" color="error" variant="soft" :title="unsealError" class="mb-4" />
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sender's Signing Key (for verification)</label>
+              <select v-model="unsealSignerKeyId" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <option v-for="k in signingKeys" :key="k.id" :value="k.id">{{ k.name }} ({{ k.algorithm }})</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recipient (for decryption)</label>
+              <select v-model="unsealRecipientId" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <option v-for="r in recipients" :key="r.id" :value="r.id">{{ r.name }} ({{ r.scheme }})</option>
+              </select>
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showUnsealModal = false">Cancel</UButton>
+              <UButton color="primary" :disabled="!unsealSignerKeyId || !unsealRecipientId" @click="performUnseal">
+                <UIcon name="i-heroicons-shield-check" class="w-4 h-4 mr-1" />
+                Unseal
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Phase 5: Walk Replace Modal -->
+      <UModal v-model:open="showWalkReplaceModal" title="Walk Replace" description="Replace nodes matching a digest with a new envelope.">
+        <template #content>
+          <div class="p-6 max-w-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Walk Replace</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Replace all nodes whose digest matches the target with the replacement envelope.
+            </p>
+
+            <UAlert v-if="walkReplaceError" color="error" variant="soft" :title="walkReplaceError" class="mb-4" />
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Digest (hex, 64 chars)</label>
+              <UInput v-model="walkReplaceDigestHex" placeholder="Enter digest hex..." size="sm" class="font-mono" />
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Replacement Envelope (hex or UR)</label>
+              <textarea
+                v-model="walkReplaceEnvelopeInput"
+                class="w-full h-24 px-3 py-2 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                placeholder="ur:envelope/... or hex bytes..."
+              />
+            </div>
+
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showWalkReplaceModal = false">Cancel</UButton>
+              <UButton color="primary" :disabled="!walkReplaceDigestHex.trim() || !walkReplaceEnvelopeInput.trim()" @click="performWalkReplace">
+                <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-1" />
+                Replace
+              </UButton>
             </div>
           </div>
         </template>

@@ -429,6 +429,16 @@ const ianaStats = computed(() => ({
             </template>
           </span>
           <a
+            v-if="activeTab === 'known-values'"
+            href="https://github.com/BlockchainCommons/Research/tree/master/community-known-values"
+            target="_blank"
+            class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            <span>BC Known Values Registry</span>
+            <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-3 h-3" />
+          </a>
+          <a
+            v-else
             href="https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml"
             target="_blank"
             class="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
