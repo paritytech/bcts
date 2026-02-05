@@ -1,9 +1,27 @@
+import { fileURLToPath } from "node:url";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-09-11",
   modules: ["@nuxt/eslint", "@nuxt/ui", "@nuxthub/core", "@nuxtjs/seo", "nuxt-gtag"],
   css: ["~/assets/css/main.css"],
   devtools: { enabled: false },
+  hooks: {
+    "vite:extendConfig": (config, { isClient }) => {
+      if (isClient) {
+        // @bcts/provenance-mark bundles a top-level createRequire() call as a
+        // base64 fallback for Node.  The browser always has btoa/atob so the
+        // require("buffer") path is never reached, but Vite still chokes on
+        // the static import of "node:module".  Stub it out on the client.
+        const cfg = config as { resolve?: { alias?: Record<string, string> } };
+        cfg.resolve ??= {};
+        cfg.resolve.alias ??= {};
+        cfg.resolve.alias["node:module"] = fileURLToPath(
+          new URL("./app/stubs/node-module.mjs", import.meta.url),
+        );
+      }
+    },
+  },
   app: {
     head: {
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],

@@ -72,7 +72,7 @@
     "@typescript-eslint/parser": "^8.54.0",
     "eslint": "^9.39.2",
     "ts-node": "^10.9.2",
-    "tsdown": "^0.20.1",
+    "tsdown": "^0.20.3",
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

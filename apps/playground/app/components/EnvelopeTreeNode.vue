@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
 
-type ValueType = 'string' | 'number' | 'bigint' | 'bytes' | 'bool' | 'null'
+type ValueType = 'string' | 'number' | 'bigint' | 'bytes' | 'bool' | 'null' | 'date' | 'uuid' | 'arid' | 'uri' | 'known'
+type PredicateType = 'string' | 'known'
 type NodeType = 'subject' | 'assertion' | 'wrapped' | 'signed' | 'encrypted' | 'compressed' | 'elided' | 'salted'
+
+// Known values for display
+const knownValueNames: Record<string, string> = {
+  isA: 'isA', id: 'id', note: 'note', name: 'name', date: 'date',
+  issuer: 'issuer', holder: 'holder', controller: 'controller', entity: 'entity',
+  language: 'language', dereferenceVia: 'dereferenceVia', salt: 'salt',
+  hasRecipient: 'hasRecipient', validFrom: 'validFrom', validUntil: 'validUntil',
+  nickname: 'nickname', vendor: 'vendor', conformsTo: 'conformsTo'
+}
 
 interface EnvelopeNode {
   id: string
@@ -10,6 +20,9 @@ interface EnvelopeNode {
   valueType?: ValueType
   value?: string | number | boolean | null
   predicate?: string
+  predicateType?: PredicateType
+  predicateKnownValue?: string
+  salted?: boolean
   object?: EnvelopeNode
   assertions?: EnvelopeNode[]
   child?: EnvelopeNode
@@ -19,6 +32,13 @@ interface EnvelopeNode {
   saltMin?: number
   saltMax?: number
   recipientCount?: number
+  encryptionMode?: 'symmetric' | 'password' | 'recipient'
+  signerIds?: string[]
+  signingAlgorithm?: 'Ed25519' | 'Schnorr' | 'ECDSA' | 'ML-DSA-44' | 'ML-DSA-65' | 'ML-DSA-87'
+  signatureNote?: string
+  sealed?: boolean
+  compressSubjectOnly?: boolean
+  elideAction?: 'elide' | 'encrypt' | 'compress'
 }
 
 const props = defineProps<{
@@ -45,8 +65,19 @@ const emit = defineEmits<{
   addType: [nodeId: string]
   addAttachment: [nodeId: string]
   createProof: [nodeId: string]
+  // Phase 5: Verification
+  verifySignature: [nodeId: string]
+  // Phase 2: Additional actions
+  passwordEncrypt: [nodeId: string]
+  seal: [nodeId: string]
+  // Phase 3: SSKR and compress subject
+  compressSubject: [nodeId: string]
+  sskrSplit: [nodeId: string]
   // Phase 4
   reorderAssertions: [nodeId: string, assertions: EnvelopeNode[]]
+  unelide: [nodeId: string]
+  decrypt: [nodeId: string]
+  decompress: [nodeId: string]
 }>()
 
 // Node display helpers
@@ -98,17 +129,37 @@ function getNodeDisplay(node: EnvelopeNode): string {
       if (node.valueType === 'bigint') return `${node.value}n`
       if (node.valueType === 'bytes') return `bytes(${String(node.value).length / 2})`
       if (node.valueType === 'number') return String(node.value)
+      if (node.valueType === 'date') return `date(${node.value})`
+      if (node.valueType === 'uuid') return `uuid(${String(node.value).substring(0, 8)}...)`
+      if (node.valueType === 'arid') return `arid(${String(node.value).substring(0, 8)}...)`
+      if (node.valueType === 'uri') return String(node.value)
+      if (node.valueType === 'known') {
+        return knownValueNames[String(node.value)] ? `'${knownValueNames[String(node.value)]}'` : `known(${node.value})`
+      }
       return String(node.value).length > 30
         ? `"${String(node.value).substring(0, 30)}..."`
         : `"${node.value}"`
-    case 'assertion':
-      return node.predicate || ''
+    case 'assertion': {
+      const predicateLabel = node.predicateType === 'known' && node.predicateKnownValue
+        ? `'${knownValueNames[node.predicateKnownValue] || node.predicateKnownValue}'`
+        : node.predicate || ''
+      return node.salted ? `${predicateLabel} (salted)` : predicateLabel
+    }
     case 'wrapped':
       return 'WRAPPED'
-    case 'signed':
-      return 'SIGNED'
-    case 'encrypted':
+    case 'signed': {
+      const parts = ['SIGNED']
+      if (node.signingAlgorithm) parts.push(`[${node.signingAlgorithm}]`)
+      if (node.signerIds && node.signerIds.length > 1) parts.push(`(${node.signerIds.length} signers)`)
+      if (node.signatureNote) parts.push(`"${node.signatureNote}"`)
+      return parts.join(' ')
+    }
+    case 'encrypted': {
+      if (node.sealed) return 'SEALED (signed + encrypted)'
+      if (node.encryptionMode === 'password') return 'ENCRYPTED (password)'
+      if (node.encryptionMode === 'recipient' && node.recipientCount) return `ENCRYPTED (${node.recipientCount} recipients)`
       return node.recipientCount ? `ENCRYPTED (${node.recipientCount} recipients)` : 'ENCRYPTED'
+    }
     case 'compressed':
       return 'COMPRESSED'
     case 'elided':
@@ -121,11 +172,17 @@ function getNodeDisplay(node: EnvelopeNode): string {
 }
 
 function getNodeTypeLabel(type: NodeType): string {
+  const n = props.node
   switch (type) {
     case 'wrapped': return 'Wrapped Envelope'
-    case 'signed': return 'Signed Envelope'
-    case 'encrypted': return 'Encrypted Envelope'
-    case 'compressed': return 'Compressed Envelope'
+    case 'signed': return n.signingAlgorithm ? `Signed (${n.signingAlgorithm})` : 'Signed Envelope'
+    case 'encrypted': {
+      if (n.sealed) return 'Sealed Envelope (signed + encrypted)'
+      if (n.encryptionMode === 'password') return 'Password-Encrypted Envelope'
+      if (n.encryptionMode === 'recipient') return 'Recipient-Encrypted Envelope'
+      return 'Encrypted Envelope'
+    }
+    case 'compressed': return n.compressSubjectOnly ? 'Subject Compressed' : 'Compressed Envelope'
     case 'elided': return 'Elided (digest only)'
     case 'salted': return 'Salted (decorrelated)'
     default: return ''
@@ -239,6 +296,70 @@ const menuItems = computed(() => {
     }
   ]
 
+  // Add password encryption option
+  advancedTransforms.push({
+    label: 'Password Encrypt',
+    icon: 'i-heroicons-key',
+    onSelect: () => emit('passwordEncrypt', props.node.id)
+  })
+
+  // Add seal option (sign-then-encrypt)
+  advancedTransforms.push({
+    label: 'Seal (Sign + Encrypt)',
+    icon: 'i-heroicons-shield-check',
+    onSelect: () => emit('seal', props.node.id)
+  })
+
+  // Add compress subject option
+  advancedTransforms.push({
+    label: 'Compress Subject',
+    icon: 'i-heroicons-archive-box-arrow-down',
+    onSelect: () => emit('compressSubject', props.node.id)
+  })
+
+  // Add SSKR split option
+  advancedTransforms.push({
+    label: 'SSKR Split',
+    icon: 'i-heroicons-puzzle-piece',
+    onSelect: () => emit('sskrSplit', props.node.id)
+  })
+
+  // Add verify option for signed nodes
+  if (props.node.type === 'signed') {
+    advancedTransforms.push({
+      label: 'Verify Signature',
+      icon: 'i-heroicons-shield-check',
+      onSelect: () => emit('verifySignature', props.node.id)
+    })
+  }
+
+  // Phase 4: Unelide option for elided nodes
+  if (props.node.type === 'elided') {
+    advancedTransforms.push({
+      label: 'Unelide',
+      icon: 'i-heroicons-eye',
+      onSelect: () => emit('unelide', props.node.id)
+    })
+  }
+
+  // Phase 4: Decrypt option for encrypted nodes
+  if (props.node.type === 'encrypted') {
+    advancedTransforms.push({
+      label: 'Decrypt',
+      icon: 'i-heroicons-lock-open',
+      onSelect: () => emit('decrypt', props.node.id)
+    })
+  }
+
+  // Phase 4: Decompress option for compressed nodes
+  if (props.node.type === 'compressed') {
+    advancedTransforms.push({
+      label: 'Decompress',
+      icon: 'i-heroicons-archive-box',
+      onSelect: () => emit('decompress', props.node.id)
+    })
+  }
+
   items.push(advancedTransforms)
 
   // Phase 3: Metadata group
@@ -332,7 +453,15 @@ const menuItems = computed(() => {
           <span class="text-sm font-mono text-gray-800 dark:text-gray-200 truncate">{{ getNodeDisplay(node) }}</span>
           <UBadge
             v-if="node.valueType"
-            :color="node.valueType === 'string' ? 'primary' : node.valueType === 'number' ? 'warning' : 'neutral'"
+            :color="
+              node.valueType === 'string' ? 'primary' :
+              node.valueType === 'number' || node.valueType === 'bigint' ? 'warning' :
+              node.valueType === 'date' ? 'info' :
+              node.valueType === 'uuid' || node.valueType === 'arid' ? 'success' :
+              node.valueType === 'uri' ? 'info' :
+              node.valueType === 'known' ? 'error' :
+              'neutral'
+            "
             variant="soft"
             size="xs"
           >
@@ -378,6 +507,15 @@ const menuItems = computed(() => {
         @add-type="emit('addType', $event)"
         @add-attachment="emit('addAttachment', $event)"
         @create-proof="emit('createProof', $event)"
+            @verify-signature="emit('verifySignature', $event)"
+            @password-encrypt="emit('passwordEncrypt', $event)"
+            @seal="emit('seal', $event)"
+            @compress-subject="emit('compressSubject', $event)"
+            @sskr-split="emit('sskrSplit', $event)"
+            @unelide="emit('unelide', $event)"
+            @decrypt="emit('decrypt', $event)"
+            @decompress="emit('decompress', $event)"
+            @reorder-assertions="emit('reorderAssertions', $event[0] as string, $event[1] as unknown as EnvelopeNode[])"
       />
 
       <!-- Assertion object -->
@@ -402,6 +540,15 @@ const menuItems = computed(() => {
         @add-type="emit('addType', $event)"
         @add-attachment="emit('addAttachment', $event)"
         @create-proof="emit('createProof', $event)"
+            @verify-signature="emit('verifySignature', $event)"
+            @password-encrypt="emit('passwordEncrypt', $event)"
+            @seal="emit('seal', $event)"
+            @compress-subject="emit('compressSubject', $event)"
+            @sskr-split="emit('sskrSplit', $event)"
+            @unelide="emit('unelide', $event)"
+            @decrypt="emit('decrypt', $event)"
+            @decompress="emit('decompress', $event)"
+            @reorder-assertions="emit('reorderAssertions', $event[0] as string, $event[1] as unknown as EnvelopeNode[])"
       />
 
       <!-- Subject assertions (draggable) -->
@@ -441,6 +588,14 @@ const menuItems = computed(() => {
             @add-type="emit('addType', $event)"
             @add-attachment="emit('addAttachment', $event)"
             @create-proof="emit('createProof', $event)"
+            @verify-signature="emit('verifySignature', $event)"
+            @password-encrypt="emit('passwordEncrypt', $event)"
+            @seal="emit('seal', $event)"
+            @compress-subject="emit('compressSubject', $event)"
+            @sskr-split="emit('sskrSplit', $event)"
+            @unelide="emit('unelide', $event)"
+            @decrypt="emit('decrypt', $event)"
+            @decompress="emit('decompress', $event)"
             @reorder-assertions="emit('reorderAssertions', $event[0] as string, $event[1] as unknown as EnvelopeNode[])"
           />
         </div>

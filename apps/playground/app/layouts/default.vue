@@ -39,6 +39,12 @@ const navigationItems: NavigationMenuItem[] = [
     badge: 'WIP'
   },
   {
+    label: 'XID Builder',
+    icon: 'i-heroicons-identification',
+    to: '/xid-builder',
+    badge: 'WIP'
+  },
+  {
     type: 'label',
     label: 'Examples'
   },
@@ -81,6 +87,24 @@ const navigationItems: NavigationMenuItem[] = [
   {
     type: 'label',
     label: 'Resources'
+  },
+  {
+    label: 'CBOR Book',
+    icon: 'i-heroicons-book-open',
+    to: 'https://cborbook.com/',
+    target: '_blank'
+  },
+  {
+    label: 'BC Dev Docs',
+    icon: 'i-heroicons-document-text',
+    to: 'https://developer.blockchaincommons.com/',
+    target: '_blank'
+  },
+  {
+    label: 'BC YouTube',
+    icon: 'i-heroicons-play-circle',
+    to: 'https://www.youtube.com/@blockchaincommons',
+    target: '_blank'
   },
   {
     label: 'API References',
