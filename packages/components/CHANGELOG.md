@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.19] - 2026-02-05
+
+### Fixed
+
+- **Compatibility**: Removed insecure `Math.random()` fallback in `UUID.random()`. UUID generation now uses `globalThis.crypto.getRandomValues()` exclusively, which is available in all browsers and Node.js 18+.
+
 ## [1.0.0-alpha.18] - 2025-01-31
 
 ### Changed
