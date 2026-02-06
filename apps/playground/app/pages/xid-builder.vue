@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { XIDDocument, XIDPrivateKeyOptions, XIDGeneratorOptions, Key, Delegate, Service, Privilege } from '@bcts/xid'
-import type { Envelope, TreeFormatOptions } from '@bcts/envelope'
-import { PrivateKeyBase } from '@bcts/components'
+import { XIDDocument, XIDPrivateKeyOptions, XIDGeneratorOptions, XIDVerifySignature, Key, Delegate, Service, Privilege, type XIDGenesisMarkOptions, type XIDPrivateKeyEncryptConfig, type XIDGeneratorEncryptConfig } from '@bcts/xid'
+import { Envelope, type TreeFormatOptions } from '@bcts/envelope'
+import { PrivateKeyBase, KeyDerivationMethod, SignatureScheme, EncapsulationScheme, createKeypair, createEncapsulationKeypair, PrivateKeys, PublicKeys } from '@bcts/components'
+import { ProvenanceMarkResolution } from '@bcts/provenance-mark'
 import encodeQR from '@paulmillr/qr'
 
 useHead({
@@ -48,7 +49,8 @@ const keySectionCollapsed = ref(false)
 
 // Add key modal
 const showAddKeyModal = ref(false)
-const newKeyScheme = ref<'Ed25519' | 'Schnorr' | 'ECDSA'>('Ed25519')
+const newKeyScheme = ref<'Ed25519' | 'Schnorr' | 'ECDSA' | 'MLDSA44' | 'MLDSA65' | 'MLDSA87'>('Ed25519')
+const newKeyEncapsulation = ref<'X25519' | 'MLKEM512' | 'MLKEM768' | 'MLKEM1024'>('X25519')
 const newKeyNickname = ref('')
 const newKeyAllowPrivileges = ref(new Set<string>(['All']))
 const newKeyDenyPrivileges = ref(new Set<string>())
@@ -104,6 +106,81 @@ const serviceFormError = ref<string | null>(null)
 const showRemoveServiceConfirm = ref(false)
 const removeServiceTargetUri = ref<string | null>(null)
 
+// Provenance state
+const provenanceSectionCollapsed = ref(false)
+
+// New XID modal (for genesis mark options)
+const showNewXIDModal = ref(false)
+const newXIDWithProvenance = ref(false)
+const newXIDProvenanceMethod = ref<'passphrase' | 'seed'>('passphrase')
+const newXIDPassphrase = ref('')
+const newXIDResolution = ref<ProvenanceMarkResolution>(ProvenanceMarkResolution.High)
+const newXIDDate = ref('')
+const newXIDInfo = ref('')
+
+// Advance provenance
+const showAdvanceProvenanceModal = ref(false)
+const advanceProvenanceDate = ref('')
+const advanceProvenanceInfo = ref('')
+const advanceProvenanceError = ref<string | null>(null)
+
+// Attachment state
+const attachmentSectionCollapsed = ref(false)
+const showAddAttachmentModal = ref(false)
+const attachmentFormVendor = ref('')
+const attachmentFormConformsTo = ref('')
+const attachmentFormPayload = ref('')
+const attachmentFormError = ref<string | null>(null)
+
+// Edge state
+const edgeSectionCollapsed = ref(false)
+const showAddEdgeModal = ref(false)
+const edgeFormUrString = ref('')
+const edgeFormError = ref<string | null>(null)
+
+// Resolution methods state
+const resolutionSectionCollapsed = ref(false)
+const addingResolutionMethod = ref(false)
+const newResolutionMethodValue = ref('')
+
+// Import state
+const showImportModal = ref(false)
+const importUrString = ref('')
+const importPassword = ref('')
+const importVerifySignature = ref(false)
+const importError = ref<string | null>(null)
+
+// Export state
+const showExportModal = ref(false)
+const exportPrivateKeyOption = ref<'Omit' | 'Include' | 'Elide' | 'Encrypt'>('Omit')
+const exportGeneratorOption = ref<'Omit' | 'Include' | 'Elide' | 'Encrypt'>('Omit')
+const exportSigningOption = ref<'none' | 'inception'>('none')
+const exportPrivateKeyPassword = ref('')
+const exportGeneratorPassword = ref('')
+const exportKdfMethod = ref<KeyDerivationMethod>(KeyDerivationMethod.Argon2id)
+const exportResult = ref('')
+const exportError = ref<string | null>(null)
+
+// Share (public export) state
+const showShareModal = ref(false)
+const shareResult = ref('')
+
+// Templates state
+const showTemplatesModal = ref(false)
+
+// Undo/Redo state
+const undoStack = ref<string[]>([])
+const redoStack = ref<string[]>([])
+const maxHistorySize = 50
+let isUndoRedoAction = false
+
+// Attachment envelope type extension
+type AttachmentEnvelope = Envelope & {
+  attachmentVendor(): string
+  attachmentConformsTo(): string | undefined
+  attachmentPayload(): Envelope
+}
+
 // All privilege values for rendering
 const ALL_PRIVILEGES = Object.values(Privilege)
 
@@ -128,17 +205,150 @@ const serviceList = computed(() => {
   return xidDocument.value.services()
 })
 
+// Reactive provenance info
+const provenanceMark = computed(() => {
+  void docVersion.value
+  if (!xidDocument.value) return null
+  return xidDocument.value.provenance() ?? null
+})
+
+const provenanceGenerator = computed(() => {
+  void docVersion.value
+  if (!xidDocument.value) return null
+  return xidDocument.value.provenanceGenerator() ?? null
+})
+
+const provenanceChainIdHex = computed(() => {
+  const mark = provenanceMark.value
+  if (!mark) return ''
+  return Array.from(mark.chainId()).map(b => b.toString(16).padStart(2, '0')).join('')
+})
+
+const provenanceResolutionLabel = computed(() => {
+  const mark = provenanceMark.value
+  if (!mark) return ''
+  switch (mark.res()) {
+    case ProvenanceMarkResolution.Low: return 'Low'
+    case ProvenanceMarkResolution.Medium: return 'Medium'
+    case ProvenanceMarkResolution.Quartile: return 'Quartile'
+    case ProvenanceMarkResolution.High: return 'High'
+    default: return 'Unknown'
+  }
+})
+
+const generatorStatus = computed((): 'Included' | 'None' => {
+  void docVersion.value
+  if (!xidDocument.value) return 'None'
+  if (xidDocument.value.provenanceGenerator()) return 'Included'
+  return 'None'
+})
+
+// Reactive attachment list
+const attachmentList = computed(() => {
+  void docVersion.value
+  if (!xidDocument.value) return [] as { digestHex: string, envelope: Envelope, vendor: string, conformsTo: string | undefined, payloadPreview: string }[]
+  const results: { digestHex: string, envelope: Envelope, vendor: string, conformsTo: string | undefined, payloadPreview: string }[] = []
+  for (const [digestHex, envelope] of xidDocument.value.getAttachments().iter()) {
+    let vendor = '(unknown)'
+    let conformsTo: string | undefined
+    let payloadPreview = ''
+    try {
+      vendor = (envelope as AttachmentEnvelope).attachmentVendor()
+    } catch { /* ignore */ }
+    try {
+      conformsTo = (envelope as AttachmentEnvelope).attachmentConformsTo()
+    } catch { /* ignore */ }
+    try {
+      const payload = (envelope as AttachmentEnvelope).attachmentPayload()
+      const text = (payload as unknown as { asText(): string | undefined }).asText()
+      payloadPreview = text ?? '(binary data)'
+    } catch {
+      payloadPreview = '(binary data)'
+    }
+    results.push({ digestHex, envelope, vendor, conformsTo, payloadPreview })
+  }
+  return results
+})
+
+// Reactive edge list
+const edgeList = computed(() => {
+  void docVersion.value
+  if (!xidDocument.value) return [] as { digestHex: string, envelope: Envelope, treePreview: string }[]
+  const results: { digestHex: string, envelope: Envelope, treePreview: string }[] = []
+  for (const [digestHex, envelope] of xidDocument.value.edges().iter()) {
+    let treePreview = ''
+    try {
+      treePreview = envelope.treeFormat()
+    } catch {
+      treePreview = digestHex.substring(0, 16) + '...'
+    }
+    results.push({ digestHex, envelope, treePreview })
+  }
+  return results
+})
+
+// Reactive resolution methods list
+const resolutionMethodList = computed(() => {
+  void docVersion.value
+  if (!xidDocument.value) return [] as string[]
+  return Array.from(xidDocument.value.resolutionMethods())
+})
+
 // ============================================
 // Document Creation
 // ============================================
 
+function openNewXIDModal() {
+  newXIDWithProvenance.value = false
+  newXIDProvenanceMethod.value = 'passphrase'
+  newXIDPassphrase.value = ''
+  newXIDResolution.value = ProvenanceMarkResolution.High
+  newXIDDate.value = ''
+  newXIDInfo.value = ''
+  showNewXIDModal.value = true
+}
+
 function createNewXID() {
   try {
     error.value = null
-    const doc = XIDDocument.new()
+
+    let markOptions: XIDGenesisMarkOptions = { type: 'none' }
+
+    if (newXIDWithProvenance.value) {
+      const date = newXIDDate.value ? new Date(newXIDDate.value) : new Date()
+
+      if (newXIDProvenanceMethod.value === 'passphrase') {
+        if (!newXIDPassphrase.value.trim()) {
+          toast.add({ title: 'Passphrase is required', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+          return
+        }
+        markOptions = {
+          type: 'passphrase',
+          passphrase: newXIDPassphrase.value.trim(),
+          resolution: newXIDResolution.value,
+          date,
+        }
+      } else {
+        // Random seed
+        const seed = new Uint8Array(32)
+        crypto.getRandomValues(seed)
+        markOptions = {
+          type: 'seed',
+          seed,
+          resolution: newXIDResolution.value,
+          date,
+        }
+      }
+    }
+
+    const doc = XIDDocument.new({ type: 'default' }, markOptions)
     xidDocument.value = doc
+    showNewXIDModal.value = false
     updateIdentityDisplay()
     updateOutput()
+    undoStack.value = []
+    redoStack.value = []
+    saveToHistory()
     toast.add({ title: 'XID Document created', color: 'success', icon: 'i-heroicons-check-circle' })
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Failed to create XID document'
@@ -267,6 +477,7 @@ function getKeyRefHex(key: Key): string {
 
 function openAddKeyModal() {
   newKeyScheme.value = 'Ed25519'
+  newKeyEncapsulation.value = 'X25519'
   newKeyNickname.value = ''
   newKeyAllowPrivileges.value = new Set(['All'])
   newKeyDenyPrivileges.value = new Set()
@@ -281,24 +492,63 @@ function togglePrivilege(set: Set<string>, priv: string) {
   }
 }
 
+function getSignatureScheme(scheme: string): SignatureScheme {
+  const map: Record<string, SignatureScheme> = {
+    'Ed25519': SignatureScheme.Ed25519,
+    'Schnorr': SignatureScheme.Schnorr,
+    'ECDSA': SignatureScheme.Ecdsa,
+    'MLDSA44': SignatureScheme.MLDSA44,
+    'MLDSA65': SignatureScheme.MLDSA65,
+    'MLDSA87': SignatureScheme.MLDSA87,
+  }
+  return map[scheme] ?? SignatureScheme.Ed25519
+}
+
+function getEncapsulationScheme(scheme: string): EncapsulationScheme {
+  const map: Record<string, EncapsulationScheme> = {
+    'X25519': EncapsulationScheme.X25519,
+    'MLKEM512': EncapsulationScheme.MLKEM512,
+    'MLKEM768': EncapsulationScheme.MLKEM768,
+    'MLKEM1024': EncapsulationScheme.MLKEM1024,
+  }
+  return map[scheme] ?? EncapsulationScheme.X25519
+}
+
 function addNewKey() {
   const doc = xidDocument.value
   if (!doc) return
 
   try {
-    const pkb = PrivateKeyBase.new()
+    const sigScheme = getSignatureScheme(newKeyScheme.value)
+    const encScheme = getEncapsulationScheme(newKeyEncapsulation.value)
+
+    // Use PrivateKeyBase for classic algorithms with default encapsulation
+    const usePrivateKeyBase = ['Ed25519', 'Schnorr', 'ECDSA'].includes(newKeyScheme.value) && newKeyEncapsulation.value === 'X25519'
+
     let key: Key
 
-    switch (newKeyScheme.value) {
-      case 'Ed25519':
-        key = Key.newWithPrivateKeys(pkb.ed25519PrivateKeys(), pkb.ed25519PublicKeys())
-        break
-      case 'Schnorr':
-        key = Key.newWithPrivateKeys(pkb.schnorrPrivateKeys(), pkb.schnorrPublicKeys())
-        break
-      case 'ECDSA':
-        key = Key.newWithPrivateKeys(pkb.ecdsaPrivateKeys(), pkb.ecdsaPublicKeys())
-        break
+    if (usePrivateKeyBase) {
+      const pkb = PrivateKeyBase.new()
+      switch (newKeyScheme.value) {
+        case 'Ed25519':
+          key = Key.newWithPrivateKeys(pkb.ed25519PrivateKeys(), pkb.ed25519PublicKeys())
+          break
+        case 'Schnorr':
+          key = Key.newWithPrivateKeys(pkb.schnorrPrivateKeys(), pkb.schnorrPublicKeys())
+          break
+        case 'ECDSA':
+          key = Key.newWithPrivateKeys(pkb.ecdsaPrivateKeys(), pkb.ecdsaPublicKeys())
+          break
+        default:
+          key = Key.newWithPrivateKeys(pkb.ed25519PrivateKeys(), pkb.ed25519PublicKeys())
+      }
+    } else {
+      // Use createKeypair for ML-DSA or non-default encapsulation
+      const [sigPriv, sigPub] = createKeypair(sigScheme)
+      const [encPriv, encPub] = createEncapsulationKeypair(encScheme)
+      const privateKeys = PrivateKeys.withKeys(sigPriv, encPriv)
+      const publicKeys = PublicKeys.new(sigPub, encPub)
+      key = Key.newWithPrivateKeys(privateKeys, publicKeys)
     }
 
     for (const p of newKeyAllowPrivileges.value) {
@@ -315,6 +565,7 @@ function addNewKey() {
 
     doc.addKey(key)
     showAddKeyModal.value = false
+    saveToHistory()
     refreshDocument()
     toast.add({ title: 'Key added', color: 'success', icon: 'i-heroicons-key' })
   } catch (e) {
@@ -348,6 +599,7 @@ function executeRemoveKey() {
     doc.removeKey(key.publicKeys())
     showRemoveKeyConfirm.value = false
     removeKeyTarget.value = null
+    saveToHistory()
     refreshDocument()
     toast.add({ title: 'Key removed', color: 'success', icon: 'i-heroicons-trash' })
   } catch (e) {
@@ -367,6 +619,7 @@ function saveNickname(key: Key) {
   try {
     doc.setNameForKey(key.publicKeys(), editingNicknameValue.value.trim())
     editingNicknameKeyRef.value = null
+    saveToHistory()
     refreshDocument()
   } catch (e) {
     toast.add({ title: e instanceof Error ? e.message : 'Failed to update nickname', color: 'error' })
@@ -395,6 +648,7 @@ function savePermissions(key: Key) {
     perms.addDeny(p as Privilege)
   }
   editingPermsKeyRef.value = null
+  saveToHistory()
   refreshDocument()
   toast.add({ title: 'Permissions updated', color: 'success', icon: 'i-heroicons-shield-check' })
 }
@@ -414,12 +668,14 @@ function addEndpointToKey(key: Key) {
   key.addEndpoint(ep)
   newEndpointValue.value = ''
   addingEndpointKeyRef.value = null
+  saveToHistory()
   refreshDocument()
   toast.add({ title: 'Endpoint added', color: 'success', icon: 'i-heroicons-link' })
 }
 
 function removeEndpointFromKey(key: Key, endpoint: string) {
   key.endpointsMut().delete(endpoint)
+  saveToHistory()
   refreshDocument()
   toast.add({ title: 'Endpoint removed', color: 'neutral', icon: 'i-heroicons-trash' })
 }
@@ -460,6 +716,7 @@ function addNewDelegate() {
 
     doc.addDelegate(delegate)
     showAddDelegateModal.value = false
+    saveToHistory()
     refreshDocument()
     toast.add({ title: 'Delegate added', color: 'success', icon: 'i-heroicons-user-plus' })
   } catch (e) {
@@ -488,6 +745,7 @@ function executeRemoveDelegate() {
     doc.removeDelegate(delegate.xid())
     showRemoveDelegateConfirm.value = false
     removeDelegateTarget.value = null
+    saveToHistory()
     refreshDocument()
     toast.add({ title: 'Delegate removed', color: 'success', icon: 'i-heroicons-trash' })
   } catch (e) {
@@ -512,6 +770,7 @@ function saveDelegatePermissions(delegate: Delegate) {
     perms.addDeny(p as Privilege)
   }
   editingDelegatePermsRef.value = null
+  saveToHistory()
   refreshDocument()
   toast.add({ title: 'Permissions updated', color: 'success', icon: 'i-heroicons-shield-check' })
 }
@@ -620,6 +879,7 @@ function saveService() {
 
     doc.addService(service)
     showServiceModal.value = false
+    saveToHistory()
     refreshDocument()
     toast.add({
       title: serviceModalMode.value === 'add' ? 'Service added' : 'Service updated',
@@ -645,10 +905,299 @@ function executeRemoveService() {
     doc.removeService(uri)
     showRemoveServiceConfirm.value = false
     removeServiceTargetUri.value = null
+    saveToHistory()
     refreshDocument()
     toast.add({ title: 'Service removed', color: 'success', icon: 'i-heroicons-trash' })
   } catch (e) {
     toast.add({ title: e instanceof Error ? e.message : 'Failed to remove service', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+}
+
+// ============================================
+// Provenance Management
+// ============================================
+
+function openAdvanceProvenanceModal() {
+  advanceProvenanceDate.value = ''
+  advanceProvenanceInfo.value = ''
+  advanceProvenanceError.value = null
+  showAdvanceProvenanceModal.value = true
+}
+
+function advanceProvenance() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    const date = advanceProvenanceDate.value ? new Date(advanceProvenanceDate.value) : new Date()
+    doc.nextProvenanceMarkWithEmbeddedGenerator(undefined, date)
+    showAdvanceProvenanceModal.value = false
+    saveToHistory()
+    refreshDocument()
+    toast.add({ title: 'Provenance mark advanced', color: 'success', icon: 'i-heroicons-arrow-path' })
+  } catch (e) {
+    advanceProvenanceError.value = e instanceof Error ? e.message : 'Failed to advance provenance'
+  }
+}
+
+// ============================================
+// Attachment Management
+// ============================================
+
+function openAddAttachmentModal() {
+  attachmentFormVendor.value = ''
+  attachmentFormConformsTo.value = ''
+  attachmentFormPayload.value = ''
+  attachmentFormError.value = null
+  showAddAttachmentModal.value = true
+}
+
+function addAttachment() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  const vendor = attachmentFormVendor.value.trim()
+  if (!vendor) {
+    attachmentFormError.value = 'Vendor is required'
+    return
+  }
+
+  const payload = attachmentFormPayload.value
+  if (!payload) {
+    attachmentFormError.value = 'Payload is required'
+    return
+  }
+
+  try {
+    const conformsTo = attachmentFormConformsTo.value.trim() || undefined
+    doc.addAttachment(payload, vendor, conformsTo)
+    showAddAttachmentModal.value = false
+    saveToHistory()
+    refreshDocument()
+    toast.add({ title: 'Attachment added', color: 'success', icon: 'i-heroicons-paper-clip' })
+  } catch (e) {
+    attachmentFormError.value = e instanceof Error ? e.message : 'Failed to add attachment'
+  }
+}
+
+function removeAttachment(envelope: Envelope) {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    doc.removeAttachment(envelope.digest())
+    saveToHistory()
+    refreshDocument()
+    toast.add({ title: 'Attachment removed', color: 'success', icon: 'i-heroicons-trash' })
+  } catch (e) {
+    toast.add({ title: e instanceof Error ? e.message : 'Failed to remove attachment', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+}
+
+// ============================================
+// Edge Management
+// ============================================
+
+function openAddEdgeModal() {
+  edgeFormUrString.value = ''
+  edgeFormError.value = null
+  showAddEdgeModal.value = true
+}
+
+function addEdge() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  const urString = edgeFormUrString.value.trim()
+  if (!urString) {
+    edgeFormError.value = 'Envelope UR string is required'
+    return
+  }
+
+  try {
+    const edgeEnvelope = (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(urString)
+    doc.addEdge(edgeEnvelope)
+    showAddEdgeModal.value = false
+    saveToHistory()
+    refreshDocument()
+    toast.add({ title: 'Edge added', color: 'success', icon: 'i-heroicons-arrow-right' })
+  } catch (e) {
+    edgeFormError.value = e instanceof Error ? e.message : 'Failed to parse edge envelope'
+  }
+}
+
+function removeEdge(envelope: Envelope) {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    doc.removeEdge(envelope.digest())
+    saveToHistory()
+    refreshDocument()
+    toast.add({ title: 'Edge removed', color: 'success', icon: 'i-heroicons-trash' })
+  } catch (e) {
+    toast.add({ title: e instanceof Error ? e.message : 'Failed to remove edge', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+}
+
+// ============================================
+// Resolution Method Management
+// ============================================
+
+function startAddResolutionMethod() {
+  newResolutionMethodValue.value = ''
+  addingResolutionMethod.value = true
+}
+
+function addResolutionMethod() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  const uri = newResolutionMethodValue.value.trim()
+  if (!uri) return
+
+  doc.addResolutionMethod(uri)
+  addingResolutionMethod.value = false
+  newResolutionMethodValue.value = ''
+  saveToHistory()
+  refreshDocument()
+  toast.add({ title: 'Resolution method added', color: 'success', icon: 'i-heroicons-globe-alt' })
+}
+
+function cancelAddResolutionMethod() {
+  addingResolutionMethod.value = false
+  newResolutionMethodValue.value = ''
+}
+
+function removeResolutionMethod(uri: string) {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  doc.removeResolutionMethod(uri)
+  saveToHistory()
+  refreshDocument()
+  toast.add({ title: 'Resolution method removed', color: 'neutral', icon: 'i-heroicons-trash' })
+}
+
+// ============================================
+// Import / Export / Signing
+// ============================================
+
+function openImportModal() {
+  importUrString.value = ''
+  importPassword.value = ''
+  importVerifySignature.value = false
+  importError.value = null
+  showImportModal.value = true
+}
+
+function importDocument() {
+  const urString = importUrString.value.trim()
+  if (!urString) {
+    importError.value = 'Envelope UR string is required'
+    return
+  }
+
+  try {
+    importError.value = null
+    const envelope = (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(urString)
+    const password = importPassword.value ? new TextEncoder().encode(importPassword.value) : undefined
+    const verify = importVerifySignature.value ? XIDVerifySignature.Inception : XIDVerifySignature.None
+    const doc = XIDDocument.fromEnvelope(envelope, password, verify)
+    xidDocument.value = doc
+    showImportModal.value = false
+    docVersion.value++
+    updateIdentityDisplay()
+    updateOutput()
+    undoStack.value = []
+    redoStack.value = []
+    saveToHistory()
+    toast.add({ title: 'XID Document imported', color: 'success', icon: 'i-heroicons-arrow-down-tray' })
+  } catch (e) {
+    importError.value = e instanceof Error ? e.message : 'Failed to import XID document'
+  }
+}
+
+function openExportModal() {
+  exportPrivateKeyOption.value = 'Omit'
+  exportGeneratorOption.value = 'Omit'
+  exportSigningOption.value = 'none'
+  exportPrivateKeyPassword.value = ''
+  exportGeneratorPassword.value = ''
+  exportKdfMethod.value = KeyDerivationMethod.Argon2id
+  exportResult.value = ''
+  exportError.value = null
+  showExportModal.value = true
+}
+
+function executeExport() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    exportError.value = null
+
+    // Build private key options
+    let privateKeyOpts: XIDPrivateKeyOptions | XIDPrivateKeyEncryptConfig
+    switch (exportPrivateKeyOption.value) {
+      case 'Include':
+        privateKeyOpts = XIDPrivateKeyOptions.Include
+        break
+      case 'Elide':
+        privateKeyOpts = XIDPrivateKeyOptions.Elide
+        break
+      case 'Encrypt': {
+        if (!exportPrivateKeyPassword.value) {
+          exportError.value = 'Password is required for private key encryption'
+          return
+        }
+        privateKeyOpts = {
+          type: XIDPrivateKeyOptions.Encrypt,
+          password: new TextEncoder().encode(exportPrivateKeyPassword.value),
+          method: exportKdfMethod.value,
+        }
+        break
+      }
+      default:
+        privateKeyOpts = XIDPrivateKeyOptions.Omit
+    }
+
+    // Build generator options
+    let generatorOpts: XIDGeneratorOptions | XIDGeneratorEncryptConfig
+    switch (exportGeneratorOption.value) {
+      case 'Include':
+        generatorOpts = XIDGeneratorOptions.Include
+        break
+      case 'Elide':
+        generatorOpts = XIDGeneratorOptions.Elide
+        break
+      case 'Encrypt': {
+        if (!exportGeneratorPassword.value) {
+          exportError.value = 'Password is required for generator encryption'
+          return
+        }
+        generatorOpts = {
+          type: XIDGeneratorOptions.Encrypt,
+          password: new TextEncoder().encode(exportGeneratorPassword.value),
+          method: exportKdfMethod.value,
+        }
+        break
+      }
+      default:
+        generatorOpts = XIDGeneratorOptions.Omit
+    }
+
+    // Build signing options
+    const signingOpts = exportSigningOption.value === 'inception'
+      ? { type: 'inception' as const }
+      : { type: 'none' as const }
+
+    const envelope = doc.toEnvelope(privateKeyOpts, generatorOpts, signingOpts)
+    exportResult.value = envelope.urString()
+    toast.add({ title: 'Export generated', color: 'success', icon: 'i-heroicons-arrow-up-tray' })
+  } catch (e) {
+    exportError.value = e instanceof Error ? e.message : 'Failed to export XID document'
+    exportResult.value = ''
   }
 }
 
@@ -709,6 +1258,229 @@ async function downloadQRCode() {
   link.href = qrCodeDataUrl.value
   link.click()
 }
+
+// ============================================
+// Undo / Redo
+// ============================================
+
+function saveToHistory() {
+  if (isUndoRedoAction) return
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    const envelope = doc.toEnvelope(
+      XIDPrivateKeyOptions.Include,
+      XIDGeneratorOptions.Include,
+      { type: 'none' }
+    )
+    const state = envelope.urString()
+
+    if (undoStack.value.length > 0 && undoStack.value[undoStack.value.length - 1] === state) {
+      return
+    }
+
+    undoStack.value.push(state)
+    if (undoStack.value.length > maxHistorySize) {
+      undoStack.value.shift()
+    }
+    redoStack.value = []
+  } catch {
+    // If serialization fails, skip history save
+  }
+}
+
+function undo() {
+  if (undoStack.value.length <= 1) {
+    toast.add({ title: 'Nothing to undo', color: 'warning', icon: 'i-heroicons-arrow-uturn-left' })
+    return
+  }
+
+  isUndoRedoAction = true
+  const currentState = undoStack.value.pop()!
+  redoStack.value.push(currentState)
+
+  const previousState = undoStack.value[undoStack.value.length - 1]!
+  try {
+    const envelope = (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(previousState)
+    const doc = XIDDocument.fromEnvelope(envelope)
+    xidDocument.value = doc
+    docVersion.value++
+    updateIdentityDisplay()
+    updateOutput()
+    toast.add({ title: 'Undo', color: 'info', icon: 'i-heroicons-arrow-uturn-left' })
+  } catch {
+    toast.add({ title: 'Failed to undo', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+  isUndoRedoAction = false
+}
+
+function redo() {
+  if (redoStack.value.length === 0) {
+    toast.add({ title: 'Nothing to redo', color: 'warning', icon: 'i-heroicons-arrow-uturn-right' })
+    return
+  }
+
+  isUndoRedoAction = true
+  const nextState = redoStack.value.pop()!
+  undoStack.value.push(nextState)
+
+  try {
+    const envelope = (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(nextState)
+    const doc = XIDDocument.fromEnvelope(envelope)
+    xidDocument.value = doc
+    docVersion.value++
+    updateIdentityDisplay()
+    updateOutput()
+    toast.add({ title: 'Redo', color: 'info', icon: 'i-heroicons-arrow-uturn-right' })
+  } catch {
+    toast.add({ title: 'Failed to redo', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+  isUndoRedoAction = false
+}
+
+const canUndo = computed(() => undoStack.value.length > 1)
+const canRedo = computed(() => redoStack.value.length > 0)
+
+// ============================================
+// Share (Public Export)
+// ============================================
+
+async function sharePublicly() {
+  const doc = xidDocument.value
+  if (!doc) return
+
+  try {
+    const envelope = doc.toEnvelope(
+      XIDPrivateKeyOptions.Elide,
+      XIDGeneratorOptions.Elide,
+      { type: 'none' }
+    )
+    const ur = envelope.urString()
+    shareResult.value = ur
+    await navigator.clipboard.writeText(ur)
+    showShareModal.value = true
+    toast.add({ title: 'Public export copied to clipboard', color: 'success', icon: 'i-heroicons-share' })
+  } catch (e) {
+    toast.add({ title: e instanceof Error ? e.message : 'Failed to create public export', color: 'error', icon: 'i-heroicons-exclamation-triangle' })
+  }
+}
+
+// ============================================
+// Templates
+// ============================================
+
+interface XIDTemplate {
+  id: string
+  name: string
+  description: string
+  icon: string
+  create: () => void
+}
+
+const xidTemplates: XIDTemplate[] = [
+  {
+    id: 'personal',
+    name: 'Personal Identity',
+    description: 'Ed25519 inception key with provenance chain',
+    icon: 'i-heroicons-user',
+    create: () => {
+      const doc = XIDDocument.new({ type: 'default' }, {
+        type: 'seed',
+        seed: crypto.getRandomValues(new Uint8Array(32)),
+        resolution: ProvenanceMarkResolution.High,
+        date: new Date(),
+      })
+      const inceptionKey = doc.inceptionKey()
+      if (inceptionKey) inceptionKey.setNickname('Personal')
+      xidDocument.value = doc
+    }
+  },
+  {
+    id: 'organization',
+    name: 'Organization',
+    description: 'Ed25519 inception key with a delegate for team members',
+    icon: 'i-heroicons-building-office-2',
+    create: () => {
+      const doc = XIDDocument.new({ type: 'default' })
+      const inceptionKey = doc.inceptionKey()
+      if (inceptionKey) inceptionKey.setNickname('Org Admin')
+      // Add a delegate
+      const controllerDoc = XIDDocument.new()
+      const delegate = Delegate.new(controllerDoc)
+      delegate.permissionsMut().addAllow(Privilege.Sign)
+      delegate.permissionsMut().addAllow(Privilege.Auth)
+      delegate.permissionsMut().addAllow(Privilege.Encrypt)
+      doc.addDelegate(delegate)
+      xidDocument.value = doc
+    }
+  },
+  {
+    id: 'iot-device',
+    name: 'IoT Device',
+    description: 'Ed25519 inception + ML-DSA-44 backup for quantum resistance',
+    icon: 'i-heroicons-cpu-chip',
+    create: () => {
+      const doc = XIDDocument.new({ type: 'default' })
+      const inceptionKey = doc.inceptionKey()
+      if (inceptionKey) inceptionKey.setNickname('Device Primary')
+      // Add ML-DSA backup key
+      const [sigPriv, sigPub] = createKeypair(SignatureScheme.MLDSA44)
+      const [encPriv, encPub] = createEncapsulationKeypair(EncapsulationScheme.X25519)
+      const backupKey = Key.newWithPrivateKeys(PrivateKeys.withKeys(sigPriv, encPriv), PublicKeys.new(sigPub, encPub))
+      backupKey.setNickname('PQ Backup')
+      backupKey.addPermission(Privilege.Sign)
+      backupKey.addPermission(Privilege.Auth)
+      doc.addKey(backupKey)
+      xidDocument.value = doc
+    }
+  },
+  {
+    id: 'service-account',
+    name: 'Service Account',
+    description: 'ECDSA inception key with service endpoint',
+    icon: 'i-heroicons-server-stack',
+    create: () => {
+      const pkb = PrivateKeyBase.new()
+      const doc = XIDDocument.new({ type: 'privateKeys', privateKeys: pkb.ecdsaPrivateKeys(), publicKeys: pkb.ecdsaPublicKeys() })
+      const inceptionKey = doc.inceptionKey()
+      if (inceptionKey) {
+        inceptionKey.setNickname('Service Key')
+        inceptionKey.addEndpoint('https://api.example.com')
+      }
+      // Add a service
+      const service = Service.new('https://api.example.com')
+      service.setName('API Endpoint')
+      service.setCapability('com.example.api')
+      if (inceptionKey) service.addKeyReferenceHex(inceptionKey.reference().toHex())
+      service.permissionsMut().addAllow(Privilege.Auth)
+      service.permissionsMut().addAllow(Privilege.Sign)
+      doc.addService(service)
+      xidDocument.value = doc
+    }
+  }
+]
+
+function applyTemplate(template: XIDTemplate) {
+  saveToHistory()
+  template.create()
+  showTemplatesModal.value = false
+  docVersion.value++
+  updateIdentityDisplay()
+  updateOutput()
+  saveToHistory()
+  toast.add({ title: `Template "${template.name}" applied`, color: 'success', icon: 'i-heroicons-document-duplicate' })
+}
+
+// ============================================
+// Keyboard Shortcuts
+// ============================================
+
+defineShortcuts({
+  'meta_z': () => undo(),
+  'meta_shift_z': () => redo(),
+  'meta_y': () => redo(),
+})
 </script>
 
 <template>
@@ -725,10 +1497,48 @@ async function downloadQRCode() {
               color="primary"
               variant="soft"
               size="sm"
-              @click="createNewXID"
+              @click="openNewXIDModal"
             >
               New
             </UButton>
+          </UTooltip>
+          <UTooltip text="Templates">
+            <UButton
+              icon="i-heroicons-squares-2x2"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="showTemplatesModal = true"
+            />
+          </UTooltip>
+          <UTooltip text="Import XID from UR">
+            <UButton
+              icon="i-heroicons-arrow-down-tray"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              @click="openImportModal"
+            />
+          </UTooltip>
+          <UTooltip text="Export with options">
+            <UButton
+              icon="i-heroicons-arrow-up-tray"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="!xidDocument"
+              @click="openExportModal"
+            />
+          </UTooltip>
+          <UTooltip text="Share publicly (elide private data)">
+            <UButton
+              icon="i-heroicons-share"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="!xidDocument"
+              @click="sharePublicly"
+            />
           </UTooltip>
           <UTooltip text="Show QR Code">
             <UButton
@@ -738,6 +1548,26 @@ async function downloadQRCode() {
               size="sm"
               :disabled="!xidDocument"
               @click="openQRModal"
+            />
+          </UTooltip>
+          <UTooltip text="Undo (Cmd+Z)">
+            <UButton
+              icon="i-heroicons-arrow-uturn-left"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="!canUndo"
+              @click="undo"
+            />
+          </UTooltip>
+          <UTooltip text="Redo (Cmd+Shift+Z)">
+            <UButton
+              icon="i-heroicons-arrow-uturn-right"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :disabled="!canRedo"
+              @click="redo"
             />
           </UTooltip>
           <UTooltip text="Clear document">
@@ -780,13 +1610,23 @@ async function downloadQRCode() {
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Create a new XID Document to get started. A default Ed25519 inception key will be generated automatically.
                 </p>
-                <UButton
-                  icon="i-heroicons-plus"
-                  color="primary"
-                  @click="createNewXID"
-                >
-                  Create XID Document
-                </UButton>
+                <div class="flex gap-2">
+                  <UButton
+                    icon="i-heroicons-plus"
+                    color="primary"
+                    @click="openNewXIDModal"
+                  >
+                    Create XID Document
+                  </UButton>
+                  <UButton
+                    icon="i-heroicons-squares-2x2"
+                    color="neutral"
+                    variant="soft"
+                    @click="showTemplatesModal = true"
+                  >
+                    Templates
+                  </UButton>
+                </div>
               </div>
             </div>
 
@@ -1148,6 +1988,187 @@ async function downloadQRCode() {
                 </div>
               </div>
 
+              <!-- Provenance Section (collapsible) -->
+              <div>
+                <div class="flex items-center justify-between cursor-pointer" @click="provenanceSectionCollapsed = !provenanceSectionCollapsed">
+                  <div class="flex items-center gap-2">
+                    <UIcon :name="provenanceSectionCollapsed ? 'i-heroicons-chevron-right' : 'i-heroicons-chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+                    <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Provenance</h4>
+                    <UBadge v-if="provenanceMark" color="success" variant="soft" size="xs">Seq {{ provenanceMark.seq() }}</UBadge>
+                    <UBadge v-else color="neutral" variant="soft" size="xs">None</UBadge>
+                  </div>
+                </div>
+
+                <div v-if="!provenanceSectionCollapsed" class="mt-2">
+                  <div v-if="!provenanceMark" class="text-xs text-gray-400 italic pl-5">
+                    No provenance mark. Create a new document with provenance enabled to set a genesis mark.
+                  </div>
+                  <div v-else class="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3 space-y-2 border border-gray-200 dark:border-gray-700">
+                    <!-- Generator status badge -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <UBadge color="primary" variant="soft" size="xs">{{ provenanceResolutionLabel }}</UBadge>
+                        <UBadge
+                          :color="generatorStatus === 'Included' ? 'success' : 'neutral'"
+                          variant="soft"
+                          size="xs"
+                        >
+                          Generator: {{ generatorStatus }}
+                        </UBadge>
+                      </div>
+                      <UTooltip v-if="generatorStatus === 'Included'" text="Advance provenance">
+                        <UButton icon="i-heroicons-arrow-path" size="xs" color="primary" variant="ghost" @click.stop="openAdvanceProvenanceModal" />
+                      </UTooltip>
+                    </div>
+
+                    <!-- Sequence -->
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Sequence:</span>
+                      <span class="text-xs font-mono text-gray-700 dark:text-gray-300">{{ provenanceMark.seq() }}</span>
+                      <UBadge v-if="provenanceMark.seq() === 0" color="info" variant="soft" size="xs">Genesis</UBadge>
+                    </div>
+
+                    <!-- Chain ID -->
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Chain ID:</span>
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ provenanceChainIdHex }}</code>
+                      <UButton icon="i-heroicons-clipboard-document" size="xs" color="neutral" variant="ghost" @click="copyToClipboard(provenanceChainIdHex, 'Chain ID')" />
+                    </div>
+
+                    <!-- Date -->
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Date:</span>
+                      <span class="text-xs text-gray-700 dark:text-gray-300">{{ provenanceMark.date().toISOString() }}</span>
+                    </div>
+
+                    <!-- Mark Identifier -->
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Mark ID:</span>
+                      <code class="text-xs font-mono text-gray-600 dark:text-gray-400">{{ provenanceMark.bytewordsIdentifier(true) }}</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Attachments Section (collapsible) -->
+              <div>
+                <div class="flex items-center justify-between cursor-pointer" @click="attachmentSectionCollapsed = !attachmentSectionCollapsed">
+                  <div class="flex items-center gap-2">
+                    <UIcon :name="attachmentSectionCollapsed ? 'i-heroicons-chevron-right' : 'i-heroicons-chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+                    <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Attachments</h4>
+                    <UBadge color="neutral" variant="soft" size="xs">{{ attachmentList.length }}</UBadge>
+                  </div>
+                  <UButton icon="i-heroicons-plus" size="xs" color="neutral" variant="ghost" @click.stop="openAddAttachmentModal" />
+                </div>
+
+                <div v-if="!attachmentSectionCollapsed" class="mt-2 space-y-2">
+                  <div v-if="attachmentList.length === 0" class="text-xs text-gray-400 italic pl-5">No attachments</div>
+                  <div
+                    v-for="att in attachmentList"
+                    :key="att.digestHex"
+                    class="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3 space-y-2 border border-gray-200 dark:border-gray-700"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <UBadge color="warning" variant="soft" size="xs">Attachment</UBadge>
+                        <UBadge color="neutral" variant="soft" size="xs">{{ att.vendor }}</UBadge>
+                      </div>
+                      <UTooltip text="Remove attachment">
+                        <UButton icon="i-heroicons-trash" size="xs" color="error" variant="ghost" @click="removeAttachment(att.envelope)" />
+                      </UTooltip>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Vendor:</span>
+                      <span class="text-xs text-gray-700 dark:text-gray-300">{{ att.vendor }}</span>
+                    </div>
+                    <div v-if="att.conformsTo" class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Conforms to:</span>
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ att.conformsTo }}</code>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Payload:</span>
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ att.payloadPreview }}</code>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Digest:</span>
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ att.digestHex.substring(0, 16) }}...</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edges Section (collapsible) -->
+              <div>
+                <div class="flex items-center justify-between cursor-pointer" @click="edgeSectionCollapsed = !edgeSectionCollapsed">
+                  <div class="flex items-center gap-2">
+                    <UIcon :name="edgeSectionCollapsed ? 'i-heroicons-chevron-right' : 'i-heroicons-chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+                    <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Edges</h4>
+                    <UBadge color="neutral" variant="soft" size="xs">{{ edgeList.length }}</UBadge>
+                  </div>
+                  <UButton icon="i-heroicons-plus" size="xs" color="neutral" variant="ghost" @click.stop="openAddEdgeModal" />
+                </div>
+
+                <div v-if="!edgeSectionCollapsed" class="mt-2 space-y-2">
+                  <div v-if="edgeList.length === 0" class="text-xs text-gray-400 italic pl-5">No edges</div>
+                  <div
+                    v-for="edge in edgeList"
+                    :key="edge.digestHex"
+                    class="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3 space-y-2 border border-gray-200 dark:border-gray-700"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <UBadge color="info" variant="soft" size="xs">Edge</UBadge>
+                      </div>
+                      <UTooltip text="Remove edge">
+                        <UButton icon="i-heroicons-trash" size="xs" color="error" variant="ghost" @click="removeEdge(edge.envelope)" />
+                      </UTooltip>
+                    </div>
+                    <pre class="text-xs font-mono text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900/50 rounded p-2 overflow-x-auto whitespace-pre max-h-24 overflow-y-auto">{{ edge.treePreview }}</pre>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Digest:</span>
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ edge.digestHex.substring(0, 16) }}...</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resolution Methods Section (collapsible) -->
+              <div>
+                <div class="flex items-center justify-between cursor-pointer" @click="resolutionSectionCollapsed = !resolutionSectionCollapsed">
+                  <div class="flex items-center gap-2">
+                    <UIcon :name="resolutionSectionCollapsed ? 'i-heroicons-chevron-right' : 'i-heroicons-chevron-down'" class="w-3.5 h-3.5 text-gray-400" />
+                    <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Resolution</h4>
+                    <UBadge color="neutral" variant="soft" size="xs">{{ resolutionMethodList.length }}</UBadge>
+                  </div>
+                  <UButton icon="i-heroicons-plus" size="xs" color="neutral" variant="ghost" @click.stop="startAddResolutionMethod" />
+                </div>
+
+                <div v-if="!resolutionSectionCollapsed" class="mt-2 space-y-2">
+                  <div v-if="resolutionMethodList.length === 0 && !addingResolutionMethod" class="text-xs text-gray-400 italic pl-5">No resolution methods</div>
+                  <div
+                    v-for="method in resolutionMethodList"
+                    :key="method"
+                    class="flex items-center gap-2 pl-5"
+                  >
+                    <UBadge color="neutral" variant="soft" size="xs">URI</UBadge>
+                    <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ method }}</code>
+                    <UButton icon="i-heroicons-clipboard-document" size="xs" color="neutral" variant="ghost" @click="copyToClipboard(method, 'Resolution URI')" />
+                    <UButton icon="i-heroicons-x-mark" size="xs" color="error" variant="ghost" @click="removeResolutionMethod(method)" />
+                  </div>
+                  <div v-if="addingResolutionMethod" class="flex items-center gap-1 pl-5">
+                    <input
+                      v-model="newResolutionMethodValue"
+                      placeholder="https://example.com/.well-known/xid"
+                      class="flex-1 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5"
+                      @keyup.enter="addResolutionMethod"
+                      @keyup.escape="cancelAddResolutionMethod"
+                    >
+                    <UButton icon="i-heroicons-check" size="xs" color="success" variant="ghost" @click="addResolutionMethod" />
+                    <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="cancelAddResolutionMethod" />
+                  </div>
+                </div>
+              </div>
+
               <!-- Envelope UR Section -->
               <div v-if="envelopeUrOutput">
                 <div class="flex items-center justify-between mb-2">
@@ -1327,13 +2348,35 @@ async function downloadQRCode() {
           <div class="p-6 space-y-4">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Key</h3>
 
-            <!-- Algorithm Selection -->
+            <!-- Signing Algorithm -->
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Algorithm</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signing Algorithm</label>
               <select v-model="newKeyScheme" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
-                <option value="Ed25519">Ed25519 (EdDSA)</option>
-                <option value="Schnorr">Schnorr (secp256k1)</option>
-                <option value="ECDSA">ECDSA (secp256k1)</option>
+                <optgroup label="Classical">
+                  <option value="Ed25519">Ed25519 (EdDSA)</option>
+                  <option value="Schnorr">Schnorr (secp256k1)</option>
+                  <option value="ECDSA">ECDSA (secp256k1)</option>
+                </optgroup>
+                <optgroup label="Post-Quantum (NIST FIPS 204)">
+                  <option value="MLDSA44">ML-DSA-44 (Level 2)</option>
+                  <option value="MLDSA65">ML-DSA-65 (Level 3)</option>
+                  <option value="MLDSA87">ML-DSA-87 (Level 5)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <!-- Encapsulation Algorithm -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Encapsulation Algorithm</label>
+              <select v-model="newKeyEncapsulation" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <optgroup label="Classical">
+                  <option value="X25519">X25519 (Curve25519)</option>
+                </optgroup>
+                <optgroup label="Post-Quantum (NIST FIPS 203)">
+                  <option value="MLKEM512">ML-KEM-512 (Level 1)</option>
+                  <option value="MLKEM768">ML-KEM-768 (Level 3)</option>
+                  <option value="MLKEM1024">ML-KEM-1024 (Level 5)</option>
+                </optgroup>
               </select>
             </div>
 
@@ -1553,6 +2596,418 @@ async function downloadQRCode() {
             <div class="flex justify-end gap-2">
               <UButton color="neutral" variant="ghost" @click="showRemoveServiceConfirm = false">Cancel</UButton>
               <UButton color="error" @click="executeRemoveService">Remove</UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- New XID Modal -->
+      <UModal v-model:open="showNewXIDModal" title="New XID Document" description="Create a new XID document with optional provenance.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">New XID Document</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              A new Ed25519 inception key will be generated automatically.
+            </p>
+
+            <!-- Provenance Toggle -->
+            <div class="flex items-center gap-3">
+              <input id="provenance-toggle" v-model="newXIDWithProvenance" type="checkbox" class="rounded">
+              <label for="provenance-toggle" class="text-sm font-medium text-gray-700 dark:text-gray-300">Create with provenance (genesis mark)</label>
+            </div>
+
+            <div v-if="newXIDWithProvenance" class="space-y-3 pl-2 border-l-2 border-primary-200 dark:border-primary-800">
+              <!-- Method -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Method</label>
+                <select v-model="newXIDProvenanceMethod" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                  <option value="passphrase">Passphrase</option>
+                  <option value="seed">Random Seed</option>
+                </select>
+              </div>
+
+              <!-- Passphrase -->
+              <div v-if="newXIDProvenanceMethod === 'passphrase'">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Passphrase</label>
+                <input v-model="newXIDPassphrase" type="password" placeholder="Enter a passphrase for the provenance chain" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Used to derive the provenance chain key. Keep this secret.</p>
+              </div>
+
+              <div v-else>
+                <p class="text-xs text-gray-500 dark:text-gray-400">A random 32-byte seed will be generated for the provenance chain.</p>
+              </div>
+
+              <!-- Resolution -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Resolution</label>
+                <select v-model.number="newXIDResolution" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                  <option :value="0">Low (16 bytes)</option>
+                  <option :value="1">Medium (32 bytes)</option>
+                  <option :value="2">Quartile (58 bytes)</option>
+                  <option :value="3">High (106 bytes)</option>
+                </select>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Higher resolution provides more precise date encoding and stronger chain verification.</p>
+              </div>
+
+              <!-- Date -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date (optional)</label>
+                <input v-model="newXIDDate" type="datetime-local" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Defaults to current date/time if not set.</p>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-2">
+              <UButton color="neutral" variant="ghost" @click="showNewXIDModal = false">Cancel</UButton>
+              <UButton color="primary" @click="createNewXID">
+                <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-1" />
+                Create
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Advance Provenance Modal -->
+      <UModal v-model:open="showAdvanceProvenanceModal" title="Advance Provenance" description="Generate the next provenance mark in the chain.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Advance Provenance</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Generate the next mark in the provenance chain using the embedded generator.
+            </p>
+
+            <UAlert v-if="advanceProvenanceError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="advanceProvenanceError" />
+
+            <div v-if="provenanceMark" class="bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3 space-y-1 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500 dark:text-gray-400">Current sequence:</span>
+                <span class="font-mono text-gray-700 dark:text-gray-300">{{ provenanceMark.seq() }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500 dark:text-gray-400">Next sequence:</span>
+                <span class="font-mono text-gray-700 dark:text-gray-300 font-semibold">{{ provenanceMark.seq() + 1 }}</span>
+              </div>
+            </div>
+
+            <!-- Date -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date (optional)</label>
+              <input v-model="advanceProvenanceDate" type="datetime-local" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Defaults to current date/time if not set.</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-2">
+              <UButton color="neutral" variant="ghost" @click="showAdvanceProvenanceModal = false">Cancel</UButton>
+              <UButton color="primary" @click="advanceProvenance">
+                <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-1" />
+                Next Mark
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Add Attachment Modal -->
+      <UModal v-model:open="showAddAttachmentModal" title="Add Attachment" description="Attach vendor-specific metadata to this XID document.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Attachment</h3>
+
+            <UAlert v-if="attachmentFormError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="attachmentFormError" />
+
+            <!-- Vendor -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Vendor</label>
+              <input v-model="attachmentFormVendor" type="text" placeholder="com.example" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Reverse domain name identifying the attachment format owner.</p>
+            </div>
+
+            <!-- Conforms To -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Conforms To (optional)</label>
+              <input v-model="attachmentFormConformsTo" type="text" placeholder="https://schema.org/Thing" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">URI identifying the structure/schema of the payload.</p>
+            </div>
+
+            <!-- Payload -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payload</label>
+              <textarea v-model="attachmentFormPayload" rows="3" placeholder="Attachment data..." class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 resize-none" />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-2">
+              <UButton color="neutral" variant="ghost" @click="showAddAttachmentModal = false">Cancel</UButton>
+              <UButton color="primary" @click="addAttachment">
+                <UIcon name="i-heroicons-paper-clip" class="w-4 h-4 mr-1" />
+                Add Attachment
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Add Edge Modal -->
+      <UModal v-model:open="showAddEdgeModal" title="Add Edge" description="Add a verifiable relationship edge to this XID document.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Edge</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Paste an edge envelope UR string. The edge should contain isA, source, and target assertions.
+            </p>
+
+            <UAlert v-if="edgeFormError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="edgeFormError" />
+
+            <!-- Edge UR -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Envelope UR</label>
+              <textarea v-model="edgeFormUrString" rows="3" placeholder="ur:envelope/..." class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 resize-none font-mono" />
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-2">
+              <UButton color="neutral" variant="ghost" @click="showAddEdgeModal = false">Cancel</UButton>
+              <UButton color="primary" @click="addEdge">
+                <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 mr-1" />
+                Add Edge
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Import XID Modal -->
+      <UModal v-model:open="showImportModal" title="Import XID Document" description="Import an XID document from an envelope UR string.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Import XID Document</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Paste an envelope UR string containing an XID document. This will replace the current document.
+            </p>
+
+            <UAlert v-if="importError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="importError" />
+
+            <!-- UR String -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Envelope UR</label>
+              <textarea v-model="importUrString" rows="4" placeholder="ur:envelope/..." class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 resize-none font-mono" />
+            </div>
+
+            <!-- Password (for encrypted documents) -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password (optional)</label>
+              <input v-model="importPassword" type="password" placeholder="For decrypting private keys or generator" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Required if private keys or generator are encrypted.</p>
+            </div>
+
+            <!-- Verify Signature -->
+            <div class="flex items-center gap-3">
+              <input id="import-verify" v-model="importVerifySignature" type="checkbox" class="rounded">
+              <label for="import-verify" class="text-sm font-medium text-gray-700 dark:text-gray-300">Verify inception signature</label>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-2 pt-2">
+              <UButton color="neutral" variant="ghost" @click="showImportModal = false">Cancel</UButton>
+              <UButton color="primary" @click="importDocument">
+                <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 mr-1" />
+                Import
+              </UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Export XID Modal -->
+      <UModal v-model:open="showExportModal" title="Export XID Document" description="Export the XID document with privacy and signing options.">
+        <template #content>
+          <div class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Export XID Document</h3>
+
+            <UAlert v-if="exportError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="exportError" />
+
+            <!-- Private Key Handling -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Private Key Handling</label>
+              <div class="space-y-1.5 bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3">
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportPrivateKeyOption" type="radio" value="Omit" name="pk-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Omit</span>
+                  <span class="text-xs text-gray-500">(remove from export)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportPrivateKeyOption" type="radio" value="Include" name="pk-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Include</span>
+                  <span class="text-xs text-gray-500">(plaintext - use with caution)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportPrivateKeyOption" type="radio" value="Elide" name="pk-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Elide</span>
+                  <span class="text-xs text-gray-500">(preserves digest tree, hides data)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportPrivateKeyOption" type="radio" value="Encrypt" name="pk-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Encrypt</span>
+                  <span class="text-xs text-gray-500">(password-protected)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Private Key Password (when encrypting) -->
+            <div v-if="exportPrivateKeyOption === 'Encrypt'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Private Key Password</label>
+              <input v-model="exportPrivateKeyPassword" type="password" placeholder="Password for encrypting private keys" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+            </div>
+
+            <!-- Generator Handling -->
+            <div v-if="generatorStatus === 'Included'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Generator Handling</label>
+              <div class="space-y-1.5 bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3">
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportGeneratorOption" type="radio" value="Omit" name="gen-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Omit</span>
+                  <span class="text-xs text-gray-500">(remove from export)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportGeneratorOption" type="radio" value="Include" name="gen-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Include</span>
+                  <span class="text-xs text-gray-500">(plaintext - use with caution)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportGeneratorOption" type="radio" value="Elide" name="gen-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Elide</span>
+                  <span class="text-xs text-gray-500">(preserves digest tree, hides data)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportGeneratorOption" type="radio" value="Encrypt" name="gen-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Encrypt</span>
+                  <span class="text-xs text-gray-500">(password-protected)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Generator Password (when encrypting) -->
+            <div v-if="exportGeneratorOption === 'Encrypt' && generatorStatus === 'Included'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Generator Password</label>
+              <input v-model="exportGeneratorPassword" type="password" placeholder="Password for encrypting generator" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+            </div>
+
+            <!-- KDF Method (shown when any encryption is active) -->
+            <div v-if="exportPrivateKeyOption === 'Encrypt' || (exportGeneratorOption === 'Encrypt' && generatorStatus === 'Included')">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Key Derivation Function</label>
+              <select v-model.number="exportKdfMethod" class="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2">
+                <option :value="3">Argon2id (recommended)</option>
+                <option :value="1">PBKDF2</option>
+                <option :value="2">Scrypt</option>
+              </select>
+            </div>
+
+            <!-- Signing -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Signing</label>
+              <div class="space-y-1.5 bg-gray-50 dark:bg-gray-800/30 rounded-lg p-3">
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportSigningOption" type="radio" value="none" name="sign-opt">
+                  <span class="text-gray-700 dark:text-gray-300">None</span>
+                  <span class="text-xs text-gray-500">(unsigned export)</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                  <input v-model="exportSigningOption" type="radio" value="inception" name="sign-opt">
+                  <span class="text-gray-700 dark:text-gray-300">Sign with inception key</span>
+                  <span class="text-xs text-gray-500">(proves document authenticity)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="flex justify-end gap-2">
+              <UButton color="neutral" variant="ghost" @click="showExportModal = false">Cancel</UButton>
+              <UButton color="primary" @click="executeExport">
+                <UIcon name="i-heroicons-arrow-up-tray" class="w-4 h-4 mr-1" />
+                Generate Export
+              </UButton>
+            </div>
+
+            <!-- Export Result -->
+            <div v-if="exportResult">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Export Result (Envelope UR)</h4>
+                <UButton
+                  icon="i-heroicons-clipboard-document"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="copyToClipboard(exportResult, 'Export UR')"
+                />
+              </div>
+              <code class="block text-xs bg-gray-100 dark:bg-gray-800/50 p-3 rounded-lg font-mono break-all text-gray-600 dark:text-gray-400 max-h-32 overflow-y-auto">{{ exportResult }}</code>
+            </div>
+          </div>
+        </template>
+      </UModal>
+      <!-- Share Modal -->
+      <UModal v-model:open="showShareModal" title="Public Export" description="Your XID has been exported with private data elided.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Public Export</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Private keys and provenance generator have been elided. The digest tree is preserved for verification.
+              The UR has been copied to your clipboard.
+            </p>
+
+            <div v-if="shareResult">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Envelope UR (Public)</h4>
+                <UButton
+                  icon="i-heroicons-clipboard-document"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="copyToClipboard(shareResult, 'Public export UR')"
+                />
+              </div>
+              <code class="block text-xs bg-gray-100 dark:bg-gray-800/50 p-3 rounded-lg font-mono break-all text-gray-600 dark:text-gray-400 max-h-32 overflow-y-auto">{{ shareResult }}</code>
+            </div>
+
+            <div class="flex justify-end">
+              <UButton color="neutral" variant="ghost" @click="showShareModal = false">Close</UButton>
+            </div>
+          </div>
+        </template>
+      </UModal>
+
+      <!-- Templates Modal -->
+      <UModal v-model:open="showTemplatesModal" title="XID Templates" description="Choose a template to create a pre-configured XID document.">
+        <template #content>
+          <div class="p-6 space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">XID Templates</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Choose a template to quickly create a pre-configured XID document. This will replace the current document.
+            </p>
+
+            <div class="space-y-2">
+              <div
+                v-for="template in xidTemplates"
+                :key="template.id"
+                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                @click="applyTemplate(template)"
+              >
+                <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-2">
+                  <UIcon :name="template.icon" class="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </div>
+                <div class="flex-1">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ template.name }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">{{ template.description }}</div>
+                </div>
+                <UIcon name="i-heroicons-chevron-right" class="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <UButton color="neutral" variant="ghost" @click="showTemplatesModal = false">Cancel</UButton>
             </div>
           </div>
         </template>
