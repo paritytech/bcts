@@ -212,7 +212,7 @@ const provenanceMark = computed(() => {
   return xidDocument.value.provenance() ?? null
 })
 
-const provenanceGenerator = computed(() => {
+const _provenanceGenerator = computed(() => {
   void docVersion.value
   if (!xidDocument.value) return null
   return xidDocument.value.provenanceGenerator() ?? null
