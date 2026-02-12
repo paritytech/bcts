@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Changed
+
+- Updated edge tests per BCR-2026-003: claim detail now placed on target object instead of edge subject
+- Updated upstream reference to bc-xid-rust 0.22.0
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed

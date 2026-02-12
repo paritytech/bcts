@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Changed
+
+- Updated upstream reference to bc-envelope-pattern-rust 0.14.0 (dependency alignment)
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed

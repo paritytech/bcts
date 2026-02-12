@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Changed
+
+- Updated upstream reference to provenance-mark-rust 0.23.0 (dependency alignment)
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Fixed
