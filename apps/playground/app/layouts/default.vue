@@ -39,9 +39,13 @@ const navigationItems: NavigationMenuItem[] = [
     badge: 'WIP'
   },
   {
-    label: 'XID Builder',
-    icon: 'i-heroicons-identification',
-    to: '/xid-builder',
+    type: 'label',
+    label: 'Learn'
+  },
+  {
+    label: 'XID Tutorial',
+    icon: 'i-heroicons-academic-cap',
+    to: '/xid-tutorial',
     badge: 'WIP'
   },
   {

@@ -350,7 +350,7 @@ describe("Edge", () => {
   });
 
   describe("Additional assertions", () => {
-    it("should support edges with extra assertions", () => {
+    it("should support edges with claim detail on target per BCR-2026-003", () => {
       const privateKeyBase = PrivateKeyBase.new();
       const xidDocument = XIDDocument.new(
         { type: "publicKeys", publicKeys: privateKeyBase.ed25519PublicKeys() },
@@ -358,25 +358,25 @@ describe("Edge", () => {
       );
 
       const alice = Envelope.new("Alice");
-      const bob = Envelope.new("Bob");
-      const edge = Envelope.new("knows-bob")
-        .addAssertion(IS_A, "schema:colleague")
-        .addAssertion(SOURCE, alice)
-        .addAssertion(TARGET, bob)
+      // Per BCR-2026-003, claim detail goes on the target object,
+      // not on the edge subject.
+      const bob = Envelope.new("Bob")
         .addAssertion("department", "Engineering")
         .addAssertion("since", "2024-01-15");
+      const edge = makeEdge("knows-bob", "schema:colleague", alice, bob);
 
       xidDocument.addEdge(edge);
 
       const envelope = xidDocument.intoEnvelope();
 
-      // Round-trip preserves extra assertions
+      // Round-trip preserves target assertions
       const recovered = XIDDocument.fromEnvelope(envelope);
       expect(xidDocument.equals(recovered)).toBe(true);
 
       const [, recoveredEdge] = recovered.edges().iter().next().value;
       recoveredEdge.validateEdge(); // Should not throw
       expect(recoveredEdge.edgeIsA().asText()).toBe("schema:colleague");
+      expect(recoveredEdge.edgeTarget().format()).toContain('"department"');
     });
   });
 
