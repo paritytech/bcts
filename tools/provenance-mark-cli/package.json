@@ -1,6 +1,6 @@
 {
   "name": "@bcts/provenance-mark-cli",
-  "version": "1.0.0-alpha.19",
+  "version": "1.0.0-alpha.20",
   "type": "module",
   "description": "Command line tool for creating and managing Provenance Marks",
   "license": "BSD-2-Clause-Patent",

@@ -21,7 +21,7 @@
 
 import { describe, it, expect } from "vitest";
 import { Envelope, Edges, SigningPrivateKey, EnvelopeError, ErrorCode } from "../src";
-import { IS_A, SOURCE, TARGET } from "@bcts/known-values";
+import { IS_A, SOURCE, TARGET, DEREFERENCE_VIA } from "@bcts/known-values";
 
 // -------------------------------------------------------------------
 // Test Helpers (equivalent to Rust common/test_data.rs)
@@ -718,6 +718,8 @@ describe("Edge Extension", () => {
       const bob = xidLike("Bob");
 
       // An edge with extra detail assertions beyond isA/source/target
+      // Per BCR-2026-003, this is now INVALID — only the three required
+      // assertions are permitted on the edge subject.
       const edge = Envelope.new("knows-bob")
         .addAssertion(IS_A, "schema:colleague")
         .addAssertion(SOURCE, alice)
@@ -725,18 +727,45 @@ describe("Edge Extension", () => {
         .addAssertion("department", "Engineering")
         .addAssertion("since", "2024-01-15");
 
-      // Should still validate — has the three required assertions
+      expect(() => edge.validateEdge()).toThrow(EnvelopeError);
+      try {
+        edge.validateEdge();
+      } catch (e) {
+        expect((e as EnvelopeError).code).toBe(ErrorCode.EDGE_UNEXPECTED_ASSERTION);
+      }
+    });
+
+    it("test_edge_with_claim_detail_on_target", () => {
+      // Per BCR-2026-003, claim detail goes as assertions on the *target*
+      // object, not on the edge subject itself.
+      const alice = xidLike("Alice");
+      const target = Envelope.new("Bob")
+        .addAssertion("department", "Engineering")
+        .addAssertion("since", "2024-01-15");
+      const edge = makeEdge("knows-bob", "schema:colleague", alice, target);
       expect(() => edge.validateEdge()).not.toThrow();
 
-      // Accessors work
-      const isA = edge.edgeIsA();
-      expect(isA.format()).toBe('"schema:colleague"');
+      // Target assertions are preserved
+      const edgeTarget = edge.edgeTarget();
+      expect(edgeTarget.format()).toContain('"Bob"');
+      expect(edgeTarget.format()).toContain('"department"');
+      expect(edgeTarget.format()).toContain('"Engineering"');
+    });
 
-      const source = edge.edgeSource();
-      expect(source.format()).toBe('"Alice"');
+    it("test_edge_with_claim_detail_on_source", () => {
+      // The source XID may also carry assertions such as 'dereferenceVia'.
+      const source = Envelope.new("Alice").addAssertion(
+        DEREFERENCE_VIA,
+        "https://example.com/xid/",
+      );
+      const target = xidLike("Bob");
+      const edge = makeEdge("knows-bob", "schema:colleague", source, target);
+      expect(() => edge.validateEdge()).not.toThrow();
 
-      const target = edge.edgeTarget();
-      expect(target.format()).toBe('"Bob"');
+      // Source assertions are preserved
+      const edgeSource = edge.edgeSource();
+      expect(edgeSource.format()).toContain('"Alice"');
+      expect(edgeSource.format()).toContain("'dereferenceVia'");
     });
   });
 });

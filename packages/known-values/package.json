@@ -1,6 +1,6 @@
 {
   "name": "@bcts/known-values",
-  "version": "1.0.0-alpha.19",
+  "version": "1.0.0-alpha.20",
   "type": "module",
   "description": "Blockchain Commons Known Values for TypeScript",
   "license": "BSD-2-Clause-Patent",

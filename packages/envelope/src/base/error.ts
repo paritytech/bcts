@@ -33,6 +33,7 @@ export enum ErrorCode {
   EDGE_DUPLICATE_IS_A = "EDGE_DUPLICATE_IS_A",
   EDGE_DUPLICATE_SOURCE = "EDGE_DUPLICATE_SOURCE",
   EDGE_DUPLICATE_TARGET = "EDGE_DUPLICATE_TARGET",
+  EDGE_UNEXPECTED_ASSERTION = "EDGE_UNEXPECTED_ASSERTION",
   NONEXISTENT_EDGE = "NONEXISTENT_EDGE",
   AMBIGUOUS_EDGE = "AMBIGUOUS_EDGE",
 
@@ -267,6 +268,11 @@ export class EnvelopeError extends Error {
       ErrorCode.EDGE_DUPLICATE_TARGET,
       "edge has duplicate 'target' assertions",
     );
+  }
+
+  /// Returned when an edge has an unexpected assertion (per BCR-2026-003).
+  static edgeUnexpectedAssertion(): EnvelopeError {
+    return new EnvelopeError(ErrorCode.EDGE_UNEXPECTED_ASSERTION, "edge has unexpected assertion");
   }
 
   /// Returned when an edge is requested but does not exist.

@@ -20,7 +20,7 @@
 import { Envelope } from "../base/envelope";
 import { type Digest } from "../base/digest";
 import { EnvelopeError } from "../base/error";
-import { EDGE, IS_A, SOURCE, TARGET } from "@bcts/known-values";
+import { EDGE, IS_A, IS_A_RAW, SOURCE, SOURCE_RAW, TARGET, TARGET_RAW } from "@bcts/known-values";
 
 // -------------------------------------------------------------------
 // Edges Container
@@ -206,7 +206,7 @@ Envelope.prototype.edges = function (this: Envelope): Envelope[] {
  *
  * An edge may be wrapped (signed) or unwrapped. The inner envelope
  * must have exactly three assertion predicates: `'isA'`, `'source'`,
- * and `'target'`.
+ * and `'target'`. No other assertions are permitted on the edge subject.
  *
  * Equivalent to Rust's `Envelope::validate_edge()`.
  *
@@ -215,27 +215,49 @@ Envelope.prototype.edges = function (this: Envelope): Envelope[] {
 Envelope.prototype.validateEdge = function (this: Envelope): void {
   const inner = this.subject().isWrapped() ? this.subject().tryUnwrap() : this;
 
-  const isACount = inner.assertionsWithPredicate(IS_A).length;
-  const sourceCount = inner.assertionsWithPredicate(SOURCE).length;
-  const targetCount = inner.assertionsWithPredicate(TARGET).length;
+  let seenIsA = false;
+  let seenSource = false;
+  let seenTarget = false;
 
-  if (isACount === 0) {
+  for (const assertion of inner.assertions()) {
+    const predicateEnv = assertion.tryPredicate();
+    const kv = predicateEnv.asKnownValue();
+    if (kv === undefined) {
+      throw EnvelopeError.edgeUnexpectedAssertion();
+    }
+    const raw = kv.valueBigInt();
+    switch (raw) {
+      case IS_A_RAW:
+        if (seenIsA) {
+          throw EnvelopeError.edgeDuplicateIsA();
+        }
+        seenIsA = true;
+        break;
+      case SOURCE_RAW:
+        if (seenSource) {
+          throw EnvelopeError.edgeDuplicateSource();
+        }
+        seenSource = true;
+        break;
+      case TARGET_RAW:
+        if (seenTarget) {
+          throw EnvelopeError.edgeDuplicateTarget();
+        }
+        seenTarget = true;
+        break;
+      default:
+        throw EnvelopeError.edgeUnexpectedAssertion();
+    }
+  }
+
+  if (!seenIsA) {
     throw EnvelopeError.edgeMissingIsA();
   }
-  if (sourceCount === 0) {
+  if (!seenSource) {
     throw EnvelopeError.edgeMissingSource();
   }
-  if (targetCount === 0) {
+  if (!seenTarget) {
     throw EnvelopeError.edgeMissingTarget();
-  }
-  if (isACount > 1) {
-    throw EnvelopeError.edgeDuplicateIsA();
-  }
-  if (sourceCount > 1) {
-    throw EnvelopeError.edgeDuplicateSource();
-  }
-  if (targetCount > 1) {
-    throw EnvelopeError.edgeDuplicateTarget();
   }
 };
 

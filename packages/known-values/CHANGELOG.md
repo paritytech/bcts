@@ -1,10 +1,20 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Added
+
+- **VALUE** known value (codepoint 25) — the object is the value of the subject
+- **ATTESTATION** known value (codepoint 26) — the object is an attestation of the subject
+- **VERIFIABLE_AT** known value (codepoint 27) — the object is a date at which the subject can be verified
+- Raw constants `VALUE_RAW`, `ATTESTATION_RAW`, `VERIFIABLE_AT_RAW` for pattern matching
+- Registry entries in bundled JSON for codepoints 25, 26, 27
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed
 
-- Version bump to keep workspace dependencies in sync.
+- Workspace version bump
 
 ## [1.0.0-alpha.18] - 2025-01-31
 

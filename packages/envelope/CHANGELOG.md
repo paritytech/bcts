@@ -1,10 +1,22 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Added
+
+- `EDGE_UNEXPECTED_ASSERTION` error code for strict edge validation (BCR-2026-003)
+- `EnvelopeError.edgeUnexpectedAssertion()` factory method
+
+### Changed
+
+- **Breaking**: `validateEdge()` now rejects edges with any assertions beyond `isA`, `source`, and `target` (BCR-2026-003). Additional claim detail must be placed on target/source objects, not on the edge subject.
+- Rewrote `validateEdge()` from count-based to single-pass predicate iteration using raw known-value constants
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed
 
-- Version bump to keep workspace dependencies in sync.
+- Workspace version bump
 
 ## [1.0.0-alpha.18] - 2025-01-31
 

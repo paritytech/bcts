@@ -1,10 +1,16 @@
 # Changelog
 
+## [1.0.0-alpha.20] - 2026-02-12
+
+### Changed
+
+- Updated edge tests per BCR-2026-003: claim detail now placed on target object instead of edge subject
+
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed
 
-- Version bump to keep workspace dependencies in sync.
+- Workspace version bump
 
 ## [1.0.0-alpha.18] - 2025-01-31
 
