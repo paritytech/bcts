@@ -12,6 +12,12 @@ import {
   KNOWN_VALUE_TAG,
   SELF,
   SELF_RAW,
+  VALUE,
+  VALUE_RAW,
+  ATTESTATION,
+  ATTESTATION_RAW,
+  VERIFIABLE_AT,
+  VERIFIABLE_AT_RAW,
 } from "../src/index";
 import { cbor, MajorType, bytesToHex, hexToBytes, isTagged } from "@bcts/dcbor";
 
@@ -513,6 +519,36 @@ describe("Rust Parity: _insert stale name removal", () => {
 // =============================================================================
 // Step 8: SELF constant tests
 // =============================================================================
+
+describe("Rust Parity: VALUE, ATTESTATION, VERIFIABLE_AT constants", () => {
+  test("VALUE constant should exist with correct value and name", () => {
+    expect(VALUE.value()).toBe(25);
+    expect(VALUE.name()).toBe("value");
+    expect(VALUE_RAW).toBe(25n);
+    expect(VALUE.valueBigInt()).toBe(VALUE_RAW);
+  });
+
+  test("ATTESTATION constant should exist with correct value and name", () => {
+    expect(ATTESTATION.value()).toBe(26);
+    expect(ATTESTATION.name()).toBe("attestation");
+    expect(ATTESTATION_RAW).toBe(26n);
+    expect(ATTESTATION.valueBigInt()).toBe(ATTESTATION_RAW);
+  });
+
+  test("VERIFIABLE_AT constant should exist with correct value and name", () => {
+    expect(VERIFIABLE_AT.value()).toBe(27);
+    expect(VERIFIABLE_AT.name()).toBe("verifiableAt");
+    expect(VERIFIABLE_AT_RAW).toBe(27n);
+    expect(VERIFIABLE_AT.valueBigInt()).toBe(VERIFIABLE_AT_RAW);
+  });
+
+  test("new values should be in KNOWN_VALUES store", () => {
+    const store = KNOWN_VALUES.get();
+    expect(store.knownValueNamed("value")?.value()).toBe(25);
+    expect(store.knownValueNamed("attestation")?.value()).toBe(26);
+    expect(store.knownValueNamed("verifiableAt")?.value()).toBe(27);
+  });
+});
 
 describe("Rust Parity: SELF constant (706)", () => {
   test("SELF constant should exist with correct value and name", () => {

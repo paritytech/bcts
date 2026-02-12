@@ -37,6 +37,9 @@ export const VALID_FROM_RAW = 21n;
 export const VALID_UNTIL_RAW = 22n;
 export const POSITION_RAW = 23n;
 export const NICKNAME_RAW = 24n;
+export const VALUE_RAW = 25n;
+export const ATTESTATION_RAW = 26n;
+export const VERIFIABLE_AT_RAW = 27n;
 
 // Attachments
 export const ATTACHMENT_RAW = 50n;
@@ -164,7 +167,10 @@ export const VALID_FROM = new KnownValue(21, "validFrom");
 export const VALID_UNTIL = new KnownValue(22, "validUntil");
 export const POSITION = new KnownValue(23, "position");
 export const NICKNAME = new KnownValue(24, "nickname");
-// 25-49 *unassigned*
+export const VALUE = new KnownValue(25, "value");
+export const ATTESTATION = new KnownValue(26, "attestation");
+export const VERIFIABLE_AT = new KnownValue(27, "verifiableAt");
+// 28-49 *unassigned*
 
 //
 // Attachments
@@ -348,6 +354,9 @@ export class LazyKnownValues {
         VALID_UNTIL,
         POSITION,
         NICKNAME,
+        VALUE,
+        ATTESTATION,
+        VERIFIABLE_AT,
         ATTACHMENT,
         VENDOR,
         CONFORMS_TO,

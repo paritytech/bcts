@@ -185,6 +185,27 @@
       "description": "The subject is a nickname for the object."
     },
     {
+      "codepoint": 25,
+      "name": "value",
+      "type": "property",
+      "uri": "",
+      "description": "The object is the value of the subject."
+    },
+    {
+      "codepoint": 26,
+      "name": "attestation",
+      "type": "property",
+      "uri": "",
+      "description": "The object is an attestation of the subject."
+    },
+    {
+      "codepoint": 27,
+      "name": "verifiableAt",
+      "type": "property",
+      "uri": "",
+      "description": "The object is a date at which the subject can be verified."
+    },
+    {
       "codepoint": 50,
       "name": "attachment",
       "type": "property",
@@ -711,7 +732,7 @@
     }
   ],
   "statistics": {
-    "total_entries": 89,
+    "total_entries": 92,
     "code_point_range": {
       "start": 0,
       "end": 706
