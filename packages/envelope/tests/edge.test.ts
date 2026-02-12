@@ -754,8 +754,10 @@ describe("Edge Extension", () => {
 
     it("test_edge_with_claim_detail_on_source", () => {
       // The source XID may also carry assertions such as 'dereferenceVia'.
-      const source = Envelope.new("Alice")
-        .addAssertion(DEREFERENCE_VIA, "https://example.com/xid/");
+      const source = Envelope.new("Alice").addAssertion(
+        DEREFERENCE_VIA,
+        "https://example.com/xid/",
+      );
       const target = xidLike("Bob");
       const edge = makeEdge("knows-bob", "schema:colleague", source, target);
       expect(() => edge.validateEdge()).not.toThrow();

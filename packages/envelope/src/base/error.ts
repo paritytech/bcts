@@ -272,10 +272,7 @@ export class EnvelopeError extends Error {
 
   /// Returned when an edge has an unexpected assertion (per BCR-2026-003).
   static edgeUnexpectedAssertion(): EnvelopeError {
-    return new EnvelopeError(
-      ErrorCode.EDGE_UNEXPECTED_ASSERTION,
-      "edge has unexpected assertion",
-    );
+    return new EnvelopeError(ErrorCode.EDGE_UNEXPECTED_ASSERTION, "edge has unexpected assertion");
   }
 
   /// Returned when an edge is requested but does not exist.

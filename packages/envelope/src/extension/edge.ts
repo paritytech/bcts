@@ -228,15 +228,21 @@ Envelope.prototype.validateEdge = function (this: Envelope): void {
     const raw = kv.valueBigInt();
     switch (raw) {
       case IS_A_RAW:
-        if (seenIsA) { throw EnvelopeError.edgeDuplicateIsA(); }
+        if (seenIsA) {
+          throw EnvelopeError.edgeDuplicateIsA();
+        }
         seenIsA = true;
         break;
       case SOURCE_RAW:
-        if (seenSource) { throw EnvelopeError.edgeDuplicateSource(); }
+        if (seenSource) {
+          throw EnvelopeError.edgeDuplicateSource();
+        }
         seenSource = true;
         break;
       case TARGET_RAW:
-        if (seenTarget) { throw EnvelopeError.edgeDuplicateTarget(); }
+        if (seenTarget) {
+          throw EnvelopeError.edgeDuplicateTarget();
+        }
         seenTarget = true;
         break;
       default:
@@ -244,9 +250,15 @@ Envelope.prototype.validateEdge = function (this: Envelope): void {
     }
   }
 
-  if (!seenIsA) { throw EnvelopeError.edgeMissingIsA(); }
-  if (!seenSource) { throw EnvelopeError.edgeMissingSource(); }
-  if (!seenTarget) { throw EnvelopeError.edgeMissingTarget(); }
+  if (!seenIsA) {
+    throw EnvelopeError.edgeMissingIsA();
+  }
+  if (!seenSource) {
+    throw EnvelopeError.edgeMissingSource();
+  }
+  if (!seenTarget) {
+    throw EnvelopeError.edgeMissingTarget();
+  }
 };
 
 /**
