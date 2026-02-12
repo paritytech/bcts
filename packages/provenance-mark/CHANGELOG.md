@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Updated upstream reference to provenance-mark-rust 0.23.0 (dependency alignment)
+- Workspace version bump
 
 ## [1.0.0-alpha.19] - 2026-02-05
 

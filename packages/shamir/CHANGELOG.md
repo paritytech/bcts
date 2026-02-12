@@ -10,7 +10,4 @@
 
 ### Changed
 
-- Version bump to keep workspace dependencies in sync.
-
-## [1.0.0-alpha.18] - 2025-01-31
-
+- Workspace version bump

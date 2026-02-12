@@ -9,17 +9,12 @@
 - **VERIFIABLE_AT** known value (codepoint 27) — the object is a date at which the subject can be verified
 - Raw constants `VALUE_RAW`, `ATTESTATION_RAW`, `VERIFIABLE_AT_RAW` for pattern matching
 - Registry entries in bundled JSON for codepoints 25, 26, 27
-- Tests for new known value constants and store lookup
-
-### Changed
-
-- Updated upstream reference to known-values-rust 0.15.4
 
 ## [1.0.0-alpha.19] - 2026-02-05
 
 ### Changed
 
-- Version bump to keep workspace dependencies in sync.
+- Workspace version bump
 
 ## [1.0.0-alpha.18] - 2025-01-31
 
