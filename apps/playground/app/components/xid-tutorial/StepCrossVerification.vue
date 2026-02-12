@@ -3,9 +3,9 @@ import { Envelope } from '@bcts/envelope'
 import { XIDDocument, XIDVerifySignature } from '@bcts/xid'
 
 const {
-  xidDocument, xidHex, treeOutput, envelopeUrOutput, error,
+  xidDocument, xidHex, treeOutput, error: _error,
   keyList, resolutionMethodList, attachmentList, serviceList, provenanceMark,
-  verifySignature, getPublicEnvelope, getKeyAlgorithm, getKeyRefHex,
+  verifySignature, getKeyAlgorithm,
   completeStep, resetTutorial,
 } = useXidTutorial()
 

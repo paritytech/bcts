@@ -51,7 +51,7 @@ async function copyToClipboard(text: string, label: string) {
     await navigator.clipboard.writeText(text)
     copied.value = label
     setTimeout(() => { copied.value = null }, 1500)
-  } catch {}
+  } catch { /* clipboard unavailable */ }
 }
 
 function truncate(text: string, maxLen: number): string {

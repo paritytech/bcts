@@ -18,7 +18,7 @@ async function copyToClipboard(text: string, label: string) {
     await navigator.clipboard.writeText(text)
     copiedLabel.value = label
     setTimeout(() => { copiedLabel.value = null }, 1500)
-  } catch {}
+  } catch { /* clipboard unavailable */ }
 }
 
 const envelopeContent = computed(() => {
