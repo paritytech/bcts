@@ -235,9 +235,9 @@ const whatsNextCards = [
         <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">What's Next?</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <component
+            :is="card.ext ? 'a' : resolveComponent('NuxtLink')"
             v-for="card in whatsNextCards"
             :key="card.title"
-            :is="card.ext ? 'a' : resolveComponent('NuxtLink')"
             :to="card.ext ? undefined : card.to"
             :href="card.ext ? card.to : undefined"
             :target="card.ext ? '_blank' : undefined"

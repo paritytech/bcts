@@ -1,10 +1,8 @@
 <script setup lang="ts">
 const {
-  xidDocument,
   error,
   keyList,
   attachmentList,
-  serviceList,
   provenanceMark,
   addAttachment,
   addService,

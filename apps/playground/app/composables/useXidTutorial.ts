@@ -3,7 +3,7 @@ import {
   XIDPrivateKeyOptions,
   XIDGeneratorOptions,
   XIDVerifySignature,
-  Key,
+  type Key,
   Service,
   Privilege,
   type XIDGenesisMarkOptions,
@@ -59,7 +59,9 @@ export function useXidTutorial() {
       let payloadPreview = "";
       try {
         vendor = (envelope as AttachmentEnvelope).attachmentVendor();
-      } catch {}
+      } catch {
+        /* vendor extraction failed */
+      }
       try {
         const payload = (envelope as AttachmentEnvelope).attachmentPayload();
         const text = (payload as unknown as { asText(): string | undefined }).asText();
@@ -155,7 +157,9 @@ export function useXidTutorial() {
           xidUr: getPrivateEnvelope()?.urString(),
         }),
       );
-    } catch {}
+    } catch {
+      /* localStorage unavailable */
+    }
   }
 
   function restoreState() {
@@ -173,7 +177,9 @@ export function useXidTutorial() {
         xidDocument.value = XIDDocument.fromEnvelope(envelope);
         refreshDocument();
       }
-    } catch {}
+    } catch {
+      /* state restoration failed */
+    }
   }
 
   function createXid(

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const {
-  xidDocument,
   envelopeUrOutput,
   error,
   resolutionMethodList,
@@ -47,7 +46,7 @@ async function copyUrString() {
     await navigator.clipboard.writeText(envelopeUrOutput.value)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
-  } catch {}
+  } catch { /* clipboard unavailable */ }
 }
 
 function handleContinue() {
