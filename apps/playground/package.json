@@ -31,7 +31,7 @@
     "vue-draggable-plus": "^0.6.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^10.0.1",
     "@iconify-json/heroicons": "^1.2.3",
     "@iconify-json/lucide": "^1.2.88",
     "@iconify-json/simple-icons": "^1.2.69",
@@ -39,7 +39,7 @@
     "@nuxthub/core": "0.10.6",
     "@nuxtjs/seo": "3.4.0",
     "@types/node": "^25.2.1",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.0",
     "nuxt": "^4.3.0",
     "nuxt-gtag": "4.1.0",
     "typescript": "^5.9.3",
