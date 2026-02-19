@@ -91,11 +91,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 🔐 Security Disclosure
 
-Found a vulnerability? We'd really appreciate you letting us know privately at **security@snowpine.io** - please avoid opening public issues for security concerns.
-
-| Contact | Fingerprint |
-|---------|-------------|
-| security@snowpine.io | C018 7736 F305 EF8C 425C 25DB F859 D6F9 A6DE B25A |
+Found a vulnerability? We'd really appreciate you letting us know privately at **security@parity.io** - please avoid opening public issues for security concerns.
 
 ## 📄 License
 
