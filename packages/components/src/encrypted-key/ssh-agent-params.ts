@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * SSH Agent key derivation parameters
  *
  * SSH Agent uses an SSH agent daemon for key derivation. The agent signs

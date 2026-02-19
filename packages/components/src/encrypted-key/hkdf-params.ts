@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * HKDF (HMAC-based Key Derivation Function) parameters
  *
  * HKDF is a key derivation function based on HMAC, defined in RFC 5869.

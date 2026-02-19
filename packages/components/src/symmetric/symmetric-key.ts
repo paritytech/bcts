@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Symmetric key for ChaCha20-Poly1305 AEAD encryption (32 bytes)
  *
  * A symmetric encryption key used for both encryption and decryption.

@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * A deterministic random number generator based on HKDF-HMAC-SHA256.
  *
  * Ported from bc-components-rust/src/hkdf_rng.rs

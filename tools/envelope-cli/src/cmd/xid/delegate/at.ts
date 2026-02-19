@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * XID delegate at command - 1:1 port of cmd/xid/delegate/at.rs
  *
  * Retrieve the delegate at the given index.

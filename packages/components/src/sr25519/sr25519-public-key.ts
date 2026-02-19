@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Sr25519PublicKey - Public key for Schnorr signatures over Ristretto25519
  *
  * SR25519 is the signature scheme used by Polkadot/Substrate.

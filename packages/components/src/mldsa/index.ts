@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * ML-DSA Module - Post-Quantum Digital Signatures
  *
  * This module provides ML-DSA (Module-Lattice-Based Digital Signature Algorithm)

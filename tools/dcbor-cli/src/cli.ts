@@ -1,12 +1,17 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * dcbor CLI - Command line parser/validator for deterministic CBOR (dCBOR)
  *
- * A command line tool for composing, parsing and validating Gordian dCBOR.
+ * A command line tool for composing, parsing, and validating Gordian dCBOR.
  * See the main repo README: https://github.com/leonardocustodio/bcts
+ *
  */
 
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Command, Option } from "commander";
 import { VERSION } from "./index.js";
 import { run, type Command as CmdType } from "./run.js";

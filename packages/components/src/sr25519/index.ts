@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * SR25519 Module - Schnorr signatures over Ristretto25519
  *
  * This module provides SR25519 implementation for digital signatures.

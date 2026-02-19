@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Format utilities for dcbor-cli
  * Contains InputFormat, OutputFormat enums and formatOutput function
  * Equivalent to the format-related code in Rust's main.rs

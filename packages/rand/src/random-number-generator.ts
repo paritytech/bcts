@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ */
+
 // Ported from bc-rand-rust/src/random_number_generator.rs
 
 import { wideMulU32, wideMulU64 } from "./widening.js";

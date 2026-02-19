@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * DKG participant round 2 command.
  *
  * Port of cmd/dkg/participant/round2.rs from frost-hubert-rust.

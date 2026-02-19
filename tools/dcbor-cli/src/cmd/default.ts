@@ -1,9 +1,13 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Default parsing and validation behavior
  * Equivalent to Rust's cmd/default.rs
  */
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 import { type Cbor, type Result, decodeCbor, hexToBytes, errorMsg } from "@bcts/dcbor";
 import { parseDcborItem, fullErrorMessage } from "@bcts/dcbor-parse";
 import type { Exec } from "./index.js";

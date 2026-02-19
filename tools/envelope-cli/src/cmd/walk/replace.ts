@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Walk replace command - 1:1 port of cmd/walk/replace.rs
  *
  * Replace nodes matching target digests with a replacement envelope.

@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Elide removing command - 1:1 port of cmd/elide/removing.rs
  *
  * Elide all objects in the target (remove them from the envelope).

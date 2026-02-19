@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * XID delegate add command - 1:1 port of cmd/xid/delegate/add.rs
  *
  * Add a delegate to the XID document.

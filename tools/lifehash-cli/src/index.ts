@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * @bcts/lifehash-cli - Command line tool for generating LifeHash PNG images.
  *
  * This package provides both a CLI tool and a programmatic API for generating

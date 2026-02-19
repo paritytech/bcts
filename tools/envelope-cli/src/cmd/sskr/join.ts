@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * SSKR join command - 1:1 port of cmd/sskr/join.rs
  *
  * Join a set of SSKR shares back into the original envelope.

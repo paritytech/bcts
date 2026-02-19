@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ */
+
 // Ported from bc-crypto-rust/src/ed25519_signing.rs
 
 import { ed25519 } from "@noble/curves/ed25519.js";

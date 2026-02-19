@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Assertion remove pred-obj command - 1:1 port of cmd/assertion/remove/pred_obj.rs
  *
  * Remove an assertion with the given predicate and object from the given envelope.
