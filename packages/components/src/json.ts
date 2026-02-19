@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * A CBOR-tagged container for UTF-8 JSON text.
  *
  * Ported from bc-components-rust/src/json.rs

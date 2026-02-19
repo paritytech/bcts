@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Set data structure for CBOR with tag(258) encoding.
  *
  * A Set is encoded as an array with no duplicate elements,

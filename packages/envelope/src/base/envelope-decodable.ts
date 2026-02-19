@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ */
+
 import type { Cbor } from "@bcts/dcbor";
 import { tryIntoText, tryIntoBool, tryIntoByteString, isNull, decodeCbor } from "@bcts/dcbor";
 import { Envelope } from "./envelope";

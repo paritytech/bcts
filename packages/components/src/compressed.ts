@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * A compressed binary object with integrity verification.
  *
  * Ported from bc-components-rust/src/compressed.rs

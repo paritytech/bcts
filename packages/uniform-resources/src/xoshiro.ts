@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Xoshiro256** PRNG implementation.
  *
  * This is a high-quality, fast pseudo-random number generator used

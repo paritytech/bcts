@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * XID attachment at command - 1:1 port of cmd/xid/attachment/at.rs
  *
  * Retrieve the attachment at the given index.

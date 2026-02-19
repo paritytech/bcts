@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Authentication tag for AEAD encryption (16 bytes)
  *
  * An `AuthenticationTag` is a 16-byte value generated during ChaCha20-Poly1305

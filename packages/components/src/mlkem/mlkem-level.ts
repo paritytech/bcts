@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * MLKEM Security Level - ML-KEM (Module-Lattice-Based Key Encapsulation Mechanism)
  *
  * ML-KEM is a post-quantum key encapsulation mechanism standardized by NIST.

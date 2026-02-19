@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ */
+
 // Cbor type available if needed later
 import { Envelope } from "./envelope";
 import type { EnvelopeEncodableValue } from "./envelope-encodable";

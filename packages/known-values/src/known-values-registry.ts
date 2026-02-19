@@ -1,3 +1,9 @@
+/**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ */
+
 import { KnownValue } from "./known-value";
 import { loadBundledRegistries } from "./bundled-registries";
 import { KnownValuesStore } from "./known-values-store";

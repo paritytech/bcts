@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * X25519 public key for ECDH key exchange (32 bytes)
  *
  * X25519 is an elliptic-curve Diffie-Hellman key exchange protocol based on

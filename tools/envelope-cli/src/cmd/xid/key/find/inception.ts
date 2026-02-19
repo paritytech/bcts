@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * XID key find inception command - 1:1 port of cmd/xid/key/find/inception.rs
  *
  * Find the XID document's inception key, if it exists.

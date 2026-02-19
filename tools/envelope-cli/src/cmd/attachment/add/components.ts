@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Attachment add components command - 1:1 port of cmd/attachment/add/components.rs
  *
  * Add an attachment to the given envelope by specifying its components.

@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * @bcts/dcbor-parse - Token types and Lexer
  *
  * This is a 1:1 TypeScript port of bc-dcbor-parse-rust token.rs

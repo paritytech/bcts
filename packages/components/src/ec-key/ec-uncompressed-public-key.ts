@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * EC uncompressed public key for ECDSA (secp256k1, 65 bytes)
  *
  * An `ECUncompressedPublicKey` is a 65-byte uncompressed representation of a

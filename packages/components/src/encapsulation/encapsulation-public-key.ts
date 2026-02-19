@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Encapsulation public key for key encapsulation mechanisms
  *
  * This type represents a public key that can be used to encapsulate (encrypt)

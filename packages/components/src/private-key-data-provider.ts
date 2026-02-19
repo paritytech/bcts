@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * A trait for types that can provide unique data for cryptographic key derivation.
  *
  * Ported from bc-components-rust/src/private_key_data_provider.rs

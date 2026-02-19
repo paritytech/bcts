@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Cryptographic seed with optional metadata (minimum 16 bytes)
  * Ported from bc-components-rust/src/seed.rs
  *

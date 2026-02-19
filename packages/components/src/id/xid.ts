@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * eXtensible Identifier (XID) - 32-byte identifier bound to a public key
  *
  * A XID is a unique 32-byte identifier for a subject entity (person,

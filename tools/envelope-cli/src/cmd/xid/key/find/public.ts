@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * XID key find public command - 1:1 port of cmd/xid/key/find/public.rs
  *
  * Find the XID document's keys by their public key.

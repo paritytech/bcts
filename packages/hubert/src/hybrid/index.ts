@@ -1,4 +1,8 @@
 /**
+ * Copyright © 2023-2026 Blockchain Commons, LLC
+ * Copyright © 2025-2026 Leonardo Amoroso Custodio
+ * Copyright © 2026 Parity Technologies
+ *
  * Hybrid module for Hubert distributed storage.
  *
  * This module combines Mainline DHT and IPFS for optimal storage.
