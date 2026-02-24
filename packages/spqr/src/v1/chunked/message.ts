@@ -123,8 +123,8 @@ export function encodeChunk(chunk: Chunk, into: number[]): void {
 /** Decode a chunk from a Uint8Array at the given offset. */
 export function decodeChunk(from: Uint8Array, at: { offset: number }): Chunk {
   const index = decodeVarint32(from, at);
-  if (at.offset + CHUNK_DATA_SIZE > from.length) {
-    throw new Error('Chunk: not enough data for chunk payload');
+  if (at.offset + CHUNK_DATA_SIZE > from.length || index > 0xFFFF) {
+    throw new Error('Chunk: invalid chunk (data too short or index exceeds u16)');
   }
   const data = from.slice(at.offset, at.offset + CHUNK_DATA_SIZE);
   at.offset += CHUNK_DATA_SIZE;

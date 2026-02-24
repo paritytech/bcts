@@ -58,6 +58,7 @@ export interface Decoder {
 
 const NUM_POLYS = 16;
 const CHUNK_DATA_SIZE = 32; // 16 GF16 values * 2 bytes each
+const MAX_MESSAGE_LENGTH = (1 << 16) * NUM_POLYS; // 1,048,576 bytes (matches Rust)
 
 // ---------------------------------------------------------------------------
 // Poly class
@@ -383,18 +384,15 @@ export class PolyEncoder implements Encoder {
    * length is odd, it is padded with a zero byte.
    */
   static encodeBytes(msg: Uint8Array): PolyEncoder {
-    // Pad to even length
-    let padded: Uint8Array;
     if (msg.length % 2 !== 0) {
-      padded = new Uint8Array(msg.length + 1);
-      padded.set(msg);
-      // Last byte is already 0
-    } else {
-      padded = msg;
+      throw new PolynomialError('Message length must be even');
+    }
+    if (msg.length > MAX_MESSAGE_LENGTH) {
+      throw new PolynomialError('Message length exceeds maximum');
     }
 
     // Total number of GF16 values
-    const totalValues = padded.length / 2;
+    const totalValues = msg.length / 2;
 
     // Initialize 16 point arrays
     const points: GF16[][] = new Array(NUM_POLYS);
@@ -405,7 +403,7 @@ export class PolyEncoder implements Encoder {
     // Distribute values across 16 polynomials round-robin
     for (let i = 0; i < totalValues; i++) {
       const poly = i % NUM_POLYS;
-      const value = (padded[i * 2] << 8) | padded[i * 2 + 1];
+      const value = (msg[i * 2] << 8) | msg[i * 2 + 1];
       points[poly].push(new GF16(value));
     }
 
@@ -537,8 +535,10 @@ export class PolyDecoder implements Decoder {
    * chunks have been received.
    */
   static create(lenBytes: number): PolyDecoder {
-    const paddedLen = lenBytes % 2 !== 0 ? lenBytes + 1 : lenBytes;
-    const ptsNeeded = paddedLen / 2;
+    if (lenBytes % 2 !== 0) {
+      throw new PolynomialError('Message length must be even');
+    }
+    const ptsNeeded = lenBytes / 2;
 
     const pts: SortedPtSet[] = new Array(NUM_POLYS);
     for (let i = 0; i < NUM_POLYS; i++) {

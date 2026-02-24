@@ -180,23 +180,14 @@ describe("PolyEncoder / PolyDecoder", () => {
       expect(decoded!).toEqual(msg);
     });
 
-    it("roundtrips an odd-length message", () => {
+    it("rejects an odd-length message (matches Rust)", () => {
       const msg = new Uint8Array([1, 2, 3]);
-      const encoder = PolyEncoder.encodeBytes(msg);
-      const decoder = PolyDecoder.create(msg.length);
-
-      // Feed chunks until complete
-      for (let i = 0; i < 10 && !decoder.isComplete; i++) {
-        decoder.addChunk(encoder.nextChunk());
-      }
-
-      const decoded = decoder.decodedMessage();
-      expect(decoded).not.toBeNull();
-      // Decoded will be padded to even length (4 bytes with trailing 0)
-      expect(decoded![0]).toBe(1);
-      expect(decoded![1]).toBe(2);
-      expect(decoded![2]).toBe(3);
-      expect(decoded![3]).toBe(0);
+      expect(() => PolyEncoder.encodeBytes(msg)).toThrow(
+        "Message length must be even",
+      );
+      expect(() => PolyDecoder.create(msg.length)).toThrow(
+        "Message length must be even",
+      );
     });
   });
 

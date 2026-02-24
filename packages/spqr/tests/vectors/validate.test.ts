@@ -7,7 +7,7 @@
  * 3. The .bin files match the JSON hex
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -61,7 +61,9 @@ interface VectorFile {
   vectors: TestVector[];
 }
 
-const vectorsDir = join(import.meta.dir, '.');
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+const vectorsDir = dirname(fileURLToPath(import.meta.url));
 const vectorFile: VectorFile = JSON.parse(
   readFileSync(join(vectorsDir, 'wire-format-v1.json'), 'utf-8'),
 );

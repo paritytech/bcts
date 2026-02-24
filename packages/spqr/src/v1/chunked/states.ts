@@ -219,21 +219,17 @@ export function recv(current: States, msg: Message): RecvResult {
 
   // Handle epoch mismatch: messages from the past are ignored
   if (msg.epoch < stateEpoch) {
-    // Special case: ct2Sampled can accept messages for the next epoch
-    if (current.tag === 'ct2Sampled' && msg.epoch === stateEpoch) {
-      // fall through to normal processing
-    } else {
-      return { key: null, state: current };
-    }
+    return { key: null, state: current };
   }
 
   // Messages from the future are an error (except ct2Sampled epoch+1)
   if (msg.epoch > stateEpoch) {
     if (current.tag === 'ct2Sampled' && msg.epoch === stateEpoch + 1n) {
-      // Next epoch -- transition to send_ek
+      // Next epoch -- transition to KeysUnsampled and return immediately.
+      // The incoming message payload is NOT processed in the new state
+      // (matches Rust: the peer will retransmit via erasure coding).
       const next = current.state.recvNextEpoch(msg.epoch);
-      // Recursively process the message in the new state
-      return recv({ tag: 'keysUnsampled', state: next }, msg);
+      return { key: null, state: { tag: 'keysUnsampled', state: next } };
     }
     throw new SpqrError(
       `Epoch too far ahead: state=${stateEpoch}, msg=${msg.epoch}`,

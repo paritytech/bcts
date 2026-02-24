@@ -95,7 +95,9 @@ class KeyHistory {
   gc(currentKey: number, params: ChainParams): void {
     const maxOoo = resolveMaxOooKeys(params);
     if (this.length >= trimSize(params) * KEY_ENTRY_SIZE) {
-      if (currentKey < maxOoo) return;
+      if (currentKey < maxOoo) {
+        throw new Error('KeyHistory.gc: currentKey < maxOooKeys (corrupted state)');
+      }
       const trimHorizon = currentKey - maxOoo;
 
       let i = 0;
