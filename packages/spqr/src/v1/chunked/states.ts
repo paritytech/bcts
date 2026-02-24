@@ -27,7 +27,7 @@ export type MessagePayload =
   | { type: 'hdr'; chunk: Chunk }
   | { type: 'ek'; chunk: Chunk }
   | { type: 'ekCt1Ack'; chunk: Chunk }
-  | { type: 'ct1Ack'; value: boolean }
+  | { type: 'ct1Ack' }
   | { type: 'ct1'; chunk: Chunk }
   | { type: 'ct2'; chunk: Chunk };
 
@@ -147,7 +147,7 @@ export function send(current: States, rng: RandomBytes): SendResult {
 
     case 'ekSentCt1Received': {
       return {
-        msg: { epoch, payload: { type: 'ct1Ack', value: true } },
+        msg: { epoch, payload: { type: 'ct1Ack' } },
         key: null,
         state: current,
       };
@@ -341,20 +341,6 @@ export function recv(current: States, msg: Message): RecvResult {
           true,
         );
         return mapCt1SampledResult(result);
-      }
-      if (payload.type === 'ct1Ack') {
-        // Peer acknowledged ct1 but no ek chunk in this message
-        // Treat as ct1Ack without ek progress
-        return {
-          key: null,
-          state: {
-            tag: 'ct1Acknowledged',
-            state: new sendCt.Ct1Acknowledged(
-              current.state.uc,
-              current.state.receivingEk,
-            ),
-          },
-        };
       }
       return { key: null, state: current };
     }

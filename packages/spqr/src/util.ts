@@ -9,6 +9,13 @@
 /**
  * Constant-time comparison of two byte arrays.
  * Returns true if they are equal, false otherwise.
+ *
+ * Uses a XOR accumulator to avoid early-exit timing leaks.
+ *
+ * Limitation: Unlike Rust (#[inline(never)] + black_box), JavaScript
+ * cannot fully prevent JIT optimizations. In Node.js environments,
+ * callers requiring stronger guarantees should use
+ * crypto.timingSafeEqual directly.
  */
 export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;

@@ -166,15 +166,43 @@ describe('message serialization', () => {
   it('should round-trip a Ct1Ack message', () => {
     const msg: Message = {
       epoch: 10n,
-      payload: { type: 'ct1Ack', value: true },
+      payload: { type: 'ct1Ack' },
     };
     const bytes = serializeMessage(msg, 5);
     const { msg: decoded } = deserializeMessage(bytes);
 
     expect(decoded.payload.type).toBe('ct1Ack');
-    if (decoded.payload.type === 'ct1Ack') {
-      expect(decoded.payload.value).toBe(true);
-    }
+    expect(decoded.epoch).toBe(10n);
+  });
+
+  it('should serialize Ct1Ack with no value byte (Rust wire compat)', () => {
+    const msg: Message = {
+      epoch: 1n,
+      payload: { type: 'ct1Ack' },
+    };
+    const bytes = serializeMessage(msg, 0);
+    // Wire format: [0x01 version][0x01 epoch=1][0x00 index=0][0x04 Ct1Ack]
+    // No value byte after 0x04
+    expect(bytes.length).toBe(4);
+    expect(bytes[0]).toBe(0x01); // V1
+    expect(bytes[3]).toBe(0x04); // MessageType.Ct1Ack
+  });
+
+  it('should deserialize Ct1Ack from Rust wire format (no trailing byte)', () => {
+    // Rust produces: [version=0x01][epoch varint][index varint][type=0x04]
+    // epoch=1 (varint 0x01), index=0 (varint 0x00)
+    const rustBytes = new Uint8Array([0x01, 0x01, 0x00, 0x04]);
+    const { msg: decoded, index } = deserializeMessage(rustBytes);
+
+    expect(decoded.epoch).toBe(1n);
+    expect(index).toBe(0);
+    expect(decoded.payload.type).toBe('ct1Ack');
+  });
+
+  it('should reject epoch=0 messages (matches Rust)', () => {
+    // Rust rejects epoch=0 in Message::deserialize (serialize.rs:255-257)
+    const epoch0Bytes = new Uint8Array([0x01, 0x00, 0x00, 0x00]); // version=1, epoch=0, index=0, type=None
+    expect(() => deserializeMessage(epoch0Bytes)).toThrow('epoch must be > 0');
   });
 
   it('should round-trip Ct1 and Ct2 messages', () => {

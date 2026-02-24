@@ -173,7 +173,7 @@ export function serializeMessage(msg: Message, index: number): Uint8Array {
       break;
     case 'ct1Ack':
       out.push(MessageType.Ct1Ack);
-      out.push(payload.value ? 1 : 0);
+      // No value byte -- matches Rust wire format (Ct1Ack has no payload)
       break;
     case 'ct1':
       out.push(MessageType.Ct1);
@@ -207,6 +207,9 @@ export function deserializeMessage(
 
   // Epoch
   const epoch = decodeVarint(from, at);
+  if (epoch === 0n) {
+    throw new Error('Message: epoch must be > 0');
+  }
 
   // Index
   const index = decodeVarint32(from, at);
@@ -231,14 +234,10 @@ export function deserializeMessage(
     case MessageType.EkCt1Ack:
       payload = { type: 'ekCt1Ack', chunk: decodeChunk(from, at) };
       break;
-    case MessageType.Ct1Ack: {
-      if (at.offset >= from.length) {
-        throw new Error('Message: missing ct1Ack value');
-      }
-      const value = from[at.offset++]! !== 0;
-      payload = { type: 'ct1Ack', value };
+    case MessageType.Ct1Ack:
+      // No value byte -- matches Rust (hardcoded true, no data after type byte)
+      payload = { type: 'ct1Ack' };
       break;
-    }
     case MessageType.Ct1:
       payload = { type: 'ct1', chunk: decodeChunk(from, at) };
       break;
