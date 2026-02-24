@@ -32,6 +32,14 @@ function toHex(buf: Uint8Array): string {
     .join("");
 }
 
+/** Build a Chunk from a vector payload, asserting required fields exist. */
+function buildChunk(p: VectorPayload): Chunk {
+  if (p.chunk_index === undefined || p.chunk_data_hex === undefined) {
+    throw new Error(`Expected chunk data for payload type ${p.type}`);
+  }
+  return { index: p.chunk_index, data: fromHex(p.chunk_data_hex) };
+}
+
 // ---------------------------------------------------------------------------
 // Load vectors
 // ---------------------------------------------------------------------------
@@ -121,52 +129,22 @@ describe("Construct and serialize each vector", () => {
           payload = { type: "none" };
           break;
         case "hdr":
-          payload = {
-            type: "hdr",
-            chunk: {
-              index: vec.payload.chunk_index!,
-              data: fromHex(vec.payload.chunk_data_hex!),
-            },
-          };
+          payload = { type: "hdr", chunk: buildChunk(vec.payload) };
           break;
         case "ek":
-          payload = {
-            type: "ek",
-            chunk: {
-              index: vec.payload.chunk_index!,
-              data: fromHex(vec.payload.chunk_data_hex!),
-            },
-          };
+          payload = { type: "ek", chunk: buildChunk(vec.payload) };
           break;
         case "ekCt1Ack":
-          payload = {
-            type: "ekCt1Ack",
-            chunk: {
-              index: vec.payload.chunk_index!,
-              data: fromHex(vec.payload.chunk_data_hex!),
-            },
-          };
+          payload = { type: "ekCt1Ack", chunk: buildChunk(vec.payload) };
           break;
         case "ct1Ack":
           payload = { type: "ct1Ack" };
           break;
         case "ct1":
-          payload = {
-            type: "ct1",
-            chunk: {
-              index: vec.payload.chunk_index!,
-              data: fromHex(vec.payload.chunk_data_hex!),
-            },
-          };
+          payload = { type: "ct1", chunk: buildChunk(vec.payload) };
           break;
         case "ct2":
-          payload = {
-            type: "ct2",
-            chunk: {
-              index: vec.payload.chunk_index!,
-              data: fromHex(vec.payload.chunk_data_hex!),
-            },
-          };
+          payload = { type: "ct2", chunk: buildChunk(vec.payload) };
           break;
         default:
           throw new Error(`Unknown payload type: ${vec.payload.type}`);

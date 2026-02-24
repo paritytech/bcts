@@ -98,11 +98,11 @@ const { mod, nttZetas, NTT, bitsCoder } = genCrystals({
 type Poly = Uint16Array;
 
 function polyAdd(a: Poly, b: Poly): void {
-  for (let i = 0; i < N; i++) a[i] = mod(a[i]! + b[i]!);
+  for (let i = 0; i < N; i++) a[i] = mod(a[i] + b[i]);
 }
 
 function polySub(a: Poly, b: Poly): void {
-  for (let i = 0; i < N; i++) a[i] = mod(a[i]! - b[i]!);
+  for (let i = 0; i < N; i++) a[i] = mod(a[i] - b[i]);
 }
 
 function BaseCaseMultiply(
@@ -119,13 +119,13 @@ function BaseCaseMultiply(
 
 function MultiplyNTTs(f: Poly, g: Poly): Poly {
   for (let i = 0; i < N / 2; i++) {
-    let z = nttZetas[64 + (i >> 1)]!;
+    let z = nttZetas[64 + (i >> 1)];
     if (i & 1) z = -z;
     const { c0, c1 } = BaseCaseMultiply(
-      f[2 * i + 0]!,
-      f[2 * i + 1]!,
-      g[2 * i + 0]!,
-      g[2 * i + 1]!,
+      f[2 * i + 0],
+      f[2 * i + 1],
+      g[2 * i + 0],
+      g[2 * i + 1],
       z,
     );
     f[2 * i + 0] = c0;
@@ -142,8 +142,8 @@ function SampleNTT(xof: XofGet): Poly {
     const b = xof();
     if (b.length % 3) throw new Error("SampleNTT: unaligned block");
     for (let i = 0; j < N && i + 3 <= b.length; i += 3) {
-      const d1 = ((b[i + 0]! >> 0) | (b[i + 1]! << 8)) & 0xfff;
-      const d2 = ((b[i + 1]! >> 4) | (b[i + 2]! << 4)) & 0xfff;
+      const d1 = ((b[i + 0] >> 0) | (b[i + 1] << 8)) & 0xfff;
+      const d2 = ((b[i + 1] >> 4) | (b[i + 2] << 4)) & 0xfff;
       if (d1 < Q) r[j++] = d1;
       if (j < N && d2 < Q) r[j++] = d2;
     }
@@ -165,7 +165,7 @@ function sampleCBD(seed: Uint8Array, nonce: number, eta: number): Poly {
   let bb = 0;
   let t0 = 0;
   for (let i = 0; i < b32.length; i++) {
-    let b = b32[i]!;
+    let b = b32[i];
     for (let j = 0; j < 32; j++) {
       bb += b & 1;
       b >>= 1;
@@ -239,9 +239,9 @@ function encodeState(rHat: Poly[], e2: Poly, m: Uint8Array): Uint8Array {
 
   // r_as_ntt: K polynomials
   for (let k = 0; k < K; k++) {
-    const poly = rHat[k]!;
+    const poly = rHat[k];
     for (let i = 0; i < N; i++) {
-      const val = poly[i]!;
+      const val = poly[i];
       state[offset++] = val & 0xff;
       state[offset++] = (val >> 8) & 0xff;
     }
@@ -249,7 +249,7 @@ function encodeState(rHat: Poly[], e2: Poly, m: Uint8Array): Uint8Array {
 
   // error2: 1 polynomial
   for (let i = 0; i < N; i++) {
-    const val = e2[i]!;
+    const val = e2[i];
     state[offset++] = val & 0xff;
     state[offset++] = (val >> 8) & 0xff;
   }
@@ -280,7 +280,7 @@ function decodeState(state: Uint8Array): {
   for (let k = 0; k < K; k++) {
     const poly = new Uint16Array(N);
     for (let i = 0; i < N; i++) {
-      poly[i] = st[offset]! | (st[offset + 1]! << 8);
+      poly[i] = st[offset] | (st[offset + 1] << 8);
       offset += 2;
     }
     rHat.push(poly);
@@ -289,7 +289,7 @@ function decodeState(state: Uint8Array): {
   // error2: 1 polynomial
   const e2 = new Uint16Array(N);
   for (let i = 0; i < N; i++) {
-    e2[i] = st[offset]! | (st[offset + 1]! << 8);
+    e2[i] = st[offset] | (st[offset + 1] << 8);
     offset += 2;
   }
 
@@ -319,8 +319,8 @@ function fixIssue1275(es: Uint8Array): Uint8Array | null {
   const E2_END = E2_START + N * 2; // 2048
 
   for (let i = E2_START; i < E2_END; i += 2) {
-    const lo = es[i]!;
-    const hi = es[i + 1]!;
+    const lo = es[i];
+    const hi = es[i + 1];
     const val = lo | (hi << 8); // interpret as i16 LE
 
     // 0x0000 and 0xFFFF have same representation in both endiannesses
@@ -351,7 +351,7 @@ function flipEndianness(es: Uint8Array): Uint8Array {
   const fixed = new Uint8Array(es);
   const coeffEnd = es.length - 32; // don't flip the last 32 bytes (randomness)
   for (let i = 0; i < coeffEnd; i += 2) {
-    const tmp = fixed[i]!;
+    const tmp = fixed[i];
     fixed[i] = fixed[i + 1]!;
     fixed[i + 1] = tmp;
   }
@@ -435,7 +435,7 @@ export function encaps1(hdr: Uint8Array, rng: RandomBytes): Encaps1Result {
     const tmp = new Uint16Array(N);
     for (let j = 0; j < K; j++) {
       const aij = SampleNTT(x.get(i, j));
-      polyAdd(tmp, MultiplyNTTs(aij, rHat[j]!.slice() as Poly));
+      polyAdd(tmp, MultiplyNTTs(aij, rHat[j].slice() as Poly));
     }
     polyAdd(e1, NTT.decode(tmp));
     u.push(e1);
@@ -445,7 +445,7 @@ export function encaps1(hdr: Uint8Array, rng: RandomBytes): Encaps1Result {
   // Step 5: ct1 = compress_du(u) = encode each u[i] with du=10
   const ct1 = new Uint8Array(CT1_SIZE);
   for (let i = 0; i < K; i++) {
-    const encoded = polyDU.encode(u[i]!);
+    const encoded = polyDU.encode(u[i]);
     ct1.set(encoded, i * polyDU.bytesLen);
   }
 
@@ -486,7 +486,7 @@ export function encaps2(ek: Uint8Array, es: Uint8Array): Uint8Array {
   // Compute v = NTT^-1(sum(tHat[i] * rHat[i])) + e2 + Decompress1(m)
   const tmp = new Uint16Array(N);
   for (let i = 0; i < K; i++) {
-    polyAdd(tmp, MultiplyNTTs(tHat[i]!.slice() as Poly, rHat[i]!.slice() as Poly));
+    polyAdd(tmp, MultiplyNTTs(tHat[i].slice() as Poly, rHat[i].slice() as Poly));
   }
   const v = NTT.decode(tmp);
   polyAdd(v, e2);
@@ -551,7 +551,7 @@ export function ekMatchesHeader(ek: Uint8Array, hdr: Uint8Array): boolean {
   if (actualHash.length !== expectedHash.length) return false;
   let diff = 0;
   for (let i = 0; i < actualHash.length; i++) {
-    diff |= actualHash[i]! ^ expectedHash[i]!;
+    diff |= actualHash[i] ^ expectedHash[i];
   }
   return diff === 0;
 }

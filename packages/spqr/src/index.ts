@@ -248,7 +248,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
 
     // Negotiate down to the message version
     const inner = initInner(
-      msgVer as Version,
+      msgVer,
       vn.direction as Direction,
       Uint8Array.from(vn.authKey),
     );

@@ -21,7 +21,7 @@
  * (NoHeaderReceived) from the RecvCt2Result, avoiding circular imports.
  */
 
-import { Authenticator } from "../../authenticator.js";
+import { type Authenticator } from "../../authenticator.js";
 import { hkdfSha256 } from "../../kdf.js";
 import { concat, bigintToBE8 } from "../../util.js";
 import { ZERO_SALT, LABEL_SCKA_KEY } from "../../constants.js";

@@ -18,7 +18,7 @@
  *   EkSentCt1Received    -- recvCt2Chunk(epoch, chunk) --> EkSentCt1Received | sendCt.NoHeaderReceived
  */
 
-import * as unchunked from "../unchunked/send-ek.js";
+import type * as unchunked from "../unchunked/send-ek.js";
 import * as unchunkedSendCt from "../unchunked/send-ct.js";
 import { PolyEncoder, PolyDecoder } from "../../encoding/polynomial.js";
 import type { Chunk } from "../../encoding/polynomial.js";

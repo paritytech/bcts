@@ -21,9 +21,7 @@ export type SerializedState = Uint8Array;
 export type SerializedMessage = Uint8Array;
 
 /** Interface for random byte generation */
-export interface RandomBytes {
-  (length: number): Uint8Array;
-}
+export type RandomBytes = (length: number) => Uint8Array;
 
 /** Result of send() */
 export interface Send {

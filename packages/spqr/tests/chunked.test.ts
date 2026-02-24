@@ -545,7 +545,7 @@ describe("state transitions", () => {
   });
 
   it("send_ct states should produce correct message types", () => {
-    let bob = initB(AUTH_KEY);
+    const bob = initB(AUTH_KEY);
 
     // noHeaderReceived sends None (nothing to send yet)
     const r1 = send(bob, rng);

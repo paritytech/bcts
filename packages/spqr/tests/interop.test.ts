@@ -66,6 +66,12 @@ function bytesToHex(bytes: Uint8Array): string {
     .join("");
 }
 
+/** Narrow a possibly-undefined value, failing if null/undefined. */
+function defined<T>(value: T | undefined | null): T {
+  if (value == null) throw new Error("Expected value to be defined");
+  return value;
+}
+
 // ---------------------------------------------------------------------------
 // Helper: common auth key and chain params from vectors
 // ---------------------------------------------------------------------------
@@ -470,7 +476,7 @@ describe("Interop: Protobuf state serialization", () => {
     it("has correct version negotiation fields", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
-      const vn = state.versionNegotiation!;
+      const vn = defined(state.versionNegotiation);
 
       expect(bytesToHex(vn.authKey)).toBe(
         "2929292929292929292929292929292929292929292929292929292929292929",
@@ -483,9 +489,9 @@ describe("Interop: Protobuf state serialization", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
-      expect(state.v1).toBeDefined();
-      expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe("keysUnsampled");
+      const v1 = defined(state.v1);
+      const innerState = defined(v1.innerState);
+      expect(innerState.type).toBe("keysUnsampled");
     });
 
     it("round-trips through TS encode/decode", () => {
@@ -496,8 +502,9 @@ describe("Interop: Protobuf state serialization", () => {
 
       // Structural equality (not byte-level, due to epoch storage difference)
       expect(redecoded.versionNegotiation).toBeDefined();
-      expect(redecoded.v1).toBeDefined();
-      expect(redecoded.v1!.innerState!.type).toBe(decoded.v1!.innerState!.type);
+      const redecodedInner = defined(defined(redecoded.v1).innerState);
+      const decodedInner = defined(defined(decoded.v1).innerState);
+      expect(redecodedInner.type).toBe(decodedInner.type);
     });
   });
 
@@ -522,7 +529,7 @@ describe("Interop: Protobuf state serialization", () => {
     it("has B2A direction in version negotiation", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
-      const vn = state.versionNegotiation!;
+      const vn = defined(state.versionNegotiation);
 
       expect(vn.direction).toBe(Direction.B2A);
     });
@@ -538,10 +545,10 @@ describe("Interop: Protobuf state serialization", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
-      expect(state.v1).toBeDefined();
-      expect(state.v1!.innerState).toBeDefined();
+      const v1 = defined(state.v1);
+      const innerState = defined(v1.innerState);
       // B side starts in noHeaderReceived (waiting for header from A)
-      expect(state.v1!.innerState!.type).toBe("noHeaderReceived");
+      expect(innerState.type).toBe("noHeaderReceived");
     });
   });
 
@@ -560,8 +567,8 @@ describe("Interop: Protobuf state serialization", () => {
 
       const decoded = decodePqRatchetState(state);
       expect(decoded.versionNegotiation).toBeDefined();
-      expect(decoded.v1).toBeDefined();
-      expect(decoded.v1!.innerState!.type).toBe("keysUnsampled");
+      const decodedInner = defined(defined(decoded.v1).innerState);
+      expect(decodedInner.type).toBe("keysUnsampled");
     });
 
     it("B2A initialState produces decodable state", () => {
@@ -578,8 +585,8 @@ describe("Interop: Protobuf state serialization", () => {
 
       const decoded = decodePqRatchetState(state);
       expect(decoded.versionNegotiation).toBeDefined();
-      expect(decoded.v1).toBeDefined();
-      expect(decoded.v1!.innerState!.type).toBe("noHeaderReceived");
+      const decodedInner = defined(defined(decoded.v1).innerState);
+      expect(decodedInner.type).toBe("noHeaderReceived");
     });
   });
 });
@@ -702,15 +709,15 @@ describe("Interop: Issue 1275 pre-baked states", () => {
       const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
-      expect(state.v1).toBeDefined();
-      expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe(issue1275.a_state.inner_state_type);
+      const v1 = defined(state.v1);
+      const innerState = defined(v1.innerState);
+      expect(innerState.type).toBe(issue1275.a_state.inner_state_type);
     });
 
     it("headerSent state has sendingEk encoder and receivingCt1 decoder", () => {
       const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
-      const inner = state.v1!.innerState!;
+      const inner = defined(defined(state.v1).innerState);
 
       if (inner.type === "headerSent") {
         expect(inner.sendingEk).toBeDefined();
@@ -745,15 +752,15 @@ describe("Interop: Issue 1275 pre-baked states", () => {
       const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
-      expect(state.v1).toBeDefined();
-      expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe(issue1275.b_state.inner_state_type);
+      const v1 = defined(state.v1);
+      const innerState = defined(v1.innerState);
+      expect(innerState.type).toBe(issue1275.b_state.inner_state_type);
     });
 
     it("ct1Sampled state has sendingCt1 encoder and receivingEk decoder", () => {
       const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
-      const inner = state.v1!.innerState!;
+      const inner = defined(defined(state.v1).innerState);
 
       if (inner.type === "ct1Sampled") {
         expect(inner.sendingCt1).toBeDefined();
@@ -799,15 +806,17 @@ describe("Interop: Proto field number alignment", () => {
       const decoded = decodePqRatchetState(state);
 
       // B2A starts in noHeaderReceived
-      expect(decoded.v1!.innerState!.type).toBe("noHeaderReceived");
+      const decodedInner = defined(defined(decoded.v1).innerState);
+      expect(decodedInner.type).toBe("noHeaderReceived");
 
       // Re-encode and decode to verify field alignment
       const reencoded = encodePqRatchetState(decoded);
       const redecoded = decodePqRatchetState(reencoded);
 
-      expect(redecoded.v1!.innerState!.type).toBe("noHeaderReceived");
-      if (redecoded.v1!.innerState!.type === "noHeaderReceived") {
-        expect(redecoded.v1!.innerState!.receivingHdr).toBeDefined();
+      const redecodedInner = defined(defined(redecoded.v1).innerState);
+      expect(redecodedInner.type).toBe("noHeaderReceived");
+      if (redecodedInner.type === "noHeaderReceived") {
+        expect(redecodedInner.receivingHdr).toBeDefined();
       }
     });
 
@@ -816,11 +825,12 @@ describe("Interop: Proto field number alignment", () => {
       const bytes = hexToBytes(b2aHex);
       const state = decodePqRatchetState(bytes);
 
-      expect(state.v1!.innerState!.type).toBe("noHeaderReceived");
-      if (state.v1!.innerState!.type === "noHeaderReceived") {
+      const innerState = defined(defined(state.v1).innerState);
+      expect(innerState.type).toBe("noHeaderReceived");
+      if (innerState.type === "noHeaderReceived") {
         // After the field number fix, the decoder data (at proto field 2)
         // should be correctly read as receivingHdr
-        expect(state.v1!.innerState!.receivingHdr).toBeDefined();
+        expect(innerState.receivingHdr).toBeDefined();
       }
     });
   });

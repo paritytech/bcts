@@ -293,12 +293,12 @@ interface ChainEpoch {
  * Uses bigint for epoch values (matching Rust u64).
  */
 export class Chain {
-  private dir: Direction;
+  private readonly dir: Direction;
   private currentEpoch: Epoch;
   private sendEpoch: Epoch;
-  private links: ChainEpoch[];
+  private readonly links: ChainEpoch[];
   private nextRoot: Uint8Array;
-  private params: ChainParams;
+  private readonly params: ChainParams;
 
   private constructor(
     dir: Direction,
@@ -416,11 +416,11 @@ export class Chain {
       }
 
       for (let i = 0; i < epochIndex; i++) {
-        this.links[i]!.send.clearNext();
+        this.links[i].send.clearNext();
       }
     }
 
-    return this.links[epochIndex]!.send.nextKey();
+    return this.links[epochIndex].send.nextKey();
   }
 
   /**
@@ -428,7 +428,7 @@ export class Chain {
    */
   recvKey(epoch: Epoch, index: number): Uint8Array {
     const epochIndex = this.epochIdx(epoch);
-    return this.links[epochIndex]!.recv.key(index, this.params);
+    return this.links[epochIndex].recv.key(index, this.params);
   }
 
   // ---- Protobuf serialization ----

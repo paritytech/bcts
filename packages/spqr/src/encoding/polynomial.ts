@@ -195,7 +195,7 @@ export class Poly {
     //
     // We obtain PRODUCT_{j != i} (x - x_j) by dividing the master product by
     // (x - x_i) using synthetic division.
-    let result = Poly.zeros(n);
+    const result = Poly.zeros(n);
 
     for (let i = 0; i < n; i++) {
       // Synthetic division of `product` by (x - x_i) = (x + x_i)
@@ -269,7 +269,7 @@ function clonePoly(p: Poly): Poly {
 // ---------------------------------------------------------------------------
 
 class SortedPtSet {
-  private pts: Pt[] = [];
+  private readonly pts: Pt[] = [];
 
   get length(): number {
     return this.pts.length;
@@ -484,7 +484,7 @@ export class PolyEncoder implements Encoder {
       });
       return { idx: this.idx, pts, polys: [] };
     }
-    const polys: Uint8Array[] = (this.state as PolysState).polys.map((p) => p.serialize());
+    const polys: Uint8Array[] = (this.state).polys.map((p) => p.serialize());
     return { idx: this.idx, pts: [], polys };
   }
 
@@ -512,7 +512,7 @@ export class PolyEncoder implements Encoder {
 export class PolyDecoder implements Decoder {
   /** Total number of GF16 values needed (= message byte length / 2, rounded up). */
   ptsNeeded: number;
-  private pts: SortedPtSet[];
+  private readonly pts: SortedPtSet[];
   private _isComplete: boolean;
 
   private constructor(ptsNeeded: number, pts: SortedPtSet[], isComplete: boolean) {

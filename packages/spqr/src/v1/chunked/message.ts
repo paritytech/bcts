@@ -60,7 +60,7 @@ export function decodeVarint(from: Uint8Array, at: { offset: number }): bigint {
     if (at.offset >= from.length) {
       throw new Error("Varint: unexpected end of data");
     }
-    const byte = from[at.offset++]!;
+    const byte = from[at.offset++];
     result |= BigInt(byte & 0x7f) << shift;
     if ((byte & 0x80) === 0) {
       return result;
@@ -95,7 +95,7 @@ function decodeVarint32(from: Uint8Array, at: { offset: number }): number {
     if (at.offset >= from.length) {
       throw new Error("Varint32: unexpected end of data");
     }
-    const byte = from[at.offset++]!;
+    const byte = from[at.offset++];
     result |= (byte & 0x7f) << shift;
     if ((byte & 0x80) === 0) {
       return result >>> 0;
@@ -115,7 +115,7 @@ const CHUNK_DATA_SIZE = 32;
 export function encodeChunk(chunk: Chunk, into: number[]): void {
   encodeVarint32(chunk.index, into);
   for (let i = 0; i < CHUNK_DATA_SIZE; i++) {
-    into.push(chunk.data[i]!);
+    into.push(chunk.data[i]);
   }
 }
 
@@ -201,7 +201,7 @@ export function deserializeMessage(from: Uint8Array): {
   if (at.offset >= from.length) {
     throw new Error("Message: empty data");
   }
-  const version = from[at.offset++]!;
+  const version = from[at.offset++];
   if (version !== V1) {
     throw new Error(`Message: unsupported version ${version}`);
   }
@@ -219,7 +219,7 @@ export function deserializeMessage(from: Uint8Array): {
   if (at.offset >= from.length) {
     throw new Error("Message: missing message type");
   }
-  const msgType = from[at.offset++]!;
+  const msgType = from[at.offset++];
 
   let payload: MessagePayload;
   switch (msgType) {

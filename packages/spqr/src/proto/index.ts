@@ -37,7 +37,7 @@ const EMPTY_BYTES = new Uint8Array(0);
 // =========================================================================
 
 export class ProtoWriter {
-  private parts: Uint8Array[] = [];
+  private readonly parts: Uint8Array[] = [];
 
   writeVarint(fieldNumber: number, value: number | bigint): void {
     if (typeof value === "bigint") {
@@ -139,7 +139,7 @@ export class ProtoWriter {
 // =========================================================================
 
 export class ProtoReader {
-  private data: Uint8Array;
+  private readonly data: Uint8Array;
   private pos: number;
 
   constructor(data: Uint8Array) {
@@ -215,7 +215,7 @@ export class ProtoReader {
     let result = 0;
     let shift = 0;
     while (shift < 35) {
-      const b = this.data[this.pos++]!;
+      const b = this.data[this.pos++];
       result |= (b & 0x7f) << shift;
       if ((b & 0x80) === 0) return result >>> 0;
       shift += 7;
@@ -227,7 +227,7 @@ export class ProtoReader {
     let result = 0n;
     let shift = 0n;
     while (shift < 70n) {
-      const b = this.data[this.pos++]!;
+      const b = this.data[this.pos++];
       result |= BigInt(b & 0x7f) << shift;
       if ((b & 0x80) === 0) return result;
       shift += 7n;
@@ -723,7 +723,7 @@ function decodeAuthOptional(r: ProtoReader): PbAuthenticator {
 function detectUcLayout(data: Uint8Array): number {
   if (data.length === 0) return 0;
   // Read the first tag to check wire type
-  const firstByte = data[0]!;
+  const firstByte = data[0];
   const wireType = firstByte & 0x7;
   // Varint wire type 0 at field 1 => Rust layout (epoch)
   // Length-delimited wire type 2 at field 1 => TS layout (auth)
@@ -1165,11 +1165,11 @@ function encodeChunkedStateInner(state: PbChunkedState): { fieldNumber: number; 
   }
 }
 
-type ChunkedDecodeResult = {
+interface ChunkedDecodeResult {
   uc: Uint8Array;
   encoder?: Uint8Array | undefined;
   decoder?: Uint8Array | undefined;
-};
+}
 
 function decodeChunkedRaw(data: Uint8Array): ChunkedDecodeResult {
   const r = new ProtoReader(data);

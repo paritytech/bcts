@@ -155,7 +155,7 @@ describe("PolyEncoder / PolyDecoder", () => {
 
       const decoded = decoder.decodedMessage();
       expect(decoded).not.toBeNull();
-      expect(decoded!).toEqual(msg);
+      expect(decoded).toEqual(msg);
     });
 
     it("roundtrips a 32-byte message with exact chunks", () => {
@@ -172,7 +172,7 @@ describe("PolyEncoder / PolyDecoder", () => {
 
       const decoded = decoder.decodedMessage();
       expect(decoded).not.toBeNull();
-      expect(decoded!).toEqual(msg);
+      expect(decoded).toEqual(msg);
     });
 
     it("rejects an odd-length message (matches Rust)", () => {
@@ -204,7 +204,7 @@ describe("PolyEncoder / PolyDecoder", () => {
 
       const decoded = decoder.decodedMessage();
       expect(decoded).not.toBeNull();
-      expect(decoded!).toEqual(msg);
+      expect(decoded).toEqual(msg);
     });
   });
 
@@ -272,7 +272,7 @@ describe("PolyEncoder / PolyDecoder", () => {
 
       const decoded = decoder.decodedMessage();
       expect(decoded).not.toBeNull();
-      expect(decoded!).toEqual(msg);
+      expect(decoded).toEqual(msg);
     });
   });
 });
