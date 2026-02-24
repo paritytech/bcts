@@ -1,7 +1,6 @@
 /**
- * Copyright (C) 2023-2026 Blockchain Commons, LLC
- * Copyright (C) 2025-2026 Leonardo Amoroso Custodio
- * Copyright (C) 2026 Parity Technologies
+ * Copyright © 2025 Signal Messenger, LLC
+ * Copyright © 2026 Parity Technologies
  *
  * Chunked send_ek state machine for SPQR V1.
  *

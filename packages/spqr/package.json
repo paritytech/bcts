@@ -3,7 +3,7 @@
   "version": "1.0.0-alpha.20",
   "type": "module",
   "description": "Signal's Sparse Post-Quantum Ratchet (SPQR) for TypeScript",
-  "license": "BSD-2-Clause-Patent",
+  "license": "AGPL-3.0-only",
   "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
   "repository": {
