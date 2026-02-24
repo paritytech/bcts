@@ -17,24 +17,24 @@
  * Both epoch secrets must match for key agreement.
  */
 
-import { describe, it, expect } from 'vitest';
-import { randomBytes } from '@noble/hashes/utils.js';
-import { Authenticator } from '../src/authenticator.js';
+import { describe, it, expect } from "vitest";
+import { randomBytes } from "@noble/hashes/utils.js";
+import { Authenticator } from "../src/authenticator.js";
 import {
   KeysUnsampled,
   HeaderSent,
   EkSent,
   EkSentCt1Received,
-} from '../src/v1/unchunked/send-ek.js';
+} from "../src/v1/unchunked/send-ek.js";
 import {
   NoHeaderReceived,
   HeaderReceived,
   Ct1Sent,
   Ct1SentEkReceived,
   Ct2Sent,
-} from '../src/v1/unchunked/send-ct.js';
-import { EK_SIZE } from '../src/incremental-mlkem768.js';
-import type { Epoch } from '../src/types.js';
+} from "../src/v1/unchunked/send-ct.js";
+import { EK_SIZE } from "../src/incremental-mlkem768.js";
+import type { Epoch } from "../src/types.js";
 
 function rng(n: number): Uint8Array {
   return randomBytes(n);
@@ -43,15 +43,12 @@ function rng(n: number): Uint8Array {
 /** Create a fresh authenticator pair with the same root key for both sides. */
 function createAuthPair(epoch: Epoch): [Authenticator, Authenticator] {
   const rootKey = randomBytes(32);
-  return [
-    Authenticator.create(rootKey, epoch),
-    Authenticator.create(rootKey, epoch),
-  ];
+  return [Authenticator.create(rootKey, epoch), Authenticator.create(rootKey, epoch)];
 }
 
-describe('unchunked state machine', () => {
-  describe('send_ek states', () => {
-    it('KeysUnsampled should produce header and mac', () => {
+describe("unchunked state machine", () => {
+  describe("send_ek states", () => {
+    it("KeysUnsampled should produce header and mac", () => {
       const [authA] = createAuthPair(0n);
       const state = new KeysUnsampled(0n, authA);
 
@@ -62,7 +59,7 @@ describe('unchunked state machine', () => {
       expect(mac.length).toBe(32);
     });
 
-    it('HeaderSent should produce ek (1152 bytes)', () => {
+    it("HeaderSent should produce ek (1152 bytes)", () => {
       const [authA] = createAuthPair(0n);
       const state = new KeysUnsampled(0n, authA);
       const [headerSent] = state.sendHeader(rng);
@@ -73,7 +70,7 @@ describe('unchunked state machine', () => {
       expect(ek.length).toBe(EK_SIZE); // 1152
     });
 
-    it('EkSent should accept ct1 and transition', () => {
+    it("EkSent should accept ct1 and transition", () => {
       const [authA] = createAuthPair(0n);
       const state = new KeysUnsampled(0n, authA);
       const [headerSent] = state.sendHeader(rng);
@@ -87,8 +84,8 @@ describe('unchunked state machine', () => {
     });
   });
 
-  describe('send_ct states', () => {
-    it('NoHeaderReceived should verify header mac', () => {
+  describe("send_ct states", () => {
+    it("NoHeaderReceived should verify header mac", () => {
       const [authA, authB] = createAuthPair(0n);
       const alice = new KeysUnsampled(0n, authA);
       const bob = new NoHeaderReceived(0n, authB);
@@ -99,7 +96,7 @@ describe('unchunked state machine', () => {
       expect(headerReceived).toBeInstanceOf(HeaderReceived);
     });
 
-    it('NoHeaderReceived should reject invalid header mac', () => {
+    it("NoHeaderReceived should reject invalid header mac", () => {
       const [authA, authB] = createAuthPair(0n);
       const alice = new KeysUnsampled(0n, authA);
       const bob = new NoHeaderReceived(0n, authB);
@@ -110,7 +107,7 @@ describe('unchunked state machine', () => {
       expect(() => bob.recvHeader(0n, hdr, badMac)).toThrow();
     });
 
-    it('HeaderReceived should produce REAL ct1 and epoch secret', () => {
+    it("HeaderReceived should produce REAL ct1 and epoch secret", () => {
       const [authA, authB] = createAuthPair(0n);
       const alice = new KeysUnsampled(0n, authA);
       const bob = new NoHeaderReceived(0n, authB);
@@ -123,13 +120,13 @@ describe('unchunked state machine', () => {
       expect(ct1Sent).toBeInstanceOf(Ct1Sent);
       expect(ct1.length).toBe(960);
       // ct1 should be REAL (non-zero) in true incremental mode
-      expect(ct1.some(b => b !== 0)).toBe(true);
+      expect(ct1.some((b) => b !== 0)).toBe(true);
       // epoch secret should be real
       expect(epochSecret.secret.length).toBe(32);
-      expect(epochSecret.secret.some(b => b !== 0)).toBe(true);
+      expect(epochSecret.secret.some((b) => b !== 0)).toBe(true);
     });
 
-    it('Ct1Sent.recvEk should validate ek and return Ct1SentEkReceived', () => {
+    it("Ct1Sent.recvEk should validate ek and return Ct1SentEkReceived", () => {
       const [authA, authB] = createAuthPair(0n);
       const alice = new KeysUnsampled(0n, authA);
       const bob = new NoHeaderReceived(0n, authB);
@@ -146,8 +143,8 @@ describe('unchunked state machine', () => {
     });
   });
 
-  describe('full epoch exchange', () => {
-    it('should complete a full exchange with matching epoch secrets', () => {
+  describe("full epoch exchange", () => {
+    it("should complete a full exchange with matching epoch secrets", () => {
       const epoch = 0n;
       const [authA, authB] = createAuthPair(epoch);
 
@@ -190,7 +187,7 @@ describe('unchunked state machine', () => {
       expect(bobCt2Sent.nextEpoch).toBe(1n);
     });
 
-    it('should reject ct2 with invalid MAC', () => {
+    it("should reject ct2 with invalid MAC", () => {
       const epoch = 0n;
       const [authA, authB] = createAuthPair(epoch);
 
@@ -209,7 +206,7 @@ describe('unchunked state machine', () => {
       expect(() => aliceEkSentCt1Recv.recvCt2(ct2, badMac)).toThrow();
     });
 
-    it('should reject tampered ct2', () => {
+    it("should reject tampered ct2", () => {
       const epoch = 0n;
       const [authA, authB] = createAuthPair(epoch);
 
@@ -231,7 +228,7 @@ describe('unchunked state machine', () => {
       expect(() => aliceEkSentCt1Recv.recvCt2(tamperedCt2, mac)).toThrow();
     });
 
-    it('should work across multiple consecutive epochs', () => {
+    it("should work across multiple consecutive epochs", () => {
       let epoch = 0n;
       const rootKey = randomBytes(32);
       let authA = Authenticator.create(rootKey, epoch);
@@ -264,8 +261,8 @@ describe('unchunked state machine', () => {
     });
   });
 
-  describe('state properties', () => {
-    it('KeysUnsampled should expose epoch and auth', () => {
+  describe("state properties", () => {
+    it("KeysUnsampled should expose epoch and auth", () => {
       const [auth] = createAuthPair(5n);
       const state = new KeysUnsampled(5n, auth);
 
@@ -273,14 +270,14 @@ describe('unchunked state machine', () => {
       expect(state.auth).toBe(auth);
     });
 
-    it('Ct2Sent.nextEpoch should be epoch + 1', () => {
+    it("Ct2Sent.nextEpoch should be epoch + 1", () => {
       const [auth] = createAuthPair(10n);
       const state = new Ct2Sent(10n, auth);
 
       expect(state.nextEpoch).toBe(11n);
     });
 
-    it('Ct1Sent should expose ct1 (the real ct1)', () => {
+    it("Ct1Sent should expose ct1 (the real ct1)", () => {
       const epoch = 0n;
       const [authA, authB] = createAuthPair(epoch);
 
@@ -293,7 +290,7 @@ describe('unchunked state machine', () => {
 
       // Real ct1 should be 960 bytes and non-trivial
       expect(ct1.length).toBe(960);
-      expect(ct1.some(b => b !== 0)).toBe(true);
+      expect(ct1.some((b) => b !== 0)).toBe(true);
       // The Ct1Sent state should also store the ct1
       expect(bobCt1Sent.ct1.length).toBe(960);
     });

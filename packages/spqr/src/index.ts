@@ -23,19 +23,13 @@ import {
   initB,
   send as chunkedSend,
   recv as chunkedRecv,
-} from './v1/chunked/index.js';
-import { serializeMessage, deserializeMessage } from './v1/chunked/message.js';
-import { statesToPb, statesFromPb } from './v1/chunked/serialize.js';
-import { Chain } from './chain.js';
-import {
-  encodePqRatchetState,
-  decodePqRatchetState,
-} from './proto/index.js';
-import type {
-  PbPqRatchetState,
-  PbVersionNegotiation,
-} from './proto/pq-ratchet-types.js';
-import { SpqrError, SpqrErrorCode } from './error.js';
+} from "./v1/chunked/index.js";
+import { serializeMessage, deserializeMessage } from "./v1/chunked/message.js";
+import { statesToPb, statesFromPb } from "./v1/chunked/serialize.js";
+import { Chain } from "./chain.js";
+import { encodePqRatchetState, decodePqRatchetState } from "./proto/index.js";
+import type { PbPqRatchetState, PbVersionNegotiation } from "./proto/pq-ratchet-types.js";
+import { SpqrError, SpqrErrorCode } from "./error.js";
 import {
   Version,
   Direction,
@@ -47,7 +41,7 @@ import {
   type SerializedMessage,
   type RandomBytes,
   type ChainParams,
-} from './types.js';
+} from "./types.js";
 
 // Re-export public types
 export {
@@ -62,7 +56,7 @@ export {
   type RandomBytes,
   type ChainParams,
 };
-export { SpqrError, SpqrErrorCode } from './error.js';
+export { SpqrError, SpqrErrorCode } from "./error.js";
 
 // ---------------------------------------------------------------------------
 // emptyState
@@ -152,7 +146,7 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
     }
   } else {
     throw new SpqrError(
-      'Chain not available and no version negotiation',
+      "Chain not available and no version negotiation",
       SpqrErrorCode.ChainNotAvailable,
     );
   }
@@ -165,10 +159,7 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
     // No chain (min_version === V0, still negotiating)
     if (sendResult.key !== null) {
       // Should not happen in V0 min_version case during negotiation
-      throw new SpqrError(
-        'Unexpected epoch secret without chain',
-        SpqrErrorCode.ChainNotAvailable,
-      );
+      throw new SpqrError("Unexpected epoch secret without chain", SpqrErrorCode.ChainNotAvailable);
     }
     index = 0;
     msgKey = new Uint8Array(0);
@@ -221,9 +212,10 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
   }
 
   // Decode the pre-negotiated state
-  const prenegotiatedPb = state.length === 0
-    ? { v1: undefined, chain: undefined, versionNegotiation: undefined } as PbPqRatchetState
-    : decodePqRatchetState(state);
+  const prenegotiatedPb =
+    state.length === 0
+      ? ({ v1: undefined, chain: undefined, versionNegotiation: undefined } as PbPqRatchetState)
+      : decodePqRatchetState(state);
 
   // Determine message version
   const msgVer = msgVersion(msg);
@@ -324,7 +316,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
  */
 export function currentVersion(state: SerializedState): CurrentVersion {
   if (state.length === 0) {
-    return { type: 'negotiation_complete', version: Version.V0 };
+    return { type: "negotiation_complete", version: Version.V0 };
   }
 
   const statePb = decodePqRatchetState(state);
@@ -332,12 +324,12 @@ export function currentVersion(state: SerializedState): CurrentVersion {
 
   if (statePb.versionNegotiation) {
     return {
-      type: 'still_negotiating',
+      type: "still_negotiating",
       version,
       minVersion: statePb.versionNegotiation.minVersion as Version,
     };
   }
-  return { type: 'negotiation_complete', version };
+  return { type: "negotiation_complete", version };
 }
 
 // ---------------------------------------------------------------------------
@@ -351,7 +343,7 @@ function initInner(
   version: Version,
   direction: Direction,
   authKey: Uint8Array,
-): PbPqRatchetState['v1'] {
+): PbPqRatchetState["v1"] {
   if (version === Version.V0) {
     return undefined;
   }
@@ -394,11 +386,7 @@ function chainFromVersionNegotiation(vn: PbVersionNegotiation): Chain {
     maxJump: 25000,
     maxOooKeys: 2000,
   };
-  return Chain.create(
-    Uint8Array.from(vn.authKey),
-    vn.direction as Direction,
-    chainParams,
-  );
+  return Chain.create(Uint8Array.from(vn.authKey), vn.direction as Direction, chainParams);
 }
 
 /**
@@ -406,9 +394,9 @@ function chainFromVersionNegotiation(vn: PbVersionNegotiation): Chain {
  * Prefers existing chain, falls back to creating from version negotiation.
  */
 function chainFrom(
-  chainPb: PbPqRatchetState['chain'],
+  chainPb: PbPqRatchetState["chain"],
   vn: PbVersionNegotiation | undefined,
-): PbPqRatchetState['chain'] {
+): PbPqRatchetState["chain"] {
   if (chainPb) return chainPb;
   if (vn) return chainFromVersionNegotiation(vn).toProto();
   return undefined;
@@ -418,13 +406,13 @@ function chainFrom(
  * Get a Chain object from state, creating from vn if needed.
  */
 function chainFromState(
-  chainPb: PbPqRatchetState['chain'],
+  chainPb: PbPqRatchetState["chain"],
   vn: PbVersionNegotiation | undefined,
 ): Chain {
   if (chainPb) return Chain.fromProto(chainPb);
   if (vn) return chainFromVersionNegotiation(vn);
   throw new SpqrError(
-    'Chain not available and no version negotiation',
+    "Chain not available and no version negotiation",
     SpqrErrorCode.ChainNotAvailable,
   );
 }

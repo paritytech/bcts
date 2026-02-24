@@ -2,8 +2,8 @@
  * Tests for true incremental ML-KEM-768.
  */
 
-import { describe, it, expect } from 'vitest';
-import { randomBytes } from '@noble/hashes/utils.js';
+import { describe, it, expect } from "vitest";
+import { randomBytes } from "@noble/hashes/utils.js";
 import {
   generate,
   encaps1,
@@ -19,7 +19,7 @@ import {
   ES_SIZE,
   FULL_PK_SIZE,
   FULL_CT_SIZE,
-} from '../src/incremental-mlkem768.js';
+} from "../src/incremental-mlkem768.js";
 
 function rng(n: number): Uint8Array {
   return randomBytes(n);
@@ -38,9 +38,9 @@ function deterministicRng(seed: number): (n: number) => Uint8Array {
   };
 }
 
-describe('incremental-mlkem768', () => {
-  describe('generate', () => {
-    it('should produce keys with correct sizes', () => {
+describe("incremental-mlkem768", () => {
+  describe("generate", () => {
+    it("should produce keys with correct sizes", () => {
       const keys = generate(rng);
 
       expect(keys.hdr.length).toBe(HEADER_SIZE);
@@ -48,7 +48,7 @@ describe('incremental-mlkem768', () => {
       expect(keys.dk.length).toBe(DK_SIZE);
     });
 
-    it('should produce different keys on each call', () => {
+    it("should produce different keys on each call", () => {
       const k1 = generate(rng);
       const k2 = generate(rng);
 
@@ -56,7 +56,7 @@ describe('incremental-mlkem768', () => {
       expect(k1.dk).not.toEqual(k2.dk);
     });
 
-    it('should produce deterministic keys from the same seed', () => {
+    it("should produce deterministic keys from the same seed", () => {
       const rng1 = deterministicRng(42);
       const rng2 = deterministicRng(42);
 
@@ -68,7 +68,7 @@ describe('incremental-mlkem768', () => {
       expect(k1.dk).toEqual(k2.dk);
     });
 
-    it('should split the public key correctly (hdr + ek reconstructs full pk)', () => {
+    it("should split the public key correctly (hdr + ek reconstructs full pk)", () => {
       const keys = generate(rng);
 
       // pk1 (hdr) = rho(32) + H(ek)(32) = 64 bytes
@@ -76,12 +76,12 @@ describe('incremental-mlkem768', () => {
       // Full pk = tHat(1152) || rho(32) = 1184 bytes
       // pk2(1152) + pk1[0..32](32) = 1184
       expect(keys.hdr.length).toBe(HEADER_SIZE); // 64
-      expect(keys.ek.length).toBe(EK_SIZE);       // 1152
+      expect(keys.ek.length).toBe(EK_SIZE); // 1152
     });
   });
 
-  describe('encaps1 (true incremental)', () => {
-    it('should produce REAL ct1 and shared secret', () => {
+  describe("encaps1 (true incremental)", () => {
+    it("should produce REAL ct1 and shared secret", () => {
       const keys = generate(rng);
       const result = encaps1(keys.hdr, rng);
 
@@ -90,28 +90,28 @@ describe('incremental-mlkem768', () => {
       expect(result.sharedSecret.length).toBe(SS_SIZE);
 
       // Real values: NOT all zeros
-      expect(result.ct1.some(b => b !== 0)).toBe(true);
-      expect(result.sharedSecret.some(b => b !== 0)).toBe(true);
+      expect(result.ct1.some((b) => b !== 0)).toBe(true);
+      expect(result.sharedSecret.some((b) => b !== 0)).toBe(true);
     });
 
-    it('ES_SIZE should be 2080', () => {
+    it("ES_SIZE should be 2080", () => {
       expect(ES_SIZE).toBe(2080);
     });
   });
 
-  describe('encaps2 (true incremental)', () => {
-    it('should return only ct2 (128 bytes)', () => {
+  describe("encaps2 (true incremental)", () => {
+    it("should return only ct2 (128 bytes)", () => {
       const keys = generate(rng);
       const { es } = encaps1(keys.hdr, rng);
       const ct2 = encaps2(keys.ek, es);
 
       expect(ct2.length).toBe(CT2_SIZE);
-      expect(ct2.some(b => b !== 0)).toBe(true);
+      expect(ct2.some((b) => b !== 0)).toBe(true);
     });
   });
 
-  describe('true incremental round-trip', () => {
-    it('encaps1 shared secret should match decaps result', () => {
+  describe("true incremental round-trip", () => {
+    it("encaps1 shared secret should match decaps result", () => {
       const keys = generate(rng);
       const { ct1, es, sharedSecret: encapsSs } = encaps1(keys.hdr, rng);
       const ct2 = encaps2(keys.ek, es);
@@ -121,7 +121,7 @@ describe('incremental-mlkem768', () => {
       expect(encapsSs).toEqual(decapsSs);
     });
 
-    it('should be deterministic: same seed produces same result', () => {
+    it("should be deterministic: same seed produces same result", () => {
       const keys = generate(rng);
       const rng1 = deterministicRng(123);
       const rng2 = deterministicRng(123);
@@ -134,7 +134,7 @@ describe('incremental-mlkem768', () => {
       expect(r1.sharedSecret).toEqual(r2.sharedSecret);
     });
 
-    it('should work across multiple round-trips', () => {
+    it("should work across multiple round-trips", () => {
       for (let i = 0; i < 5; i++) {
         const keys = generate(rng);
         const { ct1, es, sharedSecret } = encaps1(keys.hdr, rng);
@@ -145,8 +145,8 @@ describe('incremental-mlkem768', () => {
     });
   });
 
-  describe('pk split reconstruction', () => {
-    it('pk2 || pk1[0..32] should reconstruct the standard ML-KEM pk', () => {
+  describe("pk split reconstruction", () => {
+    it("pk2 || pk1[0..32] should reconstruct the standard ML-KEM pk", () => {
       // This test verifies the incremental pk split is correct:
       // hdr = rho(32) + H(ek)(32)
       // ek = tHat(1152)
@@ -166,8 +166,8 @@ describe('incremental-mlkem768', () => {
     });
   });
 
-  describe('decaps', () => {
-    it('should recover the shared secret', () => {
+  describe("decaps", () => {
+    it("should recover the shared secret", () => {
       const keys = generate(rng);
       const { ct1, es, sharedSecret } = encaps1(keys.hdr, rng);
       const ct2 = encaps2(keys.ek, es);
@@ -176,7 +176,7 @@ describe('incremental-mlkem768', () => {
       expect(recovered).toEqual(sharedSecret);
     });
 
-    it('should produce 32-byte output', () => {
+    it("should produce 32-byte output", () => {
       const keys = generate(rng);
       const { ct1, es } = encaps1(keys.hdr, rng);
       const ct2 = encaps2(keys.ek, es);
@@ -185,7 +185,7 @@ describe('incremental-mlkem768', () => {
       expect(ss.length).toBe(SS_SIZE);
     });
 
-    it('should produce different ss with different dk (implicit rejection)', () => {
+    it("should produce different ss with different dk (implicit rejection)", () => {
       const keys1 = generate(rng);
       const keys2 = generate(rng);
       const { ct1, es } = encaps1(keys1.hdr, rng);
@@ -199,33 +199,33 @@ describe('incremental-mlkem768', () => {
     });
   });
 
-  describe('ekMatchesHeader', () => {
-    it('should return true for valid key pair', () => {
+  describe("ekMatchesHeader", () => {
+    it("should return true for valid key pair", () => {
       const keys = generate(rng);
       expect(ekMatchesHeader(keys.ek, keys.hdr)).toBe(true);
     });
 
-    it('should return false for short header', () => {
+    it("should return false for short header", () => {
       const keys = generate(rng);
       const shortHdr = keys.hdr.slice(0, 32);
       expect(ekMatchesHeader(keys.ek, shortHdr)).toBe(false);
     });
 
-    it('should return false for short ek', () => {
+    it("should return false for short ek", () => {
       const keys = generate(rng);
       const shortEk = keys.ek.slice(0, 100);
       expect(ekMatchesHeader(shortEk, keys.hdr)).toBe(false);
     });
 
-    it('should return false for mismatched ek and hdr', () => {
+    it("should return false for mismatched ek and hdr", () => {
       const keys1 = generate(rng);
       const keys2 = generate(rng);
       expect(ekMatchesHeader(keys1.ek, keys2.hdr)).toBe(false);
     });
   });
 
-  describe('size constants', () => {
-    it('should have correct size relationships', () => {
+  describe("size constants", () => {
+    it("should have correct size relationships", () => {
       expect(CT1_SIZE + CT2_SIZE).toBe(FULL_CT_SIZE);
       expect(FULL_PK_SIZE).toBe(1184);
       expect(FULL_CT_SIZE).toBe(1088);
@@ -237,8 +237,8 @@ describe('incremental-mlkem768', () => {
     });
   });
 
-  describe('state serialization round-trip', () => {
-    it('encapsulation state should round-trip correctly with 2080 bytes', () => {
+  describe("state serialization round-trip", () => {
+    it("encapsulation state should round-trip correctly with 2080 bytes", () => {
       const keys = generate(rng);
       const { es } = encaps1(keys.hdr, rng);
 
@@ -246,7 +246,7 @@ describe('incremental-mlkem768', () => {
       expect(es.length).toBe(2080);
 
       // The state should be non-trivial
-      expect(es.some(b => b !== 0)).toBe(true);
+      expect(es.some((b) => b !== 0)).toBe(true);
     });
   });
 });

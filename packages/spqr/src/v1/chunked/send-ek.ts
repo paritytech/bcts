@@ -19,16 +19,16 @@
  *   EkSentCt1Received    -- recvCt2Chunk(epoch, chunk) --> EkSentCt1Received | sendCt.NoHeaderReceived
  */
 
-import * as unchunked from '../unchunked/send-ek.js';
-import * as unchunkedSendCt from '../unchunked/send-ct.js';
-import { PolyEncoder, PolyDecoder } from '../../encoding/polynomial.js';
-import type { Chunk } from '../../encoding/polynomial.js';
-import { HEADER_SIZE, CT1_SIZE, CT2_SIZE } from '../../incremental-mlkem768.js';
-import { MAC_SIZE } from '../../authenticator.js';
-import { concat } from '../../util.js';
-import { SpqrError, SpqrErrorCode } from '../../error.js';
-import type { Epoch, EpochSecret, RandomBytes } from '../../types.js';
-import type * as sendCt from './send-ct.js';
+import * as unchunked from "../unchunked/send-ek.js";
+import * as unchunkedSendCt from "../unchunked/send-ct.js";
+import { PolyEncoder, PolyDecoder } from "../../encoding/polynomial.js";
+import type { Chunk } from "../../encoding/polynomial.js";
+import { HEADER_SIZE, CT1_SIZE, CT2_SIZE } from "../../incremental-mlkem768.js";
+import { MAC_SIZE } from "../../authenticator.js";
+import { concat } from "../../util.js";
+import { SpqrError, SpqrErrorCode } from "../../error.js";
+import type { Epoch, EpochSecret, RandomBytes } from "../../types.js";
+import type * as sendCt from "./send-ct.js";
 
 // ---------------------------------------------------------------------------
 // Discriminated union result types
@@ -251,10 +251,7 @@ export class EkSentCt1Received {
       const result = this.uc.recvCt2(ct2, mac);
 
       // Construct the next-epoch send_ct NoHeaderReceived state
-      const nextUcSendCt = new unchunkedSendCt.NoHeaderReceived(
-        result.nextEpoch,
-        result.auth,
-      );
+      const nextUcSendCt = new unchunkedSendCt.NoHeaderReceived(result.nextEpoch, result.auth);
       const receivingHdr = PolyDecoder.create(HEADER_SIZE + MAC_SIZE);
 
       return {

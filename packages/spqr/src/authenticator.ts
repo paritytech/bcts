@@ -14,18 +14,18 @@
  * All info strings and data formats MUST match the Rust implementation exactly.
  */
 
-import { hkdfSha256, hmacSha256 } from './kdf.js';
-import { concat, bigintToBE8, constantTimeEqual } from './util.js';
+import { hkdfSha256, hmacSha256 } from "./kdf.js";
+import { concat, bigintToBE8, constantTimeEqual } from "./util.js";
 import {
   ZERO_SALT,
   MAC_SIZE,
   LABEL_AUTH_UPDATE,
   LABEL_CT_MAC,
   LABEL_HDR_MAC,
-} from './constants.js';
-import { AuthenticatorError } from './error.js';
-import type { Epoch } from './types.js';
-import type { PbAuthenticator } from './proto/pq-ratchet-types.js';
+} from "./constants.js";
+import { AuthenticatorError } from "./error.js";
+import type { Epoch } from "./types.js";
+import type { PbAuthenticator } from "./proto/pq-ratchet-types.js";
 
 // Pre-encode label strings
 const enc = new TextEncoder();
@@ -108,7 +108,7 @@ export class Authenticator {
   verifyCt(epoch: Epoch, ct: Uint8Array, expectedMac: Uint8Array): void {
     const computed = this.macCt(epoch, ct);
     if (!constantTimeEqual(computed, expectedMac)) {
-      throw new AuthenticatorError('Ciphertext MAC is invalid', 'INVALID_CT_MAC');
+      throw new AuthenticatorError("Ciphertext MAC is invalid", "INVALID_CT_MAC");
     }
   }
 
@@ -130,7 +130,7 @@ export class Authenticator {
   verifyHdr(epoch: Epoch, hdr: Uint8Array, expectedMac: Uint8Array): void {
     const computed = this.macHdr(epoch, hdr);
     if (!constantTimeEqual(computed, expectedMac)) {
-      throw new AuthenticatorError('Encapsulation key MAC is invalid', 'INVALID_HDR_MAC');
+      throw new AuthenticatorError("Encapsulation key MAC is invalid", "INVALID_HDR_MAC");
     }
   }
 
@@ -138,10 +138,7 @@ export class Authenticator {
    * Deep clone this authenticator.
    */
   clone(): Authenticator {
-    return new Authenticator(
-      Uint8Array.from(this.rootKey),
-      Uint8Array.from(this.macKey),
-    );
+    return new Authenticator(Uint8Array.from(this.rootKey), Uint8Array.from(this.macKey));
   }
 
   // ---- Protobuf serialization ----
@@ -162,9 +159,6 @@ export class Authenticator {
    * Matches Rust Authenticator::from_pb().
    */
   static fromProto(pb: PbAuthenticator): Authenticator {
-    return new Authenticator(
-      Uint8Array.from(pb.rootKey),
-      Uint8Array.from(pb.macKey),
-    );
+    return new Authenticator(Uint8Array.from(pb.rootKey), Uint8Array.from(pb.macKey));
   }
 }

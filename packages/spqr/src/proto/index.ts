@@ -22,7 +22,7 @@ import type {
   PbV1MsgInner,
   PbV1State,
   PbVersionNegotiation,
-} from './pq-ratchet-types.js';
+} from "./pq-ratchet-types.js";
 
 // ---- Wire types ----
 
@@ -41,7 +41,7 @@ export class ProtoWriter {
   private parts: Uint8Array[] = [];
 
   writeVarint(fieldNumber: number, value: number | bigint): void {
-    if (typeof value === 'bigint') {
+    if (typeof value === "bigint") {
       if (value === 0n) return; // default value, omit
       this.writeTag(fieldNumber, WIRE_VARINT);
       this.writeRawVarint64(value);
@@ -54,7 +54,7 @@ export class ProtoWriter {
 
   /** Write a varint field even when the value is zero (for required fields). */
   writeVarintAlways(fieldNumber: number, value: number | bigint): void {
-    if (typeof value === 'bigint') {
+    if (typeof value === "bigint") {
       this.writeTag(fieldNumber, WIRE_VARINT);
       this.writeRawVarint64(value);
     } else {
@@ -198,7 +198,8 @@ export class ProtoReader {
       case 1: // 64-bit
         this.pos += 8;
         break;
-      case 2: { // length-delimited
+      case 2: {
+        // length-delimited
         const len = this.readRawVarint();
         this.pos += len;
         break;
@@ -220,7 +221,7 @@ export class ProtoReader {
       if ((b & 0x80) === 0) return result >>> 0;
       shift += 7;
     }
-    throw new Error('Varint too long');
+    throw new Error("Varint too long");
   }
 
   private readRawVarint64(): bigint {
@@ -232,7 +233,7 @@ export class ProtoReader {
       if ((b & 0x80) === 0) return result;
       shift += 7n;
     }
-    throw new Error('Varint64 too long');
+    throw new Error("Varint64 too long");
   }
 }
 
@@ -255,9 +256,14 @@ export function decodeChainParams(data: Uint8Array): PbChainParams {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: maxJump = r.readVarint(); break;
-      case 2: maxOooKeys = r.readVarint(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        maxJump = r.readVarint();
+        break;
+      case 2:
+        maxOooKeys = r.readVarint();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { maxJump, maxOooKeys };
@@ -291,11 +297,20 @@ export function decodeVersionNegotiation(data: Uint8Array): PbVersionNegotiation
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: authKey = r.readBytes(); break;
-      case 2: direction = r.readEnum(); break;
-      case 3: minVersion = r.readEnum(); break;
-      case 4: chainParams = decodeChainParams(r.readBytes()); break;
-      default: r.skip(field.wireType);
+      case 1:
+        authKey = r.readBytes();
+        break;
+      case 2:
+        direction = r.readEnum();
+        break;
+      case 3:
+        minVersion = r.readEnum();
+        break;
+      case 4:
+        chainParams = decodeChainParams(r.readBytes());
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { authKey, direction, minVersion, chainParams };
@@ -319,10 +334,17 @@ function decodeEpochDirection(r: ProtoReader): PbEpochDirection {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: ctr = r.readVarint(); break;
-      case 2: next = r.readBytes(); break;
-      case 3: prev = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        ctr = r.readVarint();
+        break;
+      case 2:
+        next = r.readBytes();
+        break;
+      case 3:
+        prev = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { ctr, next, prev };
@@ -355,9 +377,14 @@ function decodeEpoch(data: Uint8Array): PbEpoch {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: send = decodeEpochDirection(r.readMessage()); break;
-      case 2: recv = decodeEpochDirection(r.readMessage()); break;
-      default: r.skip(field.wireType);
+      case 1:
+        send = decodeEpochDirection(r.readMessage());
+        break;
+      case 2:
+        recv = decodeEpochDirection(r.readMessage());
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { send, recv };
@@ -397,13 +424,26 @@ export function decodeChain(data: Uint8Array): PbChain {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: direction = r.readEnum(); break;
-      case 2: currentEpoch = r.readVarint64(); break;
-      case 3: links.push(decodeEpoch(r.readBytes())); break;
-      case 4: nextRoot = r.readBytes(); break;
-      case 5: sendEpoch = r.readVarint64(); break;
-      case 6: params = decodeChainParams(r.readBytes()); break;
-      default: r.skip(field.wireType);
+      case 1:
+        direction = r.readEnum();
+        break;
+      case 2:
+        currentEpoch = r.readVarint64();
+        break;
+      case 3:
+        links.push(decodeEpoch(r.readBytes()));
+        break;
+      case 4:
+        nextRoot = r.readBytes();
+        break;
+      case 5:
+        sendEpoch = r.readVarint64();
+        break;
+      case 6:
+        params = decodeChainParams(r.readBytes());
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { direction, currentEpoch, links, nextRoot, sendEpoch, params };
@@ -428,9 +468,14 @@ export function decodeAuthenticator(data: Uint8Array): PbAuthenticator {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: rootKey = r.readBytes(); break;
-      case 2: macKey = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        rootKey = r.readBytes();
+        break;
+      case 2:
+        macKey = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { rootKey, macKey };
@@ -461,10 +506,17 @@ export function decodePolynomialEncoder(data: Uint8Array): PbPolynomialEncoder {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: idx = r.readVarint(); break;
-      case 2: pts.push(r.readBytes()); break;
-      case 3: polys.push(r.readBytes()); break;
-      default: r.skip(field.wireType);
+      case 1:
+        idx = r.readVarint();
+        break;
+      case 2:
+        pts.push(r.readBytes());
+        break;
+      case 3:
+        polys.push(r.readBytes());
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { idx, pts, polys };
@@ -495,11 +547,20 @@ export function decodePolynomialDecoder(data: Uint8Array): PbPolynomialDecoder {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: ptsNeeded = r.readVarint(); break;
-      case 2: polys = r.readVarint(); break;
-      case 3: pts.push(r.readBytes()); break;
-      case 4: isComplete = r.readBool(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        ptsNeeded = r.readVarint();
+        break;
+      case 2:
+        polys = r.readVarint();
+        break;
+      case 3:
+        pts.push(r.readBytes());
+        break;
+      case 4:
+        isComplete = r.readBool();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { ptsNeeded, polys, pts, isComplete };
@@ -524,9 +585,14 @@ export function decodeChunk(data: Uint8Array): PbChunk {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: index = r.readVarint(); break;
-      case 2: chunkData = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        index = r.readVarint();
+        break;
+      case 2:
+        chunkData = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { index, data: chunkData };
@@ -543,40 +609,40 @@ export function encodeV1Msg(msg: PbV1Msg): Uint8Array {
   if (msg.innerMsg) {
     const inner = msg.innerMsg;
     switch (inner.type) {
-      case 'hdr': {
+      case "hdr": {
         const sub = new ProtoWriter();
         sub.writeVarint(1, inner.chunk.index);
         sub.writeBytes(2, inner.chunk.data);
         w.writeMessage(3, sub);
         break;
       }
-      case 'ek': {
+      case "ek": {
         const sub = new ProtoWriter();
         sub.writeVarint(1, inner.chunk.index);
         sub.writeBytes(2, inner.chunk.data);
         w.writeMessage(4, sub);
         break;
       }
-      case 'ekCt1Ack': {
+      case "ekCt1Ack": {
         const sub = new ProtoWriter();
         sub.writeVarint(1, inner.chunk.index);
         sub.writeBytes(2, inner.chunk.data);
         w.writeMessage(5, sub);
         break;
       }
-      case 'ct1Ack': {
+      case "ct1Ack": {
         // Bool field at field 6
         w.writeBool(6, inner.value);
         break;
       }
-      case 'ct1': {
+      case "ct1": {
         const sub = new ProtoWriter();
         sub.writeVarint(1, inner.chunk.index);
         sub.writeBytes(2, inner.chunk.data);
         w.writeMessage(7, sub);
         break;
       }
-      case 'ct2': {
+      case "ct2": {
         const sub = new ProtoWriter();
         sub.writeVarint(1, inner.chunk.index);
         sub.writeBytes(2, inner.chunk.data);
@@ -597,15 +663,32 @@ export function decodeV1Msg(data: Uint8Array): PbV1Msg {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: epoch = r.readVarint64(); break;
-      case 2: index = r.readVarint(); break;
-      case 3: innerMsg = { type: 'hdr', chunk: decodeChunk(r.readBytes()) }; break;
-      case 4: innerMsg = { type: 'ek', chunk: decodeChunk(r.readBytes()) }; break;
-      case 5: innerMsg = { type: 'ekCt1Ack', chunk: decodeChunk(r.readBytes()) }; break;
-      case 6: innerMsg = { type: 'ct1Ack', value: r.readBool() }; break;
-      case 7: innerMsg = { type: 'ct1', chunk: decodeChunk(r.readBytes()) }; break;
-      case 8: innerMsg = { type: 'ct2', chunk: decodeChunk(r.readBytes()) }; break;
-      default: r.skip(field.wireType);
+      case 1:
+        epoch = r.readVarint64();
+        break;
+      case 2:
+        index = r.readVarint();
+        break;
+      case 3:
+        innerMsg = { type: "hdr", chunk: decodeChunk(r.readBytes()) };
+        break;
+      case 4:
+        innerMsg = { type: "ek", chunk: decodeChunk(r.readBytes()) };
+        break;
+      case 5:
+        innerMsg = { type: "ekCt1Ack", chunk: decodeChunk(r.readBytes()) };
+        break;
+      case 6:
+        innerMsg = { type: "ct1Ack", value: r.readBool() };
+        break;
+      case 7:
+        innerMsg = { type: "ct1", chunk: decodeChunk(r.readBytes()) };
+        break;
+      case 8:
+        innerMsg = { type: "ct2", chunk: decodeChunk(r.readBytes()) };
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { epoch, index, innerMsg };
@@ -665,8 +748,11 @@ function decodeUcKeysUnsampled(data: Uint8Array): { auth?: PbAuthenticator | und
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth };
@@ -709,12 +795,23 @@ function decodeUcKeysSampled(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: ek = r.readBytes(); break;
-      case 3: dk = r.readBytes(); break;
-      case 4: hdr = r.readBytes(); break;
-      case 5: hdrMac = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        ek = r.readBytes();
+        break;
+      case 3:
+        dk = r.readBytes();
+        break;
+      case 4:
+        hdr = r.readBytes();
+        break;
+      case 5:
+        hdrMac = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, ek, dk, hdr, hdrMac };
@@ -754,10 +851,17 @@ function decodeUcHeaderSent(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: ek = r.readBytes(); break;
-      case 3: dk = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        ek = r.readBytes();
+        break;
+      case 3:
+        dk = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, ek, dk };
@@ -792,10 +896,17 @@ function decodeUcDkCt1(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: dk = r.readBytes(); break;
-      case 3: ct1 = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        dk = r.readBytes();
+        break;
+      case 3:
+        ct1 = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, dk, ct1 };
@@ -845,12 +956,23 @@ function decodeUcHeaderReceived(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: hdr = r.readBytes(); break;
-      case 3: es = r.readBytes(); break;
-      case 4: ct1 = r.readBytes(); break;
-      case 5: ss = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        hdr = r.readBytes();
+        break;
+      case 3:
+        es = r.readBytes();
+        break;
+      case 4:
+        ct1 = r.readBytes();
+        break;
+      case 5:
+        ss = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, hdr, es, ct1, ss };
@@ -889,11 +1011,20 @@ function decodeUcAuthHdrEsCt1(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: hdr = r.readBytes(); break;
-      case 3: es = r.readBytes(); break;
-      case 4: ct1 = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        hdr = r.readBytes();
+        break;
+      case 3:
+        es = r.readBytes();
+        break;
+      case 4:
+        ct1 = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, hdr, es, ct1 };
@@ -936,12 +1067,23 @@ function decodeUcEkReceivedCt1Sampled(data: Uint8Array): {
     if (!field) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
-      case 1: auth = decodeAuthOptional(r); break;
-      case 2: hdr = r.readBytes(); break;
-      case 3: es = r.readBytes(); break;
-      case 4: ek = r.readBytes(); break;
-      case 5: ct1 = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        auth = decodeAuthOptional(r);
+        break;
+      case 2:
+        hdr = r.readBytes();
+        break;
+      case 3:
+        es = r.readBytes();
+        break;
+      case 4:
+        ek = r.readBytes();
+        break;
+      case 5:
+        ct1 = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { auth, hdr, es, ek, ct1 };
@@ -965,58 +1107,58 @@ function encodeChunkedStateInner(state: PbChunkedState): { fieldNumber: number; 
   const w = new ProtoWriter();
 
   switch (state.type) {
-    case 'keysUnsampled': {
+    case "keysUnsampled": {
       w.writeBytes(1, encodeUcKeysUnsampled(state.uc));
       return { fieldNumber: 1, data: w.finish() };
     }
-    case 'keysSampled': {
+    case "keysSampled": {
       w.writeBytes(1, encodeUcKeysSampled(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingHdr));
       return { fieldNumber: 2, data: w.finish() };
     }
-    case 'headerSent': {
+    case "headerSent": {
       w.writeBytes(1, encodeUcHeaderSent(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingEk));
       w.writeBytes(3, encodePolynomialDecoder(state.receivingCt1));
       return { fieldNumber: 3, data: w.finish() };
     }
-    case 'ct1Received': {
+    case "ct1Received": {
       w.writeBytes(1, encodeUcDkCt1(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingEk));
       return { fieldNumber: 4, data: w.finish() };
     }
-    case 'ekSentCt1Received': {
+    case "ekSentCt1Received": {
       w.writeBytes(1, encodeUcDkCt1(state.uc));
       w.writeBytes(3, encodePolynomialDecoder(state.receivingCt2));
       return { fieldNumber: 5, data: w.finish() };
     }
-    case 'noHeaderReceived': {
+    case "noHeaderReceived": {
       w.writeBytes(1, encodeUcKeysUnsampled(state.uc));
       w.writeBytes(2, encodePolynomialDecoder(state.receivingHdr));
       return { fieldNumber: 6, data: w.finish() };
     }
-    case 'headerReceived': {
+    case "headerReceived": {
       w.writeBytes(1, encodeUcHeaderReceived(state.uc));
       w.writeBytes(2, encodePolynomialDecoder(state.receivingEk));
       return { fieldNumber: 7, data: w.finish() };
     }
-    case 'ct1Sampled': {
+    case "ct1Sampled": {
       w.writeBytes(1, encodeUcAuthHdrEsCt1(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingCt1));
       w.writeBytes(3, encodePolynomialDecoder(state.receivingEk));
       return { fieldNumber: 8, data: w.finish() };
     }
-    case 'ekReceivedCt1Sampled': {
+    case "ekReceivedCt1Sampled": {
       w.writeBytes(1, encodeUcEkReceivedCt1Sampled(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingCt1));
       return { fieldNumber: 9, data: w.finish() };
     }
-    case 'ct1Acknowledged': {
+    case "ct1Acknowledged": {
       w.writeBytes(1, encodeUcAuthHdrEsCt1(state.uc));
       w.writeBytes(2, encodePolynomialDecoder(state.receivingEk));
       return { fieldNumber: 10, data: w.finish() };
     }
-    case 'ct2Sampled': {
+    case "ct2Sampled": {
       w.writeBytes(1, encodeUcKeysUnsampled(state.uc));
       w.writeBytes(2, encodePolynomialEncoder(state.sendingCt2));
       return { fieldNumber: 11, data: w.finish() };
@@ -1039,10 +1181,17 @@ function decodeChunkedRaw(data: Uint8Array): ChunkedDecodeResult {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: uc = r.readBytes(); break;
-      case 2: encoder = r.readBytes(); break;
-      case 3: decoder = r.readBytes(); break;
-      default: r.skip(field.wireType);
+      case 1:
+        uc = r.readBytes();
+        break;
+      case 2:
+        encoder = r.readBytes();
+        break;
+      case 3:
+        decoder = r.readBytes();
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { uc, encoder, decoder };
@@ -1053,66 +1202,66 @@ function decodeChunkedState(fieldNumber: number, data: Uint8Array): PbChunkedSta
 
   switch (fieldNumber) {
     case 1:
-      return { type: 'keysUnsampled', uc: decodeUcKeysUnsampled(raw.uc) };
+      return { type: "keysUnsampled", uc: decodeUcKeysUnsampled(raw.uc) };
     case 2:
       return {
-        type: 'keysSampled',
+        type: "keysSampled",
         uc: decodeUcKeysSampled(raw.uc),
         sendingHdr: decodePolynomialEncoder(raw.encoder!),
       };
     case 3:
       return {
-        type: 'headerSent',
+        type: "headerSent",
         uc: decodeUcHeaderSent(raw.uc),
         sendingEk: decodePolynomialEncoder(raw.encoder!),
         receivingCt1: decodePolynomialDecoder(raw.decoder!),
       };
     case 4:
       return {
-        type: 'ct1Received',
+        type: "ct1Received",
         uc: decodeUcDkCt1(raw.uc),
         sendingEk: decodePolynomialEncoder(raw.encoder!),
       };
     case 5:
       return {
-        type: 'ekSentCt1Received',
+        type: "ekSentCt1Received",
         uc: decodeUcDkCt1(raw.uc),
         receivingCt2: decodePolynomialDecoder(raw.decoder!),
       };
     case 6:
       return {
-        type: 'noHeaderReceived',
+        type: "noHeaderReceived",
         uc: decodeUcKeysUnsampled(raw.uc),
         receivingHdr: decodePolynomialDecoder(raw.encoder!),
       };
     case 7:
       return {
-        type: 'headerReceived',
+        type: "headerReceived",
         uc: decodeUcHeaderReceived(raw.uc),
         receivingEk: decodePolynomialDecoder(raw.encoder!),
       };
     case 8:
       return {
-        type: 'ct1Sampled',
+        type: "ct1Sampled",
         uc: decodeUcAuthHdrEsCt1(raw.uc),
         sendingCt1: decodePolynomialEncoder(raw.encoder!),
         receivingEk: decodePolynomialDecoder(raw.decoder!),
       };
     case 9:
       return {
-        type: 'ekReceivedCt1Sampled',
+        type: "ekReceivedCt1Sampled",
         uc: decodeUcEkReceivedCt1Sampled(raw.uc),
         sendingCt1: decodePolynomialEncoder(raw.encoder!),
       };
     case 10:
       return {
-        type: 'ct1Acknowledged',
+        type: "ct1Acknowledged",
         uc: decodeUcAuthHdrEsCt1(raw.uc),
         receivingEk: decodePolynomialDecoder(raw.encoder!),
       };
     case 11:
       return {
-        type: 'ct2Sampled',
+        type: "ct2Sampled",
         uc: decodeUcKeysUnsampled(raw.uc),
         sendingCt2: decodePolynomialEncoder(raw.encoder!),
       };
@@ -1183,10 +1332,17 @@ export function decodePqRatchetState(data: Uint8Array): PbPqRatchetState {
     const field = r.readField();
     if (!field) break;
     switch (field.fieldNumber) {
-      case 1: versionNegotiation = decodeVersionNegotiation(r.readBytes()); break;
-      case 2: chain = decodeChain(r.readBytes()); break;
-      case 3: v1 = decodeV1State(r.readBytes()); break;
-      default: r.skip(field.wireType);
+      case 1:
+        versionNegotiation = decodeVersionNegotiation(r.readBytes());
+        break;
+      case 2:
+        chain = decodeChain(r.readBytes());
+        break;
+      case 3:
+        v1 = decodeV1State(r.readBytes());
+        break;
+      default:
+        r.skip(field.wireType);
     }
   }
   return { versionNegotiation, chain, v1 };
@@ -1211,4 +1367,4 @@ export type {
   PbV1MsgInner,
   PbV1State,
   PbVersionNegotiation,
-} from './pq-ratchet-types.js';
+} from "./pq-ratchet-types.js";

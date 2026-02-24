@@ -13,8 +13,8 @@
  *   [chunk_index: varint]  + [chunk_data: 32 bytes]  (optional, if msg_type has a chunk)
  */
 
-import type { Chunk } from '../../encoding/polynomial.js';
-import type { Message, MessagePayload } from './states.js';
+import type { Chunk } from "../../encoding/polynomial.js";
+import type { Message, MessagePayload } from "./states.js";
 
 // ---------------------------------------------------------------------------
 // Message type enum
@@ -59,7 +59,7 @@ export function decodeVarint(from: Uint8Array, at: { offset: number }): bigint {
   let shift = 0n;
   while (shift < 70n) {
     if (at.offset >= from.length) {
-      throw new Error('Varint: unexpected end of data');
+      throw new Error("Varint: unexpected end of data");
     }
     const byte = from[at.offset++]!;
     result |= BigInt(byte & 0x7f) << shift;
@@ -68,7 +68,7 @@ export function decodeVarint(from: Uint8Array, at: { offset: number }): bigint {
     }
     shift += 7n;
   }
-  throw new Error('Varint: too many bytes');
+  throw new Error("Varint: too many bytes");
 }
 
 /**
@@ -94,7 +94,7 @@ function decodeVarint32(from: Uint8Array, at: { offset: number }): number {
   let shift = 0;
   while (shift < 35) {
     if (at.offset >= from.length) {
-      throw new Error('Varint32: unexpected end of data');
+      throw new Error("Varint32: unexpected end of data");
     }
     const byte = from[at.offset++]!;
     result |= (byte & 0x7f) << shift;
@@ -103,7 +103,7 @@ function decodeVarint32(from: Uint8Array, at: { offset: number }): number {
     }
     shift += 7;
   }
-  throw new Error('Varint32: too many bytes');
+  throw new Error("Varint32: too many bytes");
 }
 
 // ---------------------------------------------------------------------------
@@ -123,8 +123,8 @@ export function encodeChunk(chunk: Chunk, into: number[]): void {
 /** Decode a chunk from a Uint8Array at the given offset. */
 export function decodeChunk(from: Uint8Array, at: { offset: number }): Chunk {
   const index = decodeVarint32(from, at);
-  if (at.offset + CHUNK_DATA_SIZE > from.length || index > 0xFFFF) {
-    throw new Error('Chunk: invalid chunk (data too short or index exceeds u16)');
+  if (at.offset + CHUNK_DATA_SIZE > from.length || index > 0xffff) {
+    throw new Error("Chunk: invalid chunk (data too short or index exceeds u16)");
   }
   const data = from.slice(at.offset, at.offset + CHUNK_DATA_SIZE);
   at.offset += CHUNK_DATA_SIZE;
@@ -156,30 +156,30 @@ export function serializeMessage(msg: Message, index: number): Uint8Array {
   // Message type + payload
   const payload = msg.payload;
   switch (payload.type) {
-    case 'none':
+    case "none":
       out.push(MessageType.None);
       break;
-    case 'hdr':
+    case "hdr":
       out.push(MessageType.Hdr);
       encodeChunk(payload.chunk, out);
       break;
-    case 'ek':
+    case "ek":
       out.push(MessageType.Ek);
       encodeChunk(payload.chunk, out);
       break;
-    case 'ekCt1Ack':
+    case "ekCt1Ack":
       out.push(MessageType.EkCt1Ack);
       encodeChunk(payload.chunk, out);
       break;
-    case 'ct1Ack':
+    case "ct1Ack":
       out.push(MessageType.Ct1Ack);
       // No value byte -- matches Rust wire format (Ct1Ack has no payload)
       break;
-    case 'ct1':
+    case "ct1":
       out.push(MessageType.Ct1);
       encodeChunk(payload.chunk, out);
       break;
-    case 'ct2':
+    case "ct2":
       out.push(MessageType.Ct2);
       encodeChunk(payload.chunk, out);
       break;
@@ -191,14 +191,16 @@ export function serializeMessage(msg: Message, index: number): Uint8Array {
 /**
  * Deserialize a Message from binary wire format.
  */
-export function deserializeMessage(
-  from: Uint8Array,
-): { msg: Message; index: number; bytesRead: number } {
+export function deserializeMessage(from: Uint8Array): {
+  msg: Message;
+  index: number;
+  bytesRead: number;
+} {
   const at = { offset: 0 };
 
   // Version byte
   if (at.offset >= from.length) {
-    throw new Error('Message: empty data');
+    throw new Error("Message: empty data");
   }
   const version = from[at.offset++]!;
   if (version !== V1) {
@@ -208,7 +210,7 @@ export function deserializeMessage(
   // Epoch
   const epoch = decodeVarint(from, at);
   if (epoch === 0n) {
-    throw new Error('Message: epoch must be > 0');
+    throw new Error("Message: epoch must be > 0");
   }
 
   // Index
@@ -216,33 +218,33 @@ export function deserializeMessage(
 
   // Message type
   if (at.offset >= from.length) {
-    throw new Error('Message: missing message type');
+    throw new Error("Message: missing message type");
   }
   const msgType = from[at.offset++]!;
 
   let payload: MessagePayload;
   switch (msgType) {
     case MessageType.None:
-      payload = { type: 'none' };
+      payload = { type: "none" };
       break;
     case MessageType.Hdr:
-      payload = { type: 'hdr', chunk: decodeChunk(from, at) };
+      payload = { type: "hdr", chunk: decodeChunk(from, at) };
       break;
     case MessageType.Ek:
-      payload = { type: 'ek', chunk: decodeChunk(from, at) };
+      payload = { type: "ek", chunk: decodeChunk(from, at) };
       break;
     case MessageType.EkCt1Ack:
-      payload = { type: 'ekCt1Ack', chunk: decodeChunk(from, at) };
+      payload = { type: "ekCt1Ack", chunk: decodeChunk(from, at) };
       break;
     case MessageType.Ct1Ack:
       // No value byte -- matches Rust (hardcoded true, no data after type byte)
-      payload = { type: 'ct1Ack' };
+      payload = { type: "ct1Ack" };
       break;
     case MessageType.Ct1:
-      payload = { type: 'ct1', chunk: decodeChunk(from, at) };
+      payload = { type: "ct1", chunk: decodeChunk(from, at) };
       break;
     case MessageType.Ct2:
-      payload = { type: 'ct2', chunk: decodeChunk(from, at) };
+      payload = { type: "ct2", chunk: decodeChunk(from, at) };
       break;
     default:
       throw new Error(`Message: unknown message type ${msgType}`);

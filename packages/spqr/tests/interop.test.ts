@@ -14,48 +14,38 @@
  * testable across all the areas covered below.
  */
 
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // GF16 arithmetic
-import { GF16 } from '../src/encoding/gf.js';
+import { GF16 } from "../src/encoding/gf.js";
 
 // Polynomial erasure coding
-import { PolyEncoder } from '../src/encoding/polynomial.js';
+import { PolyEncoder } from "../src/encoding/polynomial.js";
 
 // Chain key derivation
-import { Chain } from '../src/chain.js';
-import { Direction, Version } from '../src/types.js';
+import { Chain } from "../src/chain.js";
+import { Direction, Version } from "../src/types.js";
 
 // V1Msg wire format
-import { deserializeMessage } from '../src/v1/chunked/message.js';
+import { deserializeMessage } from "../src/v1/chunked/message.js";
 
 // Protobuf encoder/decoder
-import {
-  decodePqRatchetState,
-  encodePqRatchetState,
-} from '../src/proto/index.js';
+import { decodePqRatchetState, encodePqRatchetState } from "../src/proto/index.js";
 
 // Top-level API
-import {
-  initialState,
-  currentVersion,
-  emptyState,
-  type Params,
-} from '../src/index.js';
+import { initialState, currentVersion, emptyState, type Params } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
 // Load test vectors
 // ---------------------------------------------------------------------------
 
 const FIXTURES_DIR = resolve(
-  '/Users/custodio/Development/BCTS/typescript/packages/spqr/tests/fixtures',
+  "/Users/custodio/Development/BCTS/typescript/packages/spqr/tests/fixtures",
 );
 
-const vectors = JSON.parse(
-  readFileSync(resolve(FIXTURES_DIR, 'rust-vectors.json'), 'utf-8'),
-);
+const vectors = JSON.parse(readFileSync(resolve(FIXTURES_DIR, "rust-vectors.json"), "utf-8"));
 
 // ---------------------------------------------------------------------------
 // Hex helpers
@@ -72,8 +62,8 @@ function hexToBytes(hex: string): Uint8Array {
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -90,12 +80,12 @@ const CHAIN_PARAMS = {
 // 1. GF(2^16) Arithmetic -- match Rust gf.rs
 // =========================================================================
 
-describe('Interop: GF(2^16) arithmetic', () => {
-  describe('addition (XOR)', () => {
+describe("Interop: GF(2^16) arithmetic", () => {
+  describe("addition (XOR)", () => {
     const addVectors: [number, number, number][] = vectors.gf16.add;
 
     it.each(addVectors.map((v, i) => ({ a: v[0], b: v[1], expected: v[2], i })))(
-      'add[$i]: GF16($a) + GF16($b) = GF16($expected)',
+      "add[$i]: GF16($a) + GF16($b) = GF16($expected)",
       ({ a, b, expected }) => {
         const result = new GF16(a).add(new GF16(b));
         expect(result.value).toBe(expected);
@@ -109,11 +99,11 @@ describe('Interop: GF(2^16) arithmetic', () => {
     });
   });
 
-  describe('multiplication', () => {
+  describe("multiplication", () => {
     const mulVectors: [number, number, number][] = vectors.gf16.mul;
 
     it.each(mulVectors.map((v, i) => ({ a: v[0], b: v[1], expected: v[2], i })))(
-      'mul[$i]: GF16($a) * GF16($b) = GF16($expected)',
+      "mul[$i]: GF16($a) * GF16($b) = GF16($expected)",
       ({ a, b, expected }) => {
         const result = new GF16(a).mul(new GF16(b));
         expect(result.value).toBe(expected);
@@ -127,11 +117,11 @@ describe('Interop: GF(2^16) arithmetic', () => {
     });
   });
 
-  describe('division', () => {
+  describe("division", () => {
     const divVectors: [number, number, number][] = vectors.gf16.div;
 
     it.each(divVectors.map((v, i) => ({ a: v[0], b: v[1], expected: v[2], i })))(
-      'div[$i]: GF16($a) / GF16($b) = GF16($expected)',
+      "div[$i]: GF16($a) / GF16($b) = GF16($expected)",
       ({ a, b, expected }) => {
         if (b === 0) {
           expect(() => new GF16(a).div(new GF16(b))).toThrow();
@@ -150,8 +140,8 @@ describe('Interop: GF(2^16) arithmetic', () => {
     });
   });
 
-  describe('cross-operation identities', () => {
-    it('a * b / b = a for non-zero b', () => {
+  describe("cross-operation identities", () => {
+    it("a * b / b = a for non-zero b", () => {
       const mulVectors: [number, number, number][] = vectors.gf16.mul;
       for (const [a, b] of mulVectors) {
         if (a === 0 || b === 0) continue;
@@ -161,7 +151,7 @@ describe('Interop: GF(2^16) arithmetic', () => {
       }
     });
 
-    it('a + b + b = a for all test pairs', () => {
+    it("a + b + b = a for all test pairs", () => {
       const addVectors: [number, number, number][] = vectors.gf16.add;
       for (const [a, b] of addVectors) {
         const sum = new GF16(a).add(new GF16(b));
@@ -176,7 +166,7 @@ describe('Interop: GF(2^16) arithmetic', () => {
 // 2. Polynomial Erasure Coding -- match Rust polynomial.rs
 // =========================================================================
 
-describe('Interop: Polynomial erasure coding', () => {
+describe("Interop: Polynomial erasure coding", () => {
   const encodeDecode: Array<{
     input_hex: string;
     chunks: Array<{ index: number; data_hex: string }>;
@@ -186,7 +176,7 @@ describe('Interop: Polynomial erasure coding', () => {
     describe(`input: ${tc.input_hex.substring(0, 24)}...`, () => {
       const input = hexToBytes(tc.input_hex);
 
-      it('should produce correct first N+2 chunks matching Rust', () => {
+      it("should produce correct first N+2 chunks matching Rust", () => {
         const encoder = PolyEncoder.encodeBytes(input);
 
         for (const expected of tc.chunks) {
@@ -196,7 +186,7 @@ describe('Interop: Polynomial erasure coding', () => {
         }
       });
 
-      it('chunks should be deterministic (same input = same output)', () => {
+      it("chunks should be deterministic (same input = same output)", () => {
         const enc1 = PolyEncoder.encodeBytes(input);
         const enc2 = PolyEncoder.encodeBytes(input);
 
@@ -210,7 +200,7 @@ describe('Interop: Polynomial erasure coding', () => {
     });
   }
 
-  it('chunk data size is always 32 bytes', () => {
+  it("chunk data size is always 32 bytes", () => {
     for (const tc of encodeDecode) {
       const input = hexToBytes(tc.input_hex);
       const encoder = PolyEncoder.encodeBytes(input);
@@ -227,15 +217,15 @@ describe('Interop: Polynomial erasure coding', () => {
 // 3. Chain Key Derivation -- match Rust chain.rs
 // =========================================================================
 
-describe('Interop: Chain key derivation', () => {
+describe("Interop: Chain key derivation", () => {
   const chainVectors = vectors.chain;
 
-  it('should have matching auth key', () => {
+  it("should have matching auth key", () => {
     expect(bytesToHex(AUTH_KEY)).toBe(chainVectors.auth_key_hex);
   });
 
-  describe('epoch 0 (no additional secret)', () => {
-    it('send keys match Rust for epoch 0', () => {
+  describe("epoch 0 (no additional secret)", () => {
+    it("send keys match Rust for epoch 0", () => {
       const chain = Chain.create(AUTH_KEY, Direction.A2B, CHAIN_PARAMS);
 
       for (const expected of chainVectors.epoch0_send_keys) {
@@ -245,7 +235,7 @@ describe('Interop: Chain key derivation', () => {
       }
     });
 
-    it('recv keys match Rust for epoch 0 (B-side perspective)', () => {
+    it("recv keys match Rust for epoch 0 (B-side perspective)", () => {
       // The Rust epoch0_recv_keys represent B-side receiver keys.
       // B has direction B2A; its recv chain uses the A2B HKDF slice,
       // matching A's send keys. So we create a B2A chain.
@@ -257,7 +247,7 @@ describe('Interop: Chain key derivation', () => {
       }
     });
 
-    it('A send keys equal B recv keys (cross-party symmetric in epoch 0)', () => {
+    it("A send keys equal B recv keys (cross-party symmetric in epoch 0)", () => {
       // A sends using A2B direction, B receives using B2A direction
       // B's recv chain uses the A2B slice, matching A's send chain
       const aChain = Chain.create(AUTH_KEY, Direction.A2B, CHAIN_PARAMS);
@@ -270,13 +260,13 @@ describe('Interop: Chain key derivation', () => {
       }
     });
 
-    it('epoch 0 secret is null (no pre-shared secret)', () => {
+    it("epoch 0 secret is null (no pre-shared secret)", () => {
       expect(chainVectors.epoch0_secret_hex).toBeNull();
     });
   });
 
-  describe('epoch 1 (with shared secret)', () => {
-    it('send keys match Rust for epoch 1', () => {
+  describe("epoch 1 (with shared secret)", () => {
+    it("send keys match Rust for epoch 1", () => {
       const chain = Chain.create(AUTH_KEY, Direction.A2B, CHAIN_PARAMS);
 
       // Add epoch 1 with the known secret
@@ -290,7 +280,7 @@ describe('Interop: Chain key derivation', () => {
       }
     });
 
-    it('recv keys match Rust for epoch 1 (B-side perspective)', () => {
+    it("recv keys match Rust for epoch 1 (B-side perspective)", () => {
       // The Rust vectors for epoch1_recv_keys are from the B-side receiver.
       // B has direction B2A; its recv chain uses the A2B HKDF slice,
       // matching A's send keys. So we create a B2A chain.
@@ -305,14 +295,12 @@ describe('Interop: Chain key derivation', () => {
       }
     });
 
-    it('epoch 1 secret matches expected value', () => {
+    it("epoch 1 secret matches expected value", () => {
       const expected = chainVectors.epoch1_secret_hex;
-      expect(expected).toBe(
-        '6363636363636363636363636363636363636363636363636363636363636363',
-      );
+      expect(expected).toBe("6363636363636363636363636363636363636363636363636363636363636363");
     });
 
-    it('cross-epoch: epoch 0 and 1 produce different key streams', () => {
+    it("cross-epoch: epoch 0 and 1 produce different key streams", () => {
       const chain = Chain.create(AUTH_KEY, Direction.A2B, CHAIN_PARAMS);
 
       // Get epoch 0 first key
@@ -330,14 +318,14 @@ describe('Interop: Chain key derivation', () => {
     });
   });
 
-  describe('chain parameter validation', () => {
-    it('default chain params match Rust defaults', () => {
+  describe("chain parameter validation", () => {
+    it("default chain params match Rust defaults", () => {
       expect(CHAIN_PARAMS.maxJump).toBe(25000);
       expect(CHAIN_PARAMS.maxOooKeys).toBe(2000);
     });
 
-    it('direction A2B matches Rust encoding', () => {
-      expect(chainVectors.direction).toBe('A2B');
+    it("direction A2B matches Rust encoding", () => {
+      expect(chainVectors.direction).toBe("A2B");
       expect(Direction.A2B).toBe(0);
     });
   });
@@ -347,7 +335,7 @@ describe('Interop: Chain key derivation', () => {
 // 4. V1Msg Wire Format -- match Rust serialize.rs
 // =========================================================================
 
-describe('Interop: V1Msg custom binary wire format', () => {
+describe("Interop: V1Msg custom binary wire format", () => {
   const v1msgVectors = vectors.v1msg;
   const messages: Array<{
     sender: string;
@@ -356,9 +344,9 @@ describe('Interop: V1Msg custom binary wire format', () => {
     has_key: boolean;
   }> = v1msgVectors.messages;
 
-  it('auth key matches', () => {
+  it("auth key matches", () => {
     expect(v1msgVectors.auth_key_hex).toBe(
-      '2929292929292929292929292929292929292929292929292929292929292929',
+      "2929292929292929292929292929292929292929292929292929292929292929",
     );
   });
 
@@ -371,23 +359,23 @@ describe('Interop: V1Msg custom binary wire format', () => {
         expect(bytes.length).toBe(msg.msg_len);
       });
 
-      it('starts with version byte 0x01 (V1)', () => {
+      it("starts with version byte 0x01 (V1)", () => {
         const bytes = hexToBytes(msg.msg_hex);
         expect(bytes[0]).toBe(1);
       });
 
-      it('can be deserialized by TS deserializeMessage', () => {
+      it("can be deserialized by TS deserializeMessage", () => {
         const bytes = hexToBytes(msg.msg_hex);
         const result = deserializeMessage(bytes);
 
         // Should parse without error
         expect(result).toBeDefined();
         expect(result.msg).toBeDefined();
-        expect(result.msg.epoch).toBeTypeOf('bigint');
+        expect(result.msg.epoch).toBeTypeOf("bigint");
         expect(result.msg.payload).toBeDefined();
       });
 
-      it('round-trips through TS serialize/deserialize', () => {
+      it("round-trips through TS serialize/deserialize", () => {
         const bytes = hexToBytes(msg.msg_hex);
         const { msg: parsed, index } = deserializeMessage(bytes);
 
@@ -399,28 +387,28 @@ describe('Interop: V1Msg custom binary wire format', () => {
       });
 
       if (msg.msg_len > 4) {
-        it('has chunk payload for chunk-carrying messages', () => {
+        it("has chunk payload for chunk-carrying messages", () => {
           const bytes = hexToBytes(msg.msg_hex);
           const { msg: parsed } = deserializeMessage(bytes);
 
           // Messages longer than 4 bytes must have a chunk
-          expect(parsed.payload.type).not.toBe('none');
-          expect(parsed.payload.type).not.toBe('ct1Ack');
+          expect(parsed.payload.type).not.toBe("none");
+          expect(parsed.payload.type).not.toBe("ct1Ack");
         });
       }
     });
   }
 
-  it('A sender messages have epoch=1', () => {
-    for (const msg of messages.filter((m) => m.sender === 'A')) {
+  it("A sender messages have epoch=1", () => {
+    for (const msg of messages.filter((m) => m.sender === "A")) {
       const bytes = hexToBytes(msg.msg_hex);
       const { msg: parsed } = deserializeMessage(bytes);
       expect(parsed.epoch).toBe(1n);
     }
   });
 
-  it('B sender message has no chunk data (None type during early exchange)', () => {
-    const bMsgs = messages.filter((m) => m.sender === 'B');
+  it("B sender message has no chunk data (None type during early exchange)", () => {
+    const bMsgs = messages.filter((m) => m.sender === "B");
     expect(bMsgs.length).toBeGreaterThan(0);
 
     for (const msg of bMsgs) {
@@ -428,11 +416,11 @@ describe('Interop: V1Msg custom binary wire format', () => {
       const { msg: parsed } = deserializeMessage(bytes);
       // B messages during early exchange (before EK received) are None type
       // Wire format: [version=01][epoch=01][index=01][msgType=00]
-      expect(parsed.payload.type).toBe('none');
+      expect(parsed.payload.type).toBe("none");
     }
   });
 
-  it('message deserialization handles varint epoch correctly', () => {
+  it("message deserialization handles varint epoch correctly", () => {
     // All messages have epoch 1 encoded as varint [0x01]
     for (const msg of messages) {
       const bytes = hexToBytes(msg.msg_hex);
@@ -446,21 +434,21 @@ describe('Interop: V1Msg custom binary wire format', () => {
 // 5. Protobuf State Serialization -- match Rust prost encoding
 // =========================================================================
 
-describe('Interop: Protobuf state serialization', () => {
+describe("Interop: Protobuf state serialization", () => {
   const protoVectors = vectors.protobuf;
 
-  describe('V0 empty state', () => {
-    it('V0 state is empty bytes', () => {
-      expect(protoVectors.v0_state_hex).toBe('');
+  describe("V0 empty state", () => {
+    it("V0 state is empty bytes", () => {
+      expect(protoVectors.v0_state_hex).toBe("");
     });
 
-    it('emptyState() returns empty bytes', () => {
+    it("emptyState() returns empty bytes", () => {
       const state = emptyState();
       expect(state.length).toBe(0);
     });
   });
 
-  describe('initial A2B state', () => {
+  describe("initial A2B state", () => {
     const stateHex = protoVectors.initial_state_a2b_hex;
     const stateLen = protoVectors.initial_state_a2b_len;
 
@@ -469,7 +457,7 @@ describe('Interop: Protobuf state serialization', () => {
       expect(bytes.length).toBe(stateLen);
     });
 
-    it('can be decoded by TS decodePqRatchetState', () => {
+    it("can be decoded by TS decodePqRatchetState", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
@@ -479,28 +467,28 @@ describe('Interop: Protobuf state serialization', () => {
       expect(state.v1).toBeDefined();
     });
 
-    it('has correct version negotiation fields', () => {
+    it("has correct version negotiation fields", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
       const vn = state.versionNegotiation!;
 
       expect(bytesToHex(vn.authKey)).toBe(
-        '2929292929292929292929292929292929292929292929292929292929292929',
+        "2929292929292929292929292929292929292929292929292929292929292929",
       );
       expect(vn.direction).toBe(Direction.A2B);
       expect(vn.minVersion).toBe(Version.V1);
     });
 
-    it('has V1 inner state (keysUnsampled)', () => {
+    it("has V1 inner state (keysUnsampled)", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
       expect(state.v1).toBeDefined();
       expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe('keysUnsampled');
+      expect(state.v1!.innerState!.type).toBe("keysUnsampled");
     });
 
-    it('round-trips through TS encode/decode', () => {
+    it("round-trips through TS encode/decode", () => {
       const bytes = hexToBytes(stateHex);
       const decoded = decodePqRatchetState(bytes);
       const reencoded = encodePqRatchetState(decoded);
@@ -509,13 +497,11 @@ describe('Interop: Protobuf state serialization', () => {
       // Structural equality (not byte-level, due to epoch storage difference)
       expect(redecoded.versionNegotiation).toBeDefined();
       expect(redecoded.v1).toBeDefined();
-      expect(redecoded.v1!.innerState!.type).toBe(
-        decoded.v1!.innerState!.type,
-      );
+      expect(redecoded.v1!.innerState!.type).toBe(decoded.v1!.innerState!.type);
     });
   });
 
-  describe('initial B2A state', () => {
+  describe("initial B2A state", () => {
     const stateHex = protoVectors.initial_state_b2a_hex;
     const stateLen = protoVectors.initial_state_b2a_len;
 
@@ -524,7 +510,7 @@ describe('Interop: Protobuf state serialization', () => {
       expect(bytes.length).toBe(stateLen);
     });
 
-    it('can be decoded by TS decodePqRatchetState', () => {
+    it("can be decoded by TS decodePqRatchetState", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
@@ -533,7 +519,7 @@ describe('Interop: Protobuf state serialization', () => {
       expect(state.v1).toBeDefined();
     });
 
-    it('has B2A direction in version negotiation', () => {
+    it("has B2A direction in version negotiation", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
       const vn = state.versionNegotiation!;
@@ -541,26 +527,26 @@ describe('Interop: Protobuf state serialization', () => {
       expect(vn.direction).toBe(Direction.B2A);
     });
 
-    it('B2A state is larger than A2B state', () => {
+    it("B2A state is larger than A2B state", () => {
       // B2A initial state includes receiving decoder, making it larger
       const b2aBytes = hexToBytes(stateHex);
       const a2bBytes = hexToBytes(protoVectors.initial_state_a2b_hex);
       expect(b2aBytes.length).toBeGreaterThan(a2bBytes.length);
     });
 
-    it('B2A state has noHeaderReceived inner state', () => {
+    it("B2A state has noHeaderReceived inner state", () => {
       const bytes = hexToBytes(stateHex);
       const state = decodePqRatchetState(bytes);
 
       expect(state.v1).toBeDefined();
       expect(state.v1!.innerState).toBeDefined();
       // B side starts in noHeaderReceived (waiting for header from A)
-      expect(state.v1!.innerState!.type).toBe('noHeaderReceived');
+      expect(state.v1!.innerState!.type).toBe("noHeaderReceived");
     });
   });
 
-  describe('TS-generated initial states', () => {
-    it('A2B initialState produces decodable state', () => {
+  describe("TS-generated initial states", () => {
+    it("A2B initialState produces decodable state", () => {
       const params: Params = {
         direction: Direction.A2B,
         version: Version.V1,
@@ -575,10 +561,10 @@ describe('Interop: Protobuf state serialization', () => {
       const decoded = decodePqRatchetState(state);
       expect(decoded.versionNegotiation).toBeDefined();
       expect(decoded.v1).toBeDefined();
-      expect(decoded.v1!.innerState!.type).toBe('keysUnsampled');
+      expect(decoded.v1!.innerState!.type).toBe("keysUnsampled");
     });
 
-    it('B2A initialState produces decodable state', () => {
+    it("B2A initialState produces decodable state", () => {
       const params: Params = {
         direction: Direction.B2A,
         version: Version.V1,
@@ -593,7 +579,7 @@ describe('Interop: Protobuf state serialization', () => {
       const decoded = decodePqRatchetState(state);
       expect(decoded.versionNegotiation).toBeDefined();
       expect(decoded.v1).toBeDefined();
-      expect(decoded.v1!.innerState!.type).toBe('noHeaderReceived');
+      expect(decoded.v1!.innerState!.type).toBe("noHeaderReceived");
     });
   });
 });
@@ -602,7 +588,7 @@ describe('Interop: Protobuf state serialization', () => {
 // 6. Version Negotiation -- match Rust current_version behavior
 // =========================================================================
 
-describe('Interop: Version negotiation', () => {
+describe("Interop: Version negotiation", () => {
   const vnCases: Array<{
     description: string;
     state_hex: string;
@@ -615,13 +601,13 @@ describe('Interop: Version negotiation', () => {
 
   for (const tc of vnCases) {
     describe(tc.description, () => {
-      it('should match Rust currentVersion output', () => {
+      it("should match Rust currentVersion output", () => {
         const stateBytes = hexToBytes(tc.state_hex);
         const result = currentVersion(stateBytes);
 
         expect(result.type).toBe(tc.current_version.type);
 
-        if (result.type === 'negotiation_complete') {
+        if (result.type === "negotiation_complete") {
           expect(result.version).toBe(tc.current_version.version);
         } else {
           expect(result.version).toBe(tc.current_version.version);
@@ -630,7 +616,7 @@ describe('Interop: Version negotiation', () => {
       });
 
       if (tc.state_hex.length > 0) {
-        it('state can be decoded as PqRatchetState', () => {
+        it("state can be decoded as PqRatchetState", () => {
           const bytes = hexToBytes(tc.state_hex);
           const state = decodePqRatchetState(bytes);
           expect(state).toBeDefined();
@@ -639,15 +625,15 @@ describe('Interop: Version negotiation', () => {
     });
   }
 
-  it('V0 empty state has negotiation_complete/V0', () => {
+  it("V0 empty state has negotiation_complete/V0", () => {
     const result = currentVersion(new Uint8Array(0));
     expect(result).toEqual({
-      type: 'negotiation_complete',
+      type: "negotiation_complete",
       version: Version.V0,
     });
   });
 
-  it('fresh V1 A2B state with min_version=V1 is still_negotiating', () => {
+  it("fresh V1 A2B state with min_version=V1 is still_negotiating", () => {
     const params: Params = {
       direction: Direction.A2B,
       version: Version.V1,
@@ -657,14 +643,14 @@ describe('Interop: Version negotiation', () => {
     };
     const state = initialState(params);
     const result = currentVersion(state);
-    expect(result.type).toBe('still_negotiating');
-    if (result.type === 'still_negotiating') {
+    expect(result.type).toBe("still_negotiating");
+    if (result.type === "still_negotiating") {
       expect(result.version).toBe(Version.V1);
       expect(result.minVersion).toBe(Version.V1);
     }
   });
 
-  it('fresh V1 A2B state with min_version=V0 is still_negotiating', () => {
+  it("fresh V1 A2B state with min_version=V0 is still_negotiating", () => {
     const params: Params = {
       direction: Direction.A2B,
       version: Version.V1,
@@ -674,8 +660,8 @@ describe('Interop: Version negotiation', () => {
     };
     const state = initialState(params);
     const result = currentVersion(state);
-    expect(result.type).toBe('still_negotiating');
-    if (result.type === 'still_negotiating') {
+    expect(result.type).toBe("still_negotiating");
+    if (result.type === "still_negotiating") {
       expect(result.version).toBe(Version.V1);
       expect(result.minVersion).toBe(Version.V0);
     }
@@ -686,30 +672,24 @@ describe('Interop: Version negotiation', () => {
 // 7. Issue 1275 Pre-baked States -- structural decode validation
 // =========================================================================
 
-describe('Interop: Issue 1275 pre-baked states', () => {
+describe("Interop: Issue 1275 pre-baked states", () => {
   const issue1275 = vectors.issue1275;
 
-  describe('A state (headerSent)', () => {
+  describe("A state (headerSent)", () => {
     it(`has expected size ${issue1275.a_state.size}`, () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_a_state.bin'),
-      );
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       expect(bytes.length).toBe(issue1275.a_state.size);
     });
 
-    it('decodes without error', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_a_state.bin'),
-      );
+    it("decodes without error", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
       expect(state).toBeDefined();
       expect(issue1275.a_state.decodes_ok).toBe(true);
     });
 
-    it('has chain (no version negotiation)', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_a_state.bin'),
-      );
+    it("has chain (no version negotiation)", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
       expect(state.chain).toBeDefined();
@@ -719,26 +699,20 @@ describe('Interop: Issue 1275 pre-baked states', () => {
     });
 
     it(`has inner state type "${issue1275.a_state.inner_state_type}"`, () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_a_state.bin'),
-      );
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
       expect(state.v1).toBeDefined();
       expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe(
-        issue1275.a_state.inner_state_type,
-      );
+      expect(state.v1!.innerState!.type).toBe(issue1275.a_state.inner_state_type);
     });
 
-    it('headerSent state has sendingEk encoder and receivingCt1 decoder', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_a_state.bin'),
-      );
+    it("headerSent state has sendingEk encoder and receivingCt1 decoder", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_a_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
       const inner = state.v1!.innerState!;
 
-      if (inner.type === 'headerSent') {
+      if (inner.type === "headerSent") {
         expect(inner.sendingEk).toBeDefined();
         expect(inner.receivingCt1).toBeDefined();
         expect(inner.uc).toBeDefined();
@@ -746,27 +720,21 @@ describe('Interop: Issue 1275 pre-baked states', () => {
     });
   });
 
-  describe('B state (ct1Sampled)', () => {
+  describe("B state (ct1Sampled)", () => {
     it(`has expected size ${issue1275.b_state.size}`, () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_b_state.bin'),
-      );
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       expect(bytes.length).toBe(issue1275.b_state.size);
     });
 
-    it('decodes without error', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_b_state.bin'),
-      );
+    it("decodes without error", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
       expect(state).toBeDefined();
       expect(issue1275.b_state.decodes_ok).toBe(true);
     });
 
-    it('has chain (no version negotiation)', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_b_state.bin'),
-      );
+    it("has chain (no version negotiation)", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
       expect(state.chain).toBeDefined();
@@ -774,26 +742,20 @@ describe('Interop: Issue 1275 pre-baked states', () => {
     });
 
     it(`has inner state type "${issue1275.b_state.inner_state_type}"`, () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_b_state.bin'),
-      );
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
 
       expect(state.v1).toBeDefined();
       expect(state.v1!.innerState).toBeDefined();
-      expect(state.v1!.innerState!.type).toBe(
-        issue1275.b_state.inner_state_type,
-      );
+      expect(state.v1!.innerState!.type).toBe(issue1275.b_state.inner_state_type);
     });
 
-    it('ct1Sampled state has sendingCt1 encoder and receivingEk decoder', () => {
-      const bytes = readFileSync(
-        resolve(FIXTURES_DIR, 'issue1275_b_state.bin'),
-      );
+    it("ct1Sampled state has sendingCt1 encoder and receivingEk decoder", () => {
+      const bytes = readFileSync(resolve(FIXTURES_DIR, "issue1275_b_state.bin"));
       const state = decodePqRatchetState(new Uint8Array(bytes));
       const inner = state.v1!.innerState!;
 
-      if (inner.type === 'ct1Sampled') {
+      if (inner.type === "ct1Sampled") {
         expect(inner.sendingCt1).toBeDefined();
         expect(inner.receivingEk).toBeDefined();
         expect(inner.uc).toBeDefined();
@@ -801,13 +763,11 @@ describe('Interop: Issue 1275 pre-baked states', () => {
     });
   });
 
-  it('A and B states have different inner state types', () => {
-    expect(issue1275.a_state.inner_state_type).not.toBe(
-      issue1275.b_state.inner_state_type,
-    );
+  it("A and B states have different inner state types", () => {
+    expect(issue1275.a_state.inner_state_type).not.toBe(issue1275.b_state.inner_state_type);
   });
 
-  it('B state (with decoder+encoder) is larger than A state', () => {
+  it("B state (with decoder+encoder) is larger than A state", () => {
     expect(issue1275.b_state.size).toBeGreaterThan(issue1275.a_state.size);
   });
 });
@@ -816,8 +776,8 @@ describe('Interop: Issue 1275 pre-baked states', () => {
 // 8. Proto field number alignment -- verify TS encodes at correct fields
 // =========================================================================
 
-describe('Interop: Proto field number alignment', () => {
-  describe('chunked state field numbers match Rust proto schema', () => {
+describe("Interop: Proto field number alignment", () => {
+  describe("chunked state field numbers match Rust proto schema", () => {
     // The Rust proto defines:
     //   NoHeaderReceived: uc=1, receiving_hdr=2
     //   HeaderReceived:   uc=1, receiving_ek=2
@@ -827,7 +787,7 @@ describe('Interop: Proto field number alignment', () => {
     // After fix, TS should encode decoder at field 2 for the first three,
     // and field 3 for EkSentCt1Received.
 
-    it('noHeaderReceived encodes decoder at field 2', () => {
+    it("noHeaderReceived encodes decoder at field 2", () => {
       const params: Params = {
         direction: Direction.B2A,
         version: Version.V1,
@@ -839,25 +799,25 @@ describe('Interop: Proto field number alignment', () => {
       const decoded = decodePqRatchetState(state);
 
       // B2A starts in noHeaderReceived
-      expect(decoded.v1!.innerState!.type).toBe('noHeaderReceived');
+      expect(decoded.v1!.innerState!.type).toBe("noHeaderReceived");
 
       // Re-encode and decode to verify field alignment
       const reencoded = encodePqRatchetState(decoded);
       const redecoded = decodePqRatchetState(reencoded);
 
-      expect(redecoded.v1!.innerState!.type).toBe('noHeaderReceived');
-      if (redecoded.v1!.innerState!.type === 'noHeaderReceived') {
+      expect(redecoded.v1!.innerState!.type).toBe("noHeaderReceived");
+      if (redecoded.v1!.innerState!.type === "noHeaderReceived") {
         expect(redecoded.v1!.innerState!.receivingHdr).toBeDefined();
       }
     });
 
-    it('Rust-generated B2A state decodes noHeaderReceived correctly', () => {
+    it("Rust-generated B2A state decodes noHeaderReceived correctly", () => {
       const b2aHex = vectors.protobuf.initial_state_b2a_hex;
       const bytes = hexToBytes(b2aHex);
       const state = decodePqRatchetState(bytes);
 
-      expect(state.v1!.innerState!.type).toBe('noHeaderReceived');
-      if (state.v1!.innerState!.type === 'noHeaderReceived') {
+      expect(state.v1!.innerState!.type).toBe("noHeaderReceived");
+      if (state.v1!.innerState!.type === "noHeaderReceived") {
         // After the field number fix, the decoder data (at proto field 2)
         // should be correctly read as receivingHdr
         expect(state.v1!.innerState!.receivingHdr).toBeDefined();
@@ -865,22 +825,22 @@ describe('Interop: Proto field number alignment', () => {
     });
   });
 
-  describe('V1State oneof field mapping', () => {
+  describe("V1State oneof field mapping", () => {
     const stateTypes = [
-      { field: 1, type: 'keysUnsampled' },
-      { field: 2, type: 'keysSampled' },
-      { field: 3, type: 'headerSent' },
-      { field: 4, type: 'ct1Received' },
-      { field: 5, type: 'ekSentCt1Received' },
-      { field: 6, type: 'noHeaderReceived' },
-      { field: 7, type: 'headerReceived' },
-      { field: 8, type: 'ct1Sampled' },
-      { field: 9, type: 'ekReceivedCt1Sampled' },
-      { field: 10, type: 'ct1Acknowledged' },
-      { field: 11, type: 'ct2Sampled' },
+      { field: 1, type: "keysUnsampled" },
+      { field: 2, type: "keysSampled" },
+      { field: 3, type: "headerSent" },
+      { field: 4, type: "ct1Received" },
+      { field: 5, type: "ekSentCt1Received" },
+      { field: 6, type: "noHeaderReceived" },
+      { field: 7, type: "headerReceived" },
+      { field: 8, type: "ct1Sampled" },
+      { field: 9, type: "ekReceivedCt1Sampled" },
+      { field: 10, type: "ct1Acknowledged" },
+      { field: 11, type: "ct2Sampled" },
     ];
 
-    it('should have 11 state types mapped to fields 1-11', () => {
+    it("should have 11 state types mapped to fields 1-11", () => {
       expect(stateTypes.length).toBe(11);
       for (let i = 0; i < stateTypes.length; i++) {
         expect(stateTypes[i].field).toBe(i + 1);
@@ -893,22 +853,22 @@ describe('Interop: Proto field number alignment', () => {
 // 9. HKDF label consistency
 // =========================================================================
 
-describe('Interop: HKDF label consistency', () => {
-  it('Chain Start label has double space', () => {
+describe("Interop: HKDF label consistency", () => {
+  it("Chain Start label has double space", () => {
     // This is a critical interop requirement -- the label must have
     // two spaces before "Start" to match the Rust implementation
-    const label = 'Signal PQ Ratchet V1 Chain  Start';
-    expect(label).toContain('  Start');
-    expect(label).not.toContain('   Start');
+    const label = "Signal PQ Ratchet V1 Chain  Start";
+    expect(label).toContain("  Start");
+    expect(label).not.toContain("   Start");
   });
 
-  it('Chain Add Epoch label matches', () => {
-    const label = 'Signal PQ Ratchet V1 Chain Add Epoch';
+  it("Chain Add Epoch label matches", () => {
+    const label = "Signal PQ Ratchet V1 Chain Add Epoch";
     expect(label.length).toBe(36);
   });
 
-  it('Chain Next label matches', () => {
-    const label = 'Signal PQ Ratchet V1 Chain Next';
+  it("Chain Next label matches", () => {
+    const label = "Signal PQ Ratchet V1 Chain Next";
     expect(label.length).toBe(31);
   });
 });
@@ -917,16 +877,16 @@ describe('Interop: HKDF label consistency', () => {
 // 10. Test vector metadata
 // =========================================================================
 
-describe('Interop: Test vector metadata', () => {
-  it('vectors were generated by spqr-rust-v1.4.0', () => {
-    expect(vectors.generated_by).toBe('spqr-rust-v1.4.0');
+describe("Interop: Test vector metadata", () => {
+  it("vectors were generated by spqr-rust-v1.4.0", () => {
+    expect(vectors.generated_by).toBe("spqr-rust-v1.4.0");
   });
 
-  it('vectors use seed 42', () => {
+  it("vectors use seed 42", () => {
     expect(vectors.seed).toBe(42);
   });
 
-  it('has all expected sections', () => {
+  it("has all expected sections", () => {
     expect(vectors.gf16).toBeDefined();
     expect(vectors.polynomial).toBeDefined();
     expect(vectors.chain).toBeDefined();
@@ -936,7 +896,7 @@ describe('Interop: Test vector metadata', () => {
     expect(vectors.issue1275).toBeDefined();
   });
 
-  it('GF16 has 20 vectors per operation', () => {
+  it("GF16 has 20 vectors per operation", () => {
     expect(vectors.gf16.add.length).toBe(20);
     expect(vectors.gf16.mul.length).toBe(20);
     expect(vectors.gf16.div.length).toBe(20);

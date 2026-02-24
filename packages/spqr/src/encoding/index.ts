@@ -10,12 +10,7 @@
 export { GF16, POLY, polyReduce, parallelMult } from "./gf.js";
 
 // Polynomial erasure coding
-export {
-  Poly,
-  PolyEncoder,
-  PolyDecoder,
-  PolynomialError,
-} from "./polynomial.js";
+export { Poly, PolyEncoder, PolyDecoder, PolynomialError } from "./polynomial.js";
 
 // Types
 export type { Chunk, Encoder, Decoder, Pt } from "./polynomial.js";

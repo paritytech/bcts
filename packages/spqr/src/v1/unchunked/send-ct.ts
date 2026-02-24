@@ -25,17 +25,13 @@
  *   Ct2Sent             (terminal -- caller creates next KeysUnsampled)
  */
 
-import { Authenticator } from '../../authenticator.js';
-import { hkdfSha256 } from '../../kdf.js';
-import { concat, bigintToBE8 } from '../../util.js';
-import { ZERO_SALT, LABEL_SCKA_KEY } from '../../constants.js';
-import {
-  encaps1,
-  encaps2,
-  ekMatchesHeader,
-} from '../../incremental-mlkem768.js';
-import { SpqrError, SpqrErrorCode } from '../../error.js';
-import type { Epoch, EpochSecret, RandomBytes } from '../../types.js';
+import { Authenticator } from "../../authenticator.js";
+import { hkdfSha256 } from "../../kdf.js";
+import { concat, bigintToBE8 } from "../../util.js";
+import { ZERO_SALT, LABEL_SCKA_KEY } from "../../constants.js";
+import { encaps1, encaps2, ekMatchesHeader } from "../../incremental-mlkem768.js";
+import { SpqrError, SpqrErrorCode } from "../../error.js";
+import type { Epoch, EpochSecret, RandomBytes } from "../../types.js";
 
 // Pre-encode the SCKA label
 const SCKA_KEY_LABEL = new TextEncoder().encode(LABEL_SCKA_KEY);
@@ -88,11 +84,7 @@ export class NoHeaderReceived {
     // Verify header MAC
     this.auth.verifyHdr(epoch, hdr, mac);
 
-    return new HeaderReceived(
-      this.epoch,
-      this.auth,
-      hdr,
-    );
+    return new HeaderReceived(this.epoch, this.auth, hdr);
   }
 }
 
@@ -135,13 +127,7 @@ export class HeaderReceived {
     const auth = this.auth.clone();
     auth.update(this.epoch, epochSecret.secret);
 
-    const nextState = new Ct1Sent(
-      this.epoch,
-      auth,
-      this.hdr,
-      es,
-      ct1,
-    );
+    const nextState = new Ct1Sent(this.epoch, auth, this.hdr, es, ct1);
 
     return [nextState, ct1, epochSecret];
   }
@@ -176,18 +162,12 @@ export class Ct1Sent {
   recvEk(ek: Uint8Array): Ct1SentEkReceived {
     if (!ekMatchesHeader(ek, this.hdr)) {
       throw new SpqrError(
-        'Encapsulation key does not match header',
+        "Encapsulation key does not match header",
         SpqrErrorCode.ErroneousDataReceived,
       );
     }
 
-    return new Ct1SentEkReceived(
-      this.epoch,
-      this.auth,
-      this.es,
-      ek,
-      this.ct1,
-    );
+    return new Ct1SentEkReceived(this.epoch, this.auth, this.es, ek, this.ct1);
   }
 }
 

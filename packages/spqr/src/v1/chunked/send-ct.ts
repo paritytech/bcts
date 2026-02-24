@@ -25,17 +25,17 @@
  *                         -- recvNextEpoch(epoch) --> sendEk.KeysUnsampled
  */
 
-import * as unchunkedSendCt from '../unchunked/send-ct.js';
-import * as unchunkedSendEk from '../unchunked/send-ek.js';
-import { PolyEncoder, PolyDecoder } from '../../encoding/polynomial.js';
-import type { Chunk } from '../../encoding/polynomial.js';
-import { HEADER_SIZE, EK_SIZE, CT2_SIZE } from '../../incremental-mlkem768.js';
-import { MAC_SIZE } from '../../authenticator.js';
-import { Authenticator } from '../../authenticator.js';
-import { concat } from '../../util.js';
-import { SpqrError, SpqrErrorCode } from '../../error.js';
-import type { Epoch, EpochSecret, RandomBytes } from '../../types.js';
-import * as sendEk from './send-ek.js';
+import * as unchunkedSendCt from "../unchunked/send-ct.js";
+import * as unchunkedSendEk from "../unchunked/send-ek.js";
+import { PolyEncoder, PolyDecoder } from "../../encoding/polynomial.js";
+import type { Chunk } from "../../encoding/polynomial.js";
+import { HEADER_SIZE, EK_SIZE, CT2_SIZE } from "../../incremental-mlkem768.js";
+import { MAC_SIZE } from "../../authenticator.js";
+import { Authenticator } from "../../authenticator.js";
+import { concat } from "../../util.js";
+import { SpqrError, SpqrErrorCode } from "../../error.js";
+import type { Epoch, EpochSecret, RandomBytes } from "../../types.js";
+import * as sendEk from "./send-ek.js";
 
 // ---------------------------------------------------------------------------
 // Discriminated union result types
@@ -46,10 +46,10 @@ export type NoHeaderReceivedRecvChunk =
   | { done: true; state: HeaderReceived };
 
 export type Ct1SampledRecvChunk =
-  | { tag: 'stillReceivingStillSending'; state: Ct1Sampled }
-  | { tag: 'stillReceiving'; state: Ct1Acknowledged }
-  | { tag: 'stillSending'; state: EkReceivedCt1Sampled; epochSecret: EpochSecret | null }
-  | { tag: 'done'; state: Ct2Sampled; epochSecret: EpochSecret | null };
+  | { tag: "stillReceivingStillSending"; state: Ct1Sampled }
+  | { tag: "stillReceiving"; state: Ct1Acknowledged }
+  | { tag: "stillSending"; state: EkReceivedCt1Sampled; epochSecret: EpochSecret | null }
+  | { tag: "done"; state: Ct2Sampled; epochSecret: EpochSecret | null };
 
 export type Ct1AcknowledgedRecvChunk =
   | { done: false; state: Ct1Acknowledged }
@@ -139,11 +139,7 @@ export class HeaderReceived {
     const [ct1Sent, realCt1, epochSecret] = this.uc.sendCt1(rng);
     const sendingCt1 = PolyEncoder.encodeBytes(realCt1);
     const chunk = sendingCt1.nextChunk();
-    return [
-      new Ct1Sampled(ct1Sent, sendingCt1, this.receivingEk),
-      chunk,
-      epochSecret,
-    ];
+    return [new Ct1Sampled(ct1Sent, sendingCt1, this.receivingEk), chunk, epochSecret];
   }
 }
 
@@ -182,11 +178,7 @@ export class Ct1Sampled {
    *   - ek incomplete, ack: stillReceiving (Ct1Acknowledged)
    *   - Neither: stillReceivingStillSending (Ct1Sampled)
    */
-  recvEkChunk(
-    epoch: Epoch,
-    chunk: Chunk,
-    ct1Ack: boolean,
-  ): Ct1SampledRecvChunk {
+  recvEkChunk(epoch: Epoch, chunk: Chunk, ct1Ack: boolean): Ct1SampledRecvChunk {
     if (epoch !== this.uc.epoch) {
       throw new SpqrError(
         `Epoch mismatch: expected ${this.uc.epoch}, got ${epoch}`,
@@ -205,7 +197,7 @@ export class Ct1Sampled {
       const ct2Payload = concat(ct2, mac);
       const sendingCt2 = PolyEncoder.encodeBytes(ct2Payload);
       return {
-        tag: 'done',
+        tag: "done",
         state: new Ct2Sampled(ct2SentUc, sendingCt2),
         epochSecret: null, // Epoch secret already derived in sendCt1
       };
@@ -215,7 +207,7 @@ export class Ct1Sampled {
       // ek complete but ct1 not yet acknowledged
       const ucResult = this.uc.recvEk(ekDecoded);
       return {
-        tag: 'stillSending',
+        tag: "stillSending",
         state: new EkReceivedCt1Sampled(ucResult, this.sendingCt1),
         epochSecret: null, // Epoch secret already derived in sendCt1
       };
@@ -224,14 +216,14 @@ export class Ct1Sampled {
     if (ekDecoded === null && ct1Ack) {
       // ct1 acknowledged but ek not yet complete
       return {
-        tag: 'stillReceiving',
+        tag: "stillReceiving",
         state: new Ct1Acknowledged(this.uc, this.receivingEk),
       };
     }
 
     // Neither complete
     return {
-      tag: 'stillReceivingStillSending',
+      tag: "stillReceivingStillSending",
       state: this,
     };
   }

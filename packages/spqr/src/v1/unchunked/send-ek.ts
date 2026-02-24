@@ -22,12 +22,12 @@
  * (NoHeaderReceived) from the RecvCt2Result, avoiding circular imports.
  */
 
-import { Authenticator } from '../../authenticator.js';
-import { hkdfSha256 } from '../../kdf.js';
-import { concat, bigintToBE8 } from '../../util.js';
-import { ZERO_SALT, LABEL_SCKA_KEY } from '../../constants.js';
-import { generate, decaps } from '../../incremental-mlkem768.js';
-import type { Epoch, EpochSecret, RandomBytes } from '../../types.js';
+import { Authenticator } from "../../authenticator.js";
+import { hkdfSha256 } from "../../kdf.js";
+import { concat, bigintToBE8 } from "../../util.js";
+import { ZERO_SALT, LABEL_SCKA_KEY } from "../../constants.js";
+import { generate, decaps } from "../../incremental-mlkem768.js";
+import type { Epoch, EpochSecret, RandomBytes } from "../../types.js";
 
 // Pre-encode the SCKA label
 const SCKA_KEY_LABEL = new TextEncoder().encode(LABEL_SCKA_KEY);
@@ -77,12 +77,7 @@ export class KeysUnsampled {
     const keys = generate(rng);
     const mac = this.auth.macHdr(this.epoch, keys.hdr);
 
-    const nextState = new HeaderSent(
-      this.epoch,
-      this.auth,
-      keys.ek,
-      keys.dk,
-    );
+    const nextState = new HeaderSent(this.epoch, this.auth, keys.ek, keys.dk);
 
     return [nextState, keys.hdr, mac];
   }
@@ -107,11 +102,7 @@ export class HeaderSent {
    * @returns [nextState, ek]
    */
   sendEk(): [EkSent, Uint8Array] {
-    const nextState = new EkSent(
-      this.epoch,
-      this.auth,
-      this.dk,
-    );
+    const nextState = new EkSent(this.epoch, this.auth, this.dk);
     return [nextState, this.ek];
   }
 }
@@ -136,12 +127,7 @@ export class EkSent {
    * @returns Next state
    */
   recvCt1(ct1: Uint8Array): EkSentCt1Received {
-    return new EkSentCt1Received(
-      this.epoch,
-      this.auth,
-      this.dk,
-      ct1,
-    );
+    return new EkSentCt1Received(this.epoch, this.auth, this.dk, ct1);
   }
 }
 

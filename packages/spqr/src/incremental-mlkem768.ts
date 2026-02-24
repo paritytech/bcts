@@ -23,11 +23,11 @@
  * Wire-compatible with Signal's Rust libcrux incremental implementation.
  */
 
-import { sha3_256, sha3_512, shake256 } from '@noble/hashes/sha3.js';
-import { u32 } from '@noble/hashes/utils.js';
-import { genCrystals, XOF128 } from '@noble/post-quantum/_crystals.js';
-import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-import type { RandomBytes } from './types.js';
+import { sha3_256, sha3_512, shake256 } from "@noble/hashes/sha3.js";
+import { u32 } from "@noble/hashes/utils.js";
+import { genCrystals, XOF128 } from "@noble/post-quantum/_crystals.js";
+import { ml_kem768 } from "@noble/post-quantum/ml-kem.js";
+import type { RandomBytes } from "./types.js";
 
 // ---- ML-KEM-768 constants ----
 
@@ -135,13 +135,13 @@ function MultiplyNTTs(f: Poly, g: Poly): Poly {
   return f;
 }
 
-type XofGet = ReturnType<ReturnType<typeof XOF128>['get']>;
+type XofGet = ReturnType<ReturnType<typeof XOF128>["get"]>;
 
 function SampleNTT(xof: XofGet): Poly {
   const r: Poly = new Uint16Array(N);
   for (let j = 0; j < N; ) {
     const b = xof();
-    if (b.length % 3) throw new Error('SampleNTT: unaligned block');
+    if (b.length % 3) throw new Error("SampleNTT: unaligned block");
     for (let i = 0; j < N && i + 3 <= b.length; i += 3) {
       const d1 = ((b[i + 0]! >> 0) | (b[i + 1]! << 8)) & 0xfff;
       const d2 = ((b[i + 1]! >> 4) | (b[i + 2]! << 4)) & 0xfff;
@@ -199,10 +199,10 @@ const compress = (d: number): { encode: (i: number) => number; decode: (i: numbe
 const polyCoder = (d: number) => bitsCoder(d, compress(d));
 
 // Coders for encoding/decoding polynomials
-const poly12 = polyCoder(12);   // for tHat encoding (ByteEncode12)
-const polyDU = polyCoder(DU);   // for u compression (du=10)
-const polyDV = polyCoder(DV);   // for v compression (dv=4)
-const poly1 = polyCoder(1);     // for message encoding (1-bit)
+const poly12 = polyCoder(12); // for tHat encoding (ByteEncode12)
+const polyDU = polyCoder(DU); // for u compression (du=10)
+const polyDV = polyCoder(DV); // for v compression (dv=4)
+const poly1 = polyCoder(1); // for message encoding (1-bit)
 
 // ---- Key material ----
 
@@ -234,11 +234,7 @@ export interface Encaps1Result {
  *   error2: 1 poly, 256 coefficients as uint16 LE = 512 bytes
  *   randomness: 32 bytes (the message m)
  */
-function encodeState(
-  rHat: Poly[],
-  e2: Poly,
-  m: Uint8Array,
-): Uint8Array {
+function encodeState(rHat: Poly[], e2: Poly, m: Uint8Array): Uint8Array {
   const state = new Uint8Array(ES_SIZE);
   let offset = 0;
 
@@ -329,15 +325,15 @@ function fixIssue1275(es: Uint8Array): Uint8Array | null {
     const val = lo | (hi << 8); // interpret as i16 LE
 
     // 0x0000 and 0xFFFF have same representation in both endiannesses
-    if (val === 0x0000 || val === 0xFFFF) continue;
+    if (val === 0x0000 || val === 0xffff) continue;
 
     // Good LE values: 0x0001, 0x0002, 0xFFFE
-    if (val === 0x0001 || val === 0x0002 || val === 0xFFFE) {
+    if (val === 0x0001 || val === 0x0002 || val === 0xfffe) {
       return null; // Already correct
     }
 
     // Bad (big-endian) values: 0x0100, 0x0200, 0xFEFF
-    if (val === 0x0100 || val === 0x0200 || val === 0xFEFF) {
+    if (val === 0x0100 || val === 0x0200 || val === 0xfeff) {
       return flipEndianness(es);
     }
 
@@ -384,9 +380,9 @@ export function generate(rng: RandomBytes): Keys {
   const { publicKey, secretKey } = ml_kem768.keygen(seed);
 
   // Standard pk layout: tHat(1152) || rho(32)
-  const tHat = publicKey.slice(0, EK_SIZE);  // 1152 bytes
-  const rho = publicKey.slice(EK_SIZE);      // 32 bytes
-  const hEk = sha3_256(publicKey);           // H(ek) = SHA3-256(full pk)
+  const tHat = publicKey.slice(0, EK_SIZE); // 1152 bytes
+  const rho = publicKey.slice(EK_SIZE); // 32 bytes
+  const hEk = sha3_256(publicKey); // H(ek) = SHA3-256(full pk)
 
   // pk1 (header) = rho(32) || H(ek)(32)
   const hdr = new Uint8Array(HEADER_SIZE);
@@ -422,11 +418,7 @@ export function encaps1(hdr: Uint8Array, rng: RandomBytes): Encaps1Result {
   const m = rng(ENCAPS_SEED_SIZE);
 
   // Step 2: kr = SHA3-512(m || H(ek)) -> K-hat(32) || r(32)
-  const kr = sha3_512
-    .create()
-    .update(m)
-    .update(hEk)
-    .digest();
+  const kr = sha3_512.create().update(m).update(hEk).digest();
   const kHat = kr.slice(0, 32);
   const r = kr.slice(32, 64);
 
@@ -521,11 +513,7 @@ export function encaps2(ek: Uint8Array, es: Uint8Array): Uint8Array {
  * @param ct2 - Second ciphertext fragment (128 bytes)
  * @returns The 32-byte shared secret
  */
-export function decaps(
-  dk: Uint8Array,
-  ct1: Uint8Array,
-  ct2: Uint8Array,
-): Uint8Array {
+export function decaps(dk: Uint8Array, ct1: Uint8Array, ct2: Uint8Array): Uint8Array {
   const ct = new Uint8Array(FULL_CT_SIZE);
   ct.set(ct1.subarray(0, CT1_SIZE), 0);
   ct.set(ct2.subarray(0, CT2_SIZE), CT1_SIZE);

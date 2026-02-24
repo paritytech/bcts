@@ -7,13 +7,8 @@
  */
 
 // send_ek states
-export {
-  KeysUnsampled,
-  HeaderSent,
-  EkSent,
-  EkSentCt1Received,
-} from './send-ek.js';
-export type { RecvCt2Result } from './send-ek.js';
+export { KeysUnsampled, HeaderSent, EkSent, EkSentCt1Received } from "./send-ek.js";
+export type { RecvCt2Result } from "./send-ek.js";
 
 // send_ct states
 export {
@@ -22,5 +17,5 @@ export {
   Ct1Sent,
   Ct1SentEkReceived,
   Ct2Sent,
-} from './send-ct.js';
-export type { SendCt2Result } from './send-ct.js';
+} from "./send-ct.js";
+export type { SendCt2Result } from "./send-ct.js";

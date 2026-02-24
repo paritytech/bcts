@@ -15,7 +15,7 @@
  *   k. min_version=V1 always creates keys
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 import {
   emptyState,
   initialState,
@@ -27,7 +27,7 @@ import {
   SpqrError,
   SpqrErrorCode,
   type Params,
-} from '../src/index.js';
+} from "../src/index.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,8 +58,8 @@ function makeParams(overrides: Partial<Params> = {}): Params {
 // a. emptyState
 // ---------------------------------------------------------------------------
 
-describe('emptyState', () => {
-  it('should return an empty Uint8Array', () => {
+describe("emptyState", () => {
+  it("should return an empty Uint8Array", () => {
     const state = emptyState();
     expect(state).toBeInstanceOf(Uint8Array);
     expect(state.length).toBe(0);
@@ -70,8 +70,8 @@ describe('emptyState', () => {
 // b. initialState with V0
 // ---------------------------------------------------------------------------
 
-describe('initialState V0', () => {
-  it('should return empty state for V0', () => {
+describe("initialState V0", () => {
+  it("should return empty state for V0", () => {
     const params = makeParams({ version: Version.V0 });
     const state = initialState(params);
     expect(state.length).toBe(0);
@@ -82,20 +82,20 @@ describe('initialState V0', () => {
 // c. initialState with V1
 // ---------------------------------------------------------------------------
 
-describe('initialState V1', () => {
-  it('should return non-empty state for V1 A2B', () => {
+describe("initialState V1", () => {
+  it("should return non-empty state for V1 A2B", () => {
     const params = makeParams({ direction: Direction.A2B });
     const state = initialState(params);
     expect(state.length).toBeGreaterThan(0);
   });
 
-  it('should return non-empty state for V1 B2A', () => {
+  it("should return non-empty state for V1 B2A", () => {
     const params = makeParams({ direction: Direction.B2A });
     const state = initialState(params);
     expect(state.length).toBeGreaterThan(0);
   });
 
-  it('should produce different states for A2B and B2A', () => {
+  it("should produce different states for A2B and B2A", () => {
     const stateA = initialState(makeParams({ direction: Direction.A2B }));
     const stateB = initialState(makeParams({ direction: Direction.B2A }));
     // They should differ (different inner states)
@@ -107,30 +107,30 @@ describe('initialState V1', () => {
 // d. currentVersion
 // ---------------------------------------------------------------------------
 
-describe('currentVersion', () => {
-  it('should return V0 negotiation_complete for empty state', () => {
+describe("currentVersion", () => {
+  it("should return V0 negotiation_complete for empty state", () => {
     const result = currentVersion(emptyState());
     expect(result).toEqual({
-      type: 'negotiation_complete',
+      type: "negotiation_complete",
       version: Version.V0,
     });
   });
 
-  it('should return still_negotiating for fresh V1 state', () => {
+  it("should return still_negotiating for fresh V1 state", () => {
     const state = initialState(makeParams({ minVersion: Version.V1 }));
     const result = currentVersion(state);
-    expect(result.type).toBe('still_negotiating');
-    if (result.type === 'still_negotiating') {
+    expect(result.type).toBe("still_negotiating");
+    if (result.type === "still_negotiating") {
       expect(result.version).toBe(Version.V1);
       expect(result.minVersion).toBe(Version.V1);
     }
   });
 
-  it('should return still_negotiating with min_version V0', () => {
+  it("should return still_negotiating with min_version V0", () => {
     const state = initialState(makeParams({ minVersion: Version.V0 }));
     const result = currentVersion(state);
-    expect(result.type).toBe('still_negotiating');
-    if (result.type === 'still_negotiating') {
+    expect(result.type).toBe("still_negotiating");
+    if (result.type === "still_negotiating") {
       expect(result.version).toBe(Version.V1);
       expect(result.minVersion).toBe(Version.V0);
     }
@@ -141,8 +141,8 @@ describe('currentVersion', () => {
 // e. Basic lockstep exchange (30 steps)
 // ---------------------------------------------------------------------------
 
-describe('basic lockstep exchange', () => {
-  it('should exchange messages and derive matching keys', () => {
+describe("basic lockstep exchange", () => {
+  it("should exchange messages and derive matching keys", () => {
     let alice = initialState(makeParams({ direction: Direction.A2B }));
     let bob = initialState(makeParams({ direction: Direction.B2A }));
 
@@ -196,8 +196,8 @@ describe('basic lockstep exchange', () => {
 // f. V0 empty state messaging
 // ---------------------------------------------------------------------------
 
-describe('V0 empty state messaging', () => {
-  it('should handle send with empty state', () => {
+describe("V0 empty state messaging", () => {
+  it("should handle send with empty state", () => {
     const state = emptyState();
     const result = send(state, rng);
 
@@ -206,7 +206,7 @@ describe('V0 empty state messaging', () => {
     expect(result.key).toBeNull();
   });
 
-  it('should handle recv with empty state and empty message', () => {
+  it("should handle recv with empty state and empty message", () => {
     const state = emptyState();
     const result = recv(state, new Uint8Array(0));
 
@@ -219,12 +219,10 @@ describe('V0 empty state messaging', () => {
 // g. Version negotiation: V1->V0 downgrade
 // ---------------------------------------------------------------------------
 
-describe('version negotiation: V1 to V0 downgrade', () => {
-  it('should downgrade when peer sends V0 message and min_version=V0', () => {
+describe("version negotiation: V1 to V0 downgrade", () => {
+  it("should downgrade when peer sends V0 message and min_version=V0", () => {
     // Alice starts as V1 with min_version=V0 (allows downgrade)
-    const alice = initialState(
-      makeParams({ direction: Direction.A2B, minVersion: Version.V0 }),
-    );
+    const alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V0 }));
 
     // Receive an empty (V0) message -- should downgrade
     const result = recv(alice, new Uint8Array(0));
@@ -239,12 +237,10 @@ describe('version negotiation: V1 to V0 downgrade', () => {
 // h. Version negotiation: refused (min_version=V1, peer=V0)
 // ---------------------------------------------------------------------------
 
-describe('version negotiation: refused', () => {
-  it('should throw MinimumVersion when peer sends V0 and min_version=V1', () => {
+describe("version negotiation: refused", () => {
+  it("should throw MinimumVersion when peer sends V0 and min_version=V1", () => {
     // Alice starts as V1 with min_version=V1 (no downgrade allowed)
-    const alice = initialState(
-      makeParams({ direction: Direction.A2B, minVersion: Version.V1 }),
-    );
+    const alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V1 }));
 
     // Receive an empty (V0) message -- should refuse
     expect(() => recv(alice, new Uint8Array(0))).toThrow(SpqrError);
@@ -262,8 +258,8 @@ describe('version negotiation: refused', () => {
 // i. 1000-step random messaging test (matching Rust ratchet() test)
 // ---------------------------------------------------------------------------
 
-describe('1000-step lockstep messaging', () => {
-  it('should exchange 1000 lockstep send/recv rounds without errors', () => {
+describe("1000-step lockstep messaging", () => {
+  it("should exchange 1000 lockstep send/recv rounds without errors", () => {
     let alice = initialState(makeParams({ direction: Direction.A2B }));
     let bob = initialState(makeParams({ direction: Direction.B2A }));
 
@@ -299,12 +295,8 @@ describe('1000-step lockstep messaging', () => {
     }
 
     // Both sides should have produced keys
-    const aliceKeyCount = [...aliceSendKeys, ...aliceRecvKeys].filter(
-      (k) => k !== null,
-    ).length;
-    const bobKeyCount = [...bobSendKeys, ...bobRecvKeys].filter(
-      (k) => k !== null,
-    ).length;
+    const aliceKeyCount = [...aliceSendKeys, ...aliceRecvKeys].filter((k) => k !== null).length;
+    const bobKeyCount = [...bobSendKeys, ...bobRecvKeys].filter((k) => k !== null).length;
 
     expect(aliceKeyCount).toBeGreaterThan(0);
     expect(bobKeyCount).toBeGreaterThan(0);
@@ -312,8 +304,8 @@ describe('1000-step lockstep messaging', () => {
     // Verify currentVersion shows negotiation complete after exchanges
     const aliceVer = currentVersion(alice);
     const bobVer = currentVersion(bob);
-    expect(aliceVer.type).toBe('negotiation_complete');
-    expect(bobVer.type).toBe('negotiation_complete');
+    expect(aliceVer.type).toBe("negotiation_complete");
+    expect(bobVer.type).toBe("negotiation_complete");
   }, 300_000);
 });
 
@@ -321,14 +313,10 @@ describe('1000-step lockstep messaging', () => {
 // j. Empty key until version negotiation (min_version=V0)
 // ---------------------------------------------------------------------------
 
-describe('empty key until version negotiation', () => {
-  it('should have null keys during negotiation with min_version=V0', () => {
-    let alice = initialState(
-      makeParams({ direction: Direction.A2B, minVersion: Version.V0 }),
-    );
-    let bob = initialState(
-      makeParams({ direction: Direction.B2A, minVersion: Version.V0 }),
-    );
+describe("empty key until version negotiation", () => {
+  it("should have null keys during negotiation with min_version=V0", () => {
+    let alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V0 }));
+    let bob = initialState(makeParams({ direction: Direction.B2A, minVersion: Version.V0 }));
 
     // First few sends should produce null keys (no chain yet when min_version=V0)
     const result1 = send(alice, rng);
@@ -344,8 +332,8 @@ describe('empty key until version negotiation', () => {
 // k. min_version=V1 always creates keys
 // ---------------------------------------------------------------------------
 
-describe('min_version=V1 always creates keys', () => {
-  it('should have chain keys from the first message with min_version=V1', () => {
+describe("min_version=V1 always creates keys", () => {
+  it("should have chain keys from the first message with min_version=V1", () => {
     let alice = initialState(makeParams({ direction: Direction.A2B }));
     let bob = initialState(makeParams({ direction: Direction.B2A }));
 
@@ -372,8 +360,8 @@ describe('min_version=V1 always creates keys', () => {
 // Additional: State round-trip through protobuf
 // ---------------------------------------------------------------------------
 
-describe('state round-trip', () => {
-  it('should preserve state across send/recv serialization', () => {
+describe("state round-trip", () => {
+  it("should preserve state across send/recv serialization", () => {
     let alice = initialState(makeParams({ direction: Direction.A2B }));
     let bob = initialState(makeParams({ direction: Direction.B2A }));
 
@@ -400,7 +388,7 @@ describe('state round-trip', () => {
     const aliceVer = currentVersion(alice);
     const bobVer = currentVersion(bob);
     // After recv, version negotiation is cleared
-    expect(aliceVer.type).toBe('negotiation_complete');
-    expect(bobVer.type).toBe('negotiation_complete');
+    expect(aliceVer.type).toBe("negotiation_complete");
+    expect(bobVer.type).toBe("negotiation_complete");
   }, 60_000);
 });

@@ -13,8 +13,8 @@
  * exactly (including the double space in "Chain  Start").
  */
 
-import { hkdfSha256 } from './kdf.js';
-import { concat, uint32ToBE4 } from './util.js';
+import { hkdfSha256 } from "./kdf.js";
+import { concat, uint32ToBE4 } from "./util.js";
 import {
   ZERO_SALT,
   LABEL_CHAIN_START,
@@ -24,19 +24,19 @@ import {
   DEFAULT_MAX_OOO_KEYS,
   EPOCHS_TO_KEEP_PRIOR_TO_SEND_EPOCH,
   KEY_ENTRY_SIZE,
-} from './constants.js';
-import { SpqrError, SpqrErrorCode } from './error.js';
-import type { Epoch, EpochSecret, ChainParams } from './types.js';
-import type { Direction } from './types.js';
+} from "./constants.js";
+import { SpqrError, SpqrErrorCode } from "./error.js";
+import type { Epoch, EpochSecret, ChainParams } from "./types.js";
+import type { Direction } from "./types.js";
 import type {
   PbChain,
   PbChainParams,
   PbEpoch,
   PbEpochDirection,
-} from './proto/pq-ratchet-types.js';
+} from "./proto/pq-ratchet-types.js";
 
 // Re-export Direction from types
-export { Direction } from './types.js';
+export { Direction } from "./types.js";
 
 // ---- Pre-encoded info labels ----
 const enc = new TextEncoder();
@@ -56,7 +56,7 @@ function resolveMaxOooKeys(params: ChainParams): number {
 
 function trimSize(params: ChainParams): number {
   const maxOoo = resolveMaxOooKeys(params);
-  return Math.floor(maxOoo * 11 / 10) + 1;
+  return Math.floor((maxOoo * 11) / 10) + 1;
 }
 
 function switchDirection(d: Direction): Direction {
@@ -96,7 +96,7 @@ class KeyHistory {
     const maxOoo = resolveMaxOooKeys(params);
     if (this.length >= trimSize(params) * KEY_ENTRY_SIZE) {
       if (currentKey < maxOoo) {
-        throw new Error('KeyHistory.gc: currentKey < maxOooKeys (corrupted state)');
+        throw new Error("KeyHistory.gc: currentKey < maxOooKeys (corrupted state)");
       }
       const trimHorizon = currentKey - maxOoo;
 
@@ -385,17 +385,11 @@ export class Chain {
 
   private epochIdx(epoch: Epoch): number {
     if (epoch > this.currentEpoch) {
-      throw new SpqrError(
-        `Epoch not in valid range: ${epoch}`,
-        SpqrErrorCode.EpochOutOfRange,
-      );
+      throw new SpqrError(`Epoch not in valid range: ${epoch}`, SpqrErrorCode.EpochOutOfRange);
     }
     const back = Number(this.currentEpoch - epoch);
     if (back >= this.links.length) {
-      throw new SpqrError(
-        `Epoch not in valid range: ${epoch}`,
-        SpqrErrorCode.EpochOutOfRange,
-      );
+      throw new SpqrError(`Epoch not in valid range: ${epoch}`, SpqrErrorCode.EpochOutOfRange);
     }
     return this.links.length - 1 - back;
   }
@@ -450,10 +444,12 @@ export class Chain {
       currentEpoch: this.currentEpoch,
       sendEpoch: this.sendEpoch,
       nextRoot: Uint8Array.from(this.nextRoot),
-      links: this.links.map((link): PbEpoch => ({
-        send: link.send.toProto(),
-        recv: link.recv.toProto(),
-      })),
+      links: this.links.map(
+        (link): PbEpoch => ({
+          send: link.send.toProto(),
+          recv: link.recv.toProto(),
+        }),
+      ),
       params: chainParamsToProto(this.params),
     };
   }
@@ -463,10 +459,16 @@ export class Chain {
    * Matches Rust Chain::from_pb().
    */
   static fromProto(pb: PbChain): Chain {
-    const links = pb.links.map((link): ChainEpoch => ({
-      send: ChainEpochDirection.fromProto(link.send ?? { ctr: 0, next: new Uint8Array(0), prev: new Uint8Array(0) }),
-      recv: ChainEpochDirection.fromProto(link.recv ?? { ctr: 0, next: new Uint8Array(0), prev: new Uint8Array(0) }),
-    }));
+    const links = pb.links.map(
+      (link): ChainEpoch => ({
+        send: ChainEpochDirection.fromProto(
+          link.send ?? { ctr: 0, next: new Uint8Array(0), prev: new Uint8Array(0) },
+        ),
+        recv: ChainEpochDirection.fromProto(
+          link.recv ?? { ctr: 0, next: new Uint8Array(0), prev: new Uint8Array(0) },
+        ),
+      }),
+    );
 
     const params = chainParamsFromProto(pb.params);
 

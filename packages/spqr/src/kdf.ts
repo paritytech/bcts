@@ -6,9 +6,9 @@
  * KDF wrappers for SPQR (HKDF-SHA256 and HMAC-SHA256).
  */
 
-import { hkdf } from '@noble/hashes/hkdf.js';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { hmac } from '@noble/hashes/hmac.js';
+import { hkdf } from "@noble/hashes/hkdf.js";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { hmac } from "@noble/hashes/hmac.js";
 
 /**
  * HKDF-SHA256 key derivation.
@@ -23,9 +23,7 @@ export function hkdfSha256(
   info: Uint8Array | string,
   length: number,
 ): Uint8Array {
-  const infoBytes = typeof info === 'string'
-    ? new TextEncoder().encode(info)
-    : info;
+  const infoBytes = typeof info === "string" ? new TextEncoder().encode(info) : info;
   return hkdf(sha256, ikm, salt, infoBytes, length);
 }
 

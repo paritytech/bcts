@@ -2,12 +2,7 @@
  * Tests for polynomial erasure coding over GF(2^16).
  */
 import { describe, it, expect } from "vitest";
-import {
-  GF16,
-  Poly,
-  PolyEncoder,
-  PolyDecoder,
-} from "../../src/encoding/index.js";
+import { GF16, Poly, PolyEncoder, PolyDecoder } from "../../src/encoding/index.js";
 import type { Pt, Chunk } from "../../src/encoding/index.js";
 
 describe("Poly", () => {
@@ -182,12 +177,8 @@ describe("PolyEncoder / PolyDecoder", () => {
 
     it("rejects an odd-length message (matches Rust)", () => {
       const msg = new Uint8Array([1, 2, 3]);
-      expect(() => PolyEncoder.encodeBytes(msg)).toThrow(
-        "Message length must be even",
-      );
-      expect(() => PolyDecoder.create(msg.length)).toThrow(
-        "Message length must be even",
-      );
+      expect(() => PolyEncoder.encodeBytes(msg)).toThrow("Message length must be even");
+      expect(() => PolyDecoder.create(msg.length)).toThrow("Message length must be even");
     });
   });
 

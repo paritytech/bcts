@@ -385,10 +385,10 @@ export class PolyEncoder implements Encoder {
    */
   static encodeBytes(msg: Uint8Array): PolyEncoder {
     if (msg.length % 2 !== 0) {
-      throw new PolynomialError('Message length must be even');
+      throw new PolynomialError("Message length must be even");
     }
     if (msg.length > MAX_MESSAGE_LENGTH) {
-      throw new PolynomialError('Message length exceeds maximum');
+      throw new PolynomialError("Message length exceeds maximum");
     }
 
     // Total number of GF16 values
@@ -485,18 +485,12 @@ export class PolyEncoder implements Encoder {
       });
       return { idx: this.idx, pts, polys: [] };
     }
-    const polys: Uint8Array[] = (this.state as PolysState).polys.map((p) =>
-      p.serialize(),
-    );
+    const polys: Uint8Array[] = (this.state as PolysState).polys.map((p) => p.serialize());
     return { idx: this.idx, pts: [], polys };
   }
 
   /** Restore encoder from protobuf data. */
-  static fromProto(data: {
-    idx: number;
-    pts: Uint8Array[];
-    polys: Uint8Array[];
-  }): PolyEncoder {
+  static fromProto(data: { idx: number; pts: Uint8Array[]; polys: Uint8Array[] }): PolyEncoder {
     if (data.polys.length > 0) {
       const polys = data.polys.map((buf) => Poly.deserialize(buf));
       return new PolyEncoder(data.idx, { kind: "polys", polys });
@@ -536,7 +530,7 @@ export class PolyDecoder implements Decoder {
    */
   static create(lenBytes: number): PolyDecoder {
     if (lenBytes % 2 !== 0) {
-      throw new PolynomialError('Message length must be even');
+      throw new PolynomialError("Message length must be even");
     }
     const ptsNeeded = lenBytes / 2;
 
@@ -654,9 +648,7 @@ export class PolyDecoder implements Decoder {
     pts: Uint8Array[];
     isComplete: boolean;
   }): PolyDecoder {
-    const pts: SortedPtSet[] = data.pts.map((buf) =>
-      SortedPtSet.deserialize(buf),
-    );
+    const pts: SortedPtSet[] = data.pts.map((buf) => SortedPtSet.deserialize(buf));
     // Ensure we always have exactly 16 sets
     while (pts.length < NUM_POLYS) {
       pts.push(new SortedPtSet() as unknown as SortedPtSet);

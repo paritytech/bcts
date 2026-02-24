@@ -7,15 +7,12 @@
  * 3. The .bin files match the JSON hex
  */
 
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import {
-  serializeMessage,
-  deserializeMessage,
-} from '../../src/v1/chunked/message.js';
-import type { Message, MessagePayload } from '../../src/v1/chunked/states.js';
-import type { Chunk } from '../../src/encoding/polynomial.js';
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { serializeMessage, deserializeMessage } from "../../src/v1/chunked/message.js";
+import type { Message, MessagePayload } from "../../src/v1/chunked/states.js";
+import type { Chunk } from "../../src/encoding/polynomial.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -31,8 +28,8 @@ function fromHex(hex: string): Uint8Array {
 
 function toHex(buf: Uint8Array): string {
   return Array.from(buf)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -61,18 +58,18 @@ interface VectorFile {
   vectors: TestVector[];
 }
 
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 const vectorsDir = dirname(fileURLToPath(import.meta.url));
 const vectorFile: VectorFile = JSON.parse(
-  readFileSync(join(vectorsDir, 'wire-format-v1.json'), 'utf-8'),
+  readFileSync(join(vectorsDir, "wire-format-v1.json"), "utf-8"),
 );
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('Wire format V1 test vectors', () => {
+describe("Wire format V1 test vectors", () => {
   it(`should have ${vectorFile.vector_count} vectors`, () => {
     expect(vectorFile.vectors.length).toBe(vectorFile.vector_count);
   });
@@ -81,11 +78,11 @@ describe('Wire format V1 test vectors', () => {
     describe(vec.name, () => {
       const bytes = fromHex(vec.bytes_hex);
 
-      it('has correct byte length', () => {
+      it("has correct byte length", () => {
         expect(bytes.length).toBe(vec.bytes_length);
       });
 
-      it('deserializes correctly', () => {
+      it("deserializes correctly", () => {
         const { msg, index, bytesRead } = deserializeMessage(bytes);
 
         expect(bytesRead).toBe(bytes.length);
@@ -100,13 +97,13 @@ describe('Wire format V1 test vectors', () => {
         }
       });
 
-      it('round-trips (serialize -> deserialize -> serialize)', () => {
+      it("round-trips (serialize -> deserialize -> serialize)", () => {
         const { msg, index } = deserializeMessage(bytes);
         const reserialized = serializeMessage(msg, index);
         expect(toHex(reserialized)).toBe(vec.bytes_hex);
       });
 
-      it('.bin file matches JSON hex', () => {
+      it(".bin file matches JSON hex", () => {
         const binPath = join(vectorsDir, `${vec.name}.bin`);
         const binBytes = new Uint8Array(readFileSync(binPath));
         expect(toHex(binBytes)).toBe(vec.bytes_hex);
@@ -115,56 +112,56 @@ describe('Wire format V1 test vectors', () => {
   }
 });
 
-describe('Construct and serialize each vector', () => {
+describe("Construct and serialize each vector", () => {
   for (const vec of vectorFile.vectors) {
     it(`${vec.name}: construct -> serialize matches expected`, () => {
       let payload: MessagePayload;
       switch (vec.payload.type) {
-        case 'none':
-          payload = { type: 'none' };
+        case "none":
+          payload = { type: "none" };
           break;
-        case 'hdr':
+        case "hdr":
           payload = {
-            type: 'hdr',
+            type: "hdr",
             chunk: {
               index: vec.payload.chunk_index!,
               data: fromHex(vec.payload.chunk_data_hex!),
             },
           };
           break;
-        case 'ek':
+        case "ek":
           payload = {
-            type: 'ek',
+            type: "ek",
             chunk: {
               index: vec.payload.chunk_index!,
               data: fromHex(vec.payload.chunk_data_hex!),
             },
           };
           break;
-        case 'ekCt1Ack':
+        case "ekCt1Ack":
           payload = {
-            type: 'ekCt1Ack',
+            type: "ekCt1Ack",
             chunk: {
               index: vec.payload.chunk_index!,
               data: fromHex(vec.payload.chunk_data_hex!),
             },
           };
           break;
-        case 'ct1Ack':
-          payload = { type: 'ct1Ack' };
+        case "ct1Ack":
+          payload = { type: "ct1Ack" };
           break;
-        case 'ct1':
+        case "ct1":
           payload = {
-            type: 'ct1',
+            type: "ct1",
             chunk: {
               index: vec.payload.chunk_index!,
               data: fromHex(vec.payload.chunk_data_hex!),
             },
           };
           break;
-        case 'ct2':
+        case "ct2":
           payload = {
-            type: 'ct2',
+            type: "ct2",
             chunk: {
               index: vec.payload.chunk_index!,
               data: fromHex(vec.payload.chunk_data_hex!),

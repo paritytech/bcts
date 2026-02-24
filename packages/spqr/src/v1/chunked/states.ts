@@ -10,26 +10,26 @@
  * validation and state transitions.
  */
 
-import type { Chunk } from '../../encoding/polynomial.js';
-import type { Epoch, EpochSecret, RandomBytes } from '../../types.js';
-import { SpqrError, SpqrErrorCode } from '../../error.js';
-import { Authenticator } from '../../authenticator.js';
-import * as unchunked from '../unchunked/send-ek.js';
-import * as sendEk from './send-ek.js';
-import * as sendCt from './send-ct.js';
+import type { Chunk } from "../../encoding/polynomial.js";
+import type { Epoch, EpochSecret, RandomBytes } from "../../types.js";
+import { SpqrError, SpqrErrorCode } from "../../error.js";
+import { Authenticator } from "../../authenticator.js";
+import * as unchunked from "../unchunked/send-ek.js";
+import * as sendEk from "./send-ek.js";
+import * as sendCt from "./send-ct.js";
 
 // ---------------------------------------------------------------------------
 // Message types
 // ---------------------------------------------------------------------------
 
 export type MessagePayload =
-  | { type: 'none' }
-  | { type: 'hdr'; chunk: Chunk }
-  | { type: 'ek'; chunk: Chunk }
-  | { type: 'ekCt1Ack'; chunk: Chunk }
-  | { type: 'ct1Ack' }
-  | { type: 'ct1'; chunk: Chunk }
-  | { type: 'ct2'; chunk: Chunk };
+  | { type: "none" }
+  | { type: "hdr"; chunk: Chunk }
+  | { type: "ek"; chunk: Chunk }
+  | { type: "ekCt1Ack"; chunk: Chunk }
+  | { type: "ct1Ack" }
+  | { type: "ct1"; chunk: Chunk }
+  | { type: "ct2"; chunk: Chunk };
 
 export interface Message {
   epoch: Epoch;
@@ -52,17 +52,17 @@ export interface RecvResult {
 // ---------------------------------------------------------------------------
 
 export type States =
-  | { tag: 'keysUnsampled'; state: sendEk.KeysUnsampled }
-  | { tag: 'keysSampled'; state: sendEk.KeysSampled }
-  | { tag: 'headerSent'; state: sendEk.HeaderSent }
-  | { tag: 'ct1Received'; state: sendEk.Ct1Received }
-  | { tag: 'ekSentCt1Received'; state: sendEk.EkSentCt1Received }
-  | { tag: 'noHeaderReceived'; state: sendCt.NoHeaderReceived }
-  | { tag: 'headerReceived'; state: sendCt.HeaderReceived }
-  | { tag: 'ct1Sampled'; state: sendCt.Ct1Sampled }
-  | { tag: 'ekReceivedCt1Sampled'; state: sendCt.EkReceivedCt1Sampled }
-  | { tag: 'ct1Acknowledged'; state: sendCt.Ct1Acknowledged }
-  | { tag: 'ct2Sampled'; state: sendCt.Ct2Sampled };
+  | { tag: "keysUnsampled"; state: sendEk.KeysUnsampled }
+  | { tag: "keysSampled"; state: sendEk.KeysSampled }
+  | { tag: "headerSent"; state: sendEk.HeaderSent }
+  | { tag: "ct1Received"; state: sendEk.Ct1Received }
+  | { tag: "ekSentCt1Received"; state: sendEk.EkSentCt1Received }
+  | { tag: "noHeaderReceived"; state: sendCt.NoHeaderReceived }
+  | { tag: "headerReceived"; state: sendCt.HeaderReceived }
+  | { tag: "ct1Sampled"; state: sendCt.Ct1Sampled }
+  | { tag: "ekReceivedCt1Sampled"; state: sendCt.EkReceivedCt1Sampled }
+  | { tag: "ct1Acknowledged"; state: sendCt.Ct1Acknowledged }
+  | { tag: "ct2Sampled"; state: sendCt.Ct2Sampled };
 
 // ---------------------------------------------------------------------------
 // Epoch accessor
@@ -83,7 +83,7 @@ export function initA(authKey: Uint8Array): States {
   const auth = Authenticator.create(authKey, 1n);
   const ucState = new unchunked.KeysUnsampled(1n, auth);
   return {
-    tag: 'keysUnsampled',
+    tag: "keysUnsampled",
     state: new sendEk.KeysUnsampled(ucState),
   };
 }
@@ -93,7 +93,7 @@ export function initA(authKey: Uint8Array): States {
  */
 export function initB(authKey: Uint8Array): States {
   return {
-    tag: 'noHeaderReceived',
+    tag: "noHeaderReceived",
     state: sendCt.NoHeaderReceived.create(authKey),
   };
 }
@@ -109,99 +109,99 @@ export function send(current: States, rng: RandomBytes): SendResult {
   const epoch = getEpoch(current);
 
   switch (current.tag) {
-    case 'keysUnsampled': {
+    case "keysUnsampled": {
       const [next, chunk] = current.state.sendHdrChunk(rng);
       return {
-        msg: { epoch, payload: { type: 'hdr', chunk } },
+        msg: { epoch, payload: { type: "hdr", chunk } },
         key: null,
-        state: { tag: 'keysSampled', state: next },
+        state: { tag: "keysSampled", state: next },
       };
     }
 
-    case 'keysSampled': {
+    case "keysSampled": {
       const [next, chunk] = current.state.sendHdrChunk();
       return {
-        msg: { epoch, payload: { type: 'hdr', chunk } },
+        msg: { epoch, payload: { type: "hdr", chunk } },
         key: null,
-        state: { tag: 'keysSampled', state: next },
+        state: { tag: "keysSampled", state: next },
       };
     }
 
-    case 'headerSent': {
+    case "headerSent": {
       const [next, chunk] = current.state.sendEkChunk();
       return {
-        msg: { epoch, payload: { type: 'ek', chunk } },
+        msg: { epoch, payload: { type: "ek", chunk } },
         key: null,
-        state: { tag: 'headerSent', state: next },
+        state: { tag: "headerSent", state: next },
       };
     }
 
-    case 'ct1Received': {
+    case "ct1Received": {
       const [next, chunk] = current.state.sendEkChunk();
       return {
-        msg: { epoch, payload: { type: 'ekCt1Ack', chunk } },
+        msg: { epoch, payload: { type: "ekCt1Ack", chunk } },
         key: null,
-        state: { tag: 'ct1Received', state: next },
+        state: { tag: "ct1Received", state: next },
       };
     }
 
-    case 'ekSentCt1Received': {
+    case "ekSentCt1Received": {
       return {
-        msg: { epoch, payload: { type: 'ct1Ack' } },
+        msg: { epoch, payload: { type: "ct1Ack" } },
         key: null,
         state: current,
       };
     }
 
-    case 'noHeaderReceived': {
+    case "noHeaderReceived": {
       return {
-        msg: { epoch, payload: { type: 'none' } },
+        msg: { epoch, payload: { type: "none" } },
         key: null,
         state: current,
       };
     }
 
-    case 'headerReceived': {
+    case "headerReceived": {
       const [next, chunk, epochSecret] = current.state.sendCt1Chunk(rng);
       return {
-        msg: { epoch, payload: { type: 'ct1', chunk } },
+        msg: { epoch, payload: { type: "ct1", chunk } },
         key: epochSecret,
-        state: { tag: 'ct1Sampled', state: next },
+        state: { tag: "ct1Sampled", state: next },
       };
     }
 
-    case 'ct1Sampled': {
+    case "ct1Sampled": {
       const [next, chunk] = current.state.sendCt1Chunk();
       return {
-        msg: { epoch, payload: { type: 'ct1', chunk } },
+        msg: { epoch, payload: { type: "ct1", chunk } },
         key: null,
-        state: { tag: 'ct1Sampled', state: next },
+        state: { tag: "ct1Sampled", state: next },
       };
     }
 
-    case 'ekReceivedCt1Sampled': {
+    case "ekReceivedCt1Sampled": {
       const [next, chunk] = current.state.sendCt1Chunk();
       return {
-        msg: { epoch, payload: { type: 'ct1', chunk } },
+        msg: { epoch, payload: { type: "ct1", chunk } },
         key: null,
-        state: { tag: 'ekReceivedCt1Sampled', state: next },
+        state: { tag: "ekReceivedCt1Sampled", state: next },
       };
     }
 
-    case 'ct1Acknowledged': {
+    case "ct1Acknowledged": {
       return {
-        msg: { epoch, payload: { type: 'none' } },
+        msg: { epoch, payload: { type: "none" } },
         key: null,
         state: current,
       };
     }
 
-    case 'ct2Sampled': {
+    case "ct2Sampled": {
       const [next, chunk] = current.state.sendCt2Chunk();
       return {
-        msg: { epoch, payload: { type: 'ct2', chunk } },
+        msg: { epoch, payload: { type: "ct2", chunk } },
         key: null,
-        state: { tag: 'ct2Sampled', state: next },
+        state: { tag: "ct2Sampled", state: next },
       };
     }
   }
@@ -224,12 +224,12 @@ export function recv(current: States, msg: Message): RecvResult {
 
   // Messages from the future are an error (except ct2Sampled epoch+1)
   if (msg.epoch > stateEpoch) {
-    if (current.tag === 'ct2Sampled' && msg.epoch === stateEpoch + 1n) {
+    if (current.tag === "ct2Sampled" && msg.epoch === stateEpoch + 1n) {
       // Next epoch -- transition to KeysUnsampled and return immediately.
       // The incoming message payload is NOT processed in the new state
       // (matches Rust: the peer will retransmit via erasure coding).
       const next = current.state.recvNextEpoch(msg.epoch);
-      return { key: null, state: { tag: 'keysUnsampled', state: next } };
+      return { key: null, state: { tag: "keysUnsampled", state: next } };
     }
     throw new SpqrError(
       `Epoch too far ahead: state=${stateEpoch}, msg=${msg.epoch}`,
@@ -241,137 +241,128 @@ export function recv(current: States, msg: Message): RecvResult {
   const payload = msg.payload;
 
   switch (current.tag) {
-    case 'keysUnsampled': {
+    case "keysUnsampled": {
       // Waiting to send -- nothing to receive
       return { key: null, state: current };
     }
 
-    case 'keysSampled': {
-      if (payload.type === 'ct1') {
+    case "keysSampled": {
+      if (payload.type === "ct1") {
         const next = current.state.recvCt1Chunk(msg.epoch, payload.chunk);
-        return { key: null, state: { tag: 'headerSent', state: next } };
+        return { key: null, state: { tag: "headerSent", state: next } };
       }
       return { key: null, state: current };
     }
 
-    case 'headerSent': {
-      if (payload.type === 'ct1') {
+    case "headerSent": {
+      if (payload.type === "ct1") {
         const result = current.state.recvCt1Chunk(msg.epoch, payload.chunk);
         if (result.done) {
           return {
             key: null,
-            state: { tag: 'ct1Received', state: result.state },
+            state: { tag: "ct1Received", state: result.state },
           };
         }
         return {
           key: null,
-          state: { tag: 'headerSent', state: result.state },
+          state: { tag: "headerSent", state: result.state },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'ct1Received': {
-      if (payload.type === 'ct2') {
+    case "ct1Received": {
+      if (payload.type === "ct2") {
         const next = current.state.recvCt2Chunk(msg.epoch, payload.chunk);
         return {
           key: null,
-          state: { tag: 'ekSentCt1Received', state: next },
+          state: { tag: "ekSentCt1Received", state: next },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'ekSentCt1Received': {
-      if (payload.type === 'ct2') {
+    case "ekSentCt1Received": {
+      if (payload.type === "ct2") {
         const result = current.state.recvCt2Chunk(msg.epoch, payload.chunk);
         if (result.done) {
           return {
             key: result.epochSecret,
-            state: { tag: 'noHeaderReceived', state: result.state },
+            state: { tag: "noHeaderReceived", state: result.state },
           };
         }
         return {
           key: null,
-          state: { tag: 'ekSentCt1Received', state: result.state },
+          state: { tag: "ekSentCt1Received", state: result.state },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'noHeaderReceived': {
-      if (payload.type === 'hdr') {
+    case "noHeaderReceived": {
+      if (payload.type === "hdr") {
         const result = current.state.recvHdrChunk(msg.epoch, payload.chunk);
         if (result.done) {
           return {
             key: null,
-            state: { tag: 'headerReceived', state: result.state },
+            state: { tag: "headerReceived", state: result.state },
           };
         }
         return {
           key: null,
-          state: { tag: 'noHeaderReceived', state: result.state },
+          state: { tag: "noHeaderReceived", state: result.state },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'headerReceived': {
+    case "headerReceived": {
       // Waiting to send ct1 -- nothing to receive in this state
       return { key: null, state: current };
     }
 
-    case 'ct1Sampled': {
-      if (payload.type === 'ek') {
-        const result = current.state.recvEkChunk(
-          msg.epoch,
-          payload.chunk,
-          false,
-        );
+    case "ct1Sampled": {
+      if (payload.type === "ek") {
+        const result = current.state.recvEkChunk(msg.epoch, payload.chunk, false);
         return mapCt1SampledResult(result);
       }
-      if (payload.type === 'ekCt1Ack') {
-        const result = current.state.recvEkChunk(
-          msg.epoch,
-          payload.chunk,
-          true,
-        );
+      if (payload.type === "ekCt1Ack") {
+        const result = current.state.recvEkChunk(msg.epoch, payload.chunk, true);
         return mapCt1SampledResult(result);
       }
       return { key: null, state: current };
     }
 
-    case 'ekReceivedCt1Sampled': {
-      if (payload.type === 'ct1Ack' || payload.type === 'ekCt1Ack') {
+    case "ekReceivedCt1Sampled": {
+      if (payload.type === "ct1Ack" || payload.type === "ekCt1Ack") {
         const next = current.state.recvCt1Ack(msg.epoch);
         return {
           key: null,
-          state: { tag: 'ct2Sampled', state: next },
+          state: { tag: "ct2Sampled", state: next },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'ct1Acknowledged': {
-      if (payload.type === 'ek' || payload.type === 'ekCt1Ack') {
-        const chunk =
-          payload.type === 'ek' ? payload.chunk : payload.chunk;
+    case "ct1Acknowledged": {
+      if (payload.type === "ek" || payload.type === "ekCt1Ack") {
+        const chunk = payload.type === "ek" ? payload.chunk : payload.chunk;
         const result = current.state.recvEkChunk(msg.epoch, chunk);
         if (result.done) {
           return {
             key: result.epochSecret,
-            state: { tag: 'ct2Sampled', state: result.state },
+            state: { tag: "ct2Sampled", state: result.state },
           };
         }
         return {
           key: null,
-          state: { tag: 'ct1Acknowledged', state: result.state },
+          state: { tag: "ct1Acknowledged", state: result.state },
         };
       }
       return { key: null, state: current };
     }
 
-    case 'ct2Sampled': {
+    case "ct2Sampled": {
       // If we receive a message for the current epoch, nothing to do
       // (next epoch handled above)
       return { key: null, state: current };
@@ -385,25 +376,25 @@ export function recv(current: States, msg: Message): RecvResult {
 
 function mapCt1SampledResult(result: sendCt.Ct1SampledRecvChunk): RecvResult {
   switch (result.tag) {
-    case 'done':
+    case "done":
       return {
         key: result.epochSecret,
-        state: { tag: 'ct2Sampled', state: result.state },
+        state: { tag: "ct2Sampled", state: result.state },
       };
-    case 'stillSending':
+    case "stillSending":
       return {
         key: result.epochSecret,
-        state: { tag: 'ekReceivedCt1Sampled', state: result.state },
+        state: { tag: "ekReceivedCt1Sampled", state: result.state },
       };
-    case 'stillReceiving':
+    case "stillReceiving":
       return {
         key: null,
-        state: { tag: 'ct1Acknowledged', state: result.state },
+        state: { tag: "ct1Acknowledged", state: result.state },
       };
-    case 'stillReceivingStillSending':
+    case "stillReceivingStillSending":
       return {
         key: null,
-        state: { tag: 'ct1Sampled', state: result.state },
+        state: { tag: "ct1Sampled", state: result.state },
       };
   }
 }

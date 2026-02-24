@@ -74,11 +74,11 @@ export enum Direction {
 
 /** Current version negotiation status */
 export type CurrentVersion =
-  | { type: 'still_negotiating'; version: Version; minVersion: Version }
-  | { type: 'negotiation_complete'; version: Version };
+  | { type: "still_negotiating"; version: Version; minVersion: Version }
+  | { type: "negotiation_complete"; version: Version };
 
 /** Internal secret output from state transitions */
 export type SecretOutput =
-  | { type: 'none' }
-  | { type: 'send'; secret: Secret }
-  | { type: 'recv'; secret: Secret };
+  | { type: "none" }
+  | { type: "send"; secret: Secret }
+  | { type: "recv"; secret: Secret };
