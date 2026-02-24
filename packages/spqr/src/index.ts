@@ -123,7 +123,7 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
 
   const statePb = decodePqRatchetState(state);
 
-  if (!statePb.v1) {
+  if (statePb.v1 === undefined) {
     // No V1 inner => V0
     return { state: new Uint8Array(0), msg: new Uint8Array(0), key: null };
   }
@@ -136,11 +136,11 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
 
   // Get or create chain
   let chain: Chain | undefined;
-  if (statePb.chain) {
+  if (statePb.chain !== undefined) {
     chain = Chain.fromProto(statePb.chain);
-  } else if (statePb.versionNegotiation) {
+  } else if (statePb.versionNegotiation !== undefined) {
     const vn = statePb.versionNegotiation;
-    if (vn.minVersion > Version.V0) {
+    if ((vn.minVersion as Version) > Version.V0) {
       chain = chainFromVersionNegotiation(vn);
     }
   } else {
@@ -233,13 +233,13 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
   } else {
     // Message version < state version -- negotiate down
     const vn = prenegotiatedPb.versionNegotiation;
-    if (!vn) {
+    if (vn === undefined) {
       throw new SpqrError(
         `Version mismatch: state=${stateVer}, msg=${msgVer}, no negotiation available`,
         SpqrErrorCode.VersionMismatch,
       );
     }
-    if (msgVer < vn.minVersion) {
+    if (msgVer < (vn.minVersion as Version)) {
       throw new SpqrError(
         `Minimum version not met: min=${vn.minVersion}, msg=${msgVer}`,
         SpqrErrorCode.MinimumVersion,
@@ -261,7 +261,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
   }
 
   // Process the message
-  if (!statePb.v1) {
+  if (statePb.v1 === undefined) {
     // V0 state
     return { state: new Uint8Array(0), key: null };
   }
@@ -319,9 +319,9 @@ export function currentVersion(state: SerializedState): CurrentVersion {
   }
 
   const statePb = decodePqRatchetState(state);
-  const version = statePb.v1 ? Version.V1 : Version.V0;
+  const version = statePb.v1 !== undefined ? Version.V1 : Version.V0;
 
-  if (statePb.versionNegotiation) {
+  if (statePb.versionNegotiation !== undefined) {
     return {
       type: "still_negotiating",
       version,
@@ -374,7 +374,7 @@ function msgVersion(msg: SerializedMessage): Version | undefined {
  * No v1 inner -> V0. Has v1 inner -> V1.
  */
 function stateVersion(state: PbPqRatchetState): Version {
-  return state.v1 ? Version.V1 : Version.V0;
+  return state.v1 !== undefined ? Version.V1 : Version.V0;
 }
 
 /**
@@ -396,8 +396,8 @@ function chainFrom(
   chainPb: PbPqRatchetState["chain"],
   vn: PbVersionNegotiation | undefined,
 ): PbPqRatchetState["chain"] {
-  if (chainPb) return chainPb;
-  if (vn) return chainFromVersionNegotiation(vn).toProto();
+  if (chainPb !== undefined) return chainPb;
+  if (vn !== undefined) return chainFromVersionNegotiation(vn).toProto();
   return undefined;
 }
 
@@ -408,8 +408,8 @@ function chainFromState(
   chainPb: PbPqRatchetState["chain"],
   vn: PbVersionNegotiation | undefined,
 ): Chain {
-  if (chainPb) return Chain.fromProto(chainPb);
-  if (vn) return chainFromVersionNegotiation(vn);
+  if (chainPb !== undefined) return Chain.fromProto(chainPb);
+  if (vn !== undefined) return chainFromVersionNegotiation(vn);
   throw new SpqrError(
     "Chain not available and no version negotiation",
     SpqrErrorCode.ChainNotAvailable,

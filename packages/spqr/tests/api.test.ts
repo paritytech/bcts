@@ -35,9 +35,14 @@ import {
 
 const rng = (n: number): Uint8Array => {
   const buf = new Uint8Array(n);
-  crypto.getRandomValues(buf);
+  globalThis.crypto.getRandomValues(buf);
   return buf;
 };
+
+function defined<T>(value: T | undefined | null): T {
+  if (value == null) throw new Error("Expected value to be defined");
+  return value;
+}
 
 const AUTH_KEY = new Uint8Array(32).fill(0x42);
 
@@ -343,13 +348,13 @@ describe("min_version=V1 always creates keys", () => {
 
     // The first message should have a key (chain is initialized)
     expect(aliceSend.key).not.toBeNull();
-    expect(aliceSend.key!.length).toBe(32);
+    expect(defined(aliceSend.key).length).toBe(32);
 
     // Bob receives and should also get a key
     const bobRecv = recv(bob, aliceSend.msg);
     bob = bobRecv.state;
     expect(bobRecv.key).not.toBeNull();
-    expect(bobRecv.key!.length).toBe(32);
+    expect(defined(bobRecv.key).length).toBe(32);
 
     // The keys should match (same chain epoch/index)
     expect(aliceSend.key).toEqual(bobRecv.key);

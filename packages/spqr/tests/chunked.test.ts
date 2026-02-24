@@ -33,9 +33,14 @@ import { encodeVarint, decodeVarint } from "../src/v1/chunked/message.js";
 
 const rng = (n: number): Uint8Array => {
   const buf = new Uint8Array(n);
-  crypto.getRandomValues(buf);
+  globalThis.crypto.getRandomValues(buf);
   return buf;
 };
+
+function defined<T>(value: T | undefined | null): T {
+  if (value == null) throw new Error("Expected value to be defined");
+  return value;
+}
 
 const AUTH_KEY = new Uint8Array(32).fill(41);
 
@@ -289,12 +294,12 @@ describe("full epoch exchange (lockstep)", () => {
     expect(result.bobSecret).not.toBeNull();
 
     // Both sides should derive the same epoch secret
-    expect(result.aliceSecret!.epoch).toBe(result.bobSecret!.epoch);
-    expect(result.aliceSecret!.secret).toEqual(result.bobSecret!.secret);
+    expect(defined(result.aliceSecret).epoch).toBe(defined(result.bobSecret).epoch);
+    expect(defined(result.aliceSecret).secret).toEqual(defined(result.bobSecret).secret);
 
     // Secret should be non-trivial
-    expect(result.aliceSecret!.secret.length).toBe(32);
-    expect(result.aliceSecret!.secret.some((b: number) => b !== 0)).toBe(true);
+    expect(defined(result.aliceSecret).secret.length).toBe(32);
+    expect(defined(result.aliceSecret).secret.some((b: number) => b !== 0)).toBe(true);
   }, 30_000);
 
   it("should start at epoch 1 and produce secret at epoch 1", () => {
@@ -305,7 +310,7 @@ describe("full epoch exchange (lockstep)", () => {
 
     expect(result.aliceSecret).not.toBeNull();
     // True incremental: epoch secret carries the current state epoch (1n)
-    expect(result.aliceSecret!.epoch).toBe(1n);
+    expect(defined(result.aliceSecret).epoch).toBe(1n);
   }, 30_000);
 });
 
@@ -376,7 +381,7 @@ describe("erasure recovery", () => {
 
     expect(aliceSecret).not.toBeNull();
     expect(bobSecret).not.toBeNull();
-    expect(aliceSecret!.secret).toEqual(bobSecret!.secret);
+    expect(defined(aliceSecret).secret).toEqual(defined(bobSecret).secret);
     expect(dropCount).toBeGreaterThan(0);
   }, 60_000);
 });
@@ -397,11 +402,11 @@ describe("multi-epoch exchange", () => {
 
       expect(result.aliceSecret).not.toBeNull();
       expect(result.bobSecret).not.toBeNull();
-      expect(result.aliceSecret!.secret).toEqual(result.bobSecret!.secret);
+      expect(defined(result.aliceSecret).secret).toEqual(defined(result.bobSecret).secret);
 
       secrets.push({
-        alice: result.aliceSecret!,
-        bob: result.bobSecret!,
+        alice: defined(result.aliceSecret),
+        bob: defined(result.bobSecret),
       });
 
       alice = result.alice;
@@ -411,9 +416,9 @@ describe("multi-epoch exchange", () => {
     // Verify each epoch produced a different secret
     expect(secrets.length).toBe(3);
     for (let i = 1; i < secrets.length; i++) {
-      expect(secrets[i]!.alice.epoch).toBeGreaterThan(secrets[i - 1]!.alice.epoch);
+      expect(defined(secrets[i]).alice.epoch).toBeGreaterThan(defined(secrets[i - 1]).alice.epoch);
       // Secrets should be different across epochs
-      expect(secrets[i]!.alice.secret).not.toEqual(secrets[i - 1]!.alice.secret);
+      expect(defined(secrets[i]).alice.secret).not.toEqual(defined(secrets[i - 1]).alice.secret);
     }
   }, 120_000);
 });
@@ -447,7 +452,7 @@ describe("out-of-order delivery", () => {
 
       // Deliver to Bob in reverse order
       for (let i = aliceMsgs.length - 1; i >= 0; i--) {
-        const bobRecv = recv(bob, aliceMsgs[i]!);
+        const bobRecv = recv(bob, defined(aliceMsgs[i]));
         bob = bobRecv.state;
         if (bobRecv.key !== null && bobSecret === null) {
           bobSecret = bobRecv.key;
@@ -467,7 +472,7 @@ describe("out-of-order delivery", () => {
 
       // Deliver to Alice in reverse order
       for (let i = bobMsgs.length - 1; i >= 0; i--) {
-        const aliceRecv = recv(alice, bobMsgs[i]!);
+        const aliceRecv = recv(alice, defined(bobMsgs[i]));
         alice = aliceRecv.state;
         if (aliceRecv.key !== null && aliceSecret === null) {
           aliceSecret = aliceRecv.key;
@@ -479,7 +484,7 @@ describe("out-of-order delivery", () => {
 
     expect(aliceSecret).not.toBeNull();
     expect(bobSecret).not.toBeNull();
-    expect(aliceSecret!.secret).toEqual(bobSecret!.secret);
+    expect(defined(aliceSecret).secret).toEqual(defined(bobSecret).secret);
   }, 60_000);
 });
 

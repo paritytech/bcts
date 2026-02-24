@@ -80,7 +80,7 @@ export class Poly {
 
   /** Create a zero polynomial of a given length. */
   static zeros(len: number): Poly {
-    const coeffs: GF16[] = new Array(len);
+    const coeffs: GF16[] = new Array<GF16>(len);
     for (let i = 0; i < len; i++) {
       coeffs[i] = GF16.ZERO;
     }
@@ -106,7 +106,7 @@ export class Poly {
     if (n === 1) return this.coefficients[0];
 
     // Build powers of x
-    const xs: GF16[] = new Array(n);
+    const xs: GF16[] = new Array<GF16>(n);
     xs[0] = GF16.ONE;
     if (n > 1) xs[1] = x;
 
@@ -161,7 +161,7 @@ export class Poly {
       throw new PolynomialError("Poly data length must be even");
     }
     const n = data.length / 2;
-    const coeffs: GF16[] = new Array(n);
+    const coeffs: GF16[] = new Array<GF16>(n);
     for (let i = 0; i < n; i++) {
       coeffs[i] = new GF16((data[i * 2] << 8) | data[i * 2 + 1]);
     }
@@ -246,7 +246,7 @@ function syntheticDivide(poly: Poly, root: GF16): Poly {
   if (n <= 1) return new Poly([]);
 
   // Work from high degree down
-  const quotient: GF16[] = new Array(n - 1);
+  const quotient: GF16[] = new Array<GF16>(n - 1);
   let carry = GF16.ZERO;
 
   for (let i = n - 1; i >= 1; i--) {
@@ -394,7 +394,7 @@ export class PolyEncoder implements Encoder {
     const totalValues = msg.length / 2;
 
     // Initialize 16 point arrays
-    const points: GF16[][] = new Array(NUM_POLYS);
+    const points: GF16[][] = new Array<GF16[]>(NUM_POLYS);
     for (let p = 0; p < NUM_POLYS; p++) {
       points[p] = [];
     }
@@ -458,7 +458,7 @@ export class PolyEncoder implements Encoder {
     if (this.state.kind === "polys") return;
 
     const { points } = this.state;
-    const polys: Poly[] = new Array(NUM_POLYS);
+    const polys: Poly[] = new Array<Poly>(NUM_POLYS);
 
     for (let p = 0; p < NUM_POLYS; p++) {
       const pts: Pt[] = points[p].map((y, i) => ({
@@ -533,7 +533,7 @@ export class PolyDecoder implements Decoder {
     }
     const ptsNeeded = lenBytes / 2;
 
-    const pts: SortedPtSet[] = new Array(NUM_POLYS);
+    const pts: SortedPtSet[] = new Array<SortedPtSet>(NUM_POLYS);
     for (let i = 0; i < NUM_POLYS; i++) {
       pts[i] = new SortedPtSet();
     }

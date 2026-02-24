@@ -253,7 +253,7 @@ export function decodeChainParams(data: Uint8Array): PbChainParams {
   let maxOooKeys = 0;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         maxJump = r.readVarint();
@@ -277,7 +277,7 @@ export function encodeVersionNegotiation(msg: PbVersionNegotiation): Uint8Array 
   w.writeBytes(1, msg.authKey);
   w.writeEnum(2, msg.direction);
   w.writeEnum(3, msg.minVersion);
-  if (msg.chainParams) {
+  if (msg.chainParams !== undefined) {
     const sub = new ProtoWriter();
     sub.writeVarint(1, msg.chainParams.maxJump);
     sub.writeVarint(2, msg.chainParams.maxOooKeys);
@@ -294,7 +294,7 @@ export function decodeVersionNegotiation(data: Uint8Array): PbVersionNegotiation
   let chainParams: PbChainParams | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         authKey = r.readBytes();
@@ -331,7 +331,7 @@ function decodeEpochDirection(r: ProtoReader): PbEpochDirection {
   let prev: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         ctr = r.readVarint();
@@ -355,12 +355,12 @@ function decodeEpochDirection(r: ProtoReader): PbEpochDirection {
 
 function encodeEpoch(msg: PbEpoch): Uint8Array {
   const w = new ProtoWriter();
-  if (msg.send) {
+  if (msg.send !== undefined) {
     const sub = new ProtoWriter();
     encodeEpochDirection(sub, msg.send);
     w.writeMessage(1, sub);
   }
-  if (msg.recv) {
+  if (msg.recv !== undefined) {
     const sub = new ProtoWriter();
     encodeEpochDirection(sub, msg.recv);
     w.writeMessage(2, sub);
@@ -374,7 +374,7 @@ function decodeEpoch(data: Uint8Array): PbEpoch {
   let recv: PbEpochDirection | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         send = decodeEpochDirection(r.readMessage());
@@ -402,7 +402,7 @@ export function encodeChain(msg: PbChain): Uint8Array {
   }
   w.writeBytes(4, msg.nextRoot);
   w.writeVarint(5, msg.sendEpoch);
-  if (msg.params) {
+  if (msg.params !== undefined) {
     const sub = new ProtoWriter();
     sub.writeVarint(1, msg.params.maxJump);
     sub.writeVarint(2, msg.params.maxOooKeys);
@@ -421,7 +421,7 @@ export function decodeChain(data: Uint8Array): PbChain {
   let params: PbChainParams | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         direction = r.readEnum();
@@ -465,7 +465,7 @@ export function decodeAuthenticator(data: Uint8Array): PbAuthenticator {
   let macKey: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         rootKey = r.readBytes();
@@ -503,7 +503,7 @@ export function decodePolynomialEncoder(data: Uint8Array): PbPolynomialEncoder {
   const polys: Uint8Array[] = [];
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         idx = r.readVarint();
@@ -544,7 +544,7 @@ export function decodePolynomialDecoder(data: Uint8Array): PbPolynomialDecoder {
   let isComplete = false;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         ptsNeeded = r.readVarint();
@@ -582,7 +582,7 @@ export function decodeChunk(data: Uint8Array): PbChunk {
   let chunkData: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         index = r.readVarint();
@@ -605,7 +605,7 @@ export function encodeV1Msg(msg: PbV1Msg): Uint8Array {
   const w = new ProtoWriter();
   w.writeVarint(1, msg.epoch);
   w.writeVarint(2, msg.index);
-  if (msg.innerMsg) {
+  if (msg.innerMsg !== undefined) {
     const inner = msg.innerMsg;
     switch (inner.type) {
       case "hdr": {
@@ -660,7 +660,7 @@ export function decodeV1Msg(data: Uint8Array): PbV1Msg {
   let innerMsg: PbV1MsgInner | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         epoch = r.readVarint64();
@@ -698,7 +698,7 @@ export function decodeV1Msg(data: Uint8Array): PbV1Msg {
 // =========================================================================
 
 function encodeAuthOptional(w: ProtoWriter, fieldNumber: number, auth?: PbAuthenticator): void {
-  if (auth) {
+  if (auth !== undefined) {
     const sub = new ProtoWriter();
     sub.writeBytes(1, auth.rootKey);
     sub.writeBytes(2, auth.macKey);
@@ -744,7 +744,7 @@ function decodeUcKeysUnsampled(data: Uint8Array): { auth?: PbAuthenticator | und
   let auth: PbAuthenticator | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -791,7 +791,7 @@ function decodeUcKeysSampled(data: Uint8Array): {
   let hdrMac: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -847,7 +847,7 @@ function decodeUcHeaderSent(data: Uint8Array): {
   let dk: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -892,7 +892,7 @@ function decodeUcDkCt1(data: Uint8Array): {
   let ct1: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -952,7 +952,7 @@ function decodeUcHeaderReceived(data: Uint8Array): {
   let ss: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -1007,7 +1007,7 @@ function decodeUcAuthHdrEsCt1(data: Uint8Array): {
   let ct1: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -1063,7 +1063,7 @@ function decodeUcEkReceivedCt1Sampled(data: Uint8Array): {
   let ct1: Uint8Array = EMPTY_BYTES;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     const fn = field.fieldNumber - offset;
     switch (fn) {
       case 1:
@@ -1178,7 +1178,7 @@ function decodeChunkedRaw(data: Uint8Array): ChunkedDecodeResult {
   let decoder: Uint8Array | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         uc = r.readBytes();
@@ -1196,6 +1196,13 @@ function decodeChunkedRaw(data: Uint8Array): ChunkedDecodeResult {
   return { uc, encoder, decoder };
 }
 
+function requireField(data: Uint8Array | undefined, name: string): Uint8Array {
+  if (data === undefined) {
+    throw new Error(`Protobuf: missing required field '${name}'`);
+  }
+  return data;
+}
+
 function decodeChunkedState(fieldNumber: number, data: Uint8Array): PbChunkedState {
   const raw = decodeChunkedRaw(data);
 
@@ -1206,63 +1213,63 @@ function decodeChunkedState(fieldNumber: number, data: Uint8Array): PbChunkedSta
       return {
         type: "keysSampled",
         uc: decodeUcKeysSampled(raw.uc),
-        sendingHdr: decodePolynomialEncoder(raw.encoder!),
+        sendingHdr: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
       };
     case 3:
       return {
         type: "headerSent",
         uc: decodeUcHeaderSent(raw.uc),
-        sendingEk: decodePolynomialEncoder(raw.encoder!),
-        receivingCt1: decodePolynomialDecoder(raw.decoder!),
+        sendingEk: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
+        receivingCt1: decodePolynomialDecoder(requireField(raw.decoder, "decoder")),
       };
     case 4:
       return {
         type: "ct1Received",
         uc: decodeUcDkCt1(raw.uc),
-        sendingEk: decodePolynomialEncoder(raw.encoder!),
+        sendingEk: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
       };
     case 5:
       return {
         type: "ekSentCt1Received",
         uc: decodeUcDkCt1(raw.uc),
-        receivingCt2: decodePolynomialDecoder(raw.decoder!),
+        receivingCt2: decodePolynomialDecoder(requireField(raw.decoder, "decoder")),
       };
     case 6:
       return {
         type: "noHeaderReceived",
         uc: decodeUcKeysUnsampled(raw.uc),
-        receivingHdr: decodePolynomialDecoder(raw.encoder!),
+        receivingHdr: decodePolynomialDecoder(requireField(raw.encoder, "encoder")),
       };
     case 7:
       return {
         type: "headerReceived",
         uc: decodeUcHeaderReceived(raw.uc),
-        receivingEk: decodePolynomialDecoder(raw.encoder!),
+        receivingEk: decodePolynomialDecoder(requireField(raw.encoder, "encoder")),
       };
     case 8:
       return {
         type: "ct1Sampled",
         uc: decodeUcAuthHdrEsCt1(raw.uc),
-        sendingCt1: decodePolynomialEncoder(raw.encoder!),
-        receivingEk: decodePolynomialDecoder(raw.decoder!),
+        sendingCt1: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
+        receivingEk: decodePolynomialDecoder(requireField(raw.decoder, "decoder")),
       };
     case 9:
       return {
         type: "ekReceivedCt1Sampled",
         uc: decodeUcEkReceivedCt1Sampled(raw.uc),
-        sendingCt1: decodePolynomialEncoder(raw.encoder!),
+        sendingCt1: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
       };
     case 10:
       return {
         type: "ct1Acknowledged",
         uc: decodeUcAuthHdrEsCt1(raw.uc),
-        receivingEk: decodePolynomialDecoder(raw.encoder!),
+        receivingEk: decodePolynomialDecoder(requireField(raw.encoder, "encoder")),
       };
     case 11:
       return {
         type: "ct2Sampled",
         uc: decodeUcKeysUnsampled(raw.uc),
-        sendingCt2: decodePolynomialEncoder(raw.encoder!),
+        sendingCt2: decodePolynomialEncoder(requireField(raw.encoder, "encoder")),
       };
     default:
       throw new Error(`Unknown chunked state field number: ${fieldNumber}`);
@@ -1274,7 +1281,7 @@ function decodeChunkedState(fieldNumber: number, data: Uint8Array): PbChunkedSta
 // =========================================================================
 
 function encodeV1State(msg: PbV1State): Uint8Array {
-  if (!msg.innerState) return EMPTY_BYTES;
+  if (msg.innerState === undefined) return EMPTY_BYTES;
   const { fieldNumber, data } = encodeChunkedStateInner(msg.innerState);
   const w = new ProtoWriter();
   // Write as length-delimited sub-message at the correct oneof field number
@@ -1292,7 +1299,7 @@ function decodeV1State(data: Uint8Array): PbV1State {
   let epoch: bigint | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     if (field.fieldNumber >= 1 && field.fieldNumber <= 11) {
       innerState = decodeChunkedState(field.fieldNumber, r.readBytes());
     } else if (field.fieldNumber === 12) {
@@ -1310,13 +1317,13 @@ function decodeV1State(data: Uint8Array): PbV1State {
 
 export function encodePqRatchetState(msg: PbPqRatchetState): Uint8Array {
   const w = new ProtoWriter();
-  if (msg.versionNegotiation) {
+  if (msg.versionNegotiation !== undefined) {
     w.writeBytes(1, encodeVersionNegotiation(msg.versionNegotiation));
   }
-  if (msg.chain) {
+  if (msg.chain !== undefined) {
     w.writeBytes(2, encodeChain(msg.chain));
   }
-  if (msg.v1) {
+  if (msg.v1 !== undefined) {
     w.writeBytes(3, encodeV1State(msg.v1));
   }
   return w.finish();
@@ -1329,7 +1336,7 @@ export function decodePqRatchetState(data: Uint8Array): PbPqRatchetState {
   let v1: PbV1State | undefined;
   while (!r.done) {
     const field = r.readField();
-    if (!field) break;
+    if (field === null) break;
     switch (field.fieldNumber) {
       case 1:
         versionNegotiation = decodeVersionNegotiation(r.readBytes());

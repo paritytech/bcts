@@ -26,7 +26,7 @@ import {
 } from "./constants.js";
 import { SpqrError, SpqrErrorCode } from "./error.js";
 import type { Epoch, EpochSecret, ChainParams } from "./types.js";
-import type { Direction } from "./types.js";
+import { Direction } from "./types.js";
 import type {
   PbChain,
   PbChainParams,
@@ -60,7 +60,7 @@ function trimSize(params: ChainParams): number {
 
 function switchDirection(d: Direction): Direction {
   // Direction.A2B = 0, Direction.B2A = 1
-  return d === 0 ? 1 : 0;
+  return d === Direction.A2B ? Direction.B2A : Direction.A2B;
 }
 
 // ---- KeyHistory ----
@@ -74,7 +74,7 @@ class KeyHistory {
   private length: number;
 
   constructor(data?: Uint8Array) {
-    this.data = data ? Uint8Array.from(data) : new Uint8Array(0);
+    this.data = data !== undefined ? Uint8Array.from(data) : new Uint8Array(0);
     this.length = this.data.length;
   }
 
@@ -491,7 +491,7 @@ export class Chain {
 function cedForDirection(gen: Uint8Array, dir: Direction): Uint8Array {
   // Direction.A2B = 0 -> [32..64]
   // Direction.B2A = 1 -> [64..96]
-  return dir === 0 ? gen.slice(32, 64) : gen.slice(64, 96);
+  return dir === Direction.A2B ? gen.slice(32, 64) : gen.slice(64, 96);
 }
 
 // ---- ChainParams proto helpers ----
@@ -512,7 +512,7 @@ function chainParamsToProto(params: ChainParams): PbChainParams {
  * Zero values are interpreted as defaults.
  */
 function chainParamsFromProto(pb?: PbChainParams): ChainParams {
-  if (!pb) {
+  if (pb === undefined) {
     return { maxJump: DEFAULT_MAX_JUMP, maxOooKeys: DEFAULT_MAX_OOO_KEYS };
   }
   return {

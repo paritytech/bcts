@@ -182,7 +182,7 @@ function chunkedStateToPb(s: States): PbChunkedState {
  * @returns The reconstructed runtime States
  */
 export function statesFromPb(pb: PbV1State): States {
-  if (!pb.innerState) {
+  if (pb.innerState === undefined) {
     throw new Error("PbV1State has no innerState");
   }
   const epoch = pb.epoch ?? 1n;
@@ -268,7 +268,7 @@ function chunkedStateFromPb(cs: PbChunkedState, epoch: Epoch): States {
 }
 
 function authFromPb(pb: { rootKey: Uint8Array; macKey: Uint8Array } | undefined): Authenticator {
-  if (!pb) {
+  if (pb === undefined) {
     return Authenticator.fromProto({
       rootKey: new Uint8Array(32),
       macKey: new Uint8Array(32),
