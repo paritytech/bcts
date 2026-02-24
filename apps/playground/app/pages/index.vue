@@ -1206,7 +1206,7 @@ watch(activePaneId, () => {
           </UTooltip>
           <UColorModeButton size="sm" />
           <UButton
-            to="https://github.com/leonardocustodio/bcts"
+            to="https://github.com/paritytech/bcts"
             target="_blank"
             icon="i-simple-icons-github"
             color="neutral"

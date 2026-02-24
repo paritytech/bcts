@@ -4,7 +4,7 @@
 
 ## Introduction
 
-`@bcts/dcbor-pattern` provides a powerful pattern matching language for querying and extracting data from [dCBOR](https://github.com/leonardocustodio/bcts/tree/main/packages/dcbor) (Deterministic CBOR) structures. It supports value matching, structural patterns, and meta-patterns with named captures.
+`@bcts/dcbor-pattern` provides a powerful pattern matching language for querying and extracting data from [dCBOR](https://github.com/paritytech/bcts/tree/main/packages/dcbor) (Deterministic CBOR) structures. It supports value matching, structural patterns, and meta-patterns with named captures.
 
 The pattern language is designed to be expressive yet concise, allowing you to match complex nested structures with simple pattern expressions.
 

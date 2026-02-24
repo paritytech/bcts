@@ -3,25 +3,14 @@
   "version": "1.0.0-alpha.20",
   "private": true,
   "description": "TypeScript implementations of Blockchain Commons specifications including dCBOR, Gordian Envelopes, Uniform Resources, SSKR, and other cryptographic standards",
-  "contributors": [
-    {
-      "name": "Leonardo Custodio",
-      "email": "leonardo.custodio@parity.io",
-      "url": "https://github.com/leonardocustodio"
-    },
-    {
-      "name": "Karim Jedda",
-      "email": "karim@parity.io",
-      "url": "https://github.com/KarimJedda"
-    }
-  ],
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leonardocustodio/bcts.git"
+    "url": "git+https://github.com/paritytech/bcts.git"
   },
   "bugs": {
-    "url": "https://github.com/leonardocustodio/bcts/issues"
+    "url": "https://github.com/paritytech/bcts/issues"
   },
   "keywords": [
     "blockchain commons",

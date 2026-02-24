@@ -4,26 +4,15 @@
   "type": "module",
   "description": "Command line tool for creating and managing Provenance Marks",
   "license": "BSD-2-Clause-Patent",
-  "contributors": [
-    {
-      "name": "Leonardo Custodio",
-      "email": "leonardo.custodio@parity.io",
-      "url": "https://github.com/leonardocustodio"
-    },
-    {
-      "name": "Karim Jedda",
-      "email": "karim@parity.io",
-      "url": "https://github.com/KarimJedda"
-    }
-  ],
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leonardocustodio/bcts.git",
+    "url": "git+https://github.com/paritytech/bcts.git",
     "directory": "tools/provenance-mark-cli"
   },
   "bugs": {
-    "url": "https://github.com/leonardocustodio/bcts/issues"
+    "url": "https://github.com/paritytech/bcts/issues"
   },
   "bin": {
     "provenance": "./dist/cli.mjs"

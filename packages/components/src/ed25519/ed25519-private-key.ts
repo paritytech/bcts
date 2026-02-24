@@ -1,7 +1,7 @@
 /**
  * Copyright © 2023-2026 Blockchain Commons, LLC
- * Copyright © 2025-2026 Leonardo Amoroso Custodio
- * Copyright © 2026 Parity Technologies
+ * Copyright © 2025-2026 Parity Technologies
+ *
  *
  * Ed25519 private key for EdDSA signatures (32 bytes seed)
  * Ported from bc-components-rust/src/ed25519_private_key.rs

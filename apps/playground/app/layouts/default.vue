@@ -237,7 +237,7 @@ const bottomNavigationItems: NavigationMenuItem[] = [
   {
     label: 'Help & Support',
     icon: 'i-heroicons-question-mark-circle',
-    to: 'https://github.com/leonardocustodio/bcts/issues/new',
+    to: 'https://github.com/paritytech/bcts/issues/new',
     target: '_blank'
   }
 ]

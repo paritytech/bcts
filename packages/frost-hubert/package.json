@@ -4,26 +4,15 @@
   "type": "module",
   "description": "FROST DKG and signing using Hubert as the distributed substrate",
   "license": "BSD-2-Clause-Patent",
-  "contributors": [
-    {
-      "name": "Leonardo Custodio",
-      "email": "leonardo.custodio@parity.io",
-      "url": "https://github.com/leonardocustodio"
-    },
-    {
-      "name": "Karim Jedda",
-      "email": "karim@parity.io",
-      "url": "https://github.com/KarimJedda"
-    }
-  ],
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/leonardocustodio/bcts",
+    "url": "https://github.com/paritytech/bcts",
     "directory": "packages/frost-hubert"
   },
   "bugs": {
-    "url": "https://github.com/leonardocustodio/bcts/issues"
+    "url": "https://github.com/paritytech/bcts/issues"
   },
   "bin": {
     "frost": "./dist/bin/frost.mjs"

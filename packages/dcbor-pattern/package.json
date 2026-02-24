@@ -4,26 +4,15 @@
   "type": "module",
   "description": "Pattern matching for dCBOR (Deterministic CBOR) for TypeScript",
   "license": "BSD-2-Clause-Patent",
-  "contributors": [
-    {
-      "name": "Leonardo Custodio",
-      "email": "leonardo.custodio@parity.io",
-      "url": "https://github.com/leonardocustodio"
-    },
-    {
-      "name": "Karim Jedda",
-      "email": "karim@parity.io",
-      "url": "https://github.com/KarimJedda"
-    }
-  ],
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leonardocustodio/bcts.git",
+    "url": "git+https://github.com/paritytech/bcts.git",
     "directory": "packages/dcbor-pattern"
   },
   "bugs": {
-    "url": "https://github.com/leonardocustodio/bcts/issues"
+    "url": "https://github.com/paritytech/bcts/issues"
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",

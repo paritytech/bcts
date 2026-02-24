@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Copyright © 2023-2026 Blockchain Commons, LLC
- * Copyright © 2025-2026 Leonardo Amoroso Custodio
- * Copyright © 2026 Parity Technologies
+ * Copyright © 2025-2026 Parity Technologies
+ *
  *
  * provenance CLI - 1:1 port of main.rs
  *
