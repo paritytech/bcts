@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * Copyright © 2023-2026 Blockchain Commons, LLC
- * Copyright © 2025-2026 Leonardo Amoroso Custodio
- * Copyright © 2026 Parity Technologies
+ * Copyright © 2025-2026 Parity Technologies
+ *
  *
  * dcbor CLI - Command line parser/validator for deterministic CBOR (dCBOR)
  *
  * A command line tool for composing, parsing, and validating Gordian dCBOR.
- * See the main repo README: https://github.com/leonardocustodio/bcts
+ * See the main repo README: https://github.com/paritytech/bcts
  *
  */
 
