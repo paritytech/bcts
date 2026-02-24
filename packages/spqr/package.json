@@ -1,8 +1,8 @@
 {
-  "name": "@bcts/ratchet",
+  "name": "@bcts/spqr",
   "version": "1.0.0-alpha.1",
   "type": "module",
-  "description": "Signal Protocol Double Ratchet implementation for TypeScript",
+  "description": "Sparse Post-Quantum Ratchet (SPQR) — wire-compatible with Signal's SparsePostQuantumRatchet crate",
   "license": "BSD-2-Clause-Patent",
   "contributors": [
     {
@@ -20,7 +20,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/leonardocustodio/bcts",
-    "directory": "packages/ratchet"
+    "directory": "packages/spqr"
   },
   "bugs": {
     "url": "https://github.com/leonardocustodio/bcts/issues"
@@ -39,7 +39,6 @@
   "files": [
     "dist",
     "src",
-    "README.md",
     "LICENSE"
   ],
   "scripts": {
@@ -53,12 +52,12 @@
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
+    "spqr",
+    "post-quantum",
+    "ml-kem",
+    "ratchet",
     "signal-protocol",
-    "double-ratchet",
-    "x3dh",
-    "encryption",
-    "e2e",
-    "end-to-end",
+    "erasure-coding",
     "blockchain-commons"
   ],
   "engines": {
@@ -67,9 +66,6 @@
   "dependencies": {
     "@bcts/crypto": "workspace:*",
     "@bcts/rand": "workspace:*",
-    "@bcts/spqr": "workspace:*",
-    "@noble/ciphers": "^2.1.1",
-    "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
     "@noble/post-quantum": "^0.5.4"
   },

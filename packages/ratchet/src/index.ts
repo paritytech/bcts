@@ -74,7 +74,7 @@ export type { MessageKeyGenerator } from "./ratchet/message-keys.js";
 export { RootKey } from "./ratchet/root-key.js";
 export { PqRatchetState } from "./ratchet/pq-ratchet.js";
 
-// SPQR (Sparse Post-Quantum Ratchet) state machine
+// SPQR (Sparse Post-Quantum Ratchet) state machine — backed by @bcts/spqr
 export {
   initialState as spqrInitialState,
   spqrSend,
@@ -82,18 +82,19 @@ export {
   emptyState as spqrEmptyState,
   currentVersion as spqrCurrentVersion,
   SpqrError,
+  SpqrErrorCode,
   Version as SpqrVersion,
   Direction as SpqrDirection,
   DEFAULT_CHAIN_PARAMS as SPQR_DEFAULT_CHAIN_PARAMS,
-} from "./ratchet/spqr/index.js";
+} from "./ratchet/spqr-adapter.js";
 export type {
   SpqrParams,
   SpqrSendResult,
   SpqrRecvResult,
   SpqrCurrentVersion,
-  ChainParams as SpqrChainParams,
-  EpochSecret as SpqrEpochSecret,
-} from "./ratchet/spqr/index.js";
+  SpqrChainParams,
+  RandomBytes as SpqrRandomBytes,
+} from "./ratchet/spqr-adapter.js";
 
 // Protocol messages
 export { SignalMessage } from "./protocol/signal-message.js";

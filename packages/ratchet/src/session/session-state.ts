@@ -11,7 +11,7 @@ import { ChainKey } from "../ratchet/chain-key.js";
 import { RootKey } from "../ratchet/root-key.js";
 import { MessageKeys } from "../ratchet/message-keys.js";
 import { PqRatchetState } from "../ratchet/pq-ratchet.js";
-import { spqrSend, spqrRecv } from "../ratchet/spqr/index.js";
+import { spqrSend, spqrRecv } from "../ratchet/spqr-adapter.js";
 import { KeyPair } from "../keys/key-pair.js";
 import { IdentityKey } from "../keys/identity-key.js";
 import { InvalidSessionError } from "../error.js";
