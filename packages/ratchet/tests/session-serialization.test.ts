@@ -2,12 +2,10 @@ import { describe, it, expect } from "vitest";
 import { SessionState } from "../src/session/session-state.js";
 import { SessionRecord } from "../src/session/session-record.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { KeyPair } from "../src/keys/key-pair.js";
 import { ChainKey } from "../src/ratchet/chain-key.js";
 import { RootKey } from "../src/ratchet/root-key.js";
-import { PqRatchetState } from "../src/ratchet/pq-ratchet.js";
 import {
   encodeSessionStructure,
   decodeSessionStructure,
@@ -38,7 +36,7 @@ describe("SessionState serialization", () => {
     const rootKey = new RootKey(randomBytes(32));
 
     const state = new SessionState({
-      sessionVersion: 4,
+      sessionVersion: 3,
       localIdentityKey: idKeyPair.identityKey,
       remoteIdentityKey: remoteIdKeyPair.identityKey,
       rootKey,
@@ -49,7 +47,7 @@ describe("SessionState serialization", () => {
     const serialized = state.serialize();
     const restored = SessionState.deserialize(serialized);
 
-    expect(restored.sessionVersion()).toBe(4);
+    expect(restored.sessionVersion()).toBe(3);
     expect(restored.localRegistrationId()).toBe(12345);
     expect(restored.remoteRegistrationId()).toBe(67890);
     expect(restored.localIdentityKey().equals(idKeyPair.identityKey)).toBe(true);
@@ -101,7 +99,7 @@ describe("SessionState serialization", () => {
     const idKeyPair = IdentityKeyPair.generate(rng);
     const rootKey = new RootKey(randomBytes(32));
     const state = new SessionState({
-      sessionVersion: 4,
+      sessionVersion: 3,
       localIdentityKey: idKeyPair.identityKey,
       rootKey,
     });
@@ -133,7 +131,7 @@ describe("SessionRecord serialization", () => {
   it("round-trips with current session", () => {
     const idKeyPair = IdentityKeyPair.generate(rng);
     const state = new SessionState({
-      sessionVersion: 4,
+      sessionVersion: 3,
       localIdentityKey: idKeyPair.identityKey,
       rootKey: new RootKey(randomBytes(32)),
     });
@@ -172,157 +170,9 @@ describe("SignedPreKeyRecord serialization", () => {
   });
 });
 
-describe("KyberPreKeyRecord serialization", () => {
-  it("round-trips", () => {
-    const idKeyPair = IdentityKeyPair.generate(rng);
-    const record = KyberPreKeyRecord.generate(13, idKeyPair, 9876543210);
-    const serialized = record.serialize();
-    const restored = KyberPreKeyRecord.deserialize(serialized);
-    expect(restored.id).toBe(13);
-    expect(restored.keyPair.publicKey).toEqual(record.keyPair.publicKey);
-    expect(restored.keyPair.secretKey).toEqual(record.keyPair.secretKey);
-    expect(restored.signature).toEqual(record.signature);
-  });
-});
-
 // ==========================================================================
 // WS-7: Protobuf Completeness Tests
 // ==========================================================================
-
-describe("WS-7: SessionStructure with pq_ratchet_state (field 15)", () => {
-  it("round-trips pq_ratchet_state through protobuf encode/decode", () => {
-    const pqRootKey = randomBytes(32);
-    const proto: SessionStructureProto = {
-      sessionVersion: 4,
-      localIdentityPublic: randomBytes(33),
-      remoteIdentityPublic: randomBytes(33),
-      rootKey: randomBytes(32),
-      previousCounter: 3,
-      pqRatchetState: pqRootKey,
-    };
-
-    const encoded = encodeSessionStructure(proto);
-    const decoded = decodeSessionStructure(encoded);
-
-    expect(decoded.pqRatchetState).toBeDefined();
-    expect(decoded.pqRatchetState).toEqual(pqRootKey);
-  });
-
-  it("round-trips pq_ratchet_state through SessionState serialize/deserialize", () => {
-    const idKeyPair = IdentityKeyPair.generate(rng);
-    const rootKey = new RootKey(randomBytes(32));
-    const state = new SessionState({
-      sessionVersion: 4,
-      localIdentityKey: idKeyPair.identityKey,
-      rootKey,
-    });
-
-    const pqRoot = randomBytes(32);
-    state.setPqRatchetState(new PqRatchetState(pqRoot));
-
-    const serialized = state.serialize();
-    const restored = SessionState.deserialize(serialized);
-
-    expect(restored.pqRatchetState()).toBeDefined();
-    expect(restored.pqRatchetState()!.rootKey()).toEqual(pqRoot);
-  });
-
-  it("omits pq_ratchet_state when not set", () => {
-    const proto: SessionStructureProto = {
-      sessionVersion: 4,
-      localIdentityPublic: randomBytes(33),
-      rootKey: randomBytes(32),
-    };
-
-    const encoded = encodeSessionStructure(proto);
-    const decoded = decodeSessionStructure(encoded);
-
-    expect(decoded.pqRatchetState).toBeUndefined();
-  });
-
-  it("encodes pq_ratchet_state as field 15 (bytes)", () => {
-    const pqState = randomBytes(32);
-    const proto: SessionStructureProto = {
-      sessionVersion: 4,
-      localIdentityPublic: randomBytes(33),
-      rootKey: randomBytes(32),
-      pqRatchetState: pqState,
-    };
-
-    const encoded = encodeSessionStructure(proto);
-    const fields = parseProtoFields(encoded);
-    // Field 15 should be present as bytes
-    expect(fields.bytes.get(15)).toBeDefined();
-    expect(fields.bytes.get(15)).toEqual(pqState);
-  });
-});
-
-describe("WS-7: SessionStructure with PendingKyberPreKey (field 14)", () => {
-  it("round-trips PendingKyberPreKey through protobuf encode/decode", () => {
-    const proto: SessionStructureProto = {
-      sessionVersion: 4,
-      localIdentityPublic: randomBytes(33),
-      rootKey: randomBytes(32),
-      pendingKyberPreKey: {
-        kyberPreKeyId: 42,
-        kyberCiphertext: randomBytes(64),
-      },
-    };
-
-    const encoded = encodeSessionStructure(proto);
-    const decoded = decodeSessionStructure(encoded);
-
-    expect(decoded.pendingKyberPreKey).toBeDefined();
-    expect(decoded.pendingKyberPreKey!.kyberPreKeyId).toBe(42);
-    expect(decoded.pendingKyberPreKey!.kyberCiphertext).toEqual(
-      proto.pendingKyberPreKey!.kyberCiphertext,
-    );
-  });
-
-  it("round-trips PendingKyberPreKey through SessionState", () => {
-    const idKeyPair = IdentityKeyPair.generate(rng);
-    const rootKey = new RootKey(randomBytes(32));
-    const state = new SessionState({
-      sessionVersion: 4,
-      localIdentityKey: idKeyPair.identityKey,
-      rootKey,
-    });
-
-    const kyberCiphertext = randomBytes(64);
-    state.setPendingPreKey({
-      preKeyId: 10,
-      signedPreKeyId: 20,
-      baseKey: randomBytes(32),
-      timestamp: Date.now(),
-      kyberPreKeyId: 99,
-      kyberCiphertext,
-    });
-
-    const serialized = state.serialize();
-    const restored = SessionState.deserialize(serialized);
-    const ppk = restored.pendingPreKey();
-    expect(ppk).toBeDefined();
-    expect(ppk!.kyberPreKeyId).toBe(99);
-    expect(ppk!.kyberCiphertext).toEqual(kyberCiphertext);
-  });
-
-  it("encodes PendingKyberPreKey as field 14 (nested)", () => {
-    const proto: SessionStructureProto = {
-      sessionVersion: 4,
-      localIdentityPublic: randomBytes(33),
-      rootKey: randomBytes(32),
-      pendingKyberPreKey: {
-        kyberPreKeyId: 7,
-        kyberCiphertext: randomBytes(32),
-      },
-    };
-
-    const encoded = encodeSessionStructure(proto);
-    const fields = parseProtoFields(encoded);
-    // Field 14 should be present as bytes (nested message)
-    expect(fields.bytes.get(14)).toBeDefined();
-  });
-});
 
 describe("WS-7: MessageKey with seed field (field 5)", () => {
   it("round-trips MessageKey with seed through protobuf encode/decode", () => {
@@ -504,7 +354,7 @@ describe("WS-7: SenderCertificate alternatives", () => {
 describe("WS-7: Field number verification against libsignal proto definitions", () => {
   it("SessionStructure field numbers match storage.proto", () => {
     const proto: SessionStructureProto = {
-      sessionVersion: 4, // field 1
+      sessionVersion: 3, // field 1
       localIdentityPublic: randomBytes(33), // field 2
       remoteIdentityPublic: randomBytes(33), // field 3
       rootKey: randomBytes(32), // field 4
@@ -530,19 +380,13 @@ describe("WS-7: Field number verification against libsignal proto definitions", 
       remoteRegistrationId: 100, // field 10
       localRegistrationId: 200, // field 11
       aliceBaseKey: randomBytes(33), // field 13
-      pendingKyberPreKey: {
-        // field 14
-        kyberPreKeyId: 5,
-        kyberCiphertext: randomBytes(32),
-      },
-      pqRatchetState: randomBytes(32), // field 15
     };
 
     const encoded = encodeSessionStructure(proto);
     const fields = parseProtoFields(encoded);
 
     // Verify each field is encoded at the correct field number
-    expect(fields.varints.get(1)).toBe(4); // sessionVersion
+    expect(fields.varints.get(1)).toBe(3); // sessionVersion
     expect(fields.bytes.get(2)).toBeDefined(); // localIdentityPublic
     expect(fields.bytes.get(3)).toBeDefined(); // remoteIdentityPublic
     expect(fields.bytes.get(4)).toBeDefined(); // rootKey
@@ -556,33 +400,28 @@ describe("WS-7: Field number verification against libsignal proto definitions", 
     expect(fields.varints.get(11)).toBe(200); // localRegistrationId
     // field 12 is reserved
     expect(fields.bytes.get(13)).toBeDefined(); // aliceBaseKey
-    expect(fields.bytes.get(14)).toBeDefined(); // pendingKyberPreKey (nested)
-    expect(fields.bytes.get(15)).toBeDefined(); // pqRatchetState
   });
 
   it("SessionStructure decode restores correct field values", () => {
     const rootKey = randomBytes(32);
-    const pqState = randomBytes(32);
     const proto: SessionStructureProto = {
-      sessionVersion: 4,
+      sessionVersion: 3,
       localIdentityPublic: randomBytes(33),
       rootKey,
       previousCounter: 99,
       remoteRegistrationId: 555,
       localRegistrationId: 666,
       aliceBaseKey: randomBytes(33),
-      pqRatchetState: pqState,
     };
 
     const encoded = encodeSessionStructure(proto);
     const decoded = decodeSessionStructure(encoded);
 
-    expect(decoded.sessionVersion).toBe(4);
+    expect(decoded.sessionVersion).toBe(3);
     expect(decoded.rootKey).toEqual(rootKey);
     expect(decoded.previousCounter).toBe(99);
     expect(decoded.remoteRegistrationId).toBe(555);
     expect(decoded.localRegistrationId).toBe(666);
-    expect(decoded.pqRatchetState).toEqual(pqState);
   });
 
   it("MessageKey field numbers match storage.proto (1=index, 2=cipher, 3=mac, 4=iv, 5=seed)", () => {

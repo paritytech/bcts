@@ -6,8 +6,6 @@
  * - Self-session unlimited forward jumps
  * - SessionUsabilityRequirements
  * - Archived states max length cap at 40
- * - Kyber fields in PendingPreKey
- * - X3DH version rejection ordering
  * - Timestamp serialization round-trip
  */
 
@@ -15,7 +13,6 @@ import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
@@ -24,19 +21,19 @@ import { SessionRecord } from "../src/session/session-record.js";
 import { SessionState, SessionUsabilityRequirements } from "../src/session/session-state.js";
 import type { PendingPreKey } from "../src/session/session-state.js";
 import { RootKey } from "../src/ratchet/root-key.js";
-import { PqRatchetState } from "../src/ratchet/pq-ratchet.js";
+import { KeyPair } from "../src/keys/key-pair.js";
+import { ChainKey } from "../src/ratchet/chain-key.js";
 import { SessionNotFoundError, InvalidMessageError } from "../src/error.js";
 import {
   MAX_UNACKNOWLEDGED_SESSION_AGE_MS,
   ARCHIVED_STATES_MAX_LENGTH,
   MAX_FORWARD_JUMPS,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
 } from "../src/constants.js";
 import { createTestRng } from "./test-utils.js";
 
 /**
- * Helper: create a full v4 prekey bundle and store all keys in the given store.
+ * Helper: create a full v3 prekey bundle and store all keys in the given store.
  */
 function createBundleAndStore(
   identity: IdentityKeyPair,
@@ -45,15 +42,12 @@ function createBundleAndStore(
   registrationId: number,
   preKeyId = 1,
   signedPreKeyId = 1,
-  kyberPreKeyId = 1,
 ) {
   const preKey = PreKeyRecord.generate(preKeyId, rng);
   const signedPreKey = SignedPreKeyRecord.generate(signedPreKeyId, identity, Date.now(), rng);
-  const kyberPreKey = KyberPreKeyRecord.generate(kyberPreKeyId, identity, Date.now());
 
   store.storePreKey(preKey.id, preKey);
   store.storeSignedPreKey(signedPreKey.id, signedPreKey);
-  store.storeKyberPreKey(kyberPreKey.id, kyberPreKey);
 
   const bundle = new PreKeyBundle({
     registrationId,
@@ -64,12 +58,9 @@ function createBundleAndStore(
     signedPreKey: signedPreKey.keyPair.publicKey,
     signedPreKeySignature: signedPreKey.signature,
     identityKey: identity.identityKey,
-    kyberPreKeyId: kyberPreKey.id,
-    kyberPreKey: kyberPreKey.keyPair.publicKey,
-    kyberPreKeySignature: kyberPreKey.signature,
   });
 
-  return { bundle, signedPreKey, preKey, kyberPreKey };
+  return { bundle, signedPreKey, preKey };
 }
 
 /**
@@ -80,7 +71,6 @@ function createMinimalSessionState(
   opts: {
     version?: number;
     pendingPreKey?: PendingPreKey;
-    withPqRatchet?: boolean;
     withSenderChain?: boolean;
   } = {},
 ): SessionState {
@@ -97,13 +87,7 @@ function createMinimalSessionState(
     state.setPendingPreKey(opts.pendingPreKey);
   }
 
-  if (opts.withPqRatchet) {
-    state.setPqRatchetState(new PqRatchetState(rng.randomData(32)));
-  }
-
   if (opts.withSenderChain) {
-    const { KeyPair } = require("../src/keys/key-pair.js");
-    const { ChainKey } = require("../src/ratchet/chain-key.js");
     const kp = KeyPair.generate(rng);
     const ck = new ChainKey(rng.randomData(32), 0);
     state.setSenderChain(kp, ck);
@@ -116,20 +100,9 @@ function createMinimalSessionState(
 // 1. SessionUsabilityRequirements
 // ---------------------------------------------------------------------------
 describe("SessionUsabilityRequirements", () => {
-  it("should define the correct flag values matching libsignal bitflags", () => {
+  it("should define the correct flag values", () => {
     expect(SessionUsabilityRequirements.None).toBe(0);
     expect(SessionUsabilityRequirements.NotStale).toBe(1);
-    expect(SessionUsabilityRequirements.EstablishedWithPqxdh).toBe(2);
-    expect(SessionUsabilityRequirements.Spqr).toBe(4);
-  });
-
-  it("should support bitwise OR for combining requirements", () => {
-    const combined =
-      SessionUsabilityRequirements.NotStale | SessionUsabilityRequirements.EstablishedWithPqxdh;
-    expect(combined).toBe(3);
-    expect(combined & SessionUsabilityRequirements.NotStale).toBeTruthy();
-    expect(combined & SessionUsabilityRequirements.EstablishedWithPqxdh).toBeTruthy();
-    expect(combined & SessionUsabilityRequirements.Spqr).toBeFalsy();
   });
 
   describe("hasUsableSenderChain", () => {
@@ -189,78 +162,6 @@ describe("SessionUsabilityRequirements", () => {
       expect(state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.NotStale)).toBe(
         true,
       );
-    });
-
-    it("should reject v3 session with EstablishedWithPqxdh requirement", () => {
-      const state = createMinimalSessionState(rng, {
-        version: CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
-        withSenderChain: true,
-      });
-
-      expect(
-        state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.EstablishedWithPqxdh),
-      ).toBe(false);
-    });
-
-    it("should allow v4 session with EstablishedWithPqxdh requirement", () => {
-      const state = createMinimalSessionState(rng, {
-        version: CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-        withSenderChain: true,
-      });
-
-      expect(
-        state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.EstablishedWithPqxdh),
-      ).toBe(true);
-    });
-
-    it("should reject session without PQ ratchet state with Spqr requirement", () => {
-      const state = createMinimalSessionState(rng, {
-        withSenderChain: true,
-        withPqRatchet: false,
-      });
-
-      expect(state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.Spqr)).toBe(false);
-    });
-
-    it("should allow session with PQ ratchet state with Spqr requirement", () => {
-      const state = createMinimalSessionState(rng, {
-        withSenderChain: true,
-        withPqRatchet: true,
-      });
-
-      expect(state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.Spqr)).toBe(true);
-    });
-
-    it("should enforce combined requirements conjunctively", () => {
-      // v4 session with PQ ratchet but stale
-      const thirtyOneDaysAgo = Date.now() - 31 * 24 * 60 * 60 * 1000;
-      const state = createMinimalSessionState(rng, {
-        version: CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-        withSenderChain: true,
-        withPqRatchet: true,
-        pendingPreKey: {
-          preKeyId: 1,
-          signedPreKeyId: 1,
-          baseKey: rng.randomData(32),
-          timestamp: thirtyOneDaysAgo,
-        },
-      });
-
-      // Passes individual checks except NotStale
-      expect(
-        state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.EstablishedWithPqxdh),
-      ).toBe(true);
-      expect(state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.Spqr)).toBe(true);
-      expect(state.hasUsableSenderChain(Date.now(), SessionUsabilityRequirements.NotStale)).toBe(
-        false,
-      );
-
-      // Combined fails because NotStale fails
-      const allRequirements =
-        SessionUsabilityRequirements.NotStale |
-        SessionUsabilityRequirements.EstablishedWithPqxdh |
-        SessionUsabilityRequirements.Spqr;
-      expect(state.hasUsableSenderChain(Date.now(), allRequirements)).toBe(false);
     });
   });
 
@@ -370,7 +271,6 @@ describe("Stale session detection", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies
@@ -429,7 +329,6 @@ describe("Self-session unlimited forward jumps", () => {
       receiverStore,
       receiverStore,
       rng,
-      receiverStore,
     );
 
     // Receiver replies to complete ratchet
@@ -505,7 +404,6 @@ describe("Self-session unlimited forward jumps", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies
@@ -603,55 +501,9 @@ describe("Archived states max length", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Kyber Fields in PendingPreKey
+// 5. PendingPreKey without Kyber fields
 // ---------------------------------------------------------------------------
-describe("Kyber fields in PendingPreKey", () => {
-  it("should store and retrieve kyberPreKeyId and kyberCiphertext", () => {
-    const rng = createTestRng();
-    const state = createMinimalSessionState(rng);
-    const kyberCiphertext = rng.randomData(1088); // Kyber768 ciphertext size
-
-    state.setPendingPreKey({
-      preKeyId: 1,
-      signedPreKeyId: 2,
-      baseKey: rng.randomData(32),
-      timestamp: Date.now(),
-      kyberPreKeyId: 42,
-      kyberCiphertext,
-    });
-
-    const pending = state.pendingPreKey();
-    expect(pending).toBeDefined();
-    expect(pending!.kyberPreKeyId).toBe(42);
-    expect(pending!.kyberCiphertext).toEqual(kyberCiphertext);
-  });
-
-  it("should serialize and deserialize Kyber fields correctly", () => {
-    const rng = createTestRng();
-    const state = createMinimalSessionState(rng, { withSenderChain: true });
-    const kyberCiphertext = rng.randomData(64);
-
-    state.setPendingPreKey({
-      preKeyId: 10,
-      signedPreKeyId: 20,
-      baseKey: rng.randomData(32),
-      timestamp: 1700000000000,
-      kyberPreKeyId: 99,
-      kyberCiphertext,
-    });
-
-    // Serialize and deserialize
-    const serialized = state.serialize();
-    const restored = SessionState.deserialize(serialized);
-
-    const pending = restored.pendingPreKey();
-    expect(pending).toBeDefined();
-    expect(pending!.preKeyId).toBe(10);
-    expect(pending!.signedPreKeyId).toBe(20);
-    expect(pending!.kyberPreKeyId).toBe(99);
-    expect(pending!.kyberCiphertext).toEqual(kyberCiphertext);
-  });
-
+describe("PendingPreKey fields", () => {
   it("should handle PendingPreKey without Kyber fields", () => {
     const rng = createTestRng();
     const state = createMinimalSessionState(rng, { withSenderChain: true });
@@ -668,8 +520,8 @@ describe("Kyber fields in PendingPreKey", () => {
 
     const pending = restored.pendingPreKey();
     expect(pending).toBeDefined();
-    expect(pending!.kyberPreKeyId).toBeUndefined();
-    expect(pending!.kyberCiphertext).toBeUndefined();
+    expect(pending!.preKeyId).toBe(1);
+    expect(pending!.signedPreKeyId).toBe(2);
   });
 });
 
@@ -726,14 +578,10 @@ describe("PendingPreKey timestamp serialization", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. X3DH Version Rejection Ordering
+// 7. Version Constants
 // ---------------------------------------------------------------------------
-describe("X3DH version rejection", () => {
-  it("should have CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION = 3", () => {
-    expect(CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION).toBe(3);
-  });
-
-  it("should have CIPHERTEXT_MESSAGE_CURRENT_VERSION = 4", () => {
-    expect(CIPHERTEXT_MESSAGE_CURRENT_VERSION).toBe(4);
+describe("Version constants", () => {
+  it("should have CIPHERTEXT_MESSAGE_CURRENT_VERSION = 3", () => {
+    expect(CIPHERTEXT_MESSAGE_CURRENT_VERSION).toBe(3);
   });
 });

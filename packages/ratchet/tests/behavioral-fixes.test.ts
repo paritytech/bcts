@@ -1,13 +1,12 @@
 /**
  * Behavioral fixes tests (H1, H2, H4, H5).
- * All sessions use v4 (PQXDH with Kyber) since v3 is no longer supported.
+ * All sessions use v3 (X3DH double ratchet).
  */
 
 import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
@@ -33,11 +32,9 @@ function setupAliceAndBob(rng: ReturnType<typeof createTestRng>) {
 
   const bobPreKey = PreKeyRecord.generate(1, rng);
   const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-  const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
 
   bobStore.storePreKey(bobPreKey.id, bobPreKey);
   bobStore.storeSignedPreKey(bobSignedPreKey.id, bobSignedPreKey);
-  bobStore.storeKyberPreKey(bobKyberPreKey.id, bobKyberPreKey);
 
   const bobBundle = new PreKeyBundle({
     registrationId: 2,
@@ -48,9 +45,6 @@ function setupAliceAndBob(rng: ReturnType<typeof createTestRng>) {
     signedPreKey: bobSignedPreKey.keyPair.publicKey,
     signedPreKeySignature: bobSignedPreKey.signature,
     identityKey: bobIdentity.identityKey,
-    kyberPreKeyId: bobKyberPreKey.id,
-    kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-    kyberPreKeySignature: bobKyberPreKey.signature,
   });
 
   return {
@@ -69,7 +63,7 @@ describe("H1: archiveCurrentState clears pending prekey", () => {
     const identity = IdentityKeyPair.generate(rng);
 
     const state = new SessionState({
-      sessionVersion: 4,
+      sessionVersion: 3,
       localIdentityKey: identity.identityKey,
       rootKey: new RootKey(rng.randomData(32)),
     });
@@ -118,7 +112,6 @@ describe("H2: PreKey decrypt short-circuits on existing session", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(decrypted1)).toBe("Hello Bob!");
 
@@ -136,7 +129,6 @@ describe("H2: PreKey decrypt short-circuits on existing session", () => {
         bobStore,
         bobStore,
         rng,
-        bobStore,
       ),
     ).rejects.toThrow(DuplicateMessageError);
   });
@@ -164,7 +156,6 @@ describe("H2: PreKey decrypt short-circuits on existing session", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(decrypted1)).toBe("Message 1");
 
@@ -185,7 +176,6 @@ describe("H2: PreKey decrypt short-circuits on existing session", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(decrypted2)).toBe("Message 2");
   });
@@ -233,7 +223,6 @@ describe("H5: Root key validity check", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(decrypted)).toBe("Hello");
 
