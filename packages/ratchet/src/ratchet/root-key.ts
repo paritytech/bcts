@@ -26,8 +26,6 @@ export class RootKey {
    * 2. HKDF-SHA256(salt=rootKey, ikm=sharedSecret, info="WhisperRatchet", length=64)
    * 3. Split 64 bytes: newRootKey (32) + newChainKey (32)
    *
-   * PQ ratchet is now per-message, not per-DH-step, so it is not involved here.
-   *
    * @param theirRatchetKey - Their 32-byte ephemeral public key
    * @param ourRatchetKey - Our ephemeral key pair
    * @returns [newRootKey, newChainKey] with chain index 0
