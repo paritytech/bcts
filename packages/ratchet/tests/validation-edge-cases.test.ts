@@ -76,14 +76,7 @@ describe("Simultaneous session initiation", () => {
 
     // Both parties publish bundles
     const { bundle: bobBundle } = createBundleAndStore(bobIdentity, bobStore, rng, 2, 1, 1);
-    const { bundle: aliceBundle } = createBundleAndStore(
-      aliceIdentity,
-      aliceStore,
-      rng,
-      1,
-      2,
-      2,
-    );
+    const { bundle: aliceBundle } = createBundleAndStore(aliceIdentity, aliceStore, rng, 1, 2, 2);
 
     // Both parties process each other's bundles concurrently
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
@@ -236,15 +229,7 @@ describe("Chain forward jump limit", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies to complete the ratchet
     const reply = await messageEncrypt(
@@ -312,15 +297,7 @@ describe("Message key eviction at MAX_MESSAGE_KEYS", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies so both sides have a sending chain
     const reply = await messageEncrypt(
@@ -406,15 +383,7 @@ describe("Failed decrypt atomicity", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies
     const ack = await messageEncrypt(
@@ -503,15 +472,7 @@ describe("Duplicate message rejection", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies to establish bidirectional session
     const ack = await messageEncrypt(
@@ -571,15 +532,7 @@ describe("Duplicate message rejection", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies
     const ack = await messageEncrypt(

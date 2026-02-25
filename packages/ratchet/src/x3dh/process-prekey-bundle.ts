@@ -5,7 +5,7 @@
  */
 
 import type { RandomNumberGenerator } from "@bcts/rand";
-import { PreKeyBundle } from "../keys/pre-key-bundle.js";
+import { type PreKeyBundle } from "../keys/pre-key-bundle.js";
 import { KeyPair } from "../keys/key-pair.js";
 import { SessionRecord } from "../session/session-record.js";
 import {
@@ -49,7 +49,7 @@ export async function processPreKeyBundle(
   }
 
   // 3. Load or create session record
-  let sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
+  const sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
   // 4. Generate ephemeral base key pair
   const ourBaseKeyPair = KeyPair.generate(rng);

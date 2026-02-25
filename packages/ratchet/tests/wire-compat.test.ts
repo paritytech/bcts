@@ -322,7 +322,6 @@ describe("Task 9.3: SignalMessage wire format", () => {
       expect(fields[0].field).toBe(4);
       expect(fields[0].wireType).toBe(2);
     });
-
   });
 
   describe("full message encoding", () => {
@@ -351,10 +350,12 @@ describe("Task 9.3: SignalMessage wire format", () => {
       const encoded = encodeSignalMessage(original);
       const decoded = decodeSignalMessage(encoded);
 
-      expect(bytesToHex(decoded.ratchetKey!)).toBe(bytesToHex(ratchetKey));
+      if (!decoded.ratchetKey) throw new Error("expected ratchetKey");
+      expect(bytesToHex(decoded.ratchetKey)).toBe(bytesToHex(ratchetKey));
       expect(decoded.counter).toBe(100);
       expect(decoded.previousCounter).toBe(50);
-      expect(bytesToHex(decoded.ciphertext!)).toBe(bytesToHex(ciphertext));
+      if (!decoded.ciphertext) throw new Error("expected ciphertext");
+      expect(bytesToHex(decoded.ciphertext)).toBe(bytesToHex(ciphertext));
     });
 
     it("omits absent optional fields", () => {
@@ -419,10 +420,12 @@ describe("Task 9.3: SignalMessage wire format", () => {
       ]);
 
       const decoded = decodeSignalMessage(manual);
-      expect(bytesToHex(decoded.ratchetKey!)).toBe("abcd");
+      if (!decoded.ratchetKey) throw new Error("expected ratchetKey");
+      expect(bytesToHex(decoded.ratchetKey)).toBe("abcd");
       expect(decoded.counter).toBe(150);
       expect(decoded.previousCounter).toBe(5);
-      expect(bytesToHex(decoded.ciphertext!)).toBe("deadbe");
+      if (!decoded.ciphertext) throw new Error("expected ciphertext");
+      expect(bytesToHex(decoded.ciphertext)).toBe("deadbe");
     });
 
     it("our encoder produces identical bytes to manual construction", () => {
@@ -535,7 +538,6 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
       expect(fields[0].field).toBe(6);
       expect(fields[0].wireType).toBe(0);
     });
-
   });
 
   describe("full message encoding", () => {
@@ -553,9 +555,12 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
       const decoded = decodePreKeySignalMessage(encoded);
 
       expect(decoded.preKeyId).toBe(42);
-      expect(bytesToHex(decoded.baseKey!)).toBe(bytesToHex(original.baseKey));
-      expect(bytesToHex(decoded.identityKey!)).toBe(bytesToHex(original.identityKey));
-      expect(bytesToHex(decoded.message!)).toBe(bytesToHex(original.message));
+      if (!decoded.baseKey) throw new Error("expected baseKey");
+      expect(bytesToHex(decoded.baseKey)).toBe(bytesToHex(original.baseKey));
+      if (!decoded.identityKey) throw new Error("expected identityKey");
+      expect(bytesToHex(decoded.identityKey)).toBe(bytesToHex(original.identityKey));
+      if (!decoded.message) throw new Error("expected message");
+      expect(bytesToHex(decoded.message)).toBe(bytesToHex(original.message));
       expect(decoded.registrationId).toBe(12345);
       expect(decoded.signedPreKeyId).toBe(99);
     });
@@ -606,9 +611,12 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
 
       const decoded = decodePreKeySignalMessage(manual);
       expect(decoded.preKeyId).toBe(1);
-      expect(bytesToHex(decoded.baseKey!)).toBe("aabb");
-      expect(bytesToHex(decoded.identityKey!)).toBe("ccdd");
-      expect(bytesToHex(decoded.message!)).toBe("ee");
+      if (!decoded.baseKey) throw new Error("expected baseKey");
+      expect(bytesToHex(decoded.baseKey)).toBe("aabb");
+      if (!decoded.identityKey) throw new Error("expected identityKey");
+      expect(bytesToHex(decoded.identityKey)).toBe("ccdd");
+      if (!decoded.message) throw new Error("expected message");
+      expect(bytesToHex(decoded.message)).toBe("ee");
       expect(decoded.registrationId).toBe(999);
       expect(decoded.signedPreKeyId).toBe(42);
     });
@@ -803,7 +811,6 @@ describe("Task 9.3: SessionStructure storage format", () => {
       expect(fields[0].field).toBe(13);
       expect(fields[0].wireType).toBe(2);
     });
-
   });
 
   describe("full SessionStructure round-trip", () => {
@@ -849,27 +856,36 @@ describe("Task 9.3: SessionStructure storage format", () => {
       const decoded = decodeSessionStructure(encoded);
 
       expect(decoded.sessionVersion).toBe(3);
-      expect(bytesToHex(decoded.localIdentityPublic!)).toBe(
+      if (!decoded.localIdentityPublic) throw new Error("expected localIdentityPublic");
+      expect(bytesToHex(decoded.localIdentityPublic)).toBe(
         bytesToHex(original.localIdentityPublic),
       );
-      expect(bytesToHex(decoded.remoteIdentityPublic!)).toBe(
+      if (!decoded.remoteIdentityPublic) throw new Error("expected remoteIdentityPublic");
+      expect(bytesToHex(decoded.remoteIdentityPublic)).toBe(
         bytesToHex(original.remoteIdentityPublic),
       );
-      expect(bytesToHex(decoded.rootKey!)).toBe(bytesToHex(original.rootKey));
+      if (!decoded.rootKey) throw new Error("expected rootKey");
+      expect(bytesToHex(decoded.rootKey)).toBe(bytesToHex(original.rootKey));
       expect(decoded.previousCounter).toBe(7);
-      expect(decoded.senderChain).toBeDefined();
-      expect(decoded.senderChain!.chainKey!.index).toBe(3);
-      expect(decoded.senderChain!.messageKeys).toHaveLength(2);
-      expect(decoded.senderChain!.messageKeys![0].seed).toBeDefined();
-      expect(decoded.senderChain!.messageKeys![1].cipherKey).toBeDefined();
+      if (!decoded.senderChain) throw new Error("expected senderChain");
+      if (!decoded.senderChain.chainKey) throw new Error("expected senderChain.chainKey");
+      expect(decoded.senderChain.chainKey.index).toBe(3);
+      if (!decoded.senderChain.messageKeys) throw new Error("expected senderChain.messageKeys");
+      expect(decoded.senderChain.messageKeys).toHaveLength(2);
+      expect(decoded.senderChain.messageKeys[0].seed).toBeDefined();
+      expect(decoded.senderChain.messageKeys[1].cipherKey).toBeDefined();
+      if (!decoded.receiverChains) throw new Error("expected receiverChains");
       expect(decoded.receiverChains).toHaveLength(1);
-      expect(decoded.receiverChains![0].chainKey!.index).toBe(5);
-      expect(decoded.pendingPreKey!.preKeyId).toBe(42);
-      expect(decoded.pendingPreKey!.signedPreKeyId).toBe(99);
-      expect(decoded.pendingPreKey!.timestamp).toBe(1700000000000);
+      if (!decoded.receiverChains[0].chainKey) throw new Error("expected receiverChains[0].chainKey");
+      expect(decoded.receiverChains[0].chainKey.index).toBe(5);
+      if (!decoded.pendingPreKey) throw new Error("expected pendingPreKey");
+      expect(decoded.pendingPreKey.preKeyId).toBe(42);
+      expect(decoded.pendingPreKey.signedPreKeyId).toBe(99);
+      expect(decoded.pendingPreKey.timestamp).toBe(1700000000000);
       expect(decoded.remoteRegistrationId).toBe(12345);
       expect(decoded.localRegistrationId).toBe(54321);
-      expect(bytesToHex(decoded.aliceBaseKey!)).toBe(bytesToHex(original.aliceBaseKey));
+      if (!decoded.aliceBaseKey) throw new Error("expected aliceBaseKey");
+      expect(bytesToHex(decoded.aliceBaseKey)).toBe(bytesToHex(original.aliceBaseKey));
     });
   });
 
@@ -960,7 +976,6 @@ describe("Task 9.3: SessionStructure storage format", () => {
       expect(fields[3].wireType).toBe(0); // varint (uint64)
     });
   });
-
 });
 
 // ============================================================================
@@ -1076,12 +1091,16 @@ describe("Task 9.3: SenderKeyRecordStructure format", () => {
     const encoded = encodeSenderKeyRecordStructure(original);
     const decoded = decodeSenderKeyRecordStructure(encoded);
 
+    if (!decoded.senderKeyStates) throw new Error("expected senderKeyStates");
     expect(decoded.senderKeyStates).toHaveLength(1);
-    const state = decoded.senderKeyStates![0];
+    const state = decoded.senderKeyStates[0];
     expect(state.chainId).toBe(42);
-    expect(state.senderChainKey!.iteration).toBe(5);
-    expect(bytesToHex(state.senderChainKey!.seed!)).toBe(bytesToHex(filler(32, 0xaa)));
-    expect(state.senderSigningKey!.publicKey).toBeDefined();
+    if (!state.senderChainKey) throw new Error("expected senderChainKey");
+    expect(state.senderChainKey.iteration).toBe(5);
+    if (!state.senderChainKey.seed) throw new Error("expected senderChainKey.seed");
+    expect(bytesToHex(state.senderChainKey.seed)).toBe(bytesToHex(filler(32, 0xaa)));
+    if (!state.senderSigningKey) throw new Error("expected senderSigningKey");
+    expect(state.senderSigningKey.publicKey).toBeDefined();
     expect(state.senderMessageKeys).toHaveLength(1);
     expect(state.messageVersion).toBe(3);
   });
@@ -1121,8 +1140,8 @@ describe("Task 9.3: PreKeyRecord and SignedPreKeyRecord formats", () => {
     });
     const decoded = decodePreKeyRecord(encoded);
     expect(decoded.id).toBe(42);
-    expect(decoded.publicKey!.length).toBe(33);
-    expect(decoded.privateKey!.length).toBe(32);
+    expect(decoded.publicKey?.length).toBe(33);
+    expect(decoded.privateKey?.length).toBe(32);
   });
 
   /**
@@ -1165,9 +1184,9 @@ describe("Task 9.3: PreKeyRecord and SignedPreKeyRecord formats", () => {
     });
     const decoded = decodeSignedPreKeyRecord(encoded);
     expect(decoded.id).toBe(42);
-    expect(decoded.publicKey!.length).toBe(33);
-    expect(decoded.privateKey!.length).toBe(32);
-    expect(decoded.signature!.length).toBe(64);
+    expect(decoded.publicKey?.length).toBe(33);
+    expect(decoded.privateKey?.length).toBe(32);
+    expect(decoded.signature?.length).toBe(64);
     expect(decoded.timestamp).toBe(1700000000);
   });
 
@@ -1181,7 +1200,8 @@ describe("Task 9.3: PreKeyRecord and SignedPreKeyRecord formats", () => {
       timestamp: ts,
     });
     const fields = parseRawProto(encoded);
-    const tsField = fields.find((f) => f.field === 5)!;
+    const tsField = fields.find((f) => f.field === 5);
+    if (!tsField) throw new Error("expected tsField for field 5");
     expect(tsField.wireType).toBe(1); // fixed64
     expect(tsField.value).toBeInstanceOf(Uint8Array);
     // Verify 8-byte LE encoding
@@ -1208,7 +1228,8 @@ describe("Task 9.3: PreKeyRecord and SignedPreKeyRecord formats", () => {
       timestamp: 1700000000000,
     });
     const fields = parseRawProto(encoded);
-    const tsField = fields.find((f) => f.field === 5)!;
+    const tsField = fields.find((f) => f.field === 5);
+    if (!tsField) throw new Error("expected tsField for field 5");
     const bytes = tsField.value as Uint8Array;
     expect(Array.from(bytes)).toEqual([0x00, 0x68, 0xe5, 0xcf, 0x8b, 0x01, 0x00, 0x00]);
   });
@@ -1722,7 +1743,6 @@ describe("Task 9.4: Key derivation vectors", () => {
       expect(bytesToHex(derived.slice(0, 32))).not.toBe(bytesToHex(derived.slice(32, 64)));
     });
   });
-
 });
 
 // ============================================================================
@@ -1896,7 +1916,8 @@ describe("Task 9.4: Proto2 vs Proto3 behavior", () => {
     // Our decoder should not throw and should parse known fields
     const decoded = decodeSignalMessage(data);
     expect(decoded.counter).toBe(42);
-    expect(bytesToHex(decoded.ciphertext!)).toBe(bytesToHex(filler(10)));
+    if (!decoded.ciphertext) throw new Error("expected ciphertext");
+    expect(bytesToHex(decoded.ciphertext)).toBe(bytesToHex(filler(10)));
   });
 });
 

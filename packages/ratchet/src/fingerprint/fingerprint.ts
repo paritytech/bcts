@@ -131,8 +131,8 @@ export class DisplayableFingerprint {
 
 export class ScannableFingerprint {
   readonly version: number;
-  private localFingerprint: Uint8Array;
-  private remoteFingerprint: Uint8Array;
+  private readonly localFingerprint: Uint8Array;
+  private readonly remoteFingerprint: Uint8Array;
 
   constructor(version: number, localFprint: Uint8Array, remoteFprint: Uint8Array) {
     this.version = version;

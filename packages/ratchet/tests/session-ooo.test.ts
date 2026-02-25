@@ -52,15 +52,7 @@ describe("Out-of-Order Messages", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     return { aliceStore, bobStore, aliceAddress, bobAddress, rng };
   }

@@ -14,24 +14,19 @@ import type {
 } from "./interfaces.js";
 import type { SessionRecord } from "../session/session-record.js";
 import type { PreKeyRecord, SignedPreKeyRecord } from "../keys/pre-key.js";
-import { IdentityKey, IdentityKeyPair } from "../keys/identity-key.js";
+import { type IdentityKey, type IdentityKeyPair } from "../keys/identity-key.js";
 import { InvalidKeyError } from "../error.js";
 
 export class InMemorySignalProtocolStore
-  implements
-    SessionStore,
-    PreKeyStore,
-    SignedPreKeyStore,
-    IdentityKeyStore,
-    SenderKeyStore
+  implements SessionStore, PreKeyStore, SignedPreKeyStore, IdentityKeyStore, SenderKeyStore
 {
-  private identityKeyPair: IdentityKeyPair;
-  private registrationId: number;
-  private sessions = new Map<string, SessionRecord>();
-  private preKeys = new Map<number, PreKeyRecord>();
-  private signedPreKeys = new Map<number, SignedPreKeyRecord>();
-  private identities = new Map<string, IdentityKey>();
-  private senderKeys = new Map<string, Uint8Array>();
+  private readonly identityKeyPair: IdentityKeyPair;
+  private readonly registrationId: number;
+  private readonly sessions = new Map<string, SessionRecord>();
+  private readonly preKeys = new Map<number, PreKeyRecord>();
+  private readonly signedPreKeys = new Map<number, SignedPreKeyRecord>();
+  private readonly identities = new Map<string, IdentityKey>();
+  private readonly senderKeys = new Map<string, Uint8Array>();
 
   constructor(identityKeyPair: IdentityKeyPair, registrationId: number) {
     this.identityKeyPair = identityKeyPair;

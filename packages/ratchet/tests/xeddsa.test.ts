@@ -13,7 +13,7 @@ import { createTestRng } from "./test-utils.js";
 
 describe("XEdDSA", () => {
   it("should sign and verify a message round-trip", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const publicKey = x25519.getPublicKey(privateKey);
     const message = new TextEncoder().encode("hello xeddsa");
 
@@ -25,7 +25,7 @@ describe("XEdDSA", () => {
   });
 
   it("should fail verification with wrong message", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const publicKey = x25519.getPublicKey(privateKey);
     const message = new TextEncoder().encode("correct message");
 
@@ -36,12 +36,12 @@ describe("XEdDSA", () => {
   });
 
   it("should fail verification with wrong key", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const message = new TextEncoder().encode("test message");
 
     const signature = xeddsaSign(privateKey, message);
 
-    const otherPrivateKey = crypto.getRandomValues(new Uint8Array(32));
+    const otherPrivateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const otherPublicKey = x25519.getPublicKey(otherPrivateKey);
     expect(xeddsaVerify(otherPublicKey, message, signature)).toBe(false);
   });
@@ -50,7 +50,7 @@ describe("XEdDSA", () => {
     const message = new TextEncoder().encode("deterministic test content");
 
     for (let i = 0; i < 20; i++) {
-      const privateKey = crypto.getRandomValues(new Uint8Array(32));
+      const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
       const publicKey = x25519.getPublicKey(privateKey);
 
       const signature = xeddsaSign(privateKey, message);
@@ -61,7 +61,7 @@ describe("XEdDSA", () => {
   });
 
   it("should produce deterministic signatures with explicit randomness", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const message = new TextEncoder().encode("deterministic");
     const random = new Uint8Array(64).fill(0x42);
 
@@ -72,7 +72,7 @@ describe("XEdDSA", () => {
   });
 
   it("should work with empty message", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const publicKey = x25519.getPublicKey(privateKey);
     const message = new Uint8Array(0);
 
@@ -81,9 +81,9 @@ describe("XEdDSA", () => {
   });
 
   it("should work with large message", () => {
-    const privateKey = crypto.getRandomValues(new Uint8Array(32));
+    const privateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const publicKey = x25519.getPublicKey(privateKey);
-    const message = crypto.getRandomValues(new Uint8Array(10000));
+    const message = globalThis.crypto.getRandomValues(new Uint8Array(10000));
 
     const signature = xeddsaSign(privateKey, message);
     expect(xeddsaVerify(publicKey, message, signature)).toBe(true);
@@ -98,24 +98,22 @@ describe("XEdDSA libsignal interop", () => {
    * verify correctly with our XEdDSA to prove cross-implementation compatibility.
    */
   const aliceIdentityPublic = new Uint8Array([
-    0xab, 0x7e, 0x71, 0x7d, 0x4a, 0x16, 0x3b, 0x7d, 0x9a, 0x1d, 0x80, 0x71, 0xdf, 0xe9,
-    0xdc, 0xf8, 0xcd, 0xcd, 0x1c, 0xea, 0x33, 0x39, 0xb6, 0x35, 0x6b, 0xe8, 0x4d, 0x88,
-    0x7e, 0x32, 0x2c, 0x64,
+    0xab, 0x7e, 0x71, 0x7d, 0x4a, 0x16, 0x3b, 0x7d, 0x9a, 0x1d, 0x80, 0x71, 0xdf, 0xe9, 0xdc, 0xf8,
+    0xcd, 0xcd, 0x1c, 0xea, 0x33, 0x39, 0xb6, 0x35, 0x6b, 0xe8, 0x4d, 0x88, 0x7e, 0x32, 0x2c, 0x64,
   ]);
 
   // Message signed: alice_ephemeral_public (33 bytes, with 0x05 prefix)
   const aliceEphemeralPublic = new Uint8Array([
-    0x05, 0xed, 0xce, 0x9d, 0x9c, 0x41, 0x5c, 0xa7, 0x8c, 0xb7, 0x25, 0x2e, 0x72, 0xc2,
-    0xc4, 0xa5, 0x54, 0xd3, 0xeb, 0x29, 0x48, 0x5a, 0x0e, 0x1d, 0x50, 0x31, 0x18, 0xd1,
-    0xa8, 0x2d, 0x99, 0xfb, 0x4a,
+    0x05, 0xed, 0xce, 0x9d, 0x9c, 0x41, 0x5c, 0xa7, 0x8c, 0xb7, 0x25, 0x2e, 0x72, 0xc2, 0xc4, 0xa5,
+    0x54, 0xd3, 0xeb, 0x29, 0x48, 0x5a, 0x0e, 0x1d, 0x50, 0x31, 0x18, 0xd1, 0xa8, 0x2d, 0x99, 0xfb,
+    0x4a,
   ]);
 
   const aliceSignature = new Uint8Array([
-    0x5d, 0xe8, 0x8c, 0xa9, 0xa8, 0x9b, 0x4a, 0x11, 0x5d, 0xa7, 0x91, 0x09, 0xc6, 0x7c,
-    0x9c, 0x74, 0x64, 0xa3, 0xe4, 0x18, 0x02, 0x74, 0xf1, 0xcb, 0x8c, 0x63, 0xc2, 0x98,
-    0x4e, 0x28, 0x6d, 0xfb, 0xed, 0xe8, 0x2d, 0xeb, 0x9d, 0xcd, 0x9f, 0xae, 0x0b, 0xfb,
-    0xb8, 0x21, 0x56, 0x9b, 0x3d, 0x90, 0x01, 0xbd, 0x81, 0x30, 0xcd, 0x11, 0xd4, 0x86,
-    0xce, 0xf0, 0x47, 0xbd, 0x60, 0xb8, 0x6e, 0x88,
+    0x5d, 0xe8, 0x8c, 0xa9, 0xa8, 0x9b, 0x4a, 0x11, 0x5d, 0xa7, 0x91, 0x09, 0xc6, 0x7c, 0x9c, 0x74,
+    0x64, 0xa3, 0xe4, 0x18, 0x02, 0x74, 0xf1, 0xcb, 0x8c, 0x63, 0xc2, 0x98, 0x4e, 0x28, 0x6d, 0xfb,
+    0xed, 0xe8, 0x2d, 0xeb, 0x9d, 0xcd, 0x9f, 0xae, 0x0b, 0xfb, 0xb8, 0x21, 0x56, 0x9b, 0x3d, 0x90,
+    0x01, 0xbd, 0x81, 0x30, 0xcd, 0x11, 0xd4, 0x86, 0xce, 0xf0, 0x47, 0xbd, 0x60, 0xb8, 0x6e, 0x88,
   ]);
 
   it("should verify a signature generated by libsignal Rust", () => {

@@ -263,15 +263,7 @@ describe("Stale session detection", () => {
     );
 
     // Bob decrypts -- this clears Alice's pending pre-key on next decrypt
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies
     const reply = await messageEncrypt(
@@ -361,8 +353,9 @@ describe("Self-session unlimited forward jumps", () => {
     }
 
     // For a self-session, this should succeed despite exceeding MAX_FORWARD_JUMPS
+    if (!lastMsg) throw new Error("expected lastMsg to be defined");
     const decrypted = await messageDecrypt(
-      lastMsg!,
+      lastMsg,
       selfAddress,
       receiverStore,
       receiverStore,
@@ -396,15 +389,7 @@ describe("Self-session unlimited forward jumps", () => {
       aliceStore,
       aliceStore,
     );
-    await messageDecrypt(
-      initial,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initial, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob replies
     const reply = await messageEncrypt(
@@ -427,8 +412,9 @@ describe("Self-session unlimited forward jumps", () => {
     }
 
     // For non-self session, this should fail
+    if (!lastMsg) throw new Error("expected lastMsg to be defined");
     await expect(
-      messageDecrypt(lastMsg!, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng),
+      messageDecrypt(lastMsg, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng),
     ).rejects.toThrow(InvalidMessageError);
   });
 });
@@ -519,9 +505,9 @@ describe("PendingPreKey fields", () => {
     const restored = SessionState.deserialize(serialized);
 
     const pending = restored.pendingPreKey();
-    expect(pending).toBeDefined();
-    expect(pending!.preKeyId).toBe(1);
-    expect(pending!.signedPreKeyId).toBe(2);
+    if (!pending) throw new Error("expected pending pre-key");
+    expect(pending.preKeyId).toBe(1);
+    expect(pending.signedPreKeyId).toBe(2);
   });
 });
 
@@ -544,7 +530,9 @@ describe("PendingPreKey timestamp serialization", () => {
     const serialized = state.serialize();
     const restored = SessionState.deserialize(serialized);
 
-    expect(restored.pendingPreKey()!.timestamp).toBe(timestamp);
+    const restoredPending = restored.pendingPreKey();
+    if (!restoredPending) throw new Error("expected pending pre-key");
+    expect(restoredPending.timestamp).toBe(timestamp);
   });
 
   it("should preserve stale detection across serialization", () => {

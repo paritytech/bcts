@@ -174,7 +174,7 @@ export class SenderKeyDistributionMessage {
     const messageVersion = data[0] >> 4;
     const proto = decodeSKDM(data.slice(1));
 
-    if (!proto.distributionId || proto.distributionId.length !== 16) {
+    if (proto.distributionId?.length !== 16) {
       throw new InvalidMessageError("Missing or invalid distribution ID");
     }
     if (proto.chainId === undefined) {
@@ -183,7 +183,7 @@ export class SenderKeyDistributionMessage {
     if (proto.iteration === undefined) {
       throw new InvalidMessageError("Missing iteration");
     }
-    if (!proto.chainKey || proto.chainKey.length !== 32) {
+    if (proto.chainKey?.length !== 32) {
       throw new InvalidMessageError("Missing or invalid chain key");
     }
     if (!proto.signingKey) {

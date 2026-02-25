@@ -77,7 +77,7 @@ function bytesToHex(bytes: Uint8Array): string {
 
 function generateUUID(): string {
   const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
+  globalThis.crypto.getRandomValues(bytes);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -263,15 +263,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     // First message (PreKey)
     const first = new TextEncoder().encode("First");
     const firstEnc = await messageEncrypt(first, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(
-      firstEnc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(firstEnc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob sends a regular SignalMessage
     const reply = new TextEncoder().encode("Reply");
@@ -301,16 +293,16 @@ describe("Session Establishment Interop (Task 9.5)", () => {
 
     // Ratchet key should be 33 bytes (0x05 prefix + 32-byte Curve25519)
     const ratchetKeyField = fields.find((f) => f.field === 1);
-    expect(ratchetKeyField).toBeDefined();
-    expect(ratchetKeyField!.wireType).toBe(2); // length-delimited
-    const ratchetKeyBytes = ratchetKeyField!.value as Uint8Array;
+    if (!ratchetKeyField) throw new Error("expected ratchetKeyField");
+    expect(ratchetKeyField.wireType).toBe(2); // length-delimited
+    const ratchetKeyBytes = ratchetKeyField.value as Uint8Array;
     expect(ratchetKeyBytes.length).toBe(33);
     expect(ratchetKeyBytes[0]).toBe(0x05); // DJB key type prefix
 
     // Counter should be varint (wire type 0)
     const counterField = fields.find((f) => f.field === 2);
-    expect(counterField).toBeDefined();
-    expect(counterField!.wireType).toBe(0);
+    if (!counterField) throw new Error("expected counterField");
+    expect(counterField.wireType).toBe(0);
   });
 
   it("should exchange 10 messages each direction with correct counters", async () => {
@@ -323,15 +315,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     const first = new TextEncoder().encode("Init");
     const firstEnc = await messageEncrypt(first, bobAddress, aliceStore, aliceStore);
     expect(firstEnc).toBeInstanceOf(PreKeySignalMessage);
-    await messageDecrypt(
-      firstEnc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(firstEnc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob responds to complete the handshake
     const resp = new TextEncoder().encode("Ack");
@@ -400,15 +384,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     // Exchange initial messages
     const init = new TextEncoder().encode("Before serialize");
     const initEnc = await messageEncrypt(init, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(
-      initEnc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-    );
+    await messageDecrypt(initEnc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const reply = new TextEncoder().encode("Reply before serialize");
     const replyEnc = await messageEncrypt(reply, aliceAddress, bobStore, bobStore);
@@ -416,8 +392,8 @@ describe("Session Establishment Interop (Task 9.5)", () => {
 
     // Serialize Alice's session
     const aliceRecord = await aliceStore.loadSession(bobAddress);
-    expect(aliceRecord).toBeDefined();
-    const serialized = aliceRecord!.serialize();
+    if (!aliceRecord) throw new Error("expected aliceRecord");
+    const serialized = aliceRecord.serialize();
 
     // Deserialize and re-store
     const restored = SessionRecord.deserialize(serialized);
@@ -427,7 +403,9 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     const aliceStore2 = new InMemorySignalProtocolStore(aliceIdKp, 1);
     await aliceStore2.storeSession(bobAddress, restored);
     // Also copy identity for Bob
-    await aliceStore2.saveIdentity(bobAddress, (await aliceStore.getIdentity(bobAddress))!);
+    const bobIdentityForAlice = await aliceStore.getIdentity(bobAddress);
+    if (!bobIdentityForAlice) throw new Error("expected bobIdentityForAlice");
+    await aliceStore2.saveIdentity(bobAddress, bobIdentityForAlice);
 
     // Continue messaging with restored session
     const afterMsg = new TextEncoder().encode("After serialize");
@@ -480,18 +458,18 @@ describe("Group Message Interop (Task 9.6)", () => {
 
     // Verify distributionId is 16 bytes (UUID)
     const distIdField = fields.find((f) => f.field === 1);
-    expect(distIdField).toBeDefined();
-    expect((distIdField!.value as Uint8Array).length).toBe(16);
+    if (!distIdField) throw new Error("expected distIdField");
+    expect((distIdField.value as Uint8Array).length).toBe(16);
 
     // chainKey is 32 bytes
     const chainKeyField = fields.find((f) => f.field === 4);
-    expect(chainKeyField).toBeDefined();
-    expect((chainKeyField!.value as Uint8Array).length).toBe(32);
+    if (!chainKeyField) throw new Error("expected chainKeyField");
+    expect((chainKeyField.value as Uint8Array).length).toBe(32);
 
     // signingKey is 33 bytes (0x05 prefix + 32-byte Ed25519 public key)
     const signingKeyField = fields.find((f) => f.field === 5);
-    expect(signingKeyField).toBeDefined();
-    const signingKeyBytes = signingKeyField!.value as Uint8Array;
+    if (!signingKeyField) throw new Error("expected signingKeyField");
+    const signingKeyBytes = signingKeyField.value as Uint8Array;
     expect(signingKeyBytes.length).toBe(33);
     expect(signingKeyBytes[0]).toBe(0x05);
 
@@ -539,7 +517,8 @@ describe("Group Message Interop (Task 9.6)", () => {
 
     // distributionId is 16 bytes (UUID)
     const distIdField = fields.find((f) => f.field === 1);
-    expect((distIdField!.value as Uint8Array).length).toBe(16);
+    if (!distIdField) throw new Error("expected distIdField");
+    expect((distIdField.value as Uint8Array).length).toBe(16);
 
     // chainId is 31-bit positive
     expect(skm.chainId).toBeGreaterThanOrEqual(0);
@@ -762,9 +741,9 @@ describe("Sealed Sender Interop (Task 9.7)", () => {
       [uuid3, r3],
     ] as const) {
       const recipientData = parsed.recipientsByServiceIdString().get(uuid);
-      expect(recipientData).toBeDefined();
+      if (!recipientData) throw new Error(`expected recipientData for ${uuid}`);
 
-      const receivedMessage = parsed.messageForRecipient(recipientData!);
+      const receivedMessage = parsed.messageForRecipient(recipientData);
       // Extracted per-recipient message uses V2 format (0x22)
       expect(receivedMessage[0]).toBe(0x22);
 
@@ -833,8 +812,8 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
     // Serialize Alice's session
     const aliceSessionRecord = await aliceStore.loadSession(bobAddress);
-    expect(aliceSessionRecord).toBeDefined();
-    const aliceSessionBytes = aliceSessionRecord!.serialize();
+    if (!aliceSessionRecord) throw new Error("expected aliceSessionRecord");
+    const aliceSessionBytes = aliceSessionRecord.serialize();
 
     // Parse as RecordStructure
     const recordFields = parseProtoFields(aliceSessionBytes);
@@ -843,7 +822,8 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     expect(recordFields.bytes.has(1)).toBe(true); // currentSession
 
     // Parse the current session as SessionStructure
-    const sessionBytes = recordFields.bytes.get(1)!;
+    const sessionBytes = recordFields.bytes.get(1);
+    if (!sessionBytes) throw new Error("expected sessionBytes at field 1");
     const sessionFields = parseProtoFields(sessionBytes);
 
     // SessionStructure field verification against storage.proto:
@@ -861,7 +841,7 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
     // rootKey is 32 bytes
     expect(sessionFields.bytes.has(4)).toBe(true);
-    expect(sessionFields.bytes.get(4)!.length).toBe(32);
+    expect(sessionFields.bytes.get(4)?.length).toBe(32);
 
     // senderChain present (field 6)
     expect(sessionFields.bytes.has(6)).toBe(true);
@@ -886,16 +866,16 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const sessionRecord = await aliceStore.loadSession(bobAddress);
-    expect(sessionRecord).toBeDefined();
-    const sessionBytes = sessionRecord!.serialize();
+    if (!sessionRecord) throw new Error("expected sessionRecord");
+    const sessionBytes = sessionRecord.serialize();
 
     // Parse at raw level
     const rawFields = parseRawFields(sessionBytes);
 
     // Should have field 1 (currentSession) with wire type 2 (length-delimited)
     const currentSessionField = rawFields.find((f) => f.field === 1);
-    expect(currentSessionField).toBeDefined();
-    expect(currentSessionField!.wireType).toBe(2);
+    if (!currentSessionField) throw new Error("expected currentSessionField");
+    expect(currentSessionField.wireType).toBe(2);
 
     // Decode via our decoder
     const decoded = decodeRecordStructure(sessionBytes);
@@ -920,16 +900,16 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
     // Serialize Bob's session
     const bobSessionRecord = await bobStore.loadSession(aliceAddress);
-    expect(bobSessionRecord).toBeDefined();
-    const bobSessionBytes = bobSessionRecord!.serialize();
+    if (!bobSessionRecord) throw new Error("expected bobSessionRecord");
+    const bobSessionBytes = bobSessionRecord.serialize();
 
     // Decode to SessionStructure, verify fields, re-encode, and use
-    const sessionProto = decodeSessionStructure(
-      decodeRecordStructure(bobSessionBytes).currentSession!,
-    );
+    const recordStruct = decodeRecordStructure(bobSessionBytes);
+    if (!recordStruct.currentSession) throw new Error("expected currentSession");
+    const sessionProto = decodeSessionStructure(recordStruct.currentSession);
     expect(sessionProto.sessionVersion).toBe(3);
-    expect(sessionProto.rootKey).toBeDefined();
-    expect(sessionProto.rootKey!.length).toBe(32);
+    if (!sessionProto.rootKey) throw new Error("expected rootKey");
+    expect(sessionProto.rootKey.length).toBe(32);
 
     // Deserialize the full record and continue
     const restored = SessionRecord.deserialize(bobSessionBytes);
@@ -938,7 +918,9 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     const bobIdKp = await bobStore.getIdentityKeyPair();
     const bobStore2 = new InMemorySignalProtocolStore(bobIdKp, 2);
     await bobStore2.storeSession(aliceAddress, restored);
-    await bobStore2.saveIdentity(aliceAddress, (await bobStore.getIdentity(aliceAddress))!);
+    const aliceIdentityForBob = await bobStore.getIdentity(aliceAddress);
+    if (!aliceIdentityForBob) throw new Error("expected aliceIdentityForBob");
+    await bobStore2.saveIdentity(aliceAddress, aliceIdentityForBob);
 
     // Continue messaging with restored session
     const pt2 = new TextEncoder().encode("After restore");
@@ -968,21 +950,22 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const bobSessionRecord = await bobStore.loadSession(aliceAddress);
-    expect(bobSessionRecord).toBeDefined();
-    const bobSessionBytes = bobSessionRecord!.serialize();
+    if (!bobSessionRecord) throw new Error("expected bobSessionRecord");
+    const bobSessionBytes = bobSessionRecord.serialize();
     const recordProto = decodeRecordStructure(bobSessionBytes);
-    const sessionProto = decodeSessionStructure(recordProto.currentSession!);
+    if (!recordProto.currentSession) throw new Error("expected currentSession");
+    const sessionProto = decodeSessionStructure(recordProto.currentSession);
 
     // After receiving a PreKeySignalMessage, Bob should have a sender chain
-    expect(sessionProto.senderChain).toBeDefined();
+    if (!sessionProto.senderChain) throw new Error("expected senderChain");
 
     // Chain structure fields: 1=senderRatchetKey, 2=senderRatchetKeyPrivate, 3=chainKey
-    const senderChain = sessionProto.senderChain!;
+    const senderChain = sessionProto.senderChain;
     expect(senderChain.senderRatchetKey).toBeDefined();
     expect(senderChain.senderRatchetKeyPrivate).toBeDefined();
-    expect(senderChain.chainKey).toBeDefined();
-    expect(senderChain.chainKey!.key).toBeDefined();
-    expect(senderChain.chainKey!.key!.length).toBe(32);
+    if (!senderChain.chainKey) throw new Error("expected chainKey");
+    if (!senderChain.chainKey.key) throw new Error("expected chainKey.key");
+    expect(senderChain.chainKey.key.length).toBe(32);
   });
 });
 
@@ -1066,19 +1049,19 @@ describe("Fingerprint Interop (Task 9.9)", () => {
 
     // Version should be 1
     const versionField = fields.find((f) => f.field === 1);
-    expect(versionField).toBeDefined();
-    expect(versionField!.wireType).toBe(0); // varint
-    expect(versionField!.value).toBe(1);
+    if (!versionField) throw new Error("expected versionField");
+    expect(versionField.wireType).toBe(0); // varint
+    expect(versionField.value).toBe(1);
 
     // Local and remote fingerprints are nested messages containing 32-byte hash
     const localField = fields.find((f) => f.field === 2);
-    expect(localField).toBeDefined();
-    expect(localField!.wireType).toBe(2); // length-delimited
+    if (!localField) throw new Error("expected localField");
+    expect(localField.wireType).toBe(2); // length-delimited
 
-    const localInner = parseRawFields(localField!.value as Uint8Array);
+    const localInner = parseRawFields(localField.value as Uint8Array);
     const localContent = localInner.find((f) => f.field === 1);
-    expect(localContent).toBeDefined();
-    expect((localContent!.value as Uint8Array).length).toBe(32);
+    if (!localContent) throw new Error("expected localContent");
+    expect((localContent.value as Uint8Array).length).toBe(32);
   });
 
   it("should cross-verify: Alice's view matches Bob's view", () => {
@@ -1125,7 +1108,8 @@ describe("Fingerprint Interop (Task 9.9)", () => {
 
     // Version should be 2
     const versionField = fields.find((f) => f.field === 1);
-    expect(versionField!.value).toBe(2);
+    if (!versionField) throw new Error("expected versionField");
+    expect(versionField.value).toBe(2);
 
     // Display string is the same between v1 and v2
     expect(fp.displayString()).toBe(KNOWN_DISPLAY_V1);

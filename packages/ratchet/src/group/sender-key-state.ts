@@ -10,12 +10,12 @@ import type { SenderKeyStateStructureProto } from "../protocol/proto.js";
 import { MAX_MESSAGE_KEYS } from "../constants.js";
 
 export class SenderKeyState {
-  private _messageVersion: number;
-  private _chainId: number;
+  private readonly _messageVersion: number;
+  private readonly _chainId: number;
   private _senderChainKey: SenderChainKey | undefined;
-  private _signingKeyPublic: Uint8Array;
-  private _signingKeyPrivate: Uint8Array | undefined;
-  private _messageKeys: SenderMessageKey[];
+  private readonly _signingKeyPublic: Uint8Array;
+  private readonly _signingKeyPrivate: Uint8Array | undefined;
+  private readonly _messageKeys: SenderMessageKey[];
 
   constructor(
     messageVersion: number,

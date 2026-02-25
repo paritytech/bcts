@@ -51,7 +51,7 @@ describe("SessionState serialization", () => {
     expect(restored.localRegistrationId()).toBe(12345);
     expect(restored.remoteRegistrationId()).toBe(67890);
     expect(restored.localIdentityKey().equals(idKeyPair.identityKey)).toBe(true);
-    expect(restored.remoteIdentityKey()!.equals(remoteIdKeyPair.identityKey)).toBe(true);
+    expect(restored.remoteIdentityKey()?.equals(remoteIdKeyPair.identityKey)).toBe(true);
     expect(restored.rootKey().key).toEqual(rootKey.key);
   });
 
@@ -92,7 +92,7 @@ describe("SessionState serialization", () => {
     const serialized = state.serialize();
     const restored = SessionState.deserialize(serialized);
     expect(restored.getReceiverChainKey(ratchetKey1)).toBeDefined();
-    expect(restored.getReceiverChainKey(ratchetKey1)!.index).toBe(10);
+    expect(restored.getReceiverChainKey(ratchetKey1)?.index).toBe(10);
   });
 
   it("round-trips with pending pre-key", () => {
@@ -114,9 +114,9 @@ describe("SessionState serialization", () => {
     const serialized = state.serialize();
     const restored = SessionState.deserialize(serialized);
     const ppk = restored.pendingPreKey();
-    expect(ppk).toBeDefined();
-    expect(ppk!.preKeyId).toBe(42);
-    expect(ppk!.signedPreKeyId).toBe(7);
+    if (!ppk) throw new Error("expected pending pre-key");
+    expect(ppk.preKeyId).toBe(42);
+    expect(ppk.signedPreKeyId).toBe(7);
   });
 });
 
@@ -141,7 +141,7 @@ describe("SessionRecord serialization", () => {
     const serialized = record.serialize();
     const restored = SessionRecord.deserialize(serialized);
     expect(restored.sessionState()).toBeDefined();
-    expect(restored.sessionState()!.localRegistrationId()).toBe(111);
+    expect(restored.sessionState()?.localRegistrationId()).toBe(111);
   });
 });
 

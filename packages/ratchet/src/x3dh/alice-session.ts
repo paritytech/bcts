@@ -8,7 +8,7 @@
  */
 
 import type { RandomNumberGenerator } from "@bcts/rand";
-import { IdentityKey, type IdentityKeyPair } from "../keys/identity-key.js";
+import { type IdentityKey, type IdentityKeyPair } from "../keys/identity-key.js";
 import { KeyPair } from "../keys/key-pair.js";
 import { SessionState } from "../session/session-state.js";
 import { RootKey } from "../ratchet/root-key.js";

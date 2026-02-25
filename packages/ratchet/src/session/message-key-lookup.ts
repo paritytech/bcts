@@ -8,7 +8,7 @@
  */
 
 import type { SessionState } from "./session-state.js";
-import { ChainKey } from "../ratchet/chain-key.js";
+import { type ChainKey } from "../ratchet/chain-key.js";
 import { MessageKeys } from "../ratchet/message-keys.js";
 import { DuplicateMessageError, InvalidMessageError } from "../error.js";
 import { MAX_FORWARD_JUMPS } from "../constants.js";

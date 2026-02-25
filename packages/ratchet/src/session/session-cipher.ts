@@ -105,10 +105,7 @@ async function messageEncryptImpl(
 
   const chainKey = sessionState.getSenderChainKey();
 
-  const messageKeys = MessageKeys.deriveFrom(
-    chainKey.messageKeySeed(),
-    chainKey.index,
-  );
+  const messageKeys = MessageKeys.deriveFrom(chainKey.messageKeySeed(), chainKey.index);
 
   const senderEphemeral = sessionState.senderRatchetKey();
   const previousCounter = sessionState.previousCounter();
@@ -260,7 +257,7 @@ async function messageDecryptPreKey(
   signedPreKeyStore: SignedPreKeyStore,
   rng: RandomNumberGenerator,
 ): Promise<Uint8Array> {
-  let sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
+  const sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
   // No H2 retry — go straight to prekey processing (matches libsignal)
   const { preKeysUsed } = await processPreKeyMessage(
@@ -390,12 +387,7 @@ function decryptMessageWithState(
   const chainKey = getOrCreateChainKey(state, theirEphemeral, rng);
 
   // Get or create message key
-  const messageKeys = getOrCreateMessageKey(
-    state,
-    theirEphemeral,
-    chainKey,
-    counter,
-  );
+  const messageKeys = getOrCreateMessageKey(state, theirEphemeral, chainKey, counter);
 
   // Verify MAC
   const theirIdentityKey = state.remoteIdentityKey();

@@ -8,12 +8,9 @@
  */
 
 import { hmacSha256 } from "../crypto/kdf.js";
-import { IdentityKey } from "../keys/identity-key.js";
+import { type IdentityKey } from "../keys/identity-key.js";
 import { InvalidMessageError, InvalidMacKeyLengthError } from "../error.js";
-import {
-  MAC_LENGTH,
-  CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-} from "../constants.js";
+import { MAC_LENGTH, CIPHERTEXT_MESSAGE_CURRENT_VERSION } from "../constants.js";
 import { encodeSignalMessage, decodeSignalMessage } from "./proto.js";
 import { constantTimeEqual } from "../crypto/constant-time.js";
 import {

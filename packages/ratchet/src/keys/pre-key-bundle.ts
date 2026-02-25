@@ -4,7 +4,7 @@
  * Reference: libsignal/rust/protocol/src/state/bundle.rs
  */
 
-import { IdentityKey } from "./identity-key.js";
+import { type IdentityKey } from "./identity-key.js";
 
 export class PreKeyBundle {
   readonly registrationId: number;

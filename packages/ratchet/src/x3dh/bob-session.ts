@@ -6,7 +6,7 @@
  * Reference: libsignal/rust/protocol/src/ratchet.rs (initialize_bob_session)
  */
 
-import { IdentityKey, type IdentityKeyPair } from "../keys/identity-key.js";
+import { type IdentityKey, type IdentityKeyPair } from "../keys/identity-key.js";
 import type { KeyPair } from "../keys/key-pair.js";
 import { SessionState } from "../session/session-state.js";
 import { RootKey } from "../ratchet/root-key.js";

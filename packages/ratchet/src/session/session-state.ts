@@ -86,9 +86,9 @@ export interface PendingPreKey {
 }
 
 export class SessionState {
-  private _sessionVersion: number;
-  private _localIdentityKey: IdentityKey;
-  private _remoteIdentityKey: IdentityKey | undefined;
+  private readonly _sessionVersion: number;
+  private readonly _localIdentityKey: IdentityKey;
+  private readonly _remoteIdentityKey: IdentityKey | undefined;
   private _rootKey: RootKey;
   private _previousCounter: number;
   private _senderChain: SenderChain | undefined;
@@ -96,7 +96,7 @@ export class SessionState {
   private _pendingPreKey: PendingPreKey | undefined;
   private _localRegistrationId: number;
   private _remoteRegistrationId: number;
-  private _aliceBaseKey: Uint8Array | undefined;
+  private readonly _aliceBaseKey: Uint8Array | undefined;
 
   constructor(params: {
     sessionVersion: number;
@@ -259,10 +259,7 @@ export class SessionState {
 
   // --- Message Keys ---
 
-  getMessageKeys(
-    senderRatchetKey: Uint8Array,
-    counter: number,
-  ): MessageKeys | undefined {
+  getMessageKeys(senderRatchetKey: Uint8Array, counter: number): MessageKeys | undefined {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
     );
@@ -567,9 +564,7 @@ export class SessionState {
     cloned._previousCounter = this._previousCounter;
     cloned._localRegistrationId = this._localRegistrationId;
     cloned._remoteRegistrationId = this._remoteRegistrationId;
-    cloned._pendingPreKey = this._pendingPreKey
-      ? { ...this._pendingPreKey }
-      : undefined;
+    cloned._pendingPreKey = this._pendingPreKey ? { ...this._pendingPreKey } : undefined;
 
     if (this._senderChain) {
       cloned._senderChain = {

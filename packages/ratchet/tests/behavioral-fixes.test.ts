@@ -121,15 +121,7 @@ describe("H2: PreKey decrypt short-circuits on existing session", () => {
     // With H2: short-circuits through existing session, correctly throws
     // DuplicateMessageError because the message key at counter 0 was already used.
     await expect(
-      messageDecrypt(
-        preKeyMsg,
-        aliceAddress,
-        bobStore,
-        bobStore,
-        bobStore,
-        bobStore,
-        rng,
-      ),
+      messageDecrypt(preKeyMsg, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng),
     ).rejects.toThrow(DuplicateMessageError);
   });
 

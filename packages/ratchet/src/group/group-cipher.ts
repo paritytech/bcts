@@ -18,7 +18,7 @@ import {
 } from "../error.js";
 import { MAX_FORWARD_JUMPS, SENDERKEY_MESSAGE_CURRENT_VERSION } from "../constants.js";
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { SenderMessageKey } from "./sender-message-key.js";
+import { type SenderMessageKey } from "./sender-message-key.js";
 import type { SenderKeyState } from "./sender-key-state.js";
 
 /**

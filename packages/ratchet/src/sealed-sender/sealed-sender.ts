@@ -356,10 +356,10 @@ export interface SealedSenderRecipient {
   /** ServiceId as fixed-width binary (17 bytes: 1 type + 16 UUID). */
   serviceIdFixedWidthBinary: Uint8Array;
   /** Array of device entries. */
-  devices: Array<{
+  devices: {
     deviceId: number;
     registrationId: number;
-  }>;
+  }[];
   /** Recipient's identity public key (32 bytes). */
   identityKey: Uint8Array;
 }
@@ -373,7 +373,7 @@ export interface SealedSenderV2SentRecipient {
   /** ServiceId as fixed-width binary. */
   serviceIdFixedWidthBinary: Uint8Array;
   /** Array of (deviceId, registrationId) tuples. */
-  devices: Array<{ deviceId: number; registrationId: number }>;
+  devices: { deviceId: number; registrationId: number }[];
   /** The C_i (encrypted message key) -- 32 bytes. Empty if excluded. */
   cBytes: Uint8Array;
   /** The AT_i (authentication tag) -- 16 bytes. Empty if excluded. */
@@ -909,10 +909,10 @@ export class SealedSenderMultiRecipientMessage {
         serviceIdString = formatServiceIdString(serviceIdBytes);
       }
 
-      const devices: Array<{
+      const devices: {
         deviceId: number;
         registrationId: number;
-      }> = [];
+      }[] = [];
       let hasDevices = true;
 
       for (;;) {
@@ -1074,7 +1074,7 @@ function serviceIdToString(bytes: Uint8Array): string {
  * Create a ServiceId fixed-width binary from a UUID string.
  * Defaults to ACI (type 0x01).
  */
-export function serviceIdFromUuid(uuid: string, type: number = 0x01): Uint8Array {
+export function serviceIdFromUuid(uuid: string, type = 0x01): Uint8Array {
   const clean = uuid.replace(/-/g, "");
   if (clean.length !== 32) {
     throw new Error(`Invalid UUID: ${uuid}`);

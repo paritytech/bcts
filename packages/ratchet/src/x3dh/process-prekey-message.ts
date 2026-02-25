@@ -5,7 +5,7 @@
  */
 
 import type { PreKeySignalMessage } from "../protocol/pre-key-signal-message.js";
-import { SessionRecord } from "../session/session-record.js";
+import { type SessionRecord } from "../session/session-record.js";
 import type { SessionState } from "../session/session-state.js";
 import {
   type ProtocolAddress,

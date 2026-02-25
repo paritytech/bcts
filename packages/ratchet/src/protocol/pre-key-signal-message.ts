@@ -11,9 +11,7 @@
 
 import { IdentityKey } from "../keys/identity-key.js";
 import { InvalidMessageError } from "../error.js";
-import {
-  CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-} from "../constants.js";
+import { CIPHERTEXT_MESSAGE_CURRENT_VERSION } from "../constants.js";
 import { SignalMessage } from "./signal-message.js";
 import { encodePreKeySignalMessage, decodePreKeySignalMessage } from "./proto.js";
 import {

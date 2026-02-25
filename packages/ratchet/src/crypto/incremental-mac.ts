@@ -65,7 +65,7 @@ export function calculateChunkSize(dataSize: number, digestSize: number = DIGEST
  */
 export class IncrementalMac {
   /** Running HMAC instance; updated with every byte fed in. */
-  private mac: ReturnType<typeof hmac.create>;
+  private readonly mac: ReturnType<typeof hmac.create>;
   readonly chunkSize: number;
   /** Bytes remaining until the current chunk is full. */
   private unusedLength: number;

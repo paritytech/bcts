@@ -134,13 +134,13 @@ export const MessageKeyGeneratorFactory = {
       };
     }
     // Legacy Keys variant
-    if (!proto.cipherKey || proto.cipherKey.length !== 32) {
+    if (proto.cipherKey?.length !== 32) {
       throw new Error("Invalid message cipher key");
     }
-    if (!proto.macKey || proto.macKey.length !== 32) {
+    if (proto.macKey?.length !== 32) {
       throw new Error("Invalid message MAC key");
     }
-    if (!proto.iv || proto.iv.length !== 16) {
+    if (proto.iv?.length !== 16) {
       throw new Error("Invalid message IV");
     }
     return {

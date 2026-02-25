@@ -6,7 +6,7 @@
 
 import type { RandomNumberGenerator } from "@bcts/rand";
 import type { SessionState } from "./session-state.js";
-import { ChainKey } from "../ratchet/chain-key.js";
+import { type ChainKey } from "../ratchet/chain-key.js";
 import { KeyPair } from "../keys/key-pair.js";
 import { InvalidKeyError } from "../error.js";
 

@@ -184,7 +184,7 @@ export class SenderKeyMessage implements CiphertextMessageConvertible {
 
     const proto = decodeSenderKeyMessage(protoData);
 
-    if (!proto.distributionId || proto.distributionId.length !== 16) {
+    if (proto.distributionId?.length !== 16) {
       throw new InvalidMessageError("Missing or invalid distribution ID");
     }
     if (proto.chainId === undefined) {

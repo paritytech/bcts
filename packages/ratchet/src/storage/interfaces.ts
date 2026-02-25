@@ -103,9 +103,4 @@ export function generateDistributionId(): DistributionId {
  * Reference: libsignal/rust/protocol/src/storage/traits.rs
  */
 export interface ProtocolStore
-  extends
-    SessionStore,
-    PreKeyStore,
-    SignedPreKeyStore,
-    IdentityKeyStore,
-    SenderKeyStore {}
+  extends SessionStore, PreKeyStore, SignedPreKeyStore, IdentityKeyStore, SenderKeyStore {}

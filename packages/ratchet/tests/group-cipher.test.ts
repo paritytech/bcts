@@ -5,7 +5,7 @@ import {
   createSenderKeyDistributionMessage,
   processSenderKeyDistributionMessage,
 } from "../src/group/group-cipher.js";
-import { SenderKeyMessage } from "../src/protocol/sender-key-message.js";
+import { type SenderKeyMessage } from "../src/protocol/sender-key-message.js";
 import { SenderChainKey } from "../src/group/sender-chain-key.js";
 import { SenderKeyRecord } from "../src/group/sender-key-record.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";

@@ -860,9 +860,9 @@ describe("Sealed Sender V2 Multi-Recipient", () => {
       [uuid3, recipient3],
     ] as const) {
       const recipientData = parsed.recipientsByServiceIdString().get(uuid);
-      expect(recipientData).toBeDefined();
+      if (!recipientData) throw new Error(`expected recipient data for ${uuid}`);
 
-      const receivedMessage = parsed.messageForRecipient(recipientData!);
+      const receivedMessage = parsed.messageForRecipient(recipientData);
       expect(receivedMessage[0]).toBe(0x22); // ReceivedMessage uses 0x22
 
       const result = sealedSenderDecrypt(
@@ -940,17 +940,17 @@ describe("Sealed Sender V2 Multi-Recipient", () => {
 
     const parsed = SealedSenderMultiRecipientMessage.parse(sentMessage);
     const recipientData = parsed.recipientsByServiceIdString().get(uuid);
-    expect(recipientData).toBeDefined();
-    expect(recipientData!.devices.length).toBe(3);
-    expect(recipientData!.devices[0].deviceId).toBe(1);
-    expect(recipientData!.devices[0].registrationId).toBe(100);
-    expect(recipientData!.devices[1].deviceId).toBe(2);
-    expect(recipientData!.devices[1].registrationId).toBe(200);
-    expect(recipientData!.devices[2].deviceId).toBe(3);
-    expect(recipientData!.devices[2].registrationId).toBe(300);
+    if (!recipientData) throw new Error("expected recipient data");
+    expect(recipientData.devices.length).toBe(3);
+    expect(recipientData.devices[0].deviceId).toBe(1);
+    expect(recipientData.devices[0].registrationId).toBe(100);
+    expect(recipientData.devices[1].deviceId).toBe(2);
+    expect(recipientData.devices[1].registrationId).toBe(200);
+    expect(recipientData.devices[2].deviceId).toBe(3);
+    expect(recipientData.devices[2].registrationId).toBe(300);
 
     // Decrypt
-    const receivedMessage = parsed.messageForRecipient(recipientData!);
+    const receivedMessage = parsed.messageForRecipient(recipientData);
     const result = sealedSenderDecrypt(receivedMessage, recipient, trustRoot.publicKey, Date.now());
     expect(result.paddedMessage).toEqual(content);
   });
@@ -987,12 +987,12 @@ describe("Sealed Sender V2 Multi-Recipient", () => {
     expect(parsed.recipients.size).toBe(2);
 
     const included = parsed.recipientsByServiceIdString().get(uuid);
-    expect(included).toBeDefined();
-    expect(included!.devices.length).toBe(1);
+    if (!included) throw new Error("expected included recipient");
+    expect(included.devices.length).toBe(1);
 
     const excluded = parsed.recipientsByServiceIdString().get(excludedUuid);
-    expect(excluded).toBeDefined();
-    expect(excluded!.devices.length).toBe(0);
+    if (!excluded) throw new Error("expected excluded recipient");
+    expect(excluded.devices.length).toBe(0);
   });
 
   it("serviceIdFromUuid creates correct bytes", () => {
@@ -1046,7 +1046,8 @@ describe("Sealed Sender V2 Multi-Recipient", () => {
     });
 
     const parsed = SealedSenderMultiRecipientMessage.parse(sentMessage);
-    const r1Data = parsed.recipientsByServiceIdString().get(uuid1)!;
+    const r1Data = parsed.recipientsByServiceIdString().get(uuid1);
+    if (!r1Data) throw new Error("expected recipient data for uuid1");
     const receivedMessage = parsed.messageForRecipient(r1Data);
 
     // Wrong recipient trying to decrypt recipient1's message
@@ -1086,8 +1087,8 @@ describe("Sealed Sender V2 Multi-Recipient", () => {
 
     const parsed = SealedSenderMultiRecipientMessage.parse(sentMessage);
     const recipientData = parsed.recipientsByServiceIdString().get(uuid);
-    expect(recipientData).toBeDefined();
-    expect(recipientData!.devices[0].registrationId).toBe(0x3fff);
-    expect(recipientData!.devices[1].registrationId).toBe(1);
+    if (!recipientData) throw new Error("expected recipient data");
+    expect(recipientData.devices[0].registrationId).toBe(0x3fff);
+    expect(recipientData.devices[1].registrationId).toBe(1);
   });
 });
