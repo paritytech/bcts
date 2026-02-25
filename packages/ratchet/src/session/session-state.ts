@@ -507,7 +507,7 @@ export class SessionState {
     // Receiver chains
     if (proto.receiverChains != null) {
       for (const rc of proto.receiverChains) {
-        if (rc.senderRatchetKey) {
+        if (rc.senderRatchetKey != null) {
           const rawKey =
             rc.senderRatchetKey.length === 33 && rc.senderRatchetKey[0] === 0x05
               ? rc.senderRatchetKey.slice(1)
@@ -516,11 +516,11 @@ export class SessionState {
           state.addReceiverChain(rawKey, ck);
 
           // Restore message keys
-          if (rc.messageKeys) {
+          if (rc.messageKeys != null) {
             for (const mk of rc.messageKeys) {
-              if (mk.seed) {
+              if (mk.seed != null) {
                 state.setMessageKeys(rawKey, mk.seed, mk.index ?? 0);
-              } else if (mk.cipherKey && mk.macKey && mk.iv) {
+              } else if (mk.cipherKey != null && mk.macKey != null && mk.iv != null) {
                 // Set fully-derived keys via direct chain access
                 const chain = state._receiverChains.find((c) =>
                   bytesEqual(c.senderRatchetKey, rawKey),
@@ -539,7 +539,7 @@ export class SessionState {
     }
 
     // Pending pre-key
-    if (proto.pendingPreKey) {
+    if (proto.pendingPreKey != null) {
       state.setPendingPreKey({
         preKeyId: proto.pendingPreKey.preKeyId,
         signedPreKeyId: proto.pendingPreKey.signedPreKeyId ?? 0,
@@ -560,12 +560,12 @@ export class SessionState {
       localIdentityKey: this._localIdentityKey,
       remoteIdentityKey: this._remoteIdentityKey,
       rootKey: new RootKey(Uint8Array.from(this._rootKey.key)),
-      aliceBaseKey: this._aliceBaseKey ? Uint8Array.from(this._aliceBaseKey) : undefined,
+      aliceBaseKey: this._aliceBaseKey != null ? Uint8Array.from(this._aliceBaseKey) : undefined,
     });
     cloned._previousCounter = this._previousCounter;
     cloned._localRegistrationId = this._localRegistrationId;
     cloned._remoteRegistrationId = this._remoteRegistrationId;
-    cloned._pendingPreKey = this._pendingPreKey ? { ...this._pendingPreKey } : undefined;
+    cloned._pendingPreKey = this._pendingPreKey != null ? { ...this._pendingPreKey } : undefined;
 
     if (this._senderChain != null) {
       cloned._senderChain = {

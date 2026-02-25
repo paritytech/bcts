@@ -39,7 +39,6 @@ import { processPreKeyMessage } from "../x3dh/process-prekey-message.js";
  *
  * Overload: accepts a single ProtocolStore instead of separate stores.
  */
-// eslint-disable-next-line no-redeclare
 export async function messageEncrypt(
   plaintext: Uint8Array,
   remoteAddress: ProtocolAddress,
@@ -343,8 +342,9 @@ function decryptMessageWithRecord(
   const errors: Error[] = [];
 
   // Try current session
-  if (record.sessionState()) {
-    const currentState = record.sessionState()!.clone();
+  const currentSessionState = record.sessionState();
+  if (currentSessionState != null) {
+    const currentState = currentSessionState.clone();
     try {
       const plaintext = decryptMessageWithState(currentState, ciphertext, rng);
       record.setSessionState(currentState);
@@ -400,7 +400,7 @@ function decryptMessageWithState(
 
   // Verify MAC
   const theirIdentityKey = state.remoteIdentityKey();
-  if (!theirIdentityKey) {
+  if (theirIdentityKey == null) {
     throw new InvalidSessionError("Cannot decrypt without remote identity key");
   }
 
