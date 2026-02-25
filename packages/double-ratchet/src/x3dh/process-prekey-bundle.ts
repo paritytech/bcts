@@ -58,17 +58,15 @@ export async function processPreKeyBundle(
   const ourIdentityKeyPair = await identityStore.getIdentityKeyPair();
 
   // 6. Initialize Alice session (classic X3DH, no Kyber)
-  const session = initializeAliceSession(
-    {
-      ourIdentityKeyPair,
-      ourBaseKeyPair,
-      theirIdentityKey,
-      theirSignedPreKey: bundle.signedPreKey,
-      theirOneTimePreKey: bundle.preKey,
-      theirRatchetKey: bundle.signedPreKey, // signed prekey is also ratchet key
-    },
-    rng,
-  );
+  const aliceParams: Parameters<typeof initializeAliceSession>[0] = {
+    ourIdentityKeyPair,
+    ourBaseKeyPair,
+    theirIdentityKey,
+    theirSignedPreKey: bundle.signedPreKey,
+    theirRatchetKey: bundle.signedPreKey, // signed prekey is also ratchet key
+  };
+  if (bundle.preKey != null) aliceParams.theirOneTimePreKey = bundle.preKey;
+  const session = initializeAliceSession(aliceParams, rng);
 
   // 7. Set pending prekey info
   session.setPendingPreKey({

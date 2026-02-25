@@ -67,14 +67,15 @@ export async function processPreKeyMessage(
   const ourIdentityKeyPair = await identityStore.getIdentityKeyPair();
 
   // 5. Initialize Bob session (classic X3DH, no Kyber)
-  const newSession = initializeBobSession({
+  const bobParams: Parameters<typeof initializeBobSession>[0] = {
     ourIdentityKeyPair,
     ourSignedPreKeyPair: ourSignedPreKeyRecord.keyPair,
-    ourOneTimePreKeyPair,
     ourRatchetKeyPair: ourSignedPreKeyRecord.keyPair, // signed prekey is also ratchet key
     theirIdentityKey,
     theirBaseKey: message.baseKey,
-  });
+  };
+  if (ourOneTimePreKeyPair != null) bobParams.ourOneTimePreKeyPair = ourOneTimePreKeyPair;
+  const newSession = initializeBobSession(bobParams);
 
   // 6. Set registration IDs
   newSession.setLocalRegistrationId(await identityStore.getLocalRegistrationId());

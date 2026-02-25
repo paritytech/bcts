@@ -508,7 +508,8 @@ export function encodeMessageKey(mk: MessageKeyProto): Uint8Array {
 export function encodeChainStructure(chain: ChainStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (chain.senderRatchetKey != null) parts.push(encodeBytesField(1, chain.senderRatchetKey));
-  if (chain.senderRatchetKeyPrivate != null) parts.push(encodeBytesField(2, chain.senderRatchetKeyPrivate));
+  if (chain.senderRatchetKeyPrivate != null)
+    parts.push(encodeBytesField(2, chain.senderRatchetKeyPrivate));
   if (chain.chainKey != null) parts.push(encodeNestedMessage(3, encodeChainKey(chain.chainKey)));
   if (chain.messageKeys != null) {
     for (const mk of chain.messageKeys) {
@@ -534,13 +535,15 @@ export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
   if (ss.remoteIdentityPublic != null) parts.push(encodeBytesField(3, ss.remoteIdentityPublic));
   if (ss.rootKey != null) parts.push(encodeBytesField(4, ss.rootKey));
   if (ss.previousCounter !== undefined) parts.push(encodeUint32Field(5, ss.previousCounter));
-  if (ss.senderChain != null) parts.push(encodeNestedMessage(6, encodeChainStructure(ss.senderChain)));
+  if (ss.senderChain != null)
+    parts.push(encodeNestedMessage(6, encodeChainStructure(ss.senderChain)));
   if (ss.receiverChains != null) {
     for (const rc of ss.receiverChains) {
       parts.push(encodeNestedMessage(7, encodeChainStructure(rc)));
     }
   }
-  if (ss.pendingPreKey != null) parts.push(encodeNestedMessage(9, encodePendingPreKey(ss.pendingPreKey)));
+  if (ss.pendingPreKey != null)
+    parts.push(encodeNestedMessage(9, encodePendingPreKey(ss.pendingPreKey)));
   if (ss.remoteRegistrationId !== undefined)
     parts.push(encodeUint32Field(10, ss.remoteRegistrationId));
   if (ss.localRegistrationId !== undefined)
@@ -564,72 +567,98 @@ export function encodeRecordStructure(rs: RecordStructureProto): Uint8Array {
 
 export function decodeChainKey(data: Uint8Array): ChainKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    index: fields.varints.get(1),
-    key: fields.bytes.get(2),
-  };
+  const result: ChainKeyProto = {};
+  const index = fields.varints.get(1);
+  if (index !== undefined) result.index = index;
+  const key = fields.bytes.get(2);
+  if (key !== undefined) result.key = key;
+  return result;
 }
 
 export function decodeMessageKey(data: Uint8Array): MessageKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    index: fields.varints.get(1),
-    cipherKey: fields.bytes.get(2),
-    macKey: fields.bytes.get(3),
-    iv: fields.bytes.get(4),
-    seed: fields.bytes.get(5),
-  };
+  const result: MessageKeyProto = {};
+  const index = fields.varints.get(1);
+  if (index !== undefined) result.index = index;
+  const cipherKey = fields.bytes.get(2);
+  if (cipherKey !== undefined) result.cipherKey = cipherKey;
+  const macKey = fields.bytes.get(3);
+  if (macKey !== undefined) result.macKey = macKey;
+  const iv = fields.bytes.get(4);
+  if (iv !== undefined) result.iv = iv;
+  const seed = fields.bytes.get(5);
+  if (seed !== undefined) result.seed = seed;
+  return result;
 }
 
 export function decodeChainStructure(data: Uint8Array): ChainStructureProto {
   const fields = parseProtoFields(data);
-  const messageKeys = fields.repeatedBytes.get(4)?.map(decodeMessageKey);
+  const result: ChainStructureProto = {};
+  const senderRatchetKey = fields.bytes.get(1);
+  if (senderRatchetKey !== undefined) result.senderRatchetKey = senderRatchetKey;
+  const senderRatchetKeyPrivate = fields.bytes.get(2);
+  if (senderRatchetKeyPrivate !== undefined)
+    result.senderRatchetKeyPrivate = senderRatchetKeyPrivate;
   const chainKeyBytes = fields.bytes.get(3);
-  return {
-    senderRatchetKey: fields.bytes.get(1),
-    senderRatchetKeyPrivate: fields.bytes.get(2),
-    chainKey: chainKeyBytes != null ? decodeChainKey(chainKeyBytes) : undefined,
-    messageKeys,
-  };
+  if (chainKeyBytes != null) result.chainKey = decodeChainKey(chainKeyBytes);
+  const messageKeys = fields.repeatedBytes.get(4)?.map(decodeMessageKey);
+  if (messageKeys !== undefined) result.messageKeys = messageKeys;
+  return result;
 }
 
 export function decodePendingPreKey(data: Uint8Array): PendingPreKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    preKeyId: fields.varints.get(1),
-    baseKey: fields.bytes.get(2),
-    signedPreKeyId: fields.varints.get(3),
-    timestamp: fields.varints.get(4),
-  };
+  const result: PendingPreKeyProto = {};
+  const preKeyId = fields.varints.get(1);
+  if (preKeyId !== undefined) result.preKeyId = preKeyId;
+  const baseKey = fields.bytes.get(2);
+  if (baseKey !== undefined) result.baseKey = baseKey;
+  const signedPreKeyId = fields.varints.get(3);
+  if (signedPreKeyId !== undefined) result.signedPreKeyId = signedPreKeyId;
+  const timestamp = fields.varints.get(4);
+  if (timestamp !== undefined) result.timestamp = timestamp;
+  return result;
 }
 
 export function decodeSessionStructure(data: Uint8Array): SessionStructureProto {
   const fields = parseProtoFields(data);
-  const senderChainBytes = fields.bytes.get(6);
-  const receiverChainBytesArr = fields.repeatedBytes.get(7);
-  const pendingPreKeyBytes = fields.bytes.get(9);
+  const result: SessionStructureProto = {};
 
-  return {
-    sessionVersion: fields.varints.get(1),
-    localIdentityPublic: fields.bytes.get(2),
-    remoteIdentityPublic: fields.bytes.get(3),
-    rootKey: fields.bytes.get(4),
-    previousCounter: fields.varints.get(5),
-    senderChain: senderChainBytes != null ? decodeChainStructure(senderChainBytes) : undefined,
-    receiverChains: receiverChainBytesArr?.map(decodeChainStructure),
-    pendingPreKey: pendingPreKeyBytes != null ? decodePendingPreKey(pendingPreKeyBytes) : undefined,
-    remoteRegistrationId: fields.varints.get(10),
-    localRegistrationId: fields.varints.get(11),
-    aliceBaseKey: fields.bytes.get(13),
-  };
+  const sessionVersion = fields.varints.get(1);
+  if (sessionVersion !== undefined) result.sessionVersion = sessionVersion;
+  const localIdentityPublic = fields.bytes.get(2);
+  if (localIdentityPublic !== undefined) result.localIdentityPublic = localIdentityPublic;
+  const remoteIdentityPublic = fields.bytes.get(3);
+  if (remoteIdentityPublic !== undefined) result.remoteIdentityPublic = remoteIdentityPublic;
+  const rootKey = fields.bytes.get(4);
+  if (rootKey !== undefined) result.rootKey = rootKey;
+  const previousCounter = fields.varints.get(5);
+  if (previousCounter !== undefined) result.previousCounter = previousCounter;
+  const senderChainBytes = fields.bytes.get(6);
+  if (senderChainBytes != null) result.senderChain = decodeChainStructure(senderChainBytes);
+  const receiverChainBytesArr = fields.repeatedBytes.get(7);
+  if (receiverChainBytesArr !== undefined)
+    result.receiverChains = receiverChainBytesArr.map(decodeChainStructure);
+  const pendingPreKeyBytes = fields.bytes.get(9);
+  if (pendingPreKeyBytes != null) result.pendingPreKey = decodePendingPreKey(pendingPreKeyBytes);
+  const remoteRegistrationId = fields.varints.get(10);
+  if (remoteRegistrationId !== undefined) result.remoteRegistrationId = remoteRegistrationId;
+  const localRegistrationId = fields.varints.get(11);
+  if (localRegistrationId !== undefined) result.localRegistrationId = localRegistrationId;
+  const aliceBaseKey = fields.bytes.get(13);
+  if (aliceBaseKey !== undefined) result.aliceBaseKey = aliceBaseKey;
+
+  return result;
 }
 
 export function decodeRecordStructure(data: Uint8Array): RecordStructureProto {
   const fields = parseProtoFields(data);
-  return {
-    currentSession: fields.bytes.get(1),
-    previousSessions: fields.repeatedBytes.get(2),
-  };
+  const result: RecordStructureProto = {};
+  const currentSession = fields.bytes.get(1);
+  if (currentSession !== undefined) result.currentSession = currentSession;
+  const previousSessions = fields.repeatedBytes.get(2);
+  if (previousSessions !== undefined) result.previousSessions = previousSessions;
+  return result;
 }
 
 // --- Sender Key protobuf schemas ---
@@ -710,48 +739,58 @@ export function encodeSenderKeyRecordStructure(record: SenderKeyRecordStructureP
 
 export function decodeSenderKeyStateChainKey(data: Uint8Array): SenderKeyStateChainKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    iteration: fields.varints.get(1),
-    seed: fields.bytes.get(2),
-  };
+  const result: SenderKeyStateChainKeyProto = {};
+  const iteration = fields.varints.get(1);
+  if (iteration !== undefined) result.iteration = iteration;
+  const seed = fields.bytes.get(2);
+  if (seed !== undefined) result.seed = seed;
+  return result;
 }
 
 export function decodeSenderKeyStateMessageKey(data: Uint8Array): SenderKeyStateMessageKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    iteration: fields.varints.get(1),
-    seed: fields.bytes.get(2),
-  };
+  const result: SenderKeyStateMessageKeyProto = {};
+  const iteration = fields.varints.get(1);
+  if (iteration !== undefined) result.iteration = iteration;
+  const seed = fields.bytes.get(2);
+  if (seed !== undefined) result.seed = seed;
+  return result;
 }
 
 export function decodeSenderSigningKey(data: Uint8Array): SenderSigningKeyProto {
   const fields = parseProtoFields(data);
-  return {
-    publicKey: fields.bytes.get(1),
-    privateKey: fields.bytes.get(2),
-  };
+  const result: SenderSigningKeyProto = {};
+  const publicKey = fields.bytes.get(1);
+  if (publicKey !== undefined) result.publicKey = publicKey;
+  const privateKey = fields.bytes.get(2);
+  if (privateKey !== undefined) result.privateKey = privateKey;
+  return result;
 }
 
 export function decodeSenderKeyStateStructure(data: Uint8Array): SenderKeyStateStructureProto {
   const fields = parseProtoFields(data);
+  const result: SenderKeyStateStructureProto = {};
+  const chainId = fields.varints.get(1);
+  if (chainId !== undefined) result.chainId = chainId;
   const chainKeyBytes = fields.bytes.get(2);
+  if (chainKeyBytes != null) result.senderChainKey = decodeSenderKeyStateChainKey(chainKeyBytes);
   const signingKeyBytes = fields.bytes.get(3);
+  if (signingKeyBytes != null) result.senderSigningKey = decodeSenderSigningKey(signingKeyBytes);
   const messageKeyBytesArr = fields.repeatedBytes.get(4);
-  return {
-    chainId: fields.varints.get(1),
-    senderChainKey: chainKeyBytes != null ? decodeSenderKeyStateChainKey(chainKeyBytes) : undefined,
-    senderSigningKey: signingKeyBytes != null ? decodeSenderSigningKey(signingKeyBytes) : undefined,
-    senderMessageKeys: messageKeyBytesArr?.map(decodeSenderKeyStateMessageKey),
-    messageVersion: fields.varints.get(5),
-  };
+  if (messageKeyBytesArr !== undefined)
+    result.senderMessageKeys = messageKeyBytesArr.map(decodeSenderKeyStateMessageKey);
+  const messageVersion = fields.varints.get(5);
+  if (messageVersion !== undefined) result.messageVersion = messageVersion;
+  return result;
 }
 
 export function decodeSenderKeyRecordStructure(data: Uint8Array): SenderKeyRecordStructureProto {
   const fields = parseProtoFields(data);
+  const result: SenderKeyRecordStructureProto = {};
   const statesArr = fields.repeatedBytes.get(1);
-  return {
-    senderKeyStates: statesArr?.map(decodeSenderKeyStateStructure),
-  };
+  if (statesArr !== undefined)
+    result.senderKeyStates = statesArr.map(decodeSenderKeyStateStructure);
+  return result;
 }
 
 // --- PreKey record protobuf ---
@@ -780,11 +819,14 @@ export function encodePreKeyRecord(pk: PreKeyRecordProto): Uint8Array {
 
 export function decodePreKeyRecord(data: Uint8Array): PreKeyRecordProto {
   const fields = parseProtoFields(data);
-  return {
-    id: fields.varints.get(1),
-    publicKey: fields.bytes.get(2),
-    privateKey: fields.bytes.get(3),
-  };
+  const result: PreKeyRecordProto = {};
+  const id = fields.varints.get(1);
+  if (id !== undefined) result.id = id;
+  const publicKey = fields.bytes.get(2);
+  if (publicKey !== undefined) result.publicKey = publicKey;
+  const privateKey = fields.bytes.get(3);
+  if (privateKey !== undefined) result.privateKey = privateKey;
+  return result;
 }
 
 export function encodeSignedPreKeyRecord(spk: SignedPreKeyRecordProto): Uint8Array {
@@ -799,14 +841,18 @@ export function encodeSignedPreKeyRecord(spk: SignedPreKeyRecordProto): Uint8Arr
 
 export function decodeSignedPreKeyRecord(data: Uint8Array): SignedPreKeyRecordProto {
   const fields = parseProtoFields(data);
+  const result: SignedPreKeyRecordProto = {};
+  const id = fields.varints.get(1);
+  if (id !== undefined) result.id = id;
+  const publicKey = fields.bytes.get(2);
+  if (publicKey !== undefined) result.publicKey = publicKey;
+  const privateKey = fields.bytes.get(3);
+  if (privateKey !== undefined) result.privateKey = privateKey;
+  const signature = fields.bytes.get(4);
+  if (signature !== undefined) result.signature = signature;
   // timestamp is fixed64 (wire type 1) matching libsignal's storage.proto
   // Also support varint for backward compatibility with previously serialized data
   const timestamp = fields.fixed64s.get(5) ?? fields.varints.get(5);
-  return {
-    id: fields.varints.get(1),
-    publicKey: fields.bytes.get(2),
-    privateKey: fields.bytes.get(3),
-    signature: fields.bytes.get(4),
-    timestamp,
-  };
+  if (timestamp !== undefined) result.timestamp = timestamp;
+  return result;
 }

@@ -140,8 +140,9 @@ export async function createSenderKeyDistributionMessage(
   if (recordBytes == null) {
     // Generate new sender key state
     const chainId =
-      globalThis.crypto.getRandomValues(new Uint8Array(4)).reduce((acc, b, i) => acc | (b << (i * 8)), 0) >>>
-      1; // 31-bit integer matching libsignal-protocol-java
+      globalThis.crypto
+        .getRandomValues(new Uint8Array(4))
+        .reduce((acc, b, i) => acc | (b << (i * 8)), 0) >>> 1; // 31-bit integer matching libsignal-protocol-java
     const senderKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const signingPrivateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const signingPublicKey = ed25519.getPublicKey(signingPrivateKey);
@@ -194,7 +195,8 @@ export async function processSenderKeyDistributionMessage(
   senderKeyStore: SenderKeyStore,
 ): Promise<void> {
   const recordBytes = await senderKeyStore.loadSenderKey(sender, distributionId);
-  const record = recordBytes != null ? SenderKeyRecord.deserialize(recordBytes) : new SenderKeyRecord();
+  const record =
+    recordBytes != null ? SenderKeyRecord.deserialize(recordBytes) : new SenderKeyRecord();
 
   // Strip 0x05 prefix from signing key if present
   let signingKey = skdm.signingKey;

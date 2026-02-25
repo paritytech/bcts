@@ -125,10 +125,7 @@ export class InMemorySignalProtocolStore
     return Promise.resolve();
   }
 
-  loadSenderKey(
-    sender: ProtocolAddress,
-    distributionId: string,
-  ): Promise<Uint8Array | undefined> {
+  loadSenderKey(sender: ProtocolAddress, distributionId: string): Promise<Uint8Array | undefined> {
     return Promise.resolve(this.senderKeys.get(`${sender.toString()}::${distributionId}`));
   }
 }

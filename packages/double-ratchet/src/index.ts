@@ -1,5 +1,5 @@
 /**
- * @bcts/ratchet — Signal Protocol Double Ratchet implementation.
+ * @bcts/double-ratchet — Signal Protocol Double Ratchet implementation.
  *
  * Wire-compatible with Signal Protocol version 3 (X3DH).
  */

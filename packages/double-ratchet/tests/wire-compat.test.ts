@@ -876,7 +876,8 @@ describe("Task 9.3: SessionStructure storage format", () => {
       expect(decoded.senderChain.messageKeys[1].cipherKey).toBeDefined();
       if (!decoded.receiverChains) throw new Error("expected receiverChains");
       expect(decoded.receiverChains).toHaveLength(1);
-      if (!decoded.receiverChains[0].chainKey) throw new Error("expected receiverChains[0].chainKey");
+      if (!decoded.receiverChains[0].chainKey)
+        throw new Error("expected receiverChains[0].chainKey");
       expect(decoded.receiverChains[0].chainKey.index).toBe(5);
       if (!decoded.pendingPreKey) throw new Error("expected pendingPreKey");
       expect(decoded.pendingPreKey.preKeyId).toBe(42);

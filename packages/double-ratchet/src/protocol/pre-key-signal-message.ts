@@ -67,14 +67,17 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     serializedBaseKey[0] = 0x05;
     serializedBaseKey.set(baseKey, 1);
 
-    const protoEncoded = encodePreKeySignalMessage({
+    const proto: Parameters<typeof encodePreKeySignalMessage>[0] = {
       registrationId,
-      preKeyId,
       signedPreKeyId,
       baseKey: serializedBaseKey,
       identityKey: identityKey.serialize(),
       message: message.serialized,
-    });
+    };
+    if (preKeyId !== undefined) {
+      proto.preKeyId = preKeyId;
+    }
+    const protoEncoded = encodePreKeySignalMessage(proto);
 
     // Version byte: (sessionVersion << 4) | sessionVersion -> 0x33 for v3
     const versionByte = ((messageVersion & 0xf) << 4) | messageVersion;

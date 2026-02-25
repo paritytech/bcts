@@ -1,5 +1,5 @@
 {
-  "name": "@bcts/ratchet",
+  "name": "@bcts/double-ratchet",
   "version": "1.0.0-alpha.1",
   "type": "module",
   "description": "Signal Protocol Double Ratchet implementation for TypeScript",
@@ -20,7 +20,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/leonardocustodio/bcts",
-    "directory": "packages/ratchet"
+    "directory": "packages/double-ratchet"
   },
   "bugs": {
     "url": "https://github.com/leonardocustodio/bcts/issues"

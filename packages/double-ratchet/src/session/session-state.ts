@@ -118,9 +118,8 @@ export class SessionState {
     this._remoteRegistrationId = 0;
     // Store aliceBaseKey in 33-byte DJB-prefixed form (0x05 || raw_key)
     // for protobuf compatibility with libsignal's SessionStructure.
-    this._aliceBaseKey = params.aliceBaseKey != null
-      ? SessionState.ensureDjbPrefix(params.aliceBaseKey)
-      : undefined;
+    this._aliceBaseKey =
+      params.aliceBaseKey != null ? SessionState.ensureDjbPrefix(params.aliceBaseKey) : undefined;
   }
 
   // --- Version ---
@@ -396,13 +395,14 @@ export class SessionState {
     const proto: SessionStructureProto = {
       sessionVersion: this._sessionVersion,
       localIdentityPublic: this._localIdentityKey.serialize(),
-      remoteIdentityPublic: this._remoteIdentityKey?.serialize(),
       rootKey: this._rootKey.key,
       previousCounter: this._previousCounter,
       remoteRegistrationId: this._remoteRegistrationId,
       localRegistrationId: this._localRegistrationId,
-      aliceBaseKey: this._aliceBaseKey,
     };
+    if (this._remoteIdentityKey != null)
+      proto.remoteIdentityPublic = this._remoteIdentityKey.serialize();
+    if (this._aliceBaseKey != null) proto.aliceBaseKey = this._aliceBaseKey;
 
     // Sender chain
     if (this._senderChain != null) {
@@ -450,12 +450,15 @@ export class SessionState {
 
     // Pending pre-key
     if (this._pendingPreKey != null) {
-      proto.pendingPreKey = {
-        preKeyId: this._pendingPreKey.preKeyId,
+      const ppk: import("../protocol/proto.js").PendingPreKeyProto = {
         signedPreKeyId: this._pendingPreKey.signedPreKeyId,
         baseKey: this._pendingPreKey.baseKey,
         timestamp: this._pendingPreKey.timestamp,
       };
+      if (this._pendingPreKey.preKeyId !== undefined) {
+        ppk.preKeyId = this._pendingPreKey.preKeyId;
+      }
+      proto.pendingPreKey = ppk;
     }
 
     return encodeSessionStructure(proto);
@@ -472,17 +475,19 @@ export class SessionState {
     }
 
     const localIdentityKey = IdentityKey.deserialize(proto.localIdentityPublic);
-    const remoteIdentityKey = proto.remoteIdentityPublic != null
-      ? IdentityKey.deserialize(proto.remoteIdentityPublic)
-      : undefined;
+    const remoteIdentityKey =
+      proto.remoteIdentityPublic != null
+        ? IdentityKey.deserialize(proto.remoteIdentityPublic)
+        : undefined;
 
-    const state = new SessionState({
+    const stateParams: ConstructorParameters<typeof SessionState>[0] = {
       sessionVersion: proto.sessionVersion ?? 0,
       localIdentityKey,
-      remoteIdentityKey,
       rootKey: new RootKey(proto.rootKey ?? new Uint8Array(32)),
-      aliceBaseKey: proto.aliceBaseKey,
-    });
+    };
+    if (remoteIdentityKey !== undefined) stateParams.remoteIdentityKey = remoteIdentityKey;
+    if (proto.aliceBaseKey !== undefined) stateParams.aliceBaseKey = proto.aliceBaseKey;
+    const state = new SessionState(stateParams);
 
     state._previousCounter = proto.previousCounter ?? 0;
     state._remoteRegistrationId = proto.remoteRegistrationId ?? 0;
@@ -555,13 +560,15 @@ export class SessionState {
    * Clone this session state for trying decryption without modifying the original.
    */
   clone(): SessionState {
-    const cloned = new SessionState({
+    const cloneParams: ConstructorParameters<typeof SessionState>[0] = {
       sessionVersion: this._sessionVersion,
       localIdentityKey: this._localIdentityKey,
-      remoteIdentityKey: this._remoteIdentityKey,
       rootKey: new RootKey(Uint8Array.from(this._rootKey.key)),
-      aliceBaseKey: this._aliceBaseKey != null ? Uint8Array.from(this._aliceBaseKey) : undefined,
-    });
+    };
+    if (this._remoteIdentityKey !== undefined)
+      cloneParams.remoteIdentityKey = this._remoteIdentityKey;
+    if (this._aliceBaseKey != null) cloneParams.aliceBaseKey = Uint8Array.from(this._aliceBaseKey);
+    const cloned = new SessionState(cloneParams);
     cloned._previousCounter = this._previousCounter;
     cloned._localRegistrationId = this._localRegistrationId;
     cloned._remoteRegistrationId = this._remoteRegistrationId;

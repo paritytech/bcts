@@ -115,9 +115,18 @@ export class SenderCertificate {
       encodeBytesField(2, signature),
     );
 
-    return new SenderCertificate({
+    const certParams: {
+      senderUuid: string;
+      senderE164?: string;
+      senderDeviceId: number;
+      expiration: number;
+      identityKey: Uint8Array;
+      serverCertificate: ServerCertificate;
+      certificate: Uint8Array;
+      signature: Uint8Array;
+      serialized: Uint8Array;
+    } = {
       senderUuid,
-      senderE164,
       senderDeviceId,
       expiration,
       identityKey,
@@ -125,7 +134,9 @@ export class SenderCertificate {
       certificate: certificateInner,
       signature,
       serialized,
-    });
+    };
+    if (senderE164 !== undefined) certParams.senderE164 = senderE164;
+    return new SenderCertificate(certParams);
   }
 
   /**
@@ -203,15 +214,26 @@ export class SenderCertificate {
       );
     }
 
-    const senderE164 = senderE164Bytes != null ? new TextDecoder().decode(senderE164Bytes) : undefined;
+    const senderE164 =
+      senderE164Bytes != null ? new TextDecoder().decode(senderE164Bytes) : undefined;
     const identityKey =
       identityKeyBytes.length === 33 && identityKeyBytes[0] === 0x05
         ? identityKeyBytes.slice(1)
         : identityKeyBytes;
 
-    return new SenderCertificate({
+    const deserParams: {
+      senderUuid: string;
+      senderE164?: string;
+      senderDeviceId: number;
+      expiration: number;
+      identityKey: Uint8Array;
+      serverCertificate: ServerCertificate;
+      certificate: Uint8Array;
+      signature: Uint8Array;
+      serialized: Uint8Array;
+      knownServerCertificateId?: number;
+    } = {
       senderUuid,
-      senderE164,
       senderDeviceId,
       expiration,
       identityKey,
@@ -219,8 +241,11 @@ export class SenderCertificate {
       certificate,
       signature,
       serialized: Uint8Array.from(data),
-      knownServerCertificateId,
-    });
+    };
+    if (senderE164 !== undefined) deserParams.senderE164 = senderE164;
+    if (knownServerCertificateId !== undefined)
+      deserParams.knownServerCertificateId = knownServerCertificateId;
+    return new SenderCertificate(deserParams);
   }
 
   /**

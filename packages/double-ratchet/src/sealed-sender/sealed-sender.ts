@@ -132,7 +132,9 @@ function ciphertextMessageTypeToProto(msgType: CiphertextMessageType): number {
     case CiphertextMessageType.Plaintext:
       return PROTO_TYPE_PLAINTEXT_CONTENT;
     default:
-      throw new InvalidSealedSenderMessageError(`Unknown ciphertext message type: ${msgType as number}`);
+      throw new InvalidSealedSenderMessageError(
+        `Unknown ciphertext message type: ${msgType as number}`,
+      );
   }
 }
 
@@ -236,7 +238,10 @@ export class UnidentifiedSenderMessageContent {
     const contentHintRaw = fields.varints.get(4);
     let contentHint = ContentHint.Default;
     if (contentHintRaw !== undefined) {
-      if (contentHintRaw === (ContentHint.Resendable as number) || contentHintRaw === (ContentHint.Implicit as number)) {
+      if (
+        contentHintRaw === (ContentHint.Resendable as number) ||
+        contentHintRaw === (ContentHint.Implicit as number)
+      ) {
         contentHint = contentHintRaw;
       }
     }
@@ -738,14 +743,15 @@ export function sealedSenderDecrypt(
     throw new SealedSenderSelfSendError();
   }
 
-  return {
+  const result: SealedSenderDecryptionResult = {
     senderUuid: usmc.senderCertificate.senderUuid,
     senderE164: usmc.senderCertificate.senderE164,
     senderDeviceId: usmc.senderCertificate.senderDeviceId,
     paddedMessage: usmc.content,
     contentHint: usmc.contentHint,
-    groupId: usmc.groupId ?? undefined,
   };
+  if (usmc.groupId != null) result.groupId = usmc.groupId;
+  return result;
 }
 
 // ============================================================================

@@ -204,8 +204,8 @@ export class ScannableFingerprint {
     // Build instance with the 32-byte fingerprints directly
     const fp = Object.create(ScannableFingerprint.prototype) as ScannableFingerprint;
     (fp as { version: number }).version = version;
-    (fp as { localFingerprint: Uint8Array }).localFingerprint = localContent;
-    (fp as { remoteFingerprint: Uint8Array }).remoteFingerprint = remoteContent;
+    (fp as unknown as { localFingerprint: Uint8Array }).localFingerprint = localContent;
+    (fp as unknown as { remoteFingerprint: Uint8Array }).remoteFingerprint = remoteContent;
     return fp;
   }
 
