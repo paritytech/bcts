@@ -17,7 +17,8 @@
 /// <reference types="node" />
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // GF16 arithmetic
 import { GF16 } from "../src/encoding/gf.js";
@@ -42,9 +43,7 @@ import { initialState, currentVersion, emptyState, type Params } from "../src/in
 // Load test vectors
 // ---------------------------------------------------------------------------
 
-const FIXTURES_DIR = resolve(
-  "/Users/custodio/Development/BCTS/typescript/packages/spqr/tests/fixtures",
-);
+const FIXTURES_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
 const vectors = JSON.parse(readFileSync(resolve(FIXTURES_DIR, "rust-vectors.json"), "utf-8"));
 
