@@ -30,7 +30,6 @@ import {
   // Generic field helpers
   encodeBytesField,
   encodeUint32Field,
-  encodeUint64Field,
   encodeNestedMessage,
   concatProtoFields,
   parseProtoFields,
@@ -41,7 +40,6 @@ import {
   encodeChainKey,
   encodeMessageKey,
   encodePendingPreKey,
-  encodePendingKyberPreKey,
   encodeRecordStructure,
   decodeRecordStructure,
   // Sender key codecs
@@ -335,12 +333,6 @@ describe("Task 9.3: SignalMessage wire format", () => {
       expect(fields[0].wireType).toBe(2);
     });
 
-    it("pq_ratchet is field 5, wire type 2 (length-delimited)", () => {
-      const encoded = encodeSignalMessage({ pqRatchetKey: filler(33) });
-      const fields = parseRawProto(encoded);
-      expect(fields[0].field).toBe(5);
-      expect(fields[0].wireType).toBe(2);
-    });
   });
 
   describe("full message encoding", () => {

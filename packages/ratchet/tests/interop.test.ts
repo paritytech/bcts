@@ -1,5 +1,5 @@
 /**
- * Interoperability Tests (WS-9 Tasks 9.5-9.10)
+ * Interoperability Tests (WS-9 Tasks 9.5-9.9)
  *
  * Validates wire-format interoperability with libsignal through:
  *   1. Known test vectors (bytes from the libsignal reference implementation)
@@ -9,20 +9,20 @@
  * These tests do NOT require the native @signalapp/libsignal-client bindings.
  * Instead they verify structural correctness of all wire-format outputs against
  * the canonical protobuf schemas in libsignal.
+ *
+ * All sessions use v3 (X3DH double ratchet).
  */
 
 import { describe, it, expect } from "vitest";
 import { IdentityKeyPair, IdentityKey } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
 import { messageEncrypt, messageDecrypt } from "../src/session/session-cipher.js";
 import { PreKeySignalMessage } from "../src/protocol/pre-key-signal-message.js";
 import { SignalMessage } from "../src/protocol/signal-message.js";
-import { SenderKeyMessage } from "../src/protocol/sender-key-message.js";
 import { SenderKeyDistributionMessage } from "../src/protocol/sender-key-distribution-message.js";
 import { SessionRecord } from "../src/session/session-record.js";
 import { KeyPair } from "../src/keys/key-pair.js";
@@ -55,11 +55,7 @@ import {
 import {
   MAC_LENGTH,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
   SENDERKEY_MESSAGE_CURRENT_VERSION,
-  KYBER1024_CIPHERTEXT_SIZE,
-  KemType,
-  KEM_TYPE_PREFIX_SIZE,
 } from "../src/index.js";
 import { createTestRng } from "./test-utils.js";
 
@@ -157,7 +153,7 @@ function parseRawFields(data: Uint8Array): RawField[] {
   return fields;
 }
 
-function setupV4AliceAndBob(rng: ReturnType<typeof createTestRng>) {
+function setupAliceAndBob(rng: ReturnType<typeof createTestRng>) {
   const aliceIdentity = IdentityKeyPair.generate(rng);
   const bobIdentity = IdentityKeyPair.generate(rng);
 
@@ -169,11 +165,9 @@ function setupV4AliceAndBob(rng: ReturnType<typeof createTestRng>) {
 
   const bobPreKey = PreKeyRecord.generate(1, rng);
   const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-  const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
 
   bobStore.storePreKey(bobPreKey.id, bobPreKey);
   bobStore.storeSignedPreKey(bobSignedPreKey.id, bobSignedPreKey);
-  bobStore.storeKyberPreKey(bobKyberPreKey.id, bobKyberPreKey);
 
   const bobBundle = new PreKeyBundle({
     registrationId: 2,
@@ -184,9 +178,6 @@ function setupV4AliceAndBob(rng: ReturnType<typeof createTestRng>) {
     signedPreKey: bobSignedPreKey.keyPair.publicKey,
     signedPreKeySignature: bobSignedPreKey.signature,
     identityKey: bobIdentity.identityKey,
-    kyberPreKeyId: bobKyberPreKey.id,
-    kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-    kyberPreKeySignature: bobKyberPreKey.signature,
   });
 
   return {
@@ -206,9 +197,9 @@ function setupV4AliceAndBob(rng: ReturnType<typeof createTestRng>) {
 // ===========================================================================
 
 describe("Session Establishment Interop (Task 9.5)", () => {
-  it("should establish a v4 session and verify PreKeySignalMessage wire format", async () => {
+  it("should establish a v3 session and verify PreKeySignalMessage wire format", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
@@ -223,7 +214,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     const versionByte = preKeyMsg.serialized[0];
     const highNibble = versionByte >> 4;
     const lowNibble = versionByte & 0x0f;
-    expect(highNibble).toBe(4); // v4 for PQXDH
+    expect(highNibble).toBe(3); // v3 for X3DH
     expect(lowNibble).toBe(CIPHERTEXT_MESSAGE_CURRENT_VERSION);
 
     // Parse inner protobuf (after version byte) to verify field numbers
@@ -233,21 +224,19 @@ describe("Session Establishment Interop (Task 9.5)", () => {
 
     // PreKeySignalMessage proto fields per wire.proto:
     //   1=preKeyId, 2=baseKey, 3=identityKey, 4=message,
-    //   5=registrationId, 6=signedPreKeyId, 7=kyberPreKeyId, 8=kyberCiphertext
+    //   5=registrationId, 6=signedPreKeyId
     expect(fieldNumbers).toContain(2); // baseKey
     expect(fieldNumbers).toContain(3); // identityKey
     expect(fieldNumbers).toContain(4); // message (embedded SignalMessage)
     expect(fieldNumbers).toContain(5); // registrationId
     expect(fieldNumbers).toContain(6); // signedPreKeyId
-    expect(fieldNumbers).toContain(7); // kyberPreKeyId
-    expect(fieldNumbers).toContain(8); // kyberCiphertext
 
     // Verify all fields use correct wire types
     for (const f of fields) {
-      if ([1, 5, 6, 7].includes(f.field)) {
+      if ([1, 5, 6].includes(f.field)) {
         expect(f.wireType).toBe(0); // varint
       }
-      if ([2, 3, 4, 8].includes(f.field)) {
+      if ([2, 3, 4].includes(f.field)) {
         expect(f.wireType).toBe(2); // length-delimited
       }
     }
@@ -261,14 +250,13 @@ describe("Session Establishment Interop (Task 9.5)", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(decrypted)).toBe("Hello Bob from Alice!");
   });
 
   it("should verify SignalMessage wire format properties", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
@@ -283,7 +271,6 @@ describe("Session Establishment Interop (Task 9.5)", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob sends a regular SignalMessage
@@ -292,9 +279,9 @@ describe("Session Establishment Interop (Task 9.5)", () => {
     expect(replyEnc).toBeInstanceOf(SignalMessage);
     const signalMsg = replyEnc as SignalMessage;
 
-    // Version byte: 0x44 for v4 (high=4, low=4)
+    // Version byte: 0x33 for v3 (high=3, low=3)
     const versionByte = signalMsg.serialized[0];
-    expect(versionByte >> 4).toBe(4);
+    expect(versionByte >> 4).toBe(3);
     expect(versionByte & 0x0f).toBe(CIPHERTEXT_MESSAGE_CURRENT_VERSION);
 
     // MAC tag is last 8 bytes
@@ -328,7 +315,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
 
   it("should exchange 10 messages each direction with correct counters", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
@@ -344,7 +331,6 @@ describe("Session Establishment Interop (Task 9.5)", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob responds to complete the handshake
@@ -407,7 +393,7 @@ describe("Session Establishment Interop (Task 9.5)", () => {
 
   it("should serialize/deserialize session and continue messaging", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
@@ -422,7 +408,6 @@ describe("Session Establishment Interop (Task 9.5)", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     const reply = new TextEncoder().encode("Reply before serialize");
@@ -832,14 +817,14 @@ describe("Sealed Sender Interop (Task 9.7)", () => {
 describe("Session Serialization Interop (Task 9.8)", () => {
   it("should verify SessionStructure protobuf field numbers match libsignal storage.proto", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
     // Alice sends, Bob decrypts to create session on both sides
     const pt = new TextEncoder().encode("Session serialization test");
     const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng, bobStore);
+    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     // Bob responds to complete the handshake
     const resp = new TextEncoder().encode("Response");
@@ -865,10 +850,10 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     //   1=sessionVersion, 2=localIdentityPublic, 3=remoteIdentityPublic,
     //   4=rootKey, 5=previousCounter, 6=senderChain, 7=receiverChains,
     //   9=pendingPreKey, 10=remoteRegistrationId, 11=localRegistrationId,
-    //   13=aliceBaseKey, 14=pendingKyberPreKey, 15=pqRatchetState
+    //   13=aliceBaseKey
 
-    // session version must be 4
-    expect(sessionFields.varints.get(1)).toBe(4);
+    // session version must be 3
+    expect(sessionFields.varints.get(1)).toBe(3);
 
     // local and remote identity public keys present
     expect(sessionFields.bytes.has(2)).toBe(true); // localIdentityPublic
@@ -892,13 +877,13 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
   it("should verify RecordStructure field numbers (1=current, 2=previous)", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
     const pt = new TextEncoder().encode("Record structure test");
     const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng, bobStore);
+    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const sessionRecord = await aliceStore.loadSession(bobAddress);
     expect(sessionRecord).toBeDefined();
@@ -920,14 +905,14 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
   it("should deserialize session and continue messaging", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
     // Exchange messages to complete handshake
     const pt1 = new TextEncoder().encode("Before save");
     const enc1 = await messageEncrypt(pt1, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(enc1, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng, bobStore);
+    await messageDecrypt(enc1, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const resp1 = new TextEncoder().encode("Bob response");
     const respEnc1 = await messageEncrypt(resp1, aliceAddress, bobStore, bobStore);
@@ -942,7 +927,7 @@ describe("Session Serialization Interop (Task 9.8)", () => {
     const sessionProto = decodeSessionStructure(
       decodeRecordStructure(bobSessionBytes).currentSession!,
     );
-    expect(sessionProto.sessionVersion).toBe(4);
+    expect(sessionProto.sessionVersion).toBe(3);
     expect(sessionProto.rootKey).toBeDefined();
     expect(sessionProto.rootKey!.length).toBe(32);
 
@@ -974,13 +959,13 @@ describe("Session Serialization Interop (Task 9.8)", () => {
 
   it("should verify chain structure fields in serialized session", async () => {
     const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
+    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupAliceAndBob(rng);
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
 
     const pt = new TextEncoder().encode("Chain check");
     const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng, bobStore);
+    await messageDecrypt(enc, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng);
 
     const bobSessionRecord = await bobStore.loadSession(aliceAddress);
     expect(bobSessionRecord).toBeDefined();
@@ -1163,321 +1148,5 @@ describe("Fingerprint Interop (Task 9.9)", () => {
     // Re-serialize should match
     const reserialized = deserialized.serialize();
     expect(bytesToHex(reserialized)).toBe(bytesToHex(serialized));
-  });
-});
-
-// ===========================================================================
-// Test Group 6: PQXDH Interop (Task 9.10)
-// ===========================================================================
-
-describe("PQXDH Interop (Task 9.10)", () => {
-  it("should create PreKeyBundle with Kyber and verify PreKeySignalMessage fields", async () => {
-    const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    const pt = new TextEncoder().encode("PQXDH test");
-    const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-
-    expect(enc).toBeInstanceOf(PreKeySignalMessage);
-    const preKeyMsg = enc as PreKeySignalMessage;
-
-    // Version must be 4 for PQXDH
-    expect(preKeyMsg.messageVersion).toBe(4);
-
-    // Version byte: high nibble=4, low nibble=CURRENT_VERSION=4 -> 0x44
-    expect(preKeyMsg.serialized[0]).toBe(0x44);
-
-    // Kyber fields must be present
-    expect(preKeyMsg.kyberPreKeyId).toBe(1);
-    expect(preKeyMsg.kyberCiphertext).toBeDefined();
-
-    // Kyber ciphertext: 1-byte type prefix + raw ciphertext
-    // Default KEM is Kyber1024, so raw ciphertext = 1568 bytes
-    const kyberCtLen = preKeyMsg.kyberCiphertext!.length;
-    expect(kyberCtLen).toBe(KEM_TYPE_PREFIX_SIZE + KYBER1024_CIPHERTEXT_SIZE);
-
-    // First byte is the KEM type prefix (0x08 for Kyber1024)
-    expect(preKeyMsg.kyberCiphertext![0]).toBe(KemType.Kyber1024);
-
-    // Parse proto to verify field 7 (kyberPreKeyId) and field 8 (kyberCiphertext)
-    const protoBytes = preKeyMsg.serialized.slice(1);
-    const fields = parseRawFields(protoBytes);
-
-    const f7 = fields.find((f) => f.field === 7);
-    expect(f7).toBeDefined();
-    expect(f7!.wireType).toBe(0); // varint
-    expect(f7!.value).toBe(1); // kyberPreKeyId=1
-
-    const f8 = fields.find((f) => f.field === 8);
-    expect(f8).toBeDefined();
-    expect(f8!.wireType).toBe(2); // length-delimited
-    expect((f8!.value as Uint8Array).length).toBe(KEM_TYPE_PREFIX_SIZE + KYBER1024_CIPHERTEXT_SIZE);
-
-    // Bob decrypts successfully
-    const dec = await messageDecrypt(
-      enc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-      bobStore,
-    );
-    expect(new TextDecoder().decode(dec)).toBe("PQXDH test");
-  });
-
-  it("should complete full PQXDH handshake and exchange multiple messages", async () => {
-    const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    // Alice -> Bob (PreKeySignalMessage with Kyber)
-    const init = new TextEncoder().encode("PQXDH init");
-    const initEnc = await messageEncrypt(init, bobAddress, aliceStore, aliceStore);
-    expect(initEnc).toBeInstanceOf(PreKeySignalMessage);
-    expect((initEnc as PreKeySignalMessage).messageVersion).toBe(4);
-
-    await messageDecrypt(
-      initEnc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-      bobStore,
-    );
-
-    // Bob -> Alice (regular SignalMessage, completing handshake)
-    const reply = new TextEncoder().encode("PQXDH reply");
-    const replyEnc = await messageEncrypt(reply, aliceAddress, bobStore, bobStore);
-    expect(replyEnc).toBeInstanceOf(SignalMessage);
-    expect((replyEnc as SignalMessage).messageVersion).toBe(4);
-
-    const replyDec = await messageDecrypt(
-      replyEnc,
-      bobAddress,
-      aliceStore,
-      aliceStore,
-      aliceStore,
-      aliceStore,
-      rng,
-    );
-    expect(new TextDecoder().decode(replyDec)).toBe("PQXDH reply");
-
-    // Exchange 10 more messages alternating
-    for (let i = 0; i < 10; i++) {
-      if (i % 2 === 0) {
-        const pt = new TextEncoder().encode(`Alice PQ ${i}`);
-        const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-        expect(enc).toBeInstanceOf(SignalMessage);
-        const dec = await messageDecrypt(
-          enc,
-          aliceAddress,
-          bobStore,
-          bobStore,
-          bobStore,
-          bobStore,
-          rng,
-        );
-        expect(new TextDecoder().decode(dec)).toBe(`Alice PQ ${i}`);
-      } else {
-        const pt = new TextEncoder().encode(`Bob PQ ${i}`);
-        const enc = await messageEncrypt(pt, aliceAddress, bobStore, bobStore);
-        expect(enc).toBeInstanceOf(SignalMessage);
-        const dec = await messageDecrypt(
-          enc,
-          bobAddress,
-          aliceStore,
-          aliceStore,
-          aliceStore,
-          aliceStore,
-          rng,
-        );
-        expect(new TextDecoder().decode(dec)).toBe(`Bob PQ ${i}`);
-      }
-    }
-  });
-
-  it("should round-trip PreKeySignalMessage with Kyber fields", async () => {
-    const rng = createTestRng();
-    const { aliceStore, bobStore, aliceAddress, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    const pt = new TextEncoder().encode("Round-trip Kyber");
-    const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-    expect(enc).toBeInstanceOf(PreKeySignalMessage);
-    const original = enc as PreKeySignalMessage;
-
-    // Deserialize from wire bytes
-    const deserialized = PreKeySignalMessage.deserialize(original.serialized);
-
-    // All fields must match
-    expect(deserialized.messageVersion).toBe(original.messageVersion);
-    expect(deserialized.registrationId).toBe(original.registrationId);
-    expect(deserialized.preKeyId).toBe(original.preKeyId);
-    expect(deserialized.signedPreKeyId).toBe(original.signedPreKeyId);
-    expect(deserialized.kyberPreKeyId).toBe(original.kyberPreKeyId);
-    expect(deserialized.kyberCiphertext).toEqual(original.kyberCiphertext);
-    expect(deserialized.baseKey).toEqual(original.baseKey);
-    expect(deserialized.identityKey.serialize()).toEqual(original.identityKey.serialize());
-
-    // The deserialized message can be decrypted
-    const dec = await messageDecrypt(
-      deserialized,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-      bobStore,
-    );
-    expect(new TextDecoder().decode(dec)).toBe("Round-trip Kyber");
-  });
-
-  it("should verify v3 (no Kyber) PreKeySignalMessage has version byte 0x33", async () => {
-    const rng = createTestRng();
-    const aliceIdentity = IdentityKeyPair.generate(rng);
-    const bobIdentity = IdentityKeyPair.generate(rng);
-
-    const aliceStore = new InMemorySignalProtocolStore(aliceIdentity, 1);
-    const bobAddress = new ProtocolAddress("bob", 1);
-
-    // Create bundle WITHOUT Kyber (v3)
-    const bobPreKey = PreKeyRecord.generate(1, rng);
-    const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-
-    const bobBundle = new PreKeyBundle({
-      registrationId: 2,
-      deviceId: 1,
-      preKeyId: bobPreKey.id,
-      preKey: bobPreKey.keyPair.publicKey,
-      signedPreKeyId: bobSignedPreKey.id,
-      signedPreKey: bobSignedPreKey.keyPair.publicKey,
-      signedPreKeySignature: bobSignedPreKey.signature,
-      identityKey: bobIdentity.identityKey,
-    });
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    const pt = new TextEncoder().encode("v3 message");
-    const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-
-    expect(enc).toBeInstanceOf(PreKeySignalMessage);
-    const preKeyMsg = enc as PreKeySignalMessage;
-
-    // Version 3
-    expect(preKeyMsg.messageVersion).toBe(3);
-
-    // Version byte: high nibble=3, low nibble=CURRENT_VERSION=4 -> 0x34
-    expect(preKeyMsg.serialized[0]).toBe(0x34);
-
-    // No Kyber fields
-    expect(preKeyMsg.kyberPreKeyId).toBeUndefined();
-    expect(preKeyMsg.kyberCiphertext).toBeUndefined();
-
-    // Verify no field 7 or 8 in proto
-    const protoBytes = preKeyMsg.serialized.slice(1);
-    const fields = parseRawFields(protoBytes);
-    const fieldNumbers = fields.map((f) => f.field);
-    expect(fieldNumbers).not.toContain(7);
-    expect(fieldNumbers).not.toContain(8);
-  });
-
-  it("should verify Kyber ciphertext contains type-prefixed data", async () => {
-    const rng = createTestRng();
-    const { aliceStore, bobAddress, bobBundle } = setupV4AliceAndBob(rng);
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    const pt = new TextEncoder().encode("Kyber ciphertext check");
-    const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-    const preKeyMsg = enc as PreKeySignalMessage;
-
-    const kyberCt = preKeyMsg.kyberCiphertext!;
-
-    // First byte is the KEM type (0x08 for Kyber1024)
-    const kemType = kyberCt[0];
-    expect(kemType).toBe(KemType.Kyber1024);
-
-    // Raw ciphertext after type prefix
-    const rawCt = kyberCt.slice(1);
-    expect(rawCt.length).toBe(KYBER1024_CIPHERTEXT_SIZE);
-  });
-
-  it("should handle PQXDH session without one-time prekey", async () => {
-    const rng = createTestRng();
-    const aliceIdentity = IdentityKeyPair.generate(rng);
-    const bobIdentity = IdentityKeyPair.generate(rng);
-
-    const aliceStore = new InMemorySignalProtocolStore(aliceIdentity, 1);
-    const bobStore = new InMemorySignalProtocolStore(bobIdentity, 2);
-
-    const bobAddress = new ProtocolAddress("bob", 1);
-    const aliceAddress = new ProtocolAddress("alice", 1);
-
-    // No one-time prekey, but with Kyber
-    const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-    const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
-
-    await bobStore.storeSignedPreKey(bobSignedPreKey.id, bobSignedPreKey);
-    await bobStore.storeKyberPreKey(bobKyberPreKey.id, bobKyberPreKey);
-
-    const bobBundle = new PreKeyBundle({
-      registrationId: 2,
-      deviceId: 1,
-      signedPreKeyId: bobSignedPreKey.id,
-      signedPreKey: bobSignedPreKey.keyPair.publicKey,
-      signedPreKeySignature: bobSignedPreKey.signature,
-      identityKey: bobIdentity.identityKey,
-      kyberPreKeyId: bobKyberPreKey.id,
-      kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-      kyberPreKeySignature: bobKyberPreKey.signature,
-    });
-
-    await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
-
-    const pt = new TextEncoder().encode("No OTP + Kyber");
-    const enc = await messageEncrypt(pt, bobAddress, aliceStore, aliceStore);
-
-    expect(enc).toBeInstanceOf(PreKeySignalMessage);
-    const msg = enc as PreKeySignalMessage;
-
-    // Still v4
-    expect(msg.messageVersion).toBe(4);
-
-    // No one-time preKeyId
-    expect(msg.preKeyId).toBeUndefined();
-
-    // But Kyber present
-    expect(msg.kyberPreKeyId).toBe(1);
-    expect(msg.kyberCiphertext).toBeDefined();
-
-    // Verify proto has field 7 but NOT field 1 (preKeyId)
-    const protoBytes = msg.serialized.slice(1);
-    const fields = parseRawFields(protoBytes);
-    const fieldNumbers = fields.map((f) => f.field);
-    expect(fieldNumbers).not.toContain(1); // no preKeyId
-    expect(fieldNumbers).toContain(7); // kyberPreKeyId
-    expect(fieldNumbers).toContain(8); // kyberCiphertext
-
-    // Bob can decrypt
-    const dec = await messageDecrypt(
-      enc,
-      aliceAddress,
-      bobStore,
-      bobStore,
-      bobStore,
-      bobStore,
-      rng,
-      bobStore,
-    );
-    expect(new TextDecoder().decode(dec)).toBe("No OTP + Kyber");
   });
 });

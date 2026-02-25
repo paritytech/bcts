@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { SignalMessage } from "../src/protocol/signal-message.js";
-import { IdentityKey, IdentityKeyPair } from "../src/keys/identity-key.js";
+import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { KeyPair } from "../src/keys/key-pair.js";
 import { createTestRng } from "./test-utils.js";
 
@@ -19,7 +19,7 @@ describe("SignalMessage", () => {
     const receiverIdentity = IdentityKeyPair.generate(rng);
 
     return SignalMessage.create(
-      3, // version 3 (pre-Kyber)
+      3, // version 3
       macKey,
       senderRatchetKey.publicKey,
       42,
@@ -105,7 +105,7 @@ describe("SignalMessage", () => {
   it("should have correct version byte format", () => {
     const msg = createTestMessage();
     // Version byte: (messageVersion << 4) | CURRENT_VERSION
-    // For version 3: (3 << 4) | 4 = 0x34
-    expect(msg.serialized[0]).toBe(0x34);
+    // For version 3: (3 << 4) | 3 = 0x33
+    expect(msg.serialized[0]).toBe(0x33);
   });
 });

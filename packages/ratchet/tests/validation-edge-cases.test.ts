@@ -6,14 +6,13 @@
  * version downgrade, forward jump limits, key eviction, failed
  * decrypt atomicity, and duplicate message rejection.
  *
- * All sessions use v4 (PQXDH with Kyber) since v3 is no longer supported.
+ * All sessions use v3 (X3DH double ratchet).
  */
 
 import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
@@ -28,7 +27,7 @@ import { MAX_FORWARD_JUMPS } from "../src/constants.js";
 import { createTestRng } from "./test-utils.js";
 
 /**
- * Helper: create a full v4 prekey bundle and store all keys in the given store.
+ * Helper: create a full v3 prekey bundle and store all keys in the given store.
  * Returns the bundle plus the identity so callers can build multiple bundles.
  */
 function createBundleAndStore(
@@ -38,15 +37,12 @@ function createBundleAndStore(
   registrationId: number,
   preKeyId = 1,
   signedPreKeyId = 1,
-  kyberPreKeyId = 1,
 ) {
   const preKey = PreKeyRecord.generate(preKeyId, rng);
   const signedPreKey = SignedPreKeyRecord.generate(signedPreKeyId, identity, Date.now(), rng);
-  const kyberPreKey = KyberPreKeyRecord.generate(kyberPreKeyId, identity, Date.now());
 
   store.storePreKey(preKey.id, preKey);
   store.storeSignedPreKey(signedPreKey.id, signedPreKey);
-  store.storeKyberPreKey(kyberPreKey.id, kyberPreKey);
 
   const bundle = new PreKeyBundle({
     registrationId,
@@ -57,12 +53,9 @@ function createBundleAndStore(
     signedPreKey: signedPreKey.keyPair.publicKey,
     signedPreKeySignature: signedPreKey.signature,
     identityKey: identity.identityKey,
-    kyberPreKeyId: kyberPreKey.id,
-    kyberPreKey: kyberPreKey.keyPair.publicKey,
-    kyberPreKeySignature: kyberPreKey.signature,
   });
 
-  return { bundle, signedPreKey, preKey, kyberPreKey };
+  return { bundle, signedPreKey, preKey };
 }
 
 // ---------------------------------------------------------------------------
@@ -82,13 +75,12 @@ describe("Simultaneous session initiation", () => {
     const bobAddress = new ProtocolAddress("bob", 1);
 
     // Both parties publish bundles
-    const { bundle: bobBundle } = createBundleAndStore(bobIdentity, bobStore, rng, 2, 1, 1, 1);
+    const { bundle: bobBundle } = createBundleAndStore(bobIdentity, bobStore, rng, 2, 1, 1);
     const { bundle: aliceBundle } = createBundleAndStore(
       aliceIdentity,
       aliceStore,
       rng,
       1,
-      2,
       2,
       2,
     );
@@ -122,7 +114,6 @@ describe("Simultaneous session initiation", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(fromAlice)).toBe("Hello from Alice");
 
@@ -135,7 +126,6 @@ describe("Simultaneous session initiation", () => {
       aliceStore,
       aliceStore,
       rng,
-      aliceStore,
     );
     expect(new TextDecoder().decode(fromBob)).toBe("Hello from Bob");
 
@@ -172,7 +162,6 @@ describe("Bad signed pre-key signature rejection", () => {
     const aliceStore = new InMemorySignalProtocolStore(aliceIdentity, 1);
 
     const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-    const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
 
     // Corrupt the signed pre-key signature by flipping a bit
     const corruptedSignature = Uint8Array.from(bobSignedPreKey.signature);
@@ -185,9 +174,6 @@ describe("Bad signed pre-key signature rejection", () => {
       signedPreKey: bobSignedPreKey.keyPair.publicKey,
       signedPreKeySignature: corruptedSignature,
       identityKey: bobIdentity.identityKey,
-      kyberPreKeyId: bobKyberPreKey.id,
-      kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-      kyberPreKeySignature: bobKyberPreKey.signature,
     });
 
     const bobAddress = new ProtocolAddress("bob", 1);
@@ -204,7 +190,7 @@ describe("Bad signed pre-key signature rejection", () => {
 describe("Version downgrade rejection", () => {
   it("should reject a SignalMessage with version 2 (legacy)", () => {
     // Build a raw message with version 2 in the high nibble
-    const versionByte = (2 << 4) | 4; // version 2, low nibble current
+    const versionByte = (2 << 4) | 3; // version 2, low nibble current
     // Minimal message: version byte + at least enough for MAC_LENGTH check
     const fakeMessage = new Uint8Array(20);
     fakeMessage[0] = versionByte;
@@ -214,7 +200,7 @@ describe("Version downgrade rejection", () => {
   });
 
   it("should reject a SignalMessage with version 5 (future)", () => {
-    const versionByte = (5 << 4) | 4;
+    const versionByte = (5 << 4) | 3;
     const fakeMessage = new Uint8Array(20);
     fakeMessage[0] = versionByte;
 
@@ -258,7 +244,6 @@ describe("Chain forward jump limit", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies to complete the ratchet
@@ -335,7 +320,6 @@ describe("Message key eviction at MAX_MESSAGE_KEYS", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies so both sides have a sending chain
@@ -430,7 +414,6 @@ describe("Failed decrypt atomicity", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies
@@ -471,7 +454,7 @@ describe("Failed decrypt atomicity", () => {
       ).rejects.toThrow();
     }
 
-    // The session should still be intact — decrypt the valid message
+    // The session should still be intact -- decrypt the valid message
     const decrypted = await messageDecrypt(
       validMsg,
       aliceAddress,
@@ -520,7 +503,6 @@ describe("Duplicate message rejection", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies to establish bidirectional session
@@ -589,7 +571,6 @@ describe("Duplicate message rejection", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
 
     // Bob replies

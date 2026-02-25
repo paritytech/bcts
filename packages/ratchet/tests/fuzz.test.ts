@@ -13,7 +13,6 @@ import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
@@ -68,7 +67,7 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
-/** Set up a v4 (PQXDH) session between Alice and Bob. */
+/** Set up a v3 (X3DH) session between Alice and Bob. */
 async function setupSession() {
   const rng = createTestRng();
   const aliceIdentity = IdentityKeyPair.generate(rng);
@@ -82,11 +81,9 @@ async function setupSession() {
 
   const bobPreKey = PreKeyRecord.generate(1, rng);
   const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-  const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
 
   await bobStore.storePreKey(bobPreKey.id, bobPreKey);
   await bobStore.storeSignedPreKey(bobSignedPreKey.id, bobSignedPreKey);
-  await bobStore.storeKyberPreKey(bobKyberPreKey.id, bobKyberPreKey);
 
   const bobBundle = new PreKeyBundle({
     registrationId: 2,
@@ -97,9 +94,6 @@ async function setupSession() {
     signedPreKey: bobSignedPreKey.keyPair.publicKey,
     signedPreKeySignature: bobSignedPreKey.signature,
     identityKey: bobIdentity.identityKey,
-    kyberPreKeyId: bobKyberPreKey.id,
-    kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-    kyberPreKeySignature: bobKyberPreKey.signature,
   });
 
   await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
@@ -119,7 +113,6 @@ async function setupSession() {
     bobStore,
     bobStore,
     rng,
-    bobStore,
   );
 
   // Bob replies to complete the ratchet handshake
@@ -180,7 +173,7 @@ describe("Fuzz: Random message sequence", () => {
         }
       }
     },
-    { timeout: 30_000 },
+    30_000,
   );
 });
 
@@ -229,7 +222,7 @@ describe("Fuzz: Random out-of-order delivery", () => {
         expect(decoder.decode(decrypted)).toBe(msg.text);
       }
     },
-    { timeout: 30_000 },
+    30_000,
   );
 });
 
@@ -248,7 +241,7 @@ describe("Fuzz: Malformed protobuf — SignalMessage", () => {
         }
       }
     },
-    { timeout: 15_000 },
+    15_000,
   );
 
   it("should handle edge-case byte arrays", () => {
@@ -256,7 +249,7 @@ describe("Fuzz: Malformed protobuf — SignalMessage", () => {
     expect(() => SignalMessage.deserialize(new Uint8Array(0))).toThrow();
 
     // Single byte
-    expect(() => SignalMessage.deserialize(new Uint8Array([0x44]))).toThrow();
+    expect(() => SignalMessage.deserialize(new Uint8Array([0x33]))).toThrow();
 
     // All zeros
     expect(() => SignalMessage.deserialize(new Uint8Array(100))).toThrow();
@@ -283,7 +276,7 @@ describe("Fuzz: Malformed protobuf — SessionState", () => {
         }
       }
     },
-    { timeout: 15_000 },
+    15_000,
   );
 
   it("should handle edge-case byte arrays", () => {
@@ -315,7 +308,7 @@ describe("Fuzz: Malformed protobuf — SessionRecord", () => {
         }
       }
     },
-    { timeout: 15_000 },
+    15_000,
   );
 
   it("should handle edge-case byte arrays", () => {
@@ -372,7 +365,7 @@ describe("Fuzz: Rapid chain advancement", () => {
         expect(decoder.decode(decrypted)).toBe(encrypted[i].text);
       }
     },
-    { timeout: 30_000 },
+    30_000,
   );
 });
 
@@ -434,6 +427,6 @@ describe("Fuzz: Group cipher random sequence", () => {
         }
       }
     },
-    { timeout: 30_000 },
+    30_000,
   );
 });
