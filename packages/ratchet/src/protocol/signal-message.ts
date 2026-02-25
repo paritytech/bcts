@@ -126,13 +126,13 @@ export class SignalMessage implements CiphertextMessageConvertible {
     const protoData = data.slice(1, data.length - MAC_LENGTH);
     const proto = decodeSignalMessage(protoData);
 
-    if (!proto.ratchetKey) {
+    if (proto.ratchetKey == null) {
       throw new InvalidMessageError("Missing ratchet key");
     }
     if (proto.counter === undefined) {
       throw new InvalidMessageError("Missing counter");
     }
-    if (!proto.ciphertext) {
+    if (proto.ciphertext == null) {
       throw new InvalidMessageError("Missing ciphertext");
     }
 

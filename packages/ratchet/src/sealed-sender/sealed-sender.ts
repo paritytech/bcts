@@ -132,7 +132,7 @@ function ciphertextMessageTypeToProto(msgType: CiphertextMessageType): number {
     case CiphertextMessageType.Plaintext:
       return PROTO_TYPE_PLAINTEXT_CONTENT;
     default:
-      throw new InvalidSealedSenderMessageError(`Unknown ciphertext message type: ${msgType}`);
+      throw new InvalidSealedSenderMessageError(`Unknown ciphertext message type: ${msgType as number}`);
   }
 }
 
@@ -193,7 +193,7 @@ export class UnidentifiedSenderMessageContent {
    *   5: groupId (bytes) -- omitted when null or empty
    */
   serialize(): Uint8Array {
-    if (this._serialized) return this._serialized;
+    if (this._serialized != null) return this._serialized;
 
     const protoType = ciphertextMessageTypeToProto(this.msgType);
     const parts: Uint8Array[] = [
@@ -208,7 +208,7 @@ export class UnidentifiedSenderMessageContent {
     }
 
     // groupId: omitted when null or empty
-    if (this.groupId && this.groupId.length > 0) {
+    if (this.groupId != null && this.groupId.length > 0) {
       parts.push(encodeBytesField(5, this.groupId));
     }
 
@@ -226,7 +226,7 @@ export class UnidentifiedSenderMessageContent {
     const senderCertBytes = fields.bytes.get(2);
     const content = fields.bytes.get(3);
 
-    if (protoType === undefined || !senderCertBytes || !content) {
+    if (protoType === undefined || senderCertBytes == null || content == null) {
       throw new InvalidSealedSenderMessageError("Invalid USMC: missing required fields");
     }
 
@@ -236,7 +236,7 @@ export class UnidentifiedSenderMessageContent {
     const contentHintRaw = fields.varints.get(4);
     let contentHint = ContentHint.Default;
     if (contentHintRaw !== undefined) {
-      if (contentHintRaw === ContentHint.Resendable || contentHintRaw === ContentHint.Implicit) {
+      if (contentHintRaw === (ContentHint.Resendable as number) || contentHintRaw === (ContentHint.Implicit as number)) {
         contentHint = contentHintRaw;
       }
     }
@@ -601,7 +601,7 @@ function decryptV1ToUsmc(
   const encryptedStatic = fields.bytes.get(2);
   const encryptedMessage = fields.bytes.get(3);
 
-  if (!ephemeralPublicBytes || !encryptedStatic || !encryptedMessage) {
+  if (ephemeralPublicBytes == null || encryptedStatic == null || encryptedMessage == null) {
     throw new InvalidSealedSenderMessageError("Missing required fields");
   }
 
@@ -963,7 +963,7 @@ export class SealedSenderMultiRecipientMessage {
       }
 
       const existing = recipients.get(serviceIdString);
-      if (existing) {
+      if (existing != null) {
         if (existing.devices.length === 0 || devices.length === 0) {
           throw new InvalidSealedSenderMessageError("recipient redundantly encoded as empty");
         }

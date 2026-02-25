@@ -44,7 +44,7 @@ export class SessionRecord {
    * @param requirements - Bitflags from SessionUsabilityRequirements
    */
   hasUsableSession(now: number, requirements: SessionUsabilityRequirements): boolean {
-    if (!this._currentSession) {
+    if (this._currentSession == null) {
       return false;
     }
     return this._currentSession.hasUsableSenderChain(now, requirements);
@@ -79,7 +79,7 @@ export class SessionRecord {
    * Archive the current session into previous sessions.
    */
   archiveCurrentState(): void {
-    if (this._currentSession) {
+    if (this._currentSession != null) {
       // H1: Clear pending prekey before archiving (matches libsignal state.rs)
       this._currentSession.clearPendingPreKey();
       this._previousSessions.unshift(this._currentSession);
@@ -96,7 +96,7 @@ export class SessionRecord {
    */
   serialize(): Uint8Array {
     const proto: RecordStructureProto = {};
-    if (this._currentSession) {
+    if (this._currentSession != null) {
       proto.currentSession = this._currentSession.serialize();
     }
     if (this._previousSessions.length > 0) {
@@ -111,10 +111,10 @@ export class SessionRecord {
   static deserialize(data: Uint8Array): SessionRecord {
     const proto = decodeRecordStructure(data);
     const record = new SessionRecord();
-    if (proto.currentSession) {
+    if (proto.currentSession != null) {
       record._currentSession = SessionState.deserialize(proto.currentSession);
     }
-    if (proto.previousSessions) {
+    if (proto.previousSessions != null) {
       record._previousSessions = proto.previousSessions.map((s) => SessionState.deserialize(s));
     }
     return record;
@@ -132,10 +132,10 @@ export class SessionRecord {
     const normalizedKey = SessionState.ensureDjbPrefix(aliceBaseKey);
 
     // Check current session
-    if (this._currentSession) {
+    if (this._currentSession != null) {
       const abk = this._currentSession.aliceBaseKey();
       if (
-        abk &&
+        abk != null &&
         this._currentSession.sessionVersion() === version &&
         bytesEqual(abk, normalizedKey)
       ) {
@@ -147,7 +147,7 @@ export class SessionRecord {
     for (let i = 0; i < this._previousSessions.length; i++) {
       const state = this._previousSessions[i];
       const abk = state.aliceBaseKey();
-      if (abk && state.sessionVersion() === version && bytesEqual(abk, normalizedKey)) {
+      if (abk != null && state.sessionVersion() === version && bytesEqual(abk, normalizedKey)) {
         this.promoteOldSession(i, state);
         return true;
       }

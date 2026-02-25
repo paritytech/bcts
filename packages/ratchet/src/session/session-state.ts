@@ -60,6 +60,7 @@ export const SessionUsabilityRequirements = {
   NotStale: 1 << 0,
 } as const;
 
+// eslint-disable-next-line no-redeclare
 export type SessionUsabilityRequirements = number;
 
 /** Stored message key — either fully derived keys or a seed for lazy derivation. */
@@ -117,7 +118,7 @@ export class SessionState {
     this._remoteRegistrationId = 0;
     // Store aliceBaseKey in 33-byte DJB-prefixed form (0x05 || raw_key)
     // for protobuf compatibility with libsignal's SessionStructure.
-    this._aliceBaseKey = params.aliceBaseKey
+    this._aliceBaseKey = params.aliceBaseKey != null
       ? SessionState.ensureDjbPrefix(params.aliceBaseKey)
       : undefined;
   }
@@ -139,7 +140,7 @@ export class SessionState {
   }
 
   sessionWithSelf(): boolean {
-    if (!this._remoteIdentityKey) return false;
+    if (this._remoteIdentityKey == null) return false;
     return this._localIdentityKey.equals(this._remoteIdentityKey);
   }
 
@@ -179,12 +180,12 @@ export class SessionState {
    * @param requirements - Bitflags from SessionUsabilityRequirements
    */
   hasUsableSenderChain(now: number, requirements: SessionUsabilityRequirements): boolean {
-    if (!this._senderChain) {
+    if (this._senderChain == null) {
       return false;
     }
 
-    if (requirements & SessionUsabilityRequirements.NotStale) {
-      if (this._pendingPreKey) {
+    if ((requirements & SessionUsabilityRequirements.NotStale) !== 0) {
+      if (this._pendingPreKey != null) {
         const creationTimestamp = this._pendingPreKey.timestamp;
         if (creationTimestamp + MAX_UNACKNOWLEDGED_SESSION_AGE_MS < now) {
           return false;
@@ -196,28 +197,28 @@ export class SessionState {
   }
 
   getSenderChainKey(): ChainKey {
-    if (!this._senderChain) {
+    if (this._senderChain == null) {
       throw new InvalidSessionError("No sender chain");
     }
     return this._senderChain.chainKey;
   }
 
   setSenderChainKey(chainKey: ChainKey): void {
-    if (!this._senderChain) {
+    if (this._senderChain == null) {
       throw new InvalidSessionError("No sender chain");
     }
     this._senderChain.chainKey = chainKey;
   }
 
   senderRatchetKey(): Uint8Array {
-    if (!this._senderChain) {
+    if (this._senderChain == null) {
       throw new InvalidSessionError("No sender chain");
     }
     return this._senderChain.ratchetKeyPair.publicKey;
   }
 
   senderRatchetKeyPair(): KeyPair {
-    if (!this._senderChain) {
+    if (this._senderChain == null) {
       throw new InvalidSessionError("No sender chain");
     }
     return this._senderChain.ratchetKeyPair;
@@ -252,7 +253,7 @@ export class SessionState {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
     );
-    if (chain) {
+    if (chain != null) {
       chain.chainKey = chainKey;
     }
   }
@@ -263,7 +264,7 @@ export class SessionState {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
     );
-    if (!chain) return undefined;
+    if (chain == null) return undefined;
 
     const idx = chain.messageKeys.findIndex((mk) => {
       if (mk.type === "keys") return mk.keys.counter === counter;
@@ -284,7 +285,7 @@ export class SessionState {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
     );
-    if (!chain) return;
+    if (chain == null) return;
 
     // Insert at beginning (newest first), matching Signal behavior
     chain.messageKeys.unshift({ type: "seed", seed, counter });
@@ -342,7 +343,7 @@ export class SessionState {
    * suitable for X25519 DH operations.
    */
   aliceBaseKeyRaw(): Uint8Array | undefined {
-    if (!this._aliceBaseKey) return undefined;
+    if (this._aliceBaseKey == null) return undefined;
     return SessionState.stripDjbPrefix(this._aliceBaseKey);
   }
 
@@ -404,7 +405,7 @@ export class SessionState {
     };
 
     // Sender chain
-    if (this._senderChain) {
+    if (this._senderChain != null) {
       const serializedPubKey = new Uint8Array(33);
       serializedPubKey[0] = 0x05;
       serializedPubKey.set(this._senderChain.ratchetKeyPair.publicKey, 1);
@@ -448,7 +449,7 @@ export class SessionState {
     });
 
     // Pending pre-key
-    if (this._pendingPreKey) {
+    if (this._pendingPreKey != null) {
       proto.pendingPreKey = {
         preKeyId: this._pendingPreKey.preKeyId,
         signedPreKeyId: this._pendingPreKey.signedPreKeyId,
@@ -466,12 +467,12 @@ export class SessionState {
   static deserialize(data: Uint8Array): SessionState {
     const proto = decodeSessionStructure(data);
 
-    if (!proto.localIdentityPublic) {
+    if (proto.localIdentityPublic == null) {
       throw new InvalidSessionError("Missing local identity key");
     }
 
     const localIdentityKey = IdentityKey.deserialize(proto.localIdentityPublic);
-    const remoteIdentityKey = proto.remoteIdentityPublic
+    const remoteIdentityKey = proto.remoteIdentityPublic != null
       ? IdentityKey.deserialize(proto.remoteIdentityPublic)
       : undefined;
 
@@ -488,10 +489,10 @@ export class SessionState {
     state._localRegistrationId = proto.localRegistrationId ?? 0;
 
     // Sender chain
-    if (proto.senderChain) {
+    if (proto.senderChain != null) {
       const pub = proto.senderChain.senderRatchetKey;
       const priv = proto.senderChain.senderRatchetKeyPrivate;
-      if (pub && priv) {
+      if (pub != null && priv != null) {
         // Strip 0x05 prefix
         const rawPub = pub.length === 33 && pub[0] === 0x05 ? pub.slice(1) : pub;
         const kp = new KeyPair(priv, rawPub);
@@ -504,7 +505,7 @@ export class SessionState {
     }
 
     // Receiver chains
-    if (proto.receiverChains) {
+    if (proto.receiverChains != null) {
       for (const rc of proto.receiverChains) {
         if (rc.senderRatchetKey) {
           const rawKey =
@@ -524,7 +525,7 @@ export class SessionState {
                 const chain = state._receiverChains.find((c) =>
                   bytesEqual(c.senderRatchetKey, rawKey),
                 );
-                if (chain) {
+                if (chain != null) {
                   chain.messageKeys.unshift({
                     type: "keys",
                     keys: new MessageKeys(mk.cipherKey, mk.macKey, mk.iv, mk.index ?? 0),
@@ -566,7 +567,7 @@ export class SessionState {
     cloned._remoteRegistrationId = this._remoteRegistrationId;
     cloned._pendingPreKey = this._pendingPreKey ? { ...this._pendingPreKey } : undefined;
 
-    if (this._senderChain) {
+    if (this._senderChain != null) {
       cloned._senderChain = {
         ratchetKeyPair: this._senderChain.ratchetKeyPair,
         chainKey: new ChainKey(

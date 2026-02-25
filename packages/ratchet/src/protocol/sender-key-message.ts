@@ -61,10 +61,10 @@ interface SenderKeyMessageProto {
 
 function encodeSenderKeyMessage(msg: SenderKeyMessageProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (msg.distributionId) parts.push(encodeBytes(1, msg.distributionId));
+  if (msg.distributionId != null) parts.push(encodeBytes(1, msg.distributionId));
   if (msg.chainId !== undefined) parts.push(encodeUint32(2, msg.chainId));
   if (msg.iteration !== undefined) parts.push(encodeUint32(3, msg.iteration));
-  if (msg.ciphertext) parts.push(encodeBytes(4, msg.ciphertext));
+  if (msg.ciphertext != null) parts.push(encodeBytes(4, msg.ciphertext));
   return concatBytes(...parts);
 }
 
@@ -193,7 +193,7 @@ export class SenderKeyMessage implements CiphertextMessageConvertible {
     if (proto.iteration === undefined) {
       throw new InvalidMessageError("Missing iteration");
     }
-    if (!proto.ciphertext) {
+    if (proto.ciphertext == null) {
       throw new InvalidMessageError("Missing ciphertext");
     }
 

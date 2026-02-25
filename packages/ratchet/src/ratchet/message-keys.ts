@@ -126,7 +126,7 @@ export const MessageKeyGeneratorFactory = {
    * @throws Error if legacy key fields have invalid lengths
    */
   fromProto(proto: MessageKeyProto): MessageKeyGenerator {
-    if (proto.seed && proto.seed.length > 0) {
+    if (proto.seed != null && proto.seed.length > 0) {
       return {
         variant: "seed",
         seed: proto.seed,

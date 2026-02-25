@@ -39,6 +39,7 @@ import { processPreKeyMessage } from "../x3dh/process-prekey-message.js";
  *
  * Overload: accepts a single ProtocolStore instead of separate stores.
  */
+// eslint-disable-next-line no-redeclare
 export async function messageEncrypt(
   plaintext: Uint8Array,
   remoteAddress: ProtocolAddress,
@@ -51,6 +52,7 @@ export async function messageEncrypt(
  * Returns either a SignalMessage or a PreKeySignalMessage (if the session
  * has pending prekey info that hasn't been acknowledged yet).
  */
+// eslint-disable-next-line no-redeclare
 export async function messageEncrypt(
   plaintext: Uint8Array,
   remoteAddress: ProtocolAddress,
@@ -58,6 +60,7 @@ export async function messageEncrypt(
   identityStore: IdentityKeyStore,
   now?: number,
 ): Promise<SignalMessage | PreKeySignalMessage>;
+// eslint-disable-next-line no-redeclare
 export async function messageEncrypt(
   plaintext: Uint8Array,
   remoteAddress: ProtocolAddress,
@@ -94,12 +97,12 @@ async function messageEncryptImpl(
   now: number = Date.now(),
 ): Promise<SignalMessage | PreKeySignalMessage> {
   const sessionRecord = await sessionStore.loadSession(remoteAddress);
-  if (!sessionRecord) {
+  if (sessionRecord == null) {
     throw new SessionNotFoundError(remoteAddress.toString());
   }
 
   const sessionState = sessionRecord.sessionState();
-  if (!sessionState) {
+  if (sessionState == null) {
     throw new SessionNotFoundError(remoteAddress.toString());
   }
 
@@ -113,8 +116,8 @@ async function messageEncryptImpl(
 
   const localIdentityKey = sessionState.localIdentityKey();
   const theirIdentityKey = sessionState.remoteIdentityKey();
-  if (!theirIdentityKey) {
-    throw new InvalidSessionError(`No remote identity key for ${remoteAddress}`);
+  if (theirIdentityKey == null) {
+    throw new InvalidSessionError(`No remote identity key for ${remoteAddress.toString()}`);
   }
 
   // Encrypt plaintext with AES-256-CBC
@@ -125,7 +128,7 @@ async function messageEncryptImpl(
 
   let message: SignalMessage | PreKeySignalMessage;
 
-  if (pendingPreKey) {
+  if (pendingPreKey != null) {
     // Check for stale unacknowledged session
     if (pendingPreKey.timestamp + MAX_UNACKNOWLEDGED_SESSION_AGE_MS < now) {
       throw new SessionNotFoundError(remoteAddress.toString());
@@ -183,6 +186,7 @@ async function messageEncryptImpl(
  *
  * Overload: accepts a single ProtocolStore instead of separate stores.
  */
+// eslint-disable-next-line no-redeclare
 export async function messageDecrypt(
   ciphertext: SignalMessage | PreKeySignalMessage,
   remoteAddress: ProtocolAddress,
@@ -192,6 +196,7 @@ export async function messageDecrypt(
 /**
  * Decrypt a message using the session for the remote address.
  */
+// eslint-disable-next-line no-redeclare
 export async function messageDecrypt(
   ciphertext: SignalMessage | PreKeySignalMessage,
   remoteAddress: ProtocolAddress,
@@ -201,6 +206,7 @@ export async function messageDecrypt(
   signedPreKeyStore: SignedPreKeyStore,
   rng: RandomNumberGenerator,
 ): Promise<Uint8Array>;
+// eslint-disable-next-line no-redeclare
 export async function messageDecrypt(
   ciphertext: SignalMessage | PreKeySignalMessage,
   remoteAddress: ProtocolAddress,
@@ -229,9 +235,12 @@ export async function messageDecrypt(
     // Separate stores overload
     sessionStore = sessionStoreOrProtocolStore;
     identityStore = identityStoreOrRng as IdentityKeyStore;
-    resolvedPreKeyStore = preKeyStore!;
-    resolvedSignedPreKeyStore = signedPreKeyStore!;
-    resolvedRng = rng!;
+    if (preKeyStore == null || signedPreKeyStore == null || rng == null) {
+      throw new InvalidMessageError("Missing required stores");
+    }
+    resolvedPreKeyStore = preKeyStore;
+    resolvedSignedPreKeyStore = signedPreKeyStore;
+    resolvedRng = rng;
   }
 
   if (ciphertext instanceof PreKeySignalMessage) {
@@ -298,7 +307,7 @@ async function messageDecryptSignal(
   rng: RandomNumberGenerator,
 ): Promise<Uint8Array> {
   const sessionRecord = await sessionStore.loadSession(remoteAddress);
-  if (!sessionRecord) {
+  if (sessionRecord == null) {
     throw new SessionNotFoundError(remoteAddress.toString());
   }
 
@@ -312,7 +321,7 @@ async function messageDecryptSignal(
 
   // Trust check (matches Signal's post-decrypt check)
   const theirIdentityKey = sessionRecord.sessionState()?.remoteIdentityKey();
-  if (theirIdentityKey) {
+  if (theirIdentityKey != null) {
     if (!(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "receiving"))) {
       throw new UntrustedIdentityError(remoteAddress.toString());
     }
