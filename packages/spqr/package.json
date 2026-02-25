@@ -1,0 +1,71 @@
+{
+  "name": "@bcts/spqr",
+  "version": "1.0.0-alpha.20",
+  "type": "module",
+  "description": "Signal's Sparse Post-Quantum Ratchet (SPQR) for TypeScript",
+  "license": "AGPL-3.0-only",
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paritytech/bcts",
+    "directory": "packages/spqr"
+  },
+  "bugs": {
+    "url": "https://github.com/paritytech/bcts/issues"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test"
+  },
+  "keywords": [
+    "spqr",
+    "post-quantum",
+    "ml-kem",
+    "ratchet",
+    "signal-protocol",
+    "erasure-coding",
+    "blockchain-commons"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@bcts/crypto": "workspace:*",
+    "@bcts/rand": "workspace:*",
+    "@noble/hashes": "^2.0.1",
+    "@noble/post-quantum": "^0.5.4"
+  },
+  "devDependencies": {
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.3.0",
+    "eslint": "^9.39.2",
+    "tsdown": "^0.20.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
