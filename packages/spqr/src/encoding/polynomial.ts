@@ -484,7 +484,7 @@ export class PolyEncoder implements Encoder {
       });
       return { idx: this.idx, pts, polys: [] };
     }
-    const polys: Uint8Array[] = (this.state).polys.map((p) => p.serialize());
+    const polys: Uint8Array[] = this.state.polys.map((p) => p.serialize());
     return { idx: this.idx, pts: [], polys };
   }
 

@@ -8,13 +8,14 @@
  *   tests/vectors/*.bin                  -- raw binary files for each vector
  */
 
+/// <reference types="node" />
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   serializeMessage,
   deserializeMessage,
   encodeVarint,
-  encodeChunk,
 } from "../../src/v1/chunked/message.js";
 import type { Message, MessagePayload } from "../../src/v1/chunked/states.js";
 import type { Chunk } from "../../src/encoding/polynomial.js";
@@ -71,12 +72,6 @@ function varint32Hex(value: number): string {
   // Use encodeVarint with bigint since encodeVarint32 is not exported
   const out: number[] = [];
   encodeVarint(BigInt(value >>> 0), out);
-  return out.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function _chunkHex(chunk: Chunk): string {
-  const out: number[] = [];
-  encodeChunk(chunk, out);
   return out.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -161,7 +156,7 @@ function addVector(
 // Output directory
 // ---------------------------------------------------------------------------
 
-const outDir = join(import.meta.dir, ".");
+const outDir = join(dirname(fileURLToPath(import.meta.url)), ".");
 
 // ---------------------------------------------------------------------------
 // 1. Basic vectors -- one per message type, simple params

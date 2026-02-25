@@ -117,13 +117,7 @@ function MultiplyNTTs(f: Poly, g: Poly): Poly {
   for (let i = 0; i < N / 2; i++) {
     let z = nttZetas[64 + (i >> 1)];
     if ((i & 1) !== 0) z = -z;
-    const { c0, c1 } = BaseCaseMultiply(
-      f[2 * i + 0],
-      f[2 * i + 1],
-      g[2 * i + 0],
-      g[2 * i + 1],
-      z,
-    );
+    const { c0, c1 } = BaseCaseMultiply(f[2 * i + 0], f[2 * i + 1], g[2 * i + 0], g[2 * i + 1], z);
     f[2 * i + 0] = c0;
     f[2 * i + 1] = c1;
   }

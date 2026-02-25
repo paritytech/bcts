@@ -321,7 +321,6 @@ describe("1000-step lockstep messaging", () => {
 describe("empty key until version negotiation", () => {
   it("should have null keys during negotiation with min_version=V0", () => {
     let alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V0 }));
-    const _bob = initialState(makeParams({ direction: Direction.B2A, minVersion: Version.V0 }));
 
     // First few sends should produce null keys (no chain yet when min_version=V0)
     const result1 = send(alice, rng);

@@ -247,11 +247,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
     }
 
     // Negotiate down to the message version
-    const inner = initInner(
-      msgVer,
-      vn.direction as Direction,
-      Uint8Array.from(vn.authKey),
-    );
+    const inner = initInner(msgVer, vn.direction as Direction, Uint8Array.from(vn.authKey));
     const chainResult = chainFrom(prenegotiatedPb.chain, vn);
     statePb = {
       v1: inner,
