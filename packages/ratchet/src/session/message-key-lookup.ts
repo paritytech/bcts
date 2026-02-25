@@ -19,21 +19,18 @@ import { MAX_FORWARD_JUMPS } from "../constants.js";
  * - If counter < chainKey.index: look up cached keys (or throw duplicate)
  * - If counter is too far ahead: throw (unless self-session)
  * - Otherwise: advance chain, caching intermediate keys
- *
- * @param pqSalt - Optional PQ ratchet message key used as HKDF salt
  */
 export function getOrCreateMessageKey(
   state: SessionState,
   theirEphemeral: Uint8Array,
   chainKey: ChainKey,
   counter: number,
-  pqSalt?: Uint8Array,
 ): MessageKeys {
   const chainIndex = chainKey.index;
 
   // Message from the past — look up cached key
   if (chainIndex > counter) {
-    const cached = state.getMessageKeys(theirEphemeral, counter, pqSalt);
+    const cached = state.getMessageKeys(theirEphemeral, counter);
     if (cached) return cached;
     throw new DuplicateMessageError(chainIndex, counter);
   }
@@ -57,6 +54,6 @@ export function getOrCreateMessageKey(
   // Update receiver chain key to the next one
   state.setReceiverChainKey(theirEphemeral, current.nextChainKey());
 
-  // Return the message keys for the target counter WITH PQ salt
-  return MessageKeys.deriveFrom(current.messageKeySeed(), counter, pqSalt);
+  // Return the message keys for the target counter
+  return MessageKeys.deriveFrom(current.messageKeySeed(), counter);
 }

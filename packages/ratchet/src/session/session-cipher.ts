@@ -17,7 +17,6 @@ import {
   type IdentityKeyStore,
   type PreKeyStore,
   type SignedPreKeyStore,
-  type KyberPreKeyStore,
   type ProtocolStore,
 } from "../storage/interfaces.js";
 import {
@@ -204,7 +203,6 @@ export async function messageDecrypt(
   preKeyStore: PreKeyStore,
   signedPreKeyStore: SignedPreKeyStore,
   rng: RandomNumberGenerator,
-  kyberPreKeyStore?: KyberPreKeyStore,
 ): Promise<Uint8Array>;
 export async function messageDecrypt(
   ciphertext: SignalMessage | PreKeySignalMessage,
@@ -214,7 +212,6 @@ export async function messageDecrypt(
   preKeyStore?: PreKeyStore,
   signedPreKeyStore?: SignedPreKeyStore,
   rng?: RandomNumberGenerator,
-  kyberPreKeyStore?: KyberPreKeyStore,
 ): Promise<Uint8Array> {
   // Resolve overloaded parameters
   let sessionStore: SessionStore;
@@ -222,7 +219,6 @@ export async function messageDecrypt(
   let resolvedPreKeyStore: PreKeyStore;
   let resolvedSignedPreKeyStore: SignedPreKeyStore;
   let resolvedRng: RandomNumberGenerator;
-  let resolvedKyberPreKeyStore: KyberPreKeyStore | undefined;
 
   if (preKeyStore === undefined && signedPreKeyStore === undefined && rng === undefined) {
     // ProtocolStore overload: (ciphertext, address, store, rng)
@@ -232,7 +228,6 @@ export async function messageDecrypt(
     resolvedPreKeyStore = store;
     resolvedSignedPreKeyStore = store;
     resolvedRng = identityStoreOrRng as RandomNumberGenerator;
-    resolvedKyberPreKeyStore = store;
   } else {
     // Separate stores overload
     sessionStore = sessionStoreOrProtocolStore;
@@ -240,7 +235,6 @@ export async function messageDecrypt(
     resolvedPreKeyStore = preKeyStore!;
     resolvedSignedPreKeyStore = signedPreKeyStore!;
     resolvedRng = rng!;
-    resolvedKyberPreKeyStore = kyberPreKeyStore;
   }
 
   if (ciphertext instanceof PreKeySignalMessage) {
@@ -252,7 +246,6 @@ export async function messageDecrypt(
       resolvedPreKeyStore,
       resolvedSignedPreKeyStore,
       resolvedRng,
-      resolvedKyberPreKeyStore,
     );
   }
   return messageDecryptSignal(ciphertext, remoteAddress, sessionStore, identityStore, resolvedRng);
@@ -266,7 +259,6 @@ async function messageDecryptPreKey(
   preKeyStore: PreKeyStore,
   signedPreKeyStore: SignedPreKeyStore,
   rng: RandomNumberGenerator,
-  kyberPreKeyStore?: KyberPreKeyStore,
 ): Promise<Uint8Array> {
   let sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
@@ -278,7 +270,6 @@ async function messageDecryptPreKey(
     identityStore,
     preKeyStore,
     signedPreKeyStore,
-    kyberPreKeyStore,
   );
 
   const plaintext = decryptMessageWithRecord(
@@ -295,15 +286,6 @@ async function messageDecryptPreKey(
   // Remove used one-time prekey
   if (preKeysUsed?.oneTimePreKeyId !== undefined) {
     await preKeyStore.removePreKey(preKeysUsed.oneTimePreKeyId);
-  }
-
-  // Mark Kyber pre-key as used (3-arg signature matching libsignal)
-  if (preKeysUsed?.kyberPreKeyId !== undefined && kyberPreKeyStore) {
-    await kyberPreKeyStore.markKyberPreKeyUsed(
-      preKeysUsed.kyberPreKeyId,
-      preKeysUsed.signedPreKeyId,
-      message.baseKey,
-    );
   }
 
   await sessionStore.storeSession(remoteAddress, sessionRecord);

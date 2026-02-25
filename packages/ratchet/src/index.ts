@@ -1,7 +1,7 @@
 /**
  * @bcts/ratchet — Signal Protocol Double Ratchet implementation.
  *
- * Wire-compatible with Signal Protocol version 3 (pre-Kyber) and version 4 (PQXDH + SPQR).
+ * Wire-compatible with Signal Protocol version 3 (X3DH).
  */
 
 // Error types
@@ -18,11 +18,6 @@ export {
   InvalidStateError,
   NoKeyPairError,
   InvalidRegistrationIdError,
-  BadKEMKeyTypeError,
-  WrongKEMKeyTypeError,
-  BadKEMKeyLengthError,
-  BadKEMCiphertextLengthError,
-  InvalidKyberPreKeyIdError,
   UnknownSealedSenderServerCertificateIdError,
   InvalidProtocolAddressError,
   UnrecognizedMessageVersionError,
@@ -51,7 +46,6 @@ export {
   KEY_TYPE_DJB,
   MAX_SENDER_KEY_STATES,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
   SENDERKEY_MESSAGE_CURRENT_VERSION,
   REVOKED_SERVER_CERTIFICATE_KEY_IDS,
 } from "./constants.js";
@@ -72,29 +66,6 @@ export { ChainKey } from "./ratchet/chain-key.js";
 export { MessageKeys, MessageKeyGeneratorFactory } from "./ratchet/message-keys.js";
 export type { MessageKeyGenerator } from "./ratchet/message-keys.js";
 export { RootKey } from "./ratchet/root-key.js";
-export { PqRatchetState } from "./ratchet/pq-ratchet.js";
-
-// SPQR (Sparse Post-Quantum Ratchet) state machine — backed by @bcts/spqr
-export {
-  initialState as spqrInitialState,
-  spqrSend,
-  spqrRecv,
-  emptyState as spqrEmptyState,
-  currentVersion as spqrCurrentVersion,
-  SpqrError,
-  SpqrErrorCode,
-  Version as SpqrVersion,
-  Direction as SpqrDirection,
-  DEFAULT_CHAIN_PARAMS as SPQR_DEFAULT_CHAIN_PARAMS,
-} from "./ratchet/spqr-adapter.js";
-export type {
-  SpqrParams,
-  SpqrSendResult,
-  SpqrRecvResult,
-  SpqrCurrentVersion,
-  SpqrChainParams,
-  RandomBytes as SpqrRandomBytes,
-} from "./ratchet/spqr-adapter.js";
 
 // Protocol messages
 export { SignalMessage } from "./protocol/signal-message.js";
@@ -116,8 +87,6 @@ export { DecryptionErrorMessage } from "./protocol/decryption-error-message.js";
 export { SessionState, SessionUsabilityRequirements } from "./session/session-state.js";
 export type {
   PendingPreKey,
-  PqRatchetSendResult,
-  PqRatchetRecvResult,
 } from "./session/session-state.js";
 export { SessionRecord } from "./session/session-record.js";
 
@@ -141,25 +110,6 @@ export {
 export { SenderKeyMessage } from "./protocol/sender-key-message.js";
 export { SenderKeyDistributionMessage } from "./protocol/sender-key-distribution-message.js";
 
-// KEM types
-export {
-  KemType,
-  kemGenerateKeyPair,
-  kemEncapsulate,
-  kemDecapsulate,
-  KEM_TYPE_PREFIX_SIZE,
-  KYBER768_PUBLIC_KEY_SIZE,
-  KYBER768_SECRET_KEY_SIZE,
-  KYBER768_CIPHERTEXT_SIZE,
-  KYBER768_SHARED_SECRET_SIZE,
-  KYBER1024_PUBLIC_KEY_SIZE,
-  KYBER1024_SECRET_KEY_SIZE,
-  KYBER1024_CIPHERTEXT_SIZE,
-  KYBER1024_SHARED_SECRET_SIZE,
-} from "./kem/kem-types.js";
-export type { KemKeyPair, KemEncapsulationResult } from "./kem/kem-types.js";
-export { KyberPreKeyRecord } from "./kem/kyber-pre-key.js";
-
 // Storage interfaces
 export { ProtocolAddress } from "./storage/interfaces.js";
 export type {
@@ -167,7 +117,6 @@ export type {
   PreKeyStore,
   SignedPreKeyStore,
   IdentityKeyStore,
-  KyberPreKeyStore,
   SenderKeyStore,
   ProtocolStore,
   Direction,

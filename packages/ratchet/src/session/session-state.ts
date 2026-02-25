@@ -41,8 +41,8 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
  * Specifies which criteria make a session "usable" beyond simply having a
  * present sender chain.
  *
- * These requirements are conjunctive: specifying `NotStale | EstablishedWithPqxdh`
- * means the session must be neither stale nor established with X3DH.
+ * These requirements are conjunctive: specifying multiple flags means the
+ * session must satisfy all of them.
  *
  * Reference: libsignal/rust/protocol/src/state/session.rs (SessionUsabilityRequirements)
  */

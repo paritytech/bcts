@@ -35,7 +35,7 @@ export function getOrCreateChainKey(
   const rootKey = state.rootKey();
   const ourEphemeral = state.senderRatchetKeyPair();
 
-  // Step 1: Derive receiver chain (NO PQ — PQ is per-message now)
+  // Step 1: Derive receiver chain
   const [receiverRootKey, receiverChainKey] = rootKey.createChain(theirEphemeral, ourEphemeral);
 
   // Step 2: Generate new ephemeral

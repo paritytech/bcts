@@ -15,7 +15,7 @@ import { RootKey } from "../ratchet/root-key.js";
 import { ChainKey } from "../ratchet/chain-key.js";
 import { hkdfSha256 } from "../crypto/kdf.js";
 import { x25519RawAgreement } from "../crypto/agreement.js";
-import { CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION } from "../constants.js";
+import { CIPHERTEXT_MESSAGE_CURRENT_VERSION } from "../constants.js";
 
 export interface AliceProtocolParameters {
   ourIdentityKeyPair: IdentityKeyPair;
@@ -96,7 +96,7 @@ export function initializeAliceSession(
 
   // 9. Create session state (v3)
   const session = new SessionState({
-    sessionVersion: CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
+    sessionVersion: CIPHERTEXT_MESSAGE_CURRENT_VERSION,
     localIdentityKey: params.ourIdentityKeyPair.identityKey,
     remoteIdentityKey: params.theirIdentityKey,
     rootKey: sendingRootKey,

@@ -14,7 +14,7 @@ import { ChainKey } from "../ratchet/chain-key.js";
 import { hkdfSha256 } from "../crypto/kdf.js";
 import { x25519RawAgreement, isCanonicalPublicKey } from "../crypto/agreement.js";
 import { InvalidMessageError } from "../error.js";
-import { CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION } from "../constants.js";
+import { CIPHERTEXT_MESSAGE_CURRENT_VERSION } from "../constants.js";
 
 export interface BobProtocolParameters {
   ourIdentityKeyPair: IdentityKeyPair;
@@ -88,7 +88,7 @@ export function initializeBobSession(params: BobProtocolParameters): SessionStat
 
   // 7. Create session state (v3)
   const session = new SessionState({
-    sessionVersion: CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
+    sessionVersion: CIPHERTEXT_MESSAGE_CURRENT_VERSION,
     localIdentityKey: params.ourIdentityKeyPair.identityKey,
     remoteIdentityKey: params.theirIdentityKey,
     rootKey,

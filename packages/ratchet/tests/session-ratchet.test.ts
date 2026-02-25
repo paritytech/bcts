@@ -1,13 +1,12 @@
 /**
  * Multiple DH ratchet step tests.
- * All sessions use v4 (PQXDH with Kyber) since v3 is no longer supported.
+ * All sessions use v3 (X3DH double ratchet).
  */
 
 import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "../src/keys/identity-key.js";
 import { PreKeyRecord, SignedPreKeyRecord } from "../src/keys/pre-key.js";
 import { PreKeyBundle } from "../src/keys/pre-key-bundle.js";
-import { KyberPreKeyRecord } from "../src/kem/kyber-pre-key.js";
 import { ProtocolAddress } from "../src/storage/interfaces.js";
 import { InMemorySignalProtocolStore } from "../src/storage/in-memory-store.js";
 import { processPreKeyBundle } from "../src/x3dh/process-prekey-bundle.js";
@@ -28,11 +27,9 @@ describe("DH Ratchet Steps", () => {
 
     const bobPreKey = PreKeyRecord.generate(1, rng);
     const bobSignedPreKey = SignedPreKeyRecord.generate(1, bobIdentity, Date.now(), rng);
-    const bobKyberPreKey = KyberPreKeyRecord.generate(1, bobIdentity, Date.now());
 
     await bobStore.storePreKey(bobPreKey.id, bobPreKey);
     await bobStore.storeSignedPreKey(bobSignedPreKey.id, bobSignedPreKey);
-    await bobStore.storeKyberPreKey(bobKyberPreKey.id, bobKyberPreKey);
 
     const bobBundle = new PreKeyBundle({
       registrationId: 2,
@@ -43,9 +40,6 @@ describe("DH Ratchet Steps", () => {
       signedPreKey: bobSignedPreKey.keyPair.publicKey,
       signedPreKeySignature: bobSignedPreKey.signature,
       identityKey: bobIdentity.identityKey,
-      kyberPreKeyId: bobKyberPreKey.id,
-      kyberPreKey: bobKyberPreKey.keyPair.publicKey,
-      kyberPreKeySignature: bobKyberPreKey.signature,
     });
 
     await processPreKeyBundle(bobBundle, bobAddress, aliceStore, aliceStore, rng);
@@ -71,7 +65,6 @@ describe("DH Ratchet Steps", () => {
       bobStore,
       bobStore,
       rng,
-      bobStore,
     );
     expect(new TextDecoder().decode(dec1)).toBe("Alice 1");
 
@@ -156,7 +149,6 @@ describe("DH Ratchet Steps", () => {
         receiverStore,
         receiverStore,
         rng,
-        receiverStore,
       );
 
       expect(new TextDecoder().decode(decrypted)).toBe(text);
