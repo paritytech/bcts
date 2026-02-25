@@ -46,7 +46,6 @@ import {
   encodeSenderKeyRecordStructure,
   decodeSenderKeyRecordStructure,
   encodeSenderKeyStateStructure,
-  decodeSenderKeyStateStructure,
   // Pre key record codecs
   encodePreKeyRecord,
   decodePreKeyRecord,
@@ -153,14 +152,6 @@ function readVarint(data: Uint8Array, offset: number): [number, number] {
 // ============================================================================
 // Helpers
 // ============================================================================
-
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return bytes;
-}
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -300,7 +291,6 @@ describe("Task 9.3: SignalMessage wire format", () => {
    *     optional uint32 counter          = 2;
    *     optional uint32 previous_counter = 3;
    *     optional bytes  ciphertext       = 4;
-   *     optional bytes  pq_ratchet       = 5;
    *   }
    */
 
@@ -338,19 +328,17 @@ describe("Task 9.3: SignalMessage wire format", () => {
   describe("full message encoding", () => {
     const ratchetKey = filler(33, 0x05);
     const ciphertext = filler(48, 0xcd);
-    const pqRatchet = filler(33, 0xf0);
 
-    it("encodes all five fields in field-number order", () => {
+    it("encodes all four fields in field-number order", () => {
       const encoded = encodeSignalMessage({
         ratchetKey,
         counter: 100,
         previousCounter: 50,
         ciphertext,
-        pqRatchetKey: pqRatchet,
       });
       const fields = parseRawProto(encoded);
-      expect(fields).toHaveLength(5);
-      expect(fields.map((f) => f.field)).toEqual([1, 2, 3, 4, 5]);
+      expect(fields).toHaveLength(4);
+      expect(fields.map((f) => f.field)).toEqual([1, 2, 3, 4]);
     });
 
     it("round-trips through encode/decode", () => {
@@ -359,7 +347,6 @@ describe("Task 9.3: SignalMessage wire format", () => {
         counter: 100,
         previousCounter: 50,
         ciphertext,
-        pqRatchetKey: pqRatchet,
       };
       const encoded = encodeSignalMessage(original);
       const decoded = decodeSignalMessage(encoded);
@@ -368,7 +355,6 @@ describe("Task 9.3: SignalMessage wire format", () => {
       expect(decoded.counter).toBe(100);
       expect(decoded.previousCounter).toBe(50);
       expect(bytesToHex(decoded.ciphertext!)).toBe(bytesToHex(ciphertext));
-      expect(bytesToHex(decoded.pqRatchetKey!)).toBe(bytesToHex(pqRatchet));
     });
 
     it("omits absent optional fields", () => {
@@ -378,29 +364,22 @@ describe("Task 9.3: SignalMessage wire format", () => {
         ciphertext,
       });
       const fields = parseRawProto(encoded);
-      // previousCounter is omitted (undefined), pqRatchet is omitted
+      // previousCounter is omitted (undefined)
       const fieldNums = fields.map((f) => f.field);
       expect(fieldNums).toContain(1);
       expect(fieldNums).toContain(2);
       expect(fieldNums).toContain(4);
       expect(fieldNums).not.toContain(3);
-      expect(fieldNums).not.toContain(5);
     });
   });
 
   describe("version byte format", () => {
     it("version byte = (message_version << 4) | current_version", () => {
-      // v3 message: (3 << 4) | 4 = 0x34
-      const vByte = (3 << 4) | 4;
-      expect(vByte).toBe(0x34);
+      // v3 message: (3 << 4) | 3 = 0x33
+      const vByte = (3 << 4) | 3;
+      expect(vByte).toBe(0x33);
       expect(vByte >> 4).toBe(3);
-      expect(vByte & 0x0f).toBe(4);
-
-      // v4 message: (4 << 4) | 4 = 0x44
-      const vByte4 = (4 << 4) | 4;
-      expect(vByte4).toBe(0x44);
-      expect(vByte4 >> 4).toBe(4);
-      expect(vByte4 & 0x0f).toBe(4);
+      expect(vByte & 0x0f).toBe(3);
     });
   });
 
@@ -507,8 +486,6 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
    *     optional uint32 registration_id   = 5;
    *     optional uint32 pre_key_id        = 1;
    *     optional uint32 signed_pre_key_id = 6;
-   *     optional uint32 kyber_pre_key_id  = 7;
-   *     optional bytes  kyber_ciphertext  = 8;
    *     optional bytes  base_key          = 2;
    *     optional bytes  identity_key      = 3;
    *     optional bytes  message           = 4;
@@ -559,19 +536,6 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
       expect(fields[0].wireType).toBe(0);
     });
 
-    it("kyber_pre_key_id is field 7, varint", () => {
-      const encoded = encodePreKeySignalMessage({ kyberPreKeyId: 200 });
-      const fields = parseRawProto(encoded);
-      expect(fields[0].field).toBe(7);
-      expect(fields[0].wireType).toBe(0);
-    });
-
-    it("kyber_ciphertext is field 8, length-delimited", () => {
-      const encoded = encodePreKeySignalMessage({ kyberCiphertext: filler(1088) });
-      const fields = parseRawProto(encoded);
-      expect(fields[0].field).toBe(8);
-      expect(fields[0].wireType).toBe(2);
-    });
   });
 
   describe("full message encoding", () => {
@@ -583,8 +547,6 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
         message: filler(100, 0x30),
         registrationId: 12345,
         signedPreKeyId: 99,
-        kyberPreKeyId: 200,
-        kyberCiphertext: filler(128, 0x40),
       };
 
       const encoded = encodePreKeySignalMessage(original);
@@ -596,11 +558,9 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
       expect(bytesToHex(decoded.message!)).toBe(bytesToHex(original.message));
       expect(decoded.registrationId).toBe(12345);
       expect(decoded.signedPreKeyId).toBe(99);
-      expect(decoded.kyberPreKeyId).toBe(200);
-      expect(bytesToHex(decoded.kyberCiphertext!)).toBe(bytesToHex(original.kyberCiphertext));
     });
 
-    it("field order in encoding is 1,2,3,4,5,6,7,8", () => {
+    it("field order in encoding is 1,2,3,4,5,6", () => {
       const encoded = encodePreKeySignalMessage({
         preKeyId: 1,
         baseKey: filler(33),
@@ -608,11 +568,9 @@ describe("Task 9.3: PreKeySignalMessage wire format", () => {
         message: filler(10),
         registrationId: 100,
         signedPreKeyId: 200,
-        kyberPreKeyId: 300,
-        kyberCiphertext: filler(16),
       });
       const fields = parseRawProto(encoded);
-      expect(fields.map((f) => f.field)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      expect(fields.map((f) => f.field)).toEqual([1, 2, 3, 4, 5, 6]);
     });
   });
 
@@ -745,8 +703,6 @@ describe("Task 9.3: SessionStructure storage format", () => {
    *     uint32 local_registration_id     = 11;
    *     // reserved 12
    *     bytes  alice_base_key            = 13;
-   *     PendingKyberPreKey pending_kyber_pre_key = 14;
-   *     bytes  pq_ratchet_state          = 15;
    *   }
    */
 
@@ -848,27 +804,12 @@ describe("Task 9.3: SessionStructure storage format", () => {
       expect(fields[0].wireType).toBe(2);
     });
 
-    it("pending_kyber_pre_key is field 14", () => {
-      const encoded = encodeSessionStructure({
-        pendingKyberPreKey: { kyberPreKeyId: 1, kyberCiphertext: filler(1088) },
-      });
-      const fields = parseRawProto(encoded);
-      expect(fields[0].field).toBe(14);
-      expect(fields[0].wireType).toBe(2);
-    });
-
-    it("pq_ratchet_state is field 15", () => {
-      const encoded = encodeSessionStructure({ pqRatchetState: filler(32) });
-      const fields = parseRawProto(encoded);
-      expect(fields[0].field).toBe(15);
-      expect(fields[0].wireType).toBe(2);
-    });
   });
 
   describe("full SessionStructure round-trip", () => {
     it("encodes and decodes all fields correctly", () => {
       const original = {
-        sessionVersion: 4,
+        sessionVersion: 3,
         localIdentityPublic: filler(33, 0x10),
         remoteIdentityPublic: filler(33, 0x20),
         rootKey: filler(32, 0x30),
@@ -902,17 +843,12 @@ describe("Task 9.3: SessionStructure storage format", () => {
         remoteRegistrationId: 12345,
         localRegistrationId: 54321,
         aliceBaseKey: filler(33, 0xd0),
-        pendingKyberPreKey: {
-          kyberPreKeyId: 7,
-          kyberCiphertext: filler(128, 0xe0),
-        },
-        pqRatchetState: filler(32, 0xf0),
       };
 
       const encoded = encodeSessionStructure(original);
       const decoded = decodeSessionStructure(encoded);
 
-      expect(decoded.sessionVersion).toBe(4);
+      expect(decoded.sessionVersion).toBe(3);
       expect(bytesToHex(decoded.localIdentityPublic!)).toBe(
         bytesToHex(original.localIdentityPublic),
       );
@@ -934,8 +870,6 @@ describe("Task 9.3: SessionStructure storage format", () => {
       expect(decoded.remoteRegistrationId).toBe(12345);
       expect(decoded.localRegistrationId).toBe(54321);
       expect(bytesToHex(decoded.aliceBaseKey!)).toBe(bytesToHex(original.aliceBaseKey));
-      expect(decoded.pendingKyberPreKey!.kyberPreKeyId).toBe(7);
-      expect(decoded.pqRatchetState).toBeDefined();
     });
   });
 
@@ -1027,24 +961,6 @@ describe("Task 9.3: SessionStructure storage format", () => {
     });
   });
 
-  describe("PendingKyberPreKey sub-message fields", () => {
-    /**
-     * message PendingKyberPreKey {
-     *   uint32 pre_key_id = 1;
-     *   bytes  ciphertext = 2;
-     * }
-     */
-    it("PendingKyberPreKey fields are 1 (varint) and 2 (bytes)", () => {
-      const encoded = encodePendingKyberPreKey({
-        kyberPreKeyId: 7,
-        kyberCiphertext: filler(1088),
-      });
-      const fields = parseRawProto(encoded);
-      expect(fields.map((f) => f.field)).toEqual([1, 2]);
-      expect(fields[0].wireType).toBe(0);
-      expect(fields[1].wireType).toBe(2);
-    });
-  });
 });
 
 // ============================================================================
@@ -1060,7 +976,7 @@ describe("Task 9.3: RecordStructure format", () => {
    *   }
    */
   it("current_session is field 1, previous_sessions is field 2 (repeated)", () => {
-    const session = encodeSessionStructure({ sessionVersion: 4 });
+    const session = encodeSessionStructure({ sessionVersion: 3 });
     const prev1 = encodeSessionStructure({ sessionVersion: 3 });
     const prev2 = encodeSessionStructure({ sessionVersion: 3 });
 
@@ -1619,7 +1535,6 @@ describe("Task 9.4: Cross-proto field number map", () => {
     { name: "counter", field: 2, wire: WIRE_VARINT },
     { name: "previous_counter", field: 3, wire: WIRE_VARINT },
     { name: "ciphertext", field: 4, wire: WIRE_LEN },
-    { name: "pq_ratchet", field: 5, wire: WIRE_LEN },
   ];
 
   const preKeySignalMessageFields = [
@@ -1629,8 +1544,6 @@ describe("Task 9.4: Cross-proto field number map", () => {
     { name: "message", field: 4, wire: WIRE_LEN },
     { name: "registration_id", field: 5, wire: WIRE_VARINT },
     { name: "signed_pre_key_id", field: 6, wire: WIRE_VARINT },
-    { name: "kyber_pre_key_id", field: 7, wire: WIRE_VARINT },
-    { name: "kyber_ciphertext", field: 8, wire: WIRE_LEN },
   ];
 
   const senderKeyMessageFields = [
@@ -1663,8 +1576,6 @@ describe("Task 9.4: Cross-proto field number map", () => {
     { name: "local_registration_id", field: 11, wire: WIRE_VARINT },
     // field 12 is reserved
     { name: "alice_base_key", field: 13, wire: WIRE_LEN },
-    { name: "pending_kyber_pre_key", field: 14, wire: WIRE_LEN },
-    { name: "pq_ratchet_state", field: 15, wire: WIRE_LEN },
   ];
 
   const senderKeyStateFields = [
@@ -1784,53 +1695,19 @@ describe("Task 9.4: Key derivation vectors", () => {
     });
   });
 
-  describe("MessageKeys derivation with PQ ratchet salt", () => {
-    it("PQ salt changes derived keys", () => {
-      const seed = filler(32, 0x11);
-      const pqSalt = filler(32, 0x22);
-
-      const mkWithout = MessageKeys.deriveFrom(seed, 0);
-      const mkWith = MessageKeys.deriveFrom(seed, 0, pqSalt);
-
-      expect(bytesToHex(mkWith.cipherKey)).not.toBe(bytesToHex(mkWithout.cipherKey));
-      expect(bytesToHex(mkWith.macKey)).not.toBe(bytesToHex(mkWithout.macKey));
-    });
-
-    it("matches manual HKDF with salt", () => {
-      const seed = filler(32, 0x33);
-      const pqSalt = filler(32, 0x44);
-      const info = new TextEncoder().encode("WhisperMessageKeys");
-      const derived = hkdfSha256(seed, pqSalt, info, 80);
-
-      const mk = MessageKeys.deriveFrom(seed, 0, pqSalt);
-      expect(bytesToHex(mk.cipherKey)).toBe(bytesToHex(derived.slice(0, 32)));
-      expect(bytesToHex(mk.macKey)).toBe(bytesToHex(derived.slice(32, 64)));
-      expect(bytesToHex(mk.iv)).toBe(bytesToHex(derived.slice(64, 80)));
-    });
-  });
-
   describe("X3DH key derivation structure", () => {
-    it("derives 96 bytes: root(32) + chain(32) + pqr(32)", () => {
+    it("derives 64 bytes: root(32) + chain(32)", () => {
       // Simulate X3DH final HKDF step
-      const secretInput = filler(160, 0x55); // simulated concatenated secrets
-      const info = new TextEncoder().encode("WhisperText_X25519_SHA-256_CRYSTALS-KYBER-1024");
-      const derived = hkdfSha256(secretInput, undefined, info, 96);
+      const secretInput = filler(128, 0x55); // simulated concatenated secrets
+      const info = new TextEncoder().encode("WhisperText");
+      const derived = hkdfSha256(secretInput, undefined, info, 64);
 
-      expect(derived.length).toBe(96);
+      expect(derived.length).toBe(64);
       const rootKey = derived.slice(0, 32);
       const chainKey = derived.slice(32, 64);
-      const pqrKey = derived.slice(64, 96);
 
-      // All three 32-byte segments should be distinct
+      // Both 32-byte segments should be distinct
       expect(bytesToHex(rootKey)).not.toBe(bytesToHex(chainKey));
-      expect(bytesToHex(chainKey)).not.toBe(bytesToHex(pqrKey));
-      expect(bytesToHex(rootKey)).not.toBe(bytesToHex(pqrKey));
-    });
-
-    it("X3DH info label is the Kyber variant", () => {
-      const label = "WhisperText_X25519_SHA-256_CRYSTALS-KYBER-1024";
-      const encoded = new TextEncoder().encode(label);
-      expect(encoded.length).toBe(46);
     });
   });
 
@@ -1846,28 +1723,6 @@ describe("Task 9.4: Key derivation vectors", () => {
     });
   });
 
-  describe("PQ ratchet key derivation", () => {
-    it("HMAC(pq_root, 0x02) produces PQ message key", () => {
-      const pqRoot = filler(32, 0x88);
-      const messageKey = hmacSha256(pqRoot, new Uint8Array([0x02]));
-      expect(messageKey.length).toBe(32);
-    });
-
-    it("HMAC(pq_root, 0x01) is the advance seed (not message key)", () => {
-      const pqRoot = filler(32, 0x99);
-      const advanceSeed = hmacSha256(pqRoot, new Uint8Array([0x01]));
-      const messageKey = hmacSha256(pqRoot, new Uint8Array([0x02]));
-      expect(bytesToHex(advanceSeed)).not.toBe(bytesToHex(messageKey));
-    });
-
-    it("PQ ratchet step mixes DH secret", () => {
-      const pqRoot = filler(32, 0xaa);
-      const dhSecret = filler(32, 0xbb);
-      const newRoot = hmacSha256(pqRoot, dhSecret);
-      expect(newRoot.length).toBe(32);
-      expect(bytesToHex(newRoot)).not.toBe(bytesToHex(pqRoot));
-    });
-  });
 });
 
 // ============================================================================
@@ -2012,7 +1867,6 @@ describe("Task 9.4: Proto2 vs Proto3 behavior", () => {
     });
     const decoded = decodeSignalMessage(encoded);
     expect(decoded.previousCounter).toBeUndefined();
-    expect(decoded.pqRatchetKey).toBeUndefined();
   });
 
   it("proto3 zero-valued fields may be omitted on wire", () => {
@@ -2054,18 +1908,16 @@ describe("Task 9.4: Wire-level cross-verification", () => {
   it("SignalMessage encode -> raw parse -> values match", () => {
     const rk = filler(33, 0x05);
     const ct = filler(64, 0xcd);
-    const pq = filler(33, 0xf0);
 
     const encoded = encodeSignalMessage({
       ratchetKey: rk,
       counter: 42,
       previousCounter: 7,
       ciphertext: ct,
-      pqRatchetKey: pq,
     });
 
     const raw = parseRawProto(encoded);
-    expect(raw).toHaveLength(5);
+    expect(raw).toHaveLength(4);
 
     // Verify each field matches expected wire.proto schema
     expect(raw[0]).toMatchObject({ field: 1, wireType: 2 });
@@ -2076,9 +1928,6 @@ describe("Task 9.4: Wire-level cross-verification", () => {
 
     expect(raw[3]).toMatchObject({ field: 4, wireType: 2 });
     expect((raw[3].value as Uint8Array).length).toBe(64);
-
-    expect(raw[4]).toMatchObject({ field: 5, wireType: 2 });
-    expect((raw[4].value as Uint8Array).length).toBe(33);
   });
 
   it("SessionStructure nested chains parse correctly", () => {
@@ -2086,7 +1935,7 @@ describe("Task 9.4: Wire-level cross-verification", () => {
     const ratchetKey = filler(33, 0x22);
 
     const encoded = encodeSessionStructure({
-      sessionVersion: 4,
+      sessionVersion: 3,
       senderChain: {
         senderRatchetKey: ratchetKey,
         chainKey: { index: 3, key: chainKey },
@@ -2096,7 +1945,7 @@ describe("Task 9.4: Wire-level cross-verification", () => {
     const topLevel = parseRawProto(encoded);
     // Field 1 (session_version) + field 6 (sender_chain)
     expect(topLevel).toHaveLength(2);
-    expect(topLevel[0]).toMatchObject({ field: 1, wireType: 0, value: 4 });
+    expect(topLevel[0]).toMatchObject({ field: 1, wireType: 0, value: 3 });
     expect(topLevel[1]).toMatchObject({ field: 6, wireType: 2 });
 
     // Parse the nested Chain message
