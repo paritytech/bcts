@@ -540,19 +540,19 @@ export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
       parts.push(encodeNestedMessage(7, encodeChainStructure(rc)));
     }
   }
-  if (ss.pendingPreKey) parts.push(encodeNestedMessage(9, encodePendingPreKey(ss.pendingPreKey)));
+  if (ss.pendingPreKey != null) parts.push(encodeNestedMessage(9, encodePendingPreKey(ss.pendingPreKey)));
   if (ss.remoteRegistrationId !== undefined)
     parts.push(encodeUint32Field(10, ss.remoteRegistrationId));
   if (ss.localRegistrationId !== undefined)
     parts.push(encodeUint32Field(11, ss.localRegistrationId));
-  if (ss.aliceBaseKey) parts.push(encodeBytesField(13, ss.aliceBaseKey));
+  if (ss.aliceBaseKey != null) parts.push(encodeBytesField(13, ss.aliceBaseKey));
   return concatProtoFields(...parts);
 }
 
 export function encodeRecordStructure(rs: RecordStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (rs.currentSession) parts.push(encodeBytesField(1, rs.currentSession));
-  if (rs.previousSessions) {
+  if (rs.currentSession != null) parts.push(encodeBytesField(1, rs.currentSession));
+  if (rs.previousSessions != null) {
     for (const ps of rs.previousSessions) {
       parts.push(encodeBytesField(2, ps));
     }
@@ -588,7 +588,7 @@ export function decodeChainStructure(data: Uint8Array): ChainStructureProto {
   return {
     senderRatchetKey: fields.bytes.get(1),
     senderRatchetKeyPrivate: fields.bytes.get(2),
-    chainKey: chainKeyBytes ? decodeChainKey(chainKeyBytes) : undefined,
+    chainKey: chainKeyBytes != null ? decodeChainKey(chainKeyBytes) : undefined,
     messageKeys,
   };
 }
@@ -615,9 +615,9 @@ export function decodeSessionStructure(data: Uint8Array): SessionStructureProto 
     remoteIdentityPublic: fields.bytes.get(3),
     rootKey: fields.bytes.get(4),
     previousCounter: fields.varints.get(5),
-    senderChain: senderChainBytes ? decodeChainStructure(senderChainBytes) : undefined,
+    senderChain: senderChainBytes != null ? decodeChainStructure(senderChainBytes) : undefined,
     receiverChains: receiverChainBytesArr?.map(decodeChainStructure),
-    pendingPreKey: pendingPreKeyBytes ? decodePendingPreKey(pendingPreKeyBytes) : undefined,
+    pendingPreKey: pendingPreKeyBytes != null ? decodePendingPreKey(pendingPreKeyBytes) : undefined,
     remoteRegistrationId: fields.varints.get(10),
     localRegistrationId: fields.varints.get(11),
     aliceBaseKey: fields.bytes.get(13),
@@ -664,32 +664,32 @@ export interface SenderKeyRecordStructureProto {
 export function encodeSenderKeyStateChainKey(ck: SenderKeyStateChainKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (ck.iteration !== undefined) parts.push(encodeUint32Field(1, ck.iteration));
-  if (ck.seed) parts.push(encodeBytesField(2, ck.seed));
+  if (ck.seed != null) parts.push(encodeBytesField(2, ck.seed));
   return concatProtoFields(...parts);
 }
 
 export function encodeSenderKeyStateMessageKey(mk: SenderKeyStateMessageKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (mk.iteration !== undefined) parts.push(encodeUint32Field(1, mk.iteration));
-  if (mk.seed) parts.push(encodeBytesField(2, mk.seed));
+  if (mk.seed != null) parts.push(encodeBytesField(2, mk.seed));
   return concatProtoFields(...parts);
 }
 
 export function encodeSenderSigningKey(sk: SenderSigningKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (sk.publicKey) parts.push(encodeBytesField(1, sk.publicKey));
-  if (sk.privateKey) parts.push(encodeBytesField(2, sk.privateKey));
+  if (sk.publicKey != null) parts.push(encodeBytesField(1, sk.publicKey));
+  if (sk.privateKey != null) parts.push(encodeBytesField(2, sk.privateKey));
   return concatProtoFields(...parts);
 }
 
 export function encodeSenderKeyStateStructure(state: SenderKeyStateStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (state.chainId !== undefined) parts.push(encodeUint32Field(1, state.chainId));
-  if (state.senderChainKey)
+  if (state.senderChainKey != null)
     parts.push(encodeNestedMessage(2, encodeSenderKeyStateChainKey(state.senderChainKey)));
-  if (state.senderSigningKey)
+  if (state.senderSigningKey != null)
     parts.push(encodeNestedMessage(3, encodeSenderSigningKey(state.senderSigningKey)));
-  if (state.senderMessageKeys) {
+  if (state.senderMessageKeys != null) {
     for (const mk of state.senderMessageKeys) {
       parts.push(encodeNestedMessage(4, encodeSenderKeyStateMessageKey(mk)));
     }
@@ -700,7 +700,7 @@ export function encodeSenderKeyStateStructure(state: SenderKeyStateStructureProt
 
 export function encodeSenderKeyRecordStructure(record: SenderKeyRecordStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (record.senderKeyStates) {
+  if (record.senderKeyStates != null) {
     for (const state of record.senderKeyStates) {
       parts.push(encodeNestedMessage(1, encodeSenderKeyStateStructure(state)));
     }
@@ -739,8 +739,8 @@ export function decodeSenderKeyStateStructure(data: Uint8Array): SenderKeyStateS
   const messageKeyBytesArr = fields.repeatedBytes.get(4);
   return {
     chainId: fields.varints.get(1),
-    senderChainKey: chainKeyBytes ? decodeSenderKeyStateChainKey(chainKeyBytes) : undefined,
-    senderSigningKey: signingKeyBytes ? decodeSenderSigningKey(signingKeyBytes) : undefined,
+    senderChainKey: chainKeyBytes != null ? decodeSenderKeyStateChainKey(chainKeyBytes) : undefined,
+    senderSigningKey: signingKeyBytes != null ? decodeSenderSigningKey(signingKeyBytes) : undefined,
     senderMessageKeys: messageKeyBytesArr?.map(decodeSenderKeyStateMessageKey),
     messageVersion: fields.varints.get(5),
   };
@@ -773,8 +773,8 @@ export interface SignedPreKeyRecordProto {
 export function encodePreKeyRecord(pk: PreKeyRecordProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (pk.id !== undefined) parts.push(encodeUint32Field(1, pk.id));
-  if (pk.publicKey) parts.push(encodeBytesField(2, pk.publicKey));
-  if (pk.privateKey) parts.push(encodeBytesField(3, pk.privateKey));
+  if (pk.publicKey != null) parts.push(encodeBytesField(2, pk.publicKey));
+  if (pk.privateKey != null) parts.push(encodeBytesField(3, pk.privateKey));
   return concatProtoFields(...parts);
 }
 
@@ -790,9 +790,9 @@ export function decodePreKeyRecord(data: Uint8Array): PreKeyRecordProto {
 export function encodeSignedPreKeyRecord(spk: SignedPreKeyRecordProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (spk.id !== undefined) parts.push(encodeUint32Field(1, spk.id));
-  if (spk.publicKey) parts.push(encodeBytesField(2, spk.publicKey));
-  if (spk.privateKey) parts.push(encodeBytesField(3, spk.privateKey));
-  if (spk.signature) parts.push(encodeBytesField(4, spk.signature));
+  if (spk.publicKey != null) parts.push(encodeBytesField(2, spk.publicKey));
+  if (spk.privateKey != null) parts.push(encodeBytesField(3, spk.privateKey));
+  if (spk.signature != null) parts.push(encodeBytesField(4, spk.signature));
   if (spk.timestamp !== undefined) parts.push(encodeFixed64Field(5, spk.timestamp));
   return concatProtoFields(...parts);
 }
