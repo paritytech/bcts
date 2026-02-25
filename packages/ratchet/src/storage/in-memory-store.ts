@@ -35,95 +35,100 @@ export class InMemorySignalProtocolStore
 
   // --- SessionStore ---
 
-  async loadSession(address: ProtocolAddress): Promise<SessionRecord | undefined> {
-    return this.sessions.get(address.toString());
+  loadSession(address: ProtocolAddress): Promise<SessionRecord | undefined> {
+    return Promise.resolve(this.sessions.get(address.toString()));
   }
 
-  async storeSession(address: ProtocolAddress, record: SessionRecord): Promise<void> {
+  storeSession(address: ProtocolAddress, record: SessionRecord): Promise<void> {
     this.sessions.set(address.toString(), record);
+    return Promise.resolve();
   }
 
   // --- PreKeyStore ---
 
-  async loadPreKey(id: number): Promise<PreKeyRecord> {
+  loadPreKey(id: number): Promise<PreKeyRecord> {
     const record = this.preKeys.get(id);
-    if (!record) {
+    if (record == null) {
       throw new InvalidKeyError(`PreKey not found: ${id}`);
     }
-    return record;
+    return Promise.resolve(record);
   }
 
-  async storePreKey(id: number, record: PreKeyRecord): Promise<void> {
+  storePreKey(id: number, record: PreKeyRecord): Promise<void> {
     this.preKeys.set(id, record);
+    return Promise.resolve();
   }
 
-  async removePreKey(id: number): Promise<void> {
+  removePreKey(id: number): Promise<void> {
     this.preKeys.delete(id);
+    return Promise.resolve();
   }
 
   // --- SignedPreKeyStore ---
 
-  async loadSignedPreKey(id: number): Promise<SignedPreKeyRecord> {
+  loadSignedPreKey(id: number): Promise<SignedPreKeyRecord> {
     const record = this.signedPreKeys.get(id);
-    if (!record) {
+    if (record == null) {
       throw new InvalidKeyError(`SignedPreKey not found: ${id}`);
     }
-    return record;
+    return Promise.resolve(record);
   }
 
-  async storeSignedPreKey(id: number, record: SignedPreKeyRecord): Promise<void> {
+  storeSignedPreKey(id: number, record: SignedPreKeyRecord): Promise<void> {
     this.signedPreKeys.set(id, record);
+    return Promise.resolve();
   }
 
   // --- IdentityKeyStore ---
 
-  async getIdentityKeyPair(): Promise<IdentityKeyPair> {
-    return this.identityKeyPair;
+  getIdentityKeyPair(): Promise<IdentityKeyPair> {
+    return Promise.resolve(this.identityKeyPair);
   }
 
-  async getLocalRegistrationId(): Promise<number> {
-    return this.registrationId;
+  getLocalRegistrationId(): Promise<number> {
+    return Promise.resolve(this.registrationId);
   }
 
-  async isTrustedIdentity(
+  isTrustedIdentity(
     address: ProtocolAddress,
     identityKey: IdentityKey,
     _direction: Direction,
   ): Promise<boolean> {
     const existing = this.identities.get(address.toString());
-    if (!existing) {
-      return true; // Trust on first use
+    if (existing == null) {
+      return Promise.resolve(true); // Trust on first use
     }
-    return existing.equals(identityKey);
+    return Promise.resolve(existing.equals(identityKey));
   }
 
-  async getIdentity(address: ProtocolAddress): Promise<IdentityKey | undefined> {
-    return this.identities.get(address.toString());
+  getIdentity(address: ProtocolAddress): Promise<IdentityKey | undefined> {
+    return Promise.resolve(this.identities.get(address.toString()));
   }
 
-  async saveIdentity(address: ProtocolAddress, identityKey: IdentityKey): Promise<boolean> {
+  saveIdentity(address: ProtocolAddress, identityKey: IdentityKey): Promise<boolean> {
     const existing = this.identities.get(address.toString());
     this.identities.set(address.toString(), identityKey);
-    if (existing) {
-      return !existing.equals(identityKey); // return true if changed
+    if (existing != null) {
+      return Promise.resolve(!existing.equals(identityKey)); // return true if changed
     }
-    return false;
+    return Promise.resolve(false);
   }
 
   // --- SenderKeyStore ---
 
-  async storeSenderKey(
+  storeSenderKey(
     sender: ProtocolAddress,
     distributionId: string,
     record: Uint8Array,
   ): Promise<void> {
     this.senderKeys.set(`${sender.toString()}::${distributionId}`, record);
+    return Promise.resolve();
   }
 
-  async loadSenderKey(
+  loadSenderKey(
     sender: ProtocolAddress,
     distributionId: string,
   ): Promise<Uint8Array | undefined> {
-    return this.senderKeys.get(`${sender.toString()}::${distributionId}`);
+    return Promise.resolve(this.senderKeys.get(`${sender.toString()}::${distributionId}`));
   }
 }

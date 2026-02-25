@@ -185,7 +185,6 @@ async function messageEncryptImpl(
  *
  * Overload: accepts a single ProtocolStore instead of separate stores.
  */
-// eslint-disable-next-line no-redeclare
 export async function messageDecrypt(
   ciphertext: SignalMessage | PreKeySignalMessage,
   remoteAddress: ProtocolAddress,
