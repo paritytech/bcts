@@ -28,7 +28,7 @@ import * as unchunkedSendCt from "../unchunked/send-ct.js";
 import * as unchunkedSendEk from "../unchunked/send-ek.js";
 import { PolyEncoder, PolyDecoder } from "../../encoding/polynomial.js";
 import type { Chunk } from "../../encoding/polynomial.js";
-import { HEADER_SIZE, EK_SIZE, CT2_SIZE } from "../../incremental-mlkem768.js";
+import { HEADER_SIZE, EK_SIZE } from "../../incremental-mlkem768.js";
 import { MAC_SIZE } from "../../authenticator.js";
 import { Authenticator } from "../../authenticator.js";
 import { concat } from "../../util.js";

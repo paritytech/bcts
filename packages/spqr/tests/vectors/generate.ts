@@ -74,7 +74,7 @@ function varint32Hex(value: number): string {
   return out.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function chunkHex(chunk: Chunk): string {
+function _chunkHex(chunk: Chunk): string {
   const out: number[] = [];
   encodeChunk(chunk, out);
   return out.map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -123,7 +123,9 @@ function addVector(
     ct1: [0x05, "Ct1"],
     ct2: [0x06, "Ct2"],
   };
-  const [typeCode, typeName] = msgTypeNames[payload.type]!;
+  const entry = msgTypeNames[payload.type];
+  if (entry === undefined) throw new Error(`Unknown payload type: ${payload.type}`);
+  const [typeCode, typeName] = entry;
 
   let layout = `[01:version] [${epochHex}:epoch=${epoch}] [${indexHex}:index=${index}] [${typeCode.toString(16).padStart(2, "0")}:${typeName}]`;
 

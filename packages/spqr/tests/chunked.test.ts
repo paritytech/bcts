@@ -327,7 +327,7 @@ describe("erasure recovery", () => {
     let bobSecret: EpochSecret | null = null;
 
     let dropCount = 0;
-    let totalMessages = 0;
+    let _totalMessages = 0;
 
     // Use a seeded counter for deterministic "random" drops
     let counter = 0;
@@ -345,7 +345,7 @@ describe("erasure recovery", () => {
         aliceSecret = aliceSend.key;
       }
 
-      totalMessages++;
+      _totalMessages++;
       // Maybe drop Alice's message to Bob
       if (!shouldDrop()) {
         const bobRecv = recv(bob, aliceSend.msg);
@@ -364,7 +364,7 @@ describe("erasure recovery", () => {
         bobSecret = bobSend.key;
       }
 
-      totalMessages++;
+      _totalMessages++;
       // Maybe drop Bob's message to Alice
       if (!shouldDrop()) {
         const aliceRecv = recv(alice, bobSend.msg);

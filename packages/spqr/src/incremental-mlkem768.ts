@@ -101,10 +101,6 @@ function polyAdd(a: Poly, b: Poly): void {
   for (let i = 0; i < N; i++) a[i] = mod(a[i] + b[i]);
 }
 
-function polySub(a: Poly, b: Poly): void {
-  for (let i = 0; i < N; i++) a[i] = mod(a[i] - b[i]);
-}
-
 function BaseCaseMultiply(
   a0: number,
   a1: number,
@@ -120,7 +116,7 @@ function BaseCaseMultiply(
 function MultiplyNTTs(f: Poly, g: Poly): Poly {
   for (let i = 0; i < N / 2; i++) {
     let z = nttZetas[64 + (i >> 1)];
-    if (i & 1) z = -z;
+    if ((i & 1) !== 0) z = -z;
     const { c0, c1 } = BaseCaseMultiply(
       f[2 * i + 0],
       f[2 * i + 1],
@@ -140,7 +136,7 @@ function SampleNTT(xof: XofGet): Poly {
   const r: Poly = new Uint16Array(N);
   for (let j = 0; j < N; ) {
     const b = xof();
-    if (b.length % 3) throw new Error("SampleNTT: unaligned block");
+    if (b.length % 3 !== 0) throw new Error("SampleNTT: unaligned block");
     for (let i = 0; j < N && i + 3 <= b.length; i += 3) {
       const d1 = ((b[i + 0] >> 0) | (b[i + 1] << 8)) & 0xfff;
       const d2 = ((b[i + 1] >> 4) | (b[i + 2] << 4)) & 0xfff;
@@ -164,8 +160,7 @@ function sampleCBD(seed: Uint8Array, nonce: number, eta: number): Poly {
   let p = 0;
   let bb = 0;
   let t0 = 0;
-  for (let i = 0; i < b32.length; i++) {
-    let b = b32[i];
+  for (let b of b32) {
     for (let j = 0; j < 32; j++) {
       bb += b & 1;
       b >>= 1;
@@ -180,7 +175,7 @@ function sampleCBD(seed: Uint8Array, nonce: number, eta: number): Poly {
       }
     }
   }
-  if (bitLen) throw new Error(`sampleCBD: leftover bits: ${bitLen}`);
+  if (bitLen !== 0) throw new Error(`sampleCBD: leftover bits: ${bitLen}`);
   return r;
 }
 
@@ -195,7 +190,7 @@ const compress = (d: number): { encode: (i: number) => number; decode: (i: numbe
   };
 };
 
-const polyCoder = (d: number) => bitsCoder(d, compress(d));
+const polyCoder = (d: number): ReturnType<typeof bitsCoder> => bitsCoder(d, compress(d));
 
 // Coders for encoding/decoding polynomials
 const poly12 = polyCoder(12); // for tHat encoding (ByteEncode12)
@@ -352,7 +347,7 @@ function flipEndianness(es: Uint8Array): Uint8Array {
   const coeffEnd = es.length - 32; // don't flip the last 32 bytes (randomness)
   for (let i = 0; i < coeffEnd; i += 2) {
     const tmp = fixed[i];
-    fixed[i] = fixed[i + 1]!;
+    fixed[i] = fixed[i + 1];
     fixed[i + 1] = tmp;
   }
   return fixed;

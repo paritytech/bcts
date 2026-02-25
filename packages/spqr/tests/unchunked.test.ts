@@ -284,7 +284,7 @@ describe("unchunked state machine", () => {
       const aliceStart = new KeysUnsampled(epoch, authA);
       const bobStart = new NoHeaderReceived(epoch, authB);
 
-      const [aliceHeaderSent, hdr, hdrMac] = aliceStart.sendHeader(rng);
+      const [_aliceHeaderSent, hdr, hdrMac] = aliceStart.sendHeader(rng);
       const bobHeaderReceived = bobStart.recvHeader(epoch, hdr, hdrMac);
       const [bobCt1Sent, ct1] = bobHeaderReceived.sendCt1(rng);
 
