@@ -10,8 +10,6 @@
 import { ChainKey } from "../ratchet/chain-key.js";
 import { RootKey } from "../ratchet/root-key.js";
 import { MessageKeys } from "../ratchet/message-keys.js";
-import { PqRatchetState } from "../ratchet/pq-ratchet.js";
-import { spqrSend, spqrRecv } from "../ratchet/spqr-adapter.js";
 import { KeyPair } from "../keys/key-pair.js";
 import { IdentityKey } from "../keys/identity-key.js";
 import { InvalidSessionError } from "../error.js";
@@ -19,7 +17,6 @@ import {
   MAX_RECEIVER_CHAINS,
   MAX_MESSAGE_KEYS,
   MAX_UNACKNOWLEDGED_SESSION_AGE_MS,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
 } from "../constants.js";
 import {
   encodeSessionStructure,
@@ -61,19 +58,6 @@ export const SessionUsabilityRequirements = {
    * - no more than MAX_UNACKNOWLEDGED_SESSION_AGE old
    */
   NotStale: 1 << 0,
-  /**
-   * Requires that a session was established using PQXDH (or newer) rather
-   * than X3DH. This includes unacknowledged sessions that are using PQXDH.
-   */
-  EstablishedWithPqxdh: 1 << 1,
-  /**
-   * Requires that a session is using SPQR (post-quantum ratchet state).
-   *
-   * Warning: Allows unacknowledged sessions that include SPQR in their
-   * PreKey messages. If the peer downgrades the session, a session previously
-   * considered "usable" can become "not usable" upon receiving a response.
-   */
-  Spqr: 1 << 2,
 } as const;
 
 export type SessionUsabilityRequirements = number;
@@ -99,28 +83,6 @@ export interface PendingPreKey {
   signedPreKeyId: number;
   baseKey: Uint8Array;
   timestamp: number;
-  kyberPreKeyId?: number;
-  kyberCiphertext?: Uint8Array;
-}
-
-/**
- * Result of a PQ ratchet send operation.
- *
- * - message: bytes to include in the SignalMessage pqRatchet field (empty for V0)
- * - key: optional PQ message key to use as HKDF salt (null for V0)
- */
-export interface PqRatchetSendResult {
-  message: Uint8Array;
-  key: Uint8Array | null;
-}
-
-/**
- * Result of a PQ ratchet receive operation.
- *
- * - key: optional PQ message key to use as HKDF salt (null for V0)
- */
-export interface PqRatchetRecvResult {
-  key: Uint8Array | null;
 }
 
 export class SessionState {
@@ -135,18 +97,6 @@ export class SessionState {
   private _localRegistrationId: number;
   private _remoteRegistrationId: number;
   private _aliceBaseKey: Uint8Array | undefined;
-  private _pqRatchetState: PqRatchetState | undefined;
-  /**
-   * Raw serialized PQ ratchet state bytes for protobuf field 15.
-   *
-   * This stores the SPQR serialized state. Interpretation:
-   * - Empty (length 0): V0 disabled PQ ratchet (interop mode)
-   * - 32 bytes: Simple PQ ratchet root key (current implementation)
-   * - >32 bytes: Full SPQR serialized state (future implementation)
-   *
-   * Reference: libsignal storage.proto field 15 (pq_ratchet_state)
-   */
-  private _pqRatchetStateBytes: Uint8Array;
 
   constructor(params: {
     sessionVersion: number;
@@ -170,8 +120,6 @@ export class SessionState {
     this._aliceBaseKey = params.aliceBaseKey
       ? SessionState.ensureDjbPrefix(params.aliceBaseKey)
       : undefined;
-    // V0 by default: empty bytes = disabled PQ ratchet
-    this._pqRatchetStateBytes = new Uint8Array(0);
   }
 
   // --- Version ---
@@ -241,18 +189,6 @@ export class SessionState {
         if (creationTimestamp + MAX_UNACKNOWLEDGED_SESSION_AGE_MS < now) {
           return false;
         }
-      }
-    }
-
-    if (requirements & SessionUsabilityRequirements.EstablishedWithPqxdh) {
-      if (this._sessionVersion <= CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION) {
-        return false;
-      }
-    }
-
-    if (requirements & SessionUsabilityRequirements.Spqr) {
-      if (!this.hasPqRatchetState()) {
-        return false;
       }
     }
 
@@ -326,7 +262,6 @@ export class SessionState {
   getMessageKeys(
     senderRatchetKey: Uint8Array,
     counter: number,
-    pqSalt?: Uint8Array,
   ): MessageKeys | undefined {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
@@ -344,8 +279,8 @@ export class SessionState {
     if (stored.type === "keys") {
       return stored.keys;
     }
-    // Derive from seed with optional PQ salt
-    return MessageKeys.deriveFrom(stored.seed, stored.counter, pqSalt);
+    // Derive from seed
+    return MessageKeys.deriveFrom(stored.seed, stored.counter);
   }
 
   setMessageKeys(senderRatchetKey: Uint8Array, seed: Uint8Array, counter: number): void {
@@ -443,117 +378,6 @@ export class SessionState {
     return key;
   }
 
-  // --- PQ Ratchet ---
-
-  pqRatchetState(): PqRatchetState | undefined {
-    return this._pqRatchetState;
-  }
-
-  setPqRatchetState(state: PqRatchetState): void {
-    this._pqRatchetState = state;
-    // Sync raw bytes from the PqRatchetState root key
-    this._pqRatchetStateBytes = Uint8Array.from(state.rootKey());
-  }
-
-  /**
-   * Returns the raw serialized PQ ratchet state bytes (field 15).
-   *
-   * Empty array means V0 (disabled PQ ratchet).
-   */
-  pqRatchetStateBytes(): Uint8Array {
-    return this._pqRatchetStateBytes;
-  }
-
-  /**
-   * Set the raw PQ ratchet state bytes directly.
-   *
-   * Also syncs the PqRatchetState object if the bytes are exactly 32 bytes
-   * (simple PQ ratchet root key).
-   */
-  setPqRatchetStateBytes(bytes: Uint8Array): void {
-    this._pqRatchetStateBytes = Uint8Array.from(bytes);
-    // Sync PqRatchetState if it's a simple 32-byte root key
-    if (bytes.length === 32) {
-      this._pqRatchetState = new PqRatchetState(Uint8Array.from(bytes));
-    } else {
-      // V0 (empty) or future SPQR state (>32 bytes) -- clear the simple state
-      this._pqRatchetState = undefined;
-    }
-  }
-
-  /**
-   * Returns true if the PQ ratchet state is non-empty (not V0 disabled).
-   *
-   * Reference: libsignal SessionState::pq_ratchet_state().is_empty()
-   */
-  hasPqRatchetState(): boolean {
-    return this._pqRatchetStateBytes.length > 0;
-  }
-
-  /**
-   * PQ ratchet send operation.
-   *
-   * When state is V0 (empty): returns empty message and null key.
-   * When state has a simple PQ root key: delegates to PqRatchetState.send().
-   *
-   * Reference: libsignal SessionState::pq_ratchet_send (spqr::send)
-   */
-  pqRatchetSend(): PqRatchetSendResult {
-    // V0 disabled: return empty message and null key
-    if (this._pqRatchetStateBytes.length === 0) {
-      return { message: new Uint8Array(0), key: null };
-    }
-
-    // Simple PQ ratchet (32-byte root key)
-    if (this._pqRatchetStateBytes.length === 32 && this._pqRatchetState) {
-      const result = this._pqRatchetState.send();
-      return { message: result.spqrMessage, key: result.messageKey };
-    }
-
-    // Full SPQR state (>32 bytes) -- delegate to SPQR module
-    if (this._pqRatchetStateBytes.length > 32) {
-      const result = spqrSend(this._pqRatchetStateBytes);
-      this._pqRatchetStateBytes = result.state;
-      this._pqRatchetState = undefined; // Not a simple PQ state
-      return { message: result.msg, key: result.key };
-    }
-
-    // Fallback: treat as V0
-    return { message: new Uint8Array(0), key: null };
-  }
-
-  /**
-   * PQ ratchet receive operation.
-   *
-   * When state is V0 (empty) and msg is empty: returns null key.
-   * When state has a simple PQ root key: delegates to PqRatchetState.recv().
-   *
-   * Reference: libsignal SessionState::pq_ratchet_recv (spqr::recv)
-   */
-  pqRatchetRecv(msg: Uint8Array | undefined): PqRatchetRecvResult {
-    // V0 disabled: return null key (msg should also be empty)
-    if (this._pqRatchetStateBytes.length === 0) {
-      return { key: null };
-    }
-
-    // Simple PQ ratchet (32-byte root key)
-    if (this._pqRatchetStateBytes.length === 32 && this._pqRatchetState && msg && msg.length > 0) {
-      const messageKey = this._pqRatchetState.recv(msg);
-      return { key: messageKey };
-    }
-
-    // Full SPQR state (>32 bytes) -- delegate to SPQR module
-    if (this._pqRatchetStateBytes.length > 32 && msg && msg.length > 0) {
-      const result = spqrRecv(this._pqRatchetStateBytes, msg);
-      this._pqRatchetStateBytes = result.state;
-      this._pqRatchetState = undefined; // Not a simple PQ state
-      return { key: result.key };
-    }
-
-    // No message data or short state -- return null
-    return { key: null };
-  }
-
   // --- Builder helpers (for initialization) ---
 
   withReceiverChain(senderRatchetKey: Uint8Array, chainKey: ChainKey): SessionState {
@@ -634,18 +458,6 @@ export class SessionState {
         baseKey: this._pendingPreKey.baseKey,
         timestamp: this._pendingPreKey.timestamp,
       };
-      if (this._pendingPreKey.kyberPreKeyId !== undefined) {
-        proto.pendingKyberPreKey = {
-          kyberPreKeyId: this._pendingPreKey.kyberPreKeyId,
-          kyberCiphertext: this._pendingPreKey.kyberCiphertext,
-        };
-      }
-    }
-
-    // PQ ratchet state (field 15)
-    // Serialize raw bytes -- empty for V0, 32 bytes for simple PQ, or larger for future SPQR
-    if (this._pqRatchetStateBytes.length > 0) {
-      proto.pqRatchetState = this._pqRatchetStateBytes;
     }
 
     return encodeSessionStructure(proto);
@@ -735,15 +547,7 @@ export class SessionState {
         signedPreKeyId: proto.pendingPreKey.signedPreKeyId ?? 0,
         baseKey: proto.pendingPreKey.baseKey ?? new Uint8Array(0),
         timestamp: proto.pendingPreKey.timestamp ?? Date.now(),
-        kyberPreKeyId: proto.pendingKyberPreKey?.kyberPreKeyId,
-        kyberCiphertext: proto.pendingKyberPreKey?.kyberCiphertext,
       });
-    }
-
-    // PQ ratchet state (field 15)
-    // Restore raw bytes and sync PqRatchetState object if applicable
-    if (proto.pqRatchetState && proto.pqRatchetState.length > 0) {
-      state.setPqRatchetStateBytes(proto.pqRatchetState);
     }
 
     return state;
@@ -764,12 +568,7 @@ export class SessionState {
     cloned._localRegistrationId = this._localRegistrationId;
     cloned._remoteRegistrationId = this._remoteRegistrationId;
     cloned._pendingPreKey = this._pendingPreKey
-      ? {
-          ...this._pendingPreKey,
-          kyberCiphertext: this._pendingPreKey.kyberCiphertext
-            ? Uint8Array.from(this._pendingPreKey.kyberCiphertext)
-            : undefined,
-        }
+      ? { ...this._pendingPreKey }
       : undefined;
 
     if (this._senderChain) {
@@ -781,9 +580,6 @@ export class SessionState {
         ),
       };
     }
-
-    cloned._pqRatchetState = this._pqRatchetState?.clone();
-    cloned._pqRatchetStateBytes = Uint8Array.from(this._pqRatchetStateBytes);
 
     cloned._receiverChains = this._receiverChains.map((rc) => ({
       senderRatchetKey: Uint8Array.from(rc.senderRatchetKey),

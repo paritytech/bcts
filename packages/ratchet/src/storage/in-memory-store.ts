@@ -8,16 +8,14 @@ import type {
   PreKeyStore,
   SignedPreKeyStore,
   IdentityKeyStore,
-  KyberPreKeyStore,
   SenderKeyStore,
   ProtocolAddress,
   Direction,
 } from "./interfaces.js";
 import type { SessionRecord } from "../session/session-record.js";
 import type { PreKeyRecord, SignedPreKeyRecord } from "../keys/pre-key.js";
-import type { KyberPreKeyRecord } from "../kem/kyber-pre-key.js";
 import { IdentityKey, IdentityKeyPair } from "../keys/identity-key.js";
-import { InvalidKeyError, InvalidMessageError } from "../error.js";
+import { InvalidKeyError } from "../error.js";
 
 export class InMemorySignalProtocolStore
   implements
@@ -25,7 +23,6 @@ export class InMemorySignalProtocolStore
     PreKeyStore,
     SignedPreKeyStore,
     IdentityKeyStore,
-    KyberPreKeyStore,
     SenderKeyStore
 {
   private identityKeyPair: IdentityKeyPair;
@@ -34,9 +31,7 @@ export class InMemorySignalProtocolStore
   private preKeys = new Map<number, PreKeyRecord>();
   private signedPreKeys = new Map<number, SignedPreKeyRecord>();
   private identities = new Map<string, IdentityKey>();
-  private kyberPreKeys = new Map<number, KyberPreKeyRecord>();
   private senderKeys = new Map<string, Uint8Array>();
-  private baseKeysSeen = new Map<string, Uint8Array[]>();
 
   constructor(identityKeyPair: IdentityKeyPair, registrationId: number) {
     this.identityKeyPair = identityKeyPair;
@@ -118,48 +113,6 @@ export class InMemorySignalProtocolStore
       return !existing.equals(identityKey); // return true if changed
     }
     return false;
-  }
-
-  // --- KyberPreKeyStore ---
-
-  async loadKyberPreKey(id: number): Promise<KyberPreKeyRecord> {
-    const record = this.kyberPreKeys.get(id);
-    if (!record) {
-      throw new InvalidKeyError(`KyberPreKey not found: ${id}`);
-    }
-    return record;
-  }
-
-  async storeKyberPreKey(id: number, record: KyberPreKeyRecord): Promise<void> {
-    this.kyberPreKeys.set(id, record);
-  }
-
-  async markKyberPreKeyUsed(
-    kyberPreKeyId: number,
-    signedPreKeyId: number,
-    baseKey: Uint8Array,
-  ): Promise<void> {
-    const mapKey = `${kyberPreKeyId}:${signedPreKeyId}`;
-    const seen = this.baseKeysSeen.get(mapKey) ?? [];
-
-    // Check for base key reuse
-    for (const seenKey of seen) {
-      if (seenKey.length === baseKey.length) {
-        let equal = true;
-        for (let i = 0; i < seenKey.length; i++) {
-          if (seenKey[i] !== baseKey[i]) {
-            equal = false;
-            break;
-          }
-        }
-        if (equal) {
-          throw new InvalidMessageError("reused base key");
-        }
-      }
-    }
-
-    seen.push(Uint8Array.from(baseKey));
-    this.baseKeysSeen.set(mapKey, seen);
   }
 
   // --- SenderKeyStore ---

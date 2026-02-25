@@ -13,7 +13,6 @@ import { IdentityKey } from "../keys/identity-key.js";
 import { InvalidMessageError } from "../error.js";
 import {
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
 } from "../constants.js";
 import { SignalMessage } from "./signal-message.js";
 import { encodePreKeySignalMessage, decodePreKeySignalMessage } from "./proto.js";
@@ -32,8 +31,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
   readonly identityKey: IdentityKey;
   readonly message: SignalMessage;
   readonly serialized: Uint8Array;
-  readonly kyberPreKeyId: number | undefined;
-  readonly kyberCiphertext: Uint8Array | undefined;
 
   private constructor(
     messageVersion: number,
@@ -44,8 +41,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     identityKey: IdentityKey,
     message: SignalMessage,
     serialized: Uint8Array,
-    kyberPreKeyId?: number,
-    kyberCiphertext?: Uint8Array,
   ) {
     this.messageVersion = messageVersion;
     this.registrationId = registrationId;
@@ -55,8 +50,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     this.identityKey = identityKey;
     this.message = message;
     this.serialized = serialized;
-    this.kyberPreKeyId = kyberPreKeyId;
-    this.kyberCiphertext = kyberCiphertext;
   }
 
   /**
@@ -70,8 +63,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     baseKey: Uint8Array,
     identityKey: IdentityKey,
     message: SignalMessage,
-    kyberPreKeyId?: number,
-    kyberCiphertext?: Uint8Array,
   ): PreKeySignalMessage {
     // Serialize baseKey and identityKey with 0x05 prefix
     const serializedBaseKey = new Uint8Array(33);
@@ -85,11 +76,10 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
       baseKey: serializedBaseKey,
       identityKey: identityKey.serialize(),
       message: message.serialized,
-      kyberPreKeyId,
-      kyberCiphertext,
     });
 
-    const versionByte = ((messageVersion & 0xf) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
+    // Version byte: (sessionVersion << 4) | sessionVersion -> 0x33 for v3
+    const versionByte = ((messageVersion & 0xf) << 4) | messageVersion;
     const serialized = new Uint8Array(1 + protoEncoded.length);
     serialized[0] = versionByte;
     serialized.set(protoEncoded, 1);
@@ -103,8 +93,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
       identityKey,
       message,
       serialized,
-      kyberPreKeyId,
-      kyberCiphertext,
     );
   }
 
@@ -117,7 +105,7 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     }
 
     const messageVersion = data[0] >> 4;
-    if (messageVersion < CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION) {
+    if (messageVersion < CIPHERTEXT_MESSAGE_CURRENT_VERSION) {
       throw new InvalidMessageError(`Legacy ciphertext version: ${messageVersion}`);
     }
     if (messageVersion > CIPHERTEXT_MESSAGE_CURRENT_VERSION) {
@@ -137,18 +125,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
     }
     if (proto.signedPreKeyId === undefined) {
       throw new InvalidMessageError("Missing signed pre key ID");
-    }
-
-    // Validate Kyber payload consistency (matches libsignal protocol.rs:421-439)
-    const hasKyberId = proto.kyberPreKeyId !== undefined;
-    const hasKyberCt = proto.kyberCiphertext !== undefined && proto.kyberCiphertext.length > 0;
-    if (hasKyberId !== hasKyberCt) {
-      throw new InvalidMessageError(
-        "Both or neither kyber pre_key_id and kyber_ciphertext can be present",
-      );
-    }
-    if (!hasKyberId && messageVersion > CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION) {
-      throw new InvalidMessageError("Kyber pre key must be present for this session version");
     }
 
     // Strip 0x05 prefix from baseKey
@@ -173,8 +149,6 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
       identityKey,
       message,
       Uint8Array.from(data),
-      proto.kyberPreKeyId,
-      proto.kyberCiphertext,
     );
   }
 

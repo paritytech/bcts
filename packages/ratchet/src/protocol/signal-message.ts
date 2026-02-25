@@ -13,7 +13,6 @@ import { InvalidMessageError } from "../error.js";
 import {
   MAC_LENGTH,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
 } from "../constants.js";
 import { encodeSignalMessage, decodeSignalMessage } from "./proto.js";
 import { constantTimeEqual } from "../crypto/constant-time.js";
@@ -30,7 +29,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
   readonly previousCounter: number;
   readonly ciphertext: Uint8Array;
   readonly serialized: Uint8Array;
-  readonly pqRatchet: Uint8Array | undefined;
 
   private constructor(
     messageVersion: number,
@@ -39,7 +37,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
     previousCounter: number,
     ciphertext: Uint8Array,
     serialized: Uint8Array,
-    pqRatchet?: Uint8Array,
   ) {
     this.messageVersion = messageVersion;
     this.senderRatchetKey = senderRatchetKey;
@@ -47,13 +44,12 @@ export class SignalMessage implements CiphertextMessageConvertible {
     this.previousCounter = previousCounter;
     this.ciphertext = ciphertext;
     this.serialized = serialized;
-    this.pqRatchet = pqRatchet;
   }
 
   /**
    * Create a new SignalMessage with computed MAC.
    *
-   * @param messageVersion - Protocol version (3 for pre-Kyber, 4 for PQXDH)
+   * @param messageVersion - Protocol version (3)
    * @param macKey - 32-byte MAC key from MessageKeys
    * @param senderRatchetKey - 32-byte sender ephemeral public key
    * @param counter - Current chain key index
@@ -61,7 +57,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
    * @param ciphertext - AES-256-CBC encrypted message body
    * @param senderIdentityKey - Sender's identity key
    * @param receiverIdentityKey - Receiver's identity key
-   * @param pqRatchet - Optional SPQR ratchet data (v4 only)
    */
   static create(
     messageVersion: number,
@@ -72,7 +67,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
     ciphertext: Uint8Array,
     senderIdentityKey: IdentityKey,
     receiverIdentityKey: IdentityKey,
-    pqRatchet?: Uint8Array,
   ): SignalMessage {
     // Serialize the ratchet key with 0x05 prefix (33 bytes on wire)
     const serializedRatchetKey = new Uint8Array(33);
@@ -84,11 +78,10 @@ export class SignalMessage implements CiphertextMessageConvertible {
       counter,
       previousCounter,
       ciphertext,
-      pqRatchetKey: pqRatchet,
     });
 
-    // Build version byte + proto
-    const versionByte = ((messageVersion & 0xf) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
+    // Build version byte: (sessionVersion << 4) | sessionVersion -> 0x33 for v3
+    const versionByte = ((messageVersion & 0xf) << 4) | messageVersion;
     const messageContent = new Uint8Array(1 + protoEncoded.length);
     messageContent[0] = versionByte;
     messageContent.set(protoEncoded, 1);
@@ -113,7 +106,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
       previousCounter,
       ciphertext,
       serialized,
-      pqRatchet,
     );
   }
 
@@ -126,7 +118,7 @@ export class SignalMessage implements CiphertextMessageConvertible {
     }
 
     const messageVersion = data[0] >> 4;
-    if (messageVersion < CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION) {
+    if (messageVersion < CIPHERTEXT_MESSAGE_CURRENT_VERSION) {
       throw new InvalidMessageError(`Legacy ciphertext version: ${messageVersion}`);
     }
     if (messageVersion > CIPHERTEXT_MESSAGE_CURRENT_VERSION) {
@@ -163,7 +155,6 @@ export class SignalMessage implements CiphertextMessageConvertible {
       proto.previousCounter ?? 0,
       proto.ciphertext,
       Uint8Array.from(data),
-      proto.pqRatchetKey,
     );
   }
 

@@ -8,10 +8,8 @@ export const MAX_MESSAGE_KEYS = 2_000;
 export const MAX_RECEIVER_CHAINS = 5;
 export const ARCHIVED_STATES_MAX_LENGTH = 40;
 
-/** Current wire protocol version (v4, with Kyber/PQXDH support). */
-export const CIPHERTEXT_MESSAGE_CURRENT_VERSION = 4;
-/** Version 3 — pre-Kyber, backward-compatible version. */
-export const CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION = 3;
+/** Current wire protocol version (v3, X3DH). */
+export const CIPHERTEXT_MESSAGE_CURRENT_VERSION = 3;
 
 /** MAC length in bytes (truncated HMAC-SHA256). */
 export const MAC_LENGTH = 8;

@@ -119,7 +119,6 @@ export interface SignalMessageProto {
   counter?: number;
   previousCounter?: number;
   ciphertext?: Uint8Array;
-  pqRatchetKey?: Uint8Array;
 }
 
 export function encodeSignalMessage(msg: SignalMessageProto): Uint8Array {
@@ -128,7 +127,6 @@ export function encodeSignalMessage(msg: SignalMessageProto): Uint8Array {
   if (msg.counter !== undefined) parts.push(encodeUint32(2, msg.counter));
   if (msg.previousCounter !== undefined) parts.push(encodeUint32(3, msg.previousCounter));
   if (msg.ciphertext) parts.push(encodeBytes(4, msg.ciphertext));
-  if (msg.pqRatchetKey) parts.push(encodeBytes(5, msg.pqRatchetKey));
 
   let totalLen = 0;
   for (const p of parts) totalLen += p.length;
@@ -165,7 +163,6 @@ export function decodeSignalMessage(data: Uint8Array): SignalMessageProto {
       offset += len;
       if (fieldNumber === 1) msg.ratchetKey = value;
       else if (fieldNumber === 4) msg.ciphertext = value;
-      else if (fieldNumber === 5) msg.pqRatchetKey = value;
     } else {
       throw new Error(`Unsupported wire type: ${wireType}`);
     }
@@ -183,8 +180,6 @@ export interface PreKeySignalMessageProto {
   baseKey?: Uint8Array;
   identityKey?: Uint8Array;
   message?: Uint8Array;
-  kyberPreKeyId?: number;
-  kyberCiphertext?: Uint8Array;
 }
 
 export function encodePreKeySignalMessage(msg: PreKeySignalMessageProto): Uint8Array {
@@ -196,8 +191,6 @@ export function encodePreKeySignalMessage(msg: PreKeySignalMessageProto): Uint8A
   if (msg.message) parts.push(encodeBytes(4, msg.message));
   if (msg.registrationId !== undefined) parts.push(encodeUint32(5, msg.registrationId));
   if (msg.signedPreKeyId !== undefined) parts.push(encodeUint32(6, msg.signedPreKeyId));
-  if (msg.kyberPreKeyId !== undefined) parts.push(encodeUint32(7, msg.kyberPreKeyId));
-  if (msg.kyberCiphertext) parts.push(encodeBytes(8, msg.kyberCiphertext));
 
   let totalLen = 0;
   for (const p of parts) totalLen += p.length;
@@ -226,7 +219,6 @@ export function decodePreKeySignalMessage(data: Uint8Array): PreKeySignalMessage
       if (fieldNumber === 1) msg.preKeyId = value;
       else if (fieldNumber === 5) msg.registrationId = value;
       else if (fieldNumber === 6) msg.signedPreKeyId = value;
-      else if (fieldNumber === 7) msg.kyberPreKeyId = value;
     } else if (wireType === 2) {
       const [len, lenOffset] = decodeVarint(data, offset);
       offset = lenOffset;
@@ -235,7 +227,6 @@ export function decodePreKeySignalMessage(data: Uint8Array): PreKeySignalMessage
       if (fieldNumber === 2) msg.baseKey = value;
       else if (fieldNumber === 3) msg.identityKey = value;
       else if (fieldNumber === 4) msg.message = value;
-      else if (fieldNumber === 8) msg.kyberCiphertext = value;
     } else {
       throw new Error(`Unsupported wire type: ${wireType}`);
     }
@@ -454,8 +445,6 @@ export interface SessionStructureProto {
   remoteRegistrationId?: number; // field 10, varint
   localRegistrationId?: number; // field 11, varint
   aliceBaseKey?: Uint8Array; // field 13, bytes
-  pendingKyberPreKey?: PendingKyberPreKeyProto; // field 14, nested
-  pqRatchetState?: Uint8Array; // field 15, bytes
 }
 
 export interface ChainStructureProto {
@@ -483,11 +472,6 @@ export interface PendingPreKeyProto {
   signedPreKeyId?: number; // field 3, varint
   baseKey?: Uint8Array; // field 2, bytes
   timestamp?: number; // field 4, varint64 (ms since epoch)
-}
-
-export interface PendingKyberPreKeyProto {
-  kyberPreKeyId?: number; // field 1, varint
-  kyberCiphertext?: Uint8Array; // field 2, bytes
 }
 
 /**
@@ -539,13 +523,6 @@ export function encodePendingPreKey(pk: PendingPreKeyProto): Uint8Array {
   return concatProtoFields(...parts);
 }
 
-export function encodePendingKyberPreKey(pk: PendingKyberPreKeyProto): Uint8Array {
-  const parts: Uint8Array[] = [];
-  if (pk.kyberPreKeyId !== undefined) parts.push(encodeUint32Field(1, pk.kyberPreKeyId));
-  if (pk.kyberCiphertext) parts.push(encodeBytesField(2, pk.kyberCiphertext));
-  return concatProtoFields(...parts);
-}
-
 export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (ss.sessionVersion !== undefined) parts.push(encodeUint32Field(1, ss.sessionVersion));
@@ -565,9 +542,6 @@ export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
   if (ss.localRegistrationId !== undefined)
     parts.push(encodeUint32Field(11, ss.localRegistrationId));
   if (ss.aliceBaseKey) parts.push(encodeBytesField(13, ss.aliceBaseKey));
-  if (ss.pendingKyberPreKey)
-    parts.push(encodeNestedMessage(14, encodePendingKyberPreKey(ss.pendingKyberPreKey)));
-  if (ss.pqRatchetState) parts.push(encodeBytesField(15, ss.pqRatchetState));
   return concatProtoFields(...parts);
 }
 
@@ -625,20 +599,11 @@ export function decodePendingPreKey(data: Uint8Array): PendingPreKeyProto {
   };
 }
 
-export function decodePendingKyberPreKey(data: Uint8Array): PendingKyberPreKeyProto {
-  const fields = parseProtoFields(data);
-  return {
-    kyberPreKeyId: fields.varints.get(1),
-    kyberCiphertext: fields.bytes.get(2),
-  };
-}
-
 export function decodeSessionStructure(data: Uint8Array): SessionStructureProto {
   const fields = parseProtoFields(data);
   const senderChainBytes = fields.bytes.get(6);
   const receiverChainBytesArr = fields.repeatedBytes.get(7);
   const pendingPreKeyBytes = fields.bytes.get(9);
-  const pendingKyberBytes = fields.bytes.get(14);
 
   return {
     sessionVersion: fields.varints.get(1),
@@ -652,8 +617,6 @@ export function decodeSessionStructure(data: Uint8Array): SessionStructureProto 
     remoteRegistrationId: fields.varints.get(10),
     localRegistrationId: fields.varints.get(11),
     aliceBaseKey: fields.bytes.get(13),
-    pendingKyberPreKey: pendingKyberBytes ? decodePendingKyberPreKey(pendingKyberBytes) : undefined,
-    pqRatchetState: fields.bytes.get(15),
   };
 }
 

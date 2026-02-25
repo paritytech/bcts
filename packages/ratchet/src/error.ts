@@ -95,55 +95,6 @@ export class InvalidRegistrationIdError extends RatchetError {
   }
 }
 
-export class BadKEMKeyTypeError extends RatchetError {
-  readonly type: number;
-  constructor(keyType: number) {
-    super(`Bad KEM key type: 0x${keyType.toString(16).padStart(2, "0")}`);
-    this.name = "BadKEMKeyTypeError";
-    this.type = keyType;
-  }
-}
-
-export class BadKEMKeyLengthError extends RatchetError {
-  readonly keyType: string;
-  readonly length: number;
-  constructor(kemType: string, length: number) {
-    super(`Bad KEM key length for ${kemType}: ${length}`);
-    this.name = "BadKEMKeyLengthError";
-    this.keyType = kemType;
-    this.length = length;
-  }
-}
-
-export class BadKEMCiphertextLengthError extends RatchetError {
-  readonly keyType: string;
-  readonly length: number;
-  constructor(kemType: string, length: number) {
-    super(`Bad KEM ciphertext length for ${kemType}: ${length}`);
-    this.name = "BadKEMCiphertextLengthError";
-    this.keyType = kemType;
-    this.length = length;
-  }
-}
-
-export class InvalidKyberPreKeyIdError extends RatchetError {
-  constructor() {
-    super("Invalid Kyber prekey identifier");
-    this.name = "InvalidKyberPreKeyIdError";
-  }
-}
-
-export class WrongKEMKeyTypeError extends RatchetError {
-  readonly expected: string;
-  readonly actual: string;
-  constructor(expected: string, actual: string) {
-    super(`Unexpected KEM key type <${actual}> (expected <${expected}>)`);
-    this.name = "WrongKEMKeyTypeError";
-    this.expected = expected;
-    this.actual = actual;
-  }
-}
-
 export class UnknownSealedSenderServerCertificateIdError extends RatchetError {
   readonly id: number;
   constructor(id: number) {

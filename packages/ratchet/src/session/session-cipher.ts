@@ -106,14 +106,9 @@ async function messageEncryptImpl(
 
   const chainKey = sessionState.getSenderChainKey();
 
-  // PQ ratchet send: V0 returns empty message + null key, V1+ returns real data
-  const pqSendResult = sessionState.pqRatchetSend();
-  const pqRatchetData = pqSendResult.message.length > 0 ? pqSendResult.message : undefined;
-
   const messageKeys = MessageKeys.deriveFrom(
     chainKey.messageKeySeed(),
     chainKey.index,
-    pqSendResult.key ?? undefined,
   );
 
   const senderEphemeral = sessionState.senderRatchetKey();
@@ -149,7 +144,6 @@ async function messageEncryptImpl(
       ciphertext,
       localIdentityKey,
       theirIdentityKey,
-      pqRatchetData,
     );
 
     message = PreKeySignalMessage.create(
@@ -160,8 +154,6 @@ async function messageEncryptImpl(
       pendingPreKey.baseKey,
       localIdentityKey,
       signalMessage,
-      pendingPreKey.kyberPreKeyId,
-      pendingPreKey.kyberCiphertext,
     );
   } else {
     message = SignalMessage.create(
@@ -173,7 +165,6 @@ async function messageEncryptImpl(
       ciphertext,
       localIdentityKey,
       theirIdentityKey,
-      pqRatchetData,
     );
   }
 
@@ -413,19 +404,15 @@ function decryptMessageWithState(
   const theirEphemeral = ciphertext.senderRatchetKey;
   const counter = ciphertext.counter;
 
-  // Get or create chain key (may trigger DH ratchet — NO PQ state involved)
+  // Get or create chain key (may trigger DH ratchet)
   const chainKey = getOrCreateChainKey(state, theirEphemeral, rng);
 
-  // PQ ratchet recv: V0 returns null key, V1+ returns real key
-  const pqRecvResult = state.pqRatchetRecv(ciphertext.pqRatchet);
-
-  // Get or create message key (with PQ salt)
+  // Get or create message key
   const messageKeys = getOrCreateMessageKey(
     state,
     theirEphemeral,
     chainKey,
     counter,
-    pqRecvResult.key ?? undefined,
   );
 
   // Verify MAC

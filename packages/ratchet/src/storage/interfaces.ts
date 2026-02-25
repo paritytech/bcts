@@ -6,7 +6,6 @@
 
 import type { IdentityKey, IdentityKeyPair } from "../keys/identity-key.js";
 import type { PreKeyRecord, SignedPreKeyRecord } from "../keys/pre-key.js";
-import type { KyberPreKeyRecord } from "../kem/kyber-pre-key.js";
 import type { SessionRecord } from "../session/session-record.js";
 
 export type Direction = "sending" | "receiving";
@@ -55,16 +54,6 @@ export interface IdentityKeyStore {
     direction: Direction,
   ): Promise<boolean>;
   saveIdentity(address: ProtocolAddress, identityKey: IdentityKey): Promise<boolean>;
-}
-
-export interface KyberPreKeyStore {
-  loadKyberPreKey(id: number): Promise<KyberPreKeyRecord>;
-  storeKyberPreKey(id: number, record: KyberPreKeyRecord): Promise<void>;
-  markKyberPreKeyUsed(
-    kyberPreKeyId: number,
-    signedPreKeyId: number,
-    baseKey: Uint8Array,
-  ): Promise<void>;
 }
 
 export interface SenderKeyStore {
@@ -119,5 +108,4 @@ export interface ProtocolStore
     PreKeyStore,
     SignedPreKeyStore,
     IdentityKeyStore,
-    KyberPreKeyStore,
     SenderKeyStore {}

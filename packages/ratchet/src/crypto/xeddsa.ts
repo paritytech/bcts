@@ -119,16 +119,14 @@ export function xeddsaSign(
     scalar = mod(L - scalar, L);
   }
 
-  // 5. Generate nonce using libsignal's hash_prefix: [0xFE, 0xFF x 31]
+  // 5. Generate nonce using libsignal's hash_prefix: [0xFE; 32]
   const rand = random ?? crypto.getRandomValues(new Uint8Array(64));
   if (rand.length !== 64) {
     throw new Error("XEdDSA random input must be 64 bytes");
   }
 
-  // hash_prefix = [0xFE, 0xFF, 0xFF, ..., 0xFF] (32 bytes)
-  const hashPrefix = new Uint8Array(32);
-  hashPrefix[0] = 0xfe;
-  hashPrefix.fill(0xff, 1);
+  // hash_prefix = 32 bytes of 0xFE (matches libsignal's [0xFE; 32])
+  const hashPrefix = new Uint8Array(32).fill(0xfe);
 
   // nonce = SHA-512(hash_prefix(32) || key_data(32) || msg || rand(64)) mod L
   // key_data is the raw clamped bytes (before mod L reduction) -- matches libsignal

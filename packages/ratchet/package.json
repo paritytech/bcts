@@ -67,11 +67,9 @@
   "dependencies": {
     "@bcts/crypto": "workspace:*",
     "@bcts/rand": "workspace:*",
-    "@bcts/spqr": "workspace:*",
     "@noble/ciphers": "^2.1.1",
     "@noble/curves": "^2.0.1",
-    "@noble/hashes": "^2.0.1",
-    "@noble/post-quantum": "^0.5.4"
+    "@noble/hashes": "^2.0.1"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",

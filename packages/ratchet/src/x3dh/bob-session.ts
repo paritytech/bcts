@@ -1,5 +1,5 @@
 /**
- * Bob's X3DH session initialization.
+ * Bob's X3DH session initialization (classic v3, no post-quantum).
  *
  * Bob processes Alice's prekey message to establish his side of the session.
  *
@@ -11,14 +11,10 @@ import type { KeyPair } from "../keys/key-pair.js";
 import { SessionState } from "../session/session-state.js";
 import { RootKey } from "../ratchet/root-key.js";
 import { ChainKey } from "../ratchet/chain-key.js";
-import { PqRatchetState } from "../ratchet/pq-ratchet.js";
 import { hkdfSha256 } from "../crypto/kdf.js";
 import { x25519RawAgreement, isCanonicalPublicKey } from "../crypto/agreement.js";
 import { InvalidMessageError } from "../error.js";
-import {
-  CIPHERTEXT_MESSAGE_CURRENT_VERSION,
-  CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
-} from "../constants.js";
+import { CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION } from "../constants.js";
 
 export interface BobProtocolParameters {
   ourIdentityKeyPair: IdentityKeyPair;
@@ -27,21 +23,25 @@ export interface BobProtocolParameters {
   ourRatchetKeyPair: KeyPair;
   theirIdentityKey: IdentityKey;
   theirBaseKey: Uint8Array;
-  kyberSharedSecret?: Uint8Array;
 }
 
-const X3DH_INFO = new TextEncoder().encode("WhisperText_X25519_SHA-256_CRYSTALS-KYBER-1024");
+/** HKDF info label for classic X3DH (Signal Protocol v3). */
+const X3DH_INFO = new TextEncoder().encode("WhisperText");
 
 /**
- * Initialize Bob's side of a Signal session using X3DH.
+ * Initialize Bob's side of a Signal session using X3DH (v3).
  *
- * Implementation (pre-Kyber version 3):
- * 1. secrets = [0xFF × 32] (discontinuity bytes)
- * 2. DH(our_signed_prekey_private, their_identity_public)
- * 3. DH(our_identity_private, their_base_key)
- * 4. DH(our_signed_prekey_private, their_base_key)
- * 5. if (our_one_time_prekey) DH(our_one_time_prekey_private, their_base_key)
- * 6. HKDF to derive root key + chain key
+ * Secret input construction (mirror of Alice):
+ * 1. [0xFF x 32] (discontinuity bytes)
+ * 2. DH(our_signed_prekey_private, their_identity_public)  — DH1
+ * 3. DH(our_identity_private, their_base_key)              — DH2
+ * 4. DH(our_signed_prekey_private, their_base_key)         — DH3
+ * 5. [DH(our_one_time_prekey_private, their_base_key)]     — DH4 (optional)
+ *
+ * HKDF derivation:
+ *   derived = HKDF-SHA256(salt=undefined, ikm=secret_input, info="WhisperText", length=64)
+ *   rootKey  = derived[0:32]
+ *   chainKey = derived[32:64]
  */
 export function initializeBobSession(params: BobProtocolParameters): SessionState {
   // W1: Validate base key canonicity (matches libsignal)
@@ -54,26 +54,21 @@ export function initializeBobSession(params: BobProtocolParameters): SessionStat
   // 1. Discontinuity bytes
   secrets.push(new Uint8Array(32).fill(0xff));
 
-  // 2. DH(our_signed_prekey_private, their_identity_public)
-  // Identity keys are X25519-native — no conversion needed.
+  // 2. DH1: DH(our_signed_prekey_private, their_identity_public)
+  // Identity keys are X25519-native -- no conversion needed.
   secrets.push(
     x25519RawAgreement(params.ourSignedPreKeyPair.privateKey, params.theirIdentityKey.publicKey),
   );
 
-  // 3. DH(our_identity_private, their_base_key)
+  // 3. DH2: DH(our_identity_private, their_base_key)
   secrets.push(x25519RawAgreement(params.ourIdentityKeyPair.privateKey, params.theirBaseKey));
 
-  // 4. DH(our_signed_prekey_private, their_base_key)
+  // 4. DH3: DH(our_signed_prekey_private, their_base_key)
   secrets.push(x25519RawAgreement(params.ourSignedPreKeyPair.privateKey, params.theirBaseKey));
 
-  // 5. Optional one-time prekey
+  // 5. DH4: Optional one-time prekey
   if (params.ourOneTimePreKeyPair) {
     secrets.push(x25519RawAgreement(params.ourOneTimePreKeyPair.privateKey, params.theirBaseKey));
-  }
-
-  // 5b. Include Kyber shared secret if v4
-  if (params.kyberSharedSecret) {
-    secrets.push(params.kyberSharedSecret);
   }
 
   // Concatenate all secrets
@@ -86,28 +81,19 @@ export function initializeBobSession(params: BobProtocolParameters): SessionStat
     offset += s.length;
   }
 
-  // 6. Derive root key + chain key + pqr_key
-  const derived = hkdfSha256(secretInput, undefined, X3DH_INFO, 96);
+  // 6. Derive root key + chain key (64 bytes total)
+  const derived = hkdfSha256(secretInput, undefined, X3DH_INFO, 64);
   const rootKey = new RootKey(derived.slice(0, 32));
   const chainKey = new ChainKey(derived.slice(32, 64), 0);
-  const pqrInitialKey = derived.slice(64, 96);
 
-  // 7. Create session state (v4 if Kyber, v3 otherwise)
-  const sessionVersion = params.kyberSharedSecret
-    ? CIPHERTEXT_MESSAGE_CURRENT_VERSION
-    : CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION;
-
+  // 7. Create session state (v3)
   const session = new SessionState({
-    sessionVersion,
+    sessionVersion: CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
     localIdentityKey: params.ourIdentityKeyPair.identityKey,
     remoteIdentityKey: params.theirIdentityKey,
     rootKey,
     aliceBaseKey: params.theirBaseKey,
   }).withSenderChain(params.ourRatchetKeyPair, chainKey);
-
-  if (params.kyberSharedSecret) {
-    session.setPqRatchetState(new PqRatchetState(pqrInitialKey));
-  }
 
   return session;
 }

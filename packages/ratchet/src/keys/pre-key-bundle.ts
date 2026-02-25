@@ -15,9 +15,6 @@ export class PreKeyBundle {
   readonly signedPreKey: Uint8Array;
   readonly signedPreKeySignature: Uint8Array;
   readonly identityKey: IdentityKey;
-  readonly kyberPreKeyId: number | undefined;
-  readonly kyberPreKey: Uint8Array | undefined;
-  readonly kyberPreKeySignature: Uint8Array | undefined;
 
   constructor(params: {
     registrationId: number;
@@ -28,9 +25,6 @@ export class PreKeyBundle {
     signedPreKey: Uint8Array;
     signedPreKeySignature: Uint8Array;
     identityKey: IdentityKey;
-    kyberPreKeyId?: number;
-    kyberPreKey?: Uint8Array;
-    kyberPreKeySignature?: Uint8Array;
   }) {
     this.registrationId = params.registrationId;
     this.deviceId = params.deviceId;
@@ -40,17 +34,13 @@ export class PreKeyBundle {
     this.signedPreKey = params.signedPreKey;
     this.signedPreKeySignature = params.signedPreKeySignature;
     this.identityKey = params.identityKey;
-    this.kyberPreKeyId = params.kyberPreKeyId;
-    this.kyberPreKey = params.kyberPreKey;
-    this.kyberPreKeySignature = params.kyberPreKeySignature;
   }
 
   /**
    * Validate that this bundle contains all required fields.
    *
    * Checks that core fields (identityKey, signedPreKeyId, signedPreKey,
-   * signedPreKeySignature) are present. Logs a warning if Kyber fields
-   * are missing, since they are required for PQXDH (protocol version 4+).
+   * signedPreKeySignature) are present.
    *
    * @returns true if all required fields are present
    * @throws {Error} if core required fields are missing
@@ -69,20 +59,6 @@ export class PreKeyBundle {
     }
     if (!this.signedPreKeySignature || this.signedPreKeySignature.length === 0) {
       throw new Error("PreKeyBundle: missing signedPreKeySignature");
-    }
-
-    // Kyber fields are required for PQXDH (v4+). Log a warning if missing.
-    const hasKyberKey = this.kyberPreKey !== undefined && this.kyberPreKey.length > 0;
-    const hasKyberId = this.kyberPreKeyId !== undefined;
-    const hasKyberSig =
-      this.kyberPreKeySignature !== undefined && this.kyberPreKeySignature.length > 0;
-
-    if (!hasKyberId || !hasKyberKey || !hasKyberSig) {
-      console.warn(
-        "PreKeyBundle: Kyber pre-key fields are missing. " +
-          "These are required for PQXDH (protocol version 4+). " +
-          "Sessions created without Kyber will use legacy X3DH.",
-      );
     }
 
     return true;

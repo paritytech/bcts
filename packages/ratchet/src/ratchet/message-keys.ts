@@ -28,15 +28,15 @@ export class MessageKeys {
   /**
    * Derive message keys from a chain key seed via HKDF.
    *
-   * Matches Signal's MessageKeys::derive_keys with optional_salt.
+   * HKDF-SHA256(salt=undefined, ikm=seed, info="WhisperMessageKeys", length=80)
+   * produces: cipherKey[0:32] + macKey[32:64] + iv[64:80].
    *
    * @param seed - 32-byte message key seed from ChainKey.messageKeySeed()
    * @param counter - Message counter (chain key index at time of derivation)
-   * @param pqSalt - Optional PQ ratchet salt for quantum-resistant key mixing
    * @returns MessageKeys with cipherKey, macKey, iv, and counter
    */
-  static deriveFrom(seed: Uint8Array, counter: number, pqSalt?: Uint8Array): MessageKeys {
-    const derived = hkdfSha256(seed, pqSalt, INFO, 80);
+  static deriveFrom(seed: Uint8Array, counter: number): MessageKeys {
+    const derived = hkdfSha256(seed, undefined, INFO, 80);
     return new MessageKeys(
       derived.slice(0, 32),
       derived.slice(32, 64),
@@ -53,7 +53,7 @@ export class MessageKeys {
  * - `Keys` variant holds pre-computed MessageKeys (legacy v3 sessions).
  * - `Seed` variant stores (seed, counter) and derives keys lazily via HKDF("WhisperMessageKeys").
  *
- * The seed-based approach is used in v4+ sessions and is stored as protobuf
+ * The seed-based approach is used for newer sessions and is stored as protobuf
  * MessageKey field 5 (`seed: bytes`). When the seed field is present in a
  * deserialized MessageKey, use it to derive keys on demand. When absent,
  * use the legacy cipher_key/mac_key/iv fields.
@@ -82,23 +82,16 @@ export const MessageKeyGeneratorFactory = {
   },
 
   /**
-   * Generate the final MessageKeys, applying the optional PQ ratchet salt.
+   * Generate the final MessageKeys.
    *
-   * - For Seed variant: derives keys via HKDF with the seed and optional PQ salt.
-   * - For Keys variant: returns the pre-computed keys directly (PQ salt must be
-   *   undefined for legacy sessions, matching libsignal's assertion).
+   * - For Seed variant: derives keys via HKDF with the seed.
+   * - For Keys variant: returns the pre-computed keys directly.
    *
    * @param generator - The MessageKeyGenerator (Seed or Keys variant)
-   * @param pqSalt - Optional PQ ratchet message key for quantum-resistant mixing
    */
-  generateKeys(generator: MessageKeyGenerator, pqSalt?: Uint8Array): MessageKeys {
+  generateKeys(generator: MessageKeyGenerator): MessageKeys {
     if (generator.variant === "seed") {
-      return MessageKeys.deriveFrom(generator.seed, generator.counter, pqSalt);
-    }
-    // Keys variant: PQ keys should only be set for newer sessions, and in
-    // newer sessions there should be only seed-based generators.
-    if (pqSalt !== undefined && pqSalt.length > 0) {
-      throw new Error("PQ salt must not be set for legacy Keys-based MessageKeyGenerator");
+      return MessageKeys.deriveFrom(generator.seed, generator.counter);
     }
     return generator.keys;
   },

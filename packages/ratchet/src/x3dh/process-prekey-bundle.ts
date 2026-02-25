@@ -1,5 +1,5 @@
 /**
- * Alice processes Bob's prekey bundle to establish a session.
+ * Alice processes Bob's prekey bundle to establish a session (classic X3DH v3).
  *
  * Reference: libsignal/rust/protocol/src/session.rs (process_prekey_bundle)
  */
@@ -15,12 +15,6 @@ import {
 } from "../storage/interfaces.js";
 import { UntrustedIdentityError, SignatureValidationError } from "../error.js";
 import { initializeAliceSession } from "./alice-session.js";
-import {
-  kemEncapsulate,
-  kemSerializePublicKey,
-  kemSerializeCiphertext,
-  DEFAULT_KEM_TYPE,
-} from "../kem/kem-types.js";
 
 /**
  * Process a prekey bundle to establish a session with a remote party.
@@ -28,7 +22,7 @@ import {
  * 1. Validates the signed prekey signature
  * 2. Checks identity trust
  * 3. Generates ephemeral base key
- * 4. Initializes Alice's session via X3DH
+ * 4. Initializes Alice's session via X3DH (v3)
  * 5. Stores session with pending prekey info
  */
 export async function processPreKeyBundle(
@@ -54,14 +48,6 @@ export async function processPreKeyBundle(
     throw new SignatureValidationError();
   }
 
-  // 2b. Verify Kyber pre-key signature (v4) — sign covers type-prefixed key
-  if (bundle.kyberPreKey && bundle.kyberPreKeySignature) {
-    const serializedKyberKey = kemSerializePublicKey(bundle.kyberPreKey, DEFAULT_KEM_TYPE);
-    if (!theirIdentityKey.verifySignature(serializedKyberKey, bundle.kyberPreKeySignature)) {
-      throw new SignatureValidationError();
-    }
-  }
-
   // 3. Load or create session record
   let sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
@@ -71,18 +57,7 @@ export async function processPreKeyBundle(
   // 5. Get our identity key pair
   const ourIdentityKeyPair = await identityStore.getIdentityKeyPair();
 
-  // 5b. Determine v4 (Kyber) and encapsulate if needed
-  const isV4 = !!(bundle.kyberPreKey && bundle.kyberPreKeyId !== undefined);
-  let kyberEncapsulationResult: { ciphertext: Uint8Array; sharedSecret: Uint8Array } | undefined;
-  if (isV4 && bundle.kyberPreKey) {
-    const result = kemEncapsulate(bundle.kyberPreKey);
-    kyberEncapsulationResult = {
-      ciphertext: kemSerializeCiphertext(result.ciphertext, DEFAULT_KEM_TYPE),
-      sharedSecret: result.sharedSecret,
-    };
-  }
-
-  // 6. Initialize Alice session
+  // 6. Initialize Alice session (classic X3DH, no Kyber)
   const session = initializeAliceSession(
     {
       ourIdentityKeyPair,
@@ -91,7 +66,6 @@ export async function processPreKeyBundle(
       theirSignedPreKey: bundle.signedPreKey,
       theirOneTimePreKey: bundle.preKey,
       theirRatchetKey: bundle.signedPreKey, // signed prekey is also ratchet key
-      kyberSharedSecret: kyberEncapsulationResult?.sharedSecret,
     },
     rng,
   );
@@ -102,8 +76,6 @@ export async function processPreKeyBundle(
     signedPreKeyId: bundle.signedPreKeyId,
     baseKey: ourBaseKeyPair.publicKey,
     timestamp: now,
-    kyberPreKeyId: isV4 ? bundle.kyberPreKeyId : undefined,
-    kyberCiphertext: kyberEncapsulationResult?.ciphertext,
   });
 
   // 8. Set registration IDs
