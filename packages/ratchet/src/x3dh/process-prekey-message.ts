@@ -45,9 +45,11 @@ export async function processPreKeyMessage(
   // This must happen before we do any key agreement work.
   if (sessionRecord.promoteMatchingSession(message.messageVersion, message.baseKey)) {
     // Already have a session for this message
+    const matchedState = sessionRecord.sessionState();
+    if (matchedState == null) throw new Error("expected session state after promotion");
     return {
       preKeysUsed: undefined,
-      sessionState: sessionRecord.sessionState()!,
+      sessionState: matchedState,
     };
   }
 

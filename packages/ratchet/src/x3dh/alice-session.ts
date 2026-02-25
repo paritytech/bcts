@@ -66,7 +66,7 @@ export function initializeAliceSession(
   secrets.push(x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirSignedPreKey));
 
   // 5. DH4: Optional one-time prekey
-  if (params.theirOneTimePreKey) {
+  if (params.theirOneTimePreKey != null) {
     secrets.push(x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirOneTimePreKey));
   }
 

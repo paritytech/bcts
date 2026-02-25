@@ -16,7 +16,7 @@ import { DuplicateMessageError } from "../src/error.js";
 
 function generateUUID(): string {
   const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
+  globalThis.crypto.getRandomValues(bytes);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
@@ -25,7 +25,7 @@ function generateUUID(): string {
 
 function randomBytes(size: number): Uint8Array {
   const data = new Uint8Array(size);
-  crypto.getRandomValues(data);
+  globalThis.crypto.getRandomValues(data);
   return data;
 }
 
@@ -59,7 +59,7 @@ describe("SenderKeyRecord", () => {
     const bytes = record.serialize();
     const restored = SenderKeyRecord.deserialize(bytes);
     expect(restored.senderKeyState()).toBeDefined();
-    expect(restored.senderKeyState()!.chainId).toBe(42);
+    expect(restored.senderKeyState()?.chainId).toBe(42);
   });
 
   it("evicts oldest state when exceeding limit", () => {

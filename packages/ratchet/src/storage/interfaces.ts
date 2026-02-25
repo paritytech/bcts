@@ -84,7 +84,7 @@ export function createDistributionId(uuid: string): DistributionId {
 export function generateDistributionId(): DistributionId {
   // Generate UUID v4 using crypto.getRandomValues
   const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
+  globalThis.crypto.getRandomValues(bytes);
   // Set version 4
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   // Set variant 1

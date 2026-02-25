@@ -31,7 +31,7 @@ export function getOrCreateMessageKey(
   // Message from the past — look up cached key
   if (chainIndex > counter) {
     const cached = state.getMessageKeys(theirEphemeral, counter);
-    if (cached) return cached;
+    if (cached != null) return cached;
     throw new DuplicateMessageError(chainIndex, counter);
   }
 

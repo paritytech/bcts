@@ -27,7 +27,7 @@ export function getOrCreateChainKey(
 ): ChainKey {
   // Check if we already have a chain for this ephemeral
   const existing = state.getReceiverChainKey(theirEphemeral);
-  if (existing) {
+  if (existing != null) {
     return existing;
   }
 

@@ -97,7 +97,7 @@ export class SenderCertificate {
     // Certificate inner protobuf
     const parts: Uint8Array[] = [];
     parts.push(encodeBytesField(1, new TextEncoder().encode(senderUuid)));
-    if (senderE164) {
+    if (senderE164 != null && senderE164 !== "") {
       parts.push(encodeBytesField(2, new TextEncoder().encode(senderE164)));
     }
     parts.push(encodeUint32Field(3, senderDeviceId));
@@ -158,7 +158,7 @@ export class SenderCertificate {
     const certificate = outerFields.bytes.get(1);
     const signature = outerFields.bytes.get(2);
 
-    if (!certificate || !signature) {
+    if (certificate == null || signature == null) {
       throw new InvalidSealedSenderMessageError("Invalid sender certificate");
     }
 
@@ -174,24 +174,24 @@ export class SenderCertificate {
 
     // Resolve sender UUID: prefer string form (field 1), fall back to raw bytes (field 7)
     let senderUuid: string;
-    if (senderUuidStringBytes) {
+    if (senderUuidStringBytes != null) {
       senderUuid = new TextDecoder().decode(senderUuidStringBytes);
-    } else if (senderUuidRawBytes) {
+    } else if (senderUuidRawBytes != null) {
       // Convert 16 raw UUID bytes to standard UUID string format
       senderUuid = uuidBytesToString(senderUuidRawBytes);
     } else {
       throw new InvalidSealedSenderMessageError("Invalid sender certificate inner: no sender UUID");
     }
 
-    if (senderDeviceId === undefined || expiration === undefined || !identityKeyBytes) {
+    if (senderDeviceId === undefined || expiration === undefined || identityKeyBytes == null) {
       throw new InvalidSealedSenderMessageError("Invalid sender certificate inner");
     }
 
     // Resolve server certificate: prefer embedded (field 6), fall back to known ID (field 8)
     let serverCertificate: ServerCertificate;
-    if (serverCertBytes) {
+    if (serverCertBytes != null) {
       serverCertificate = ServerCertificate.deserialize(serverCertBytes);
-    } else if (knownServerCertificateId !== undefined && knownCertificateResolver) {
+    } else if (knownServerCertificateId !== undefined && knownCertificateResolver != null) {
       serverCertificate = knownCertificateResolver(knownServerCertificateId);
     } else if (knownServerCertificateId !== undefined) {
       throw new InvalidSealedSenderMessageError(
@@ -203,7 +203,7 @@ export class SenderCertificate {
       );
     }
 
-    const senderE164 = senderE164Bytes ? new TextDecoder().decode(senderE164Bytes) : undefined;
+    const senderE164 = senderE164Bytes != null ? new TextDecoder().decode(senderE164Bytes) : undefined;
     const identityKey =
       identityKeyBytes.length === 33 && identityKeyBytes[0] === 0x05
         ? identityKeyBytes.slice(1)

@@ -95,7 +95,7 @@ const KNOWN_SERVER_CERTIFICATES: KnownServerCertEntry[] = [
 let knownCertsMap: Map<number, { trustRoot: Uint8Array; cert: ServerCertificate }> | null = null;
 
 function getKnownCertsMap(): Map<number, { trustRoot: Uint8Array; cert: ServerCertificate }> {
-  if (knownCertsMap) return knownCertsMap;
+  if (knownCertsMap != null) return knownCertsMap;
   knownCertsMap = new Map();
   for (const entry of KNOWN_SERVER_CERTIFICATES) {
     const cert = ServerCertificate.deserialize(entry.certData);
@@ -115,7 +115,7 @@ function getKnownCertsMap(): Map<number, { trustRoot: Uint8Array; cert: ServerCe
 export function lookupKnownServerCertificate(id: number): ServerCertificate {
   const map = getKnownCertsMap();
   const entry = map.get(id);
-  if (!entry) {
+  if (entry == null) {
     throw new UnknownSealedSenderServerCertificateIdError(id);
   }
   return entry.cert;
@@ -205,7 +205,7 @@ export class ServerCertificate {
     const certificate = fields.bytes.get(1);
     const signature = fields.bytes.get(2);
 
-    if (!certificate || !signature) {
+    if (certificate == null || signature == null) {
       throw new InvalidSealedSenderMessageError("Invalid server certificate");
     }
 
@@ -218,7 +218,7 @@ export class ServerCertificate {
     const keyId = certFields.varints.get(1);
     const keyBytes = certFields.bytes.get(2);
 
-    if (keyId === undefined || !keyBytes) {
+    if (keyId === undefined || keyBytes == null) {
       throw new InvalidSealedSenderMessageError("Invalid server certificate inner");
     }
 

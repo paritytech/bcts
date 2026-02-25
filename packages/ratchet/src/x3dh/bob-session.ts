@@ -67,7 +67,7 @@ export function initializeBobSession(params: BobProtocolParameters): SessionStat
   secrets.push(x25519RawAgreement(params.ourSignedPreKeyPair.privateKey, params.theirBaseKey));
 
   // 5. DH4: Optional one-time prekey
-  if (params.ourOneTimePreKeyPair) {
+  if (params.ourOneTimePreKeyPair != null) {
     secrets.push(x25519RawAgreement(params.ourOneTimePreKeyPair.privateKey, params.theirBaseKey));
   }
 
