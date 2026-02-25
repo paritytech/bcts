@@ -9,7 +9,7 @@
 
 import { hmacSha256 } from "../crypto/kdf.js";
 import { IdentityKey } from "../keys/identity-key.js";
-import { InvalidMessageError } from "../error.js";
+import { InvalidMessageError, InvalidMacKeyLengthError } from "../error.js";
 import {
   MAC_LENGTH,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
@@ -80,8 +80,9 @@ export class SignalMessage implements CiphertextMessageConvertible {
       ciphertext,
     });
 
-    // Build version byte: (sessionVersion << 4) | sessionVersion -> 0x33 for v3
-    const versionByte = ((messageVersion & 0xf) << 4) | messageVersion;
+    // Build version byte: (sessionVersion << 4) | CURRENT_VERSION
+    // Matches libsignal: ((message_version & 0xF) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION
+    const versionByte = ((messageVersion & 0xf) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
     const messageContent = new Uint8Array(1 + protoEncoded.length);
     messageContent[0] = versionByte;
     messageContent.set(protoEncoded, 1);
@@ -196,6 +197,10 @@ export class SignalMessage implements CiphertextMessageConvertible {
     macKey: Uint8Array,
     message: Uint8Array,
   ): Uint8Array {
+    if (macKey.length !== 32) {
+      throw new InvalidMacKeyLengthError(macKey.length);
+    }
+
     const senderSerialized = senderIdentityKey.serialize();
     const receiverSerialized = receiverIdentityKey.serialize();
 

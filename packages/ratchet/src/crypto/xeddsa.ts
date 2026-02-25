@@ -5,9 +5,11 @@
  * internally, then produces standard Ed25519 signatures. This lets the
  * Signal Protocol use a single X25519 key for both DH and signing.
  *
- * Algorithm matches libsignal's curve25519.rs implementation exactly.
+ * This implementation matches libsignal's curve25519.rs EXACTLY, including
+ * the deviation from the XEdDSA paper where the scalar is NOT negated and
+ * the full compressed Edwards key (with native sign bit) is used in the hash.
  *
- * Reference: https://signal.org/docs/specifications/xeddsa/
+ * Reference: libsignal/rust/core/src/curve/curve25519.rs
  */
 
 import { ed25519 } from "@noble/curves/ed25519.js";
@@ -84,10 +86,27 @@ function clampPrivateKey(key: Uint8Array): Uint8Array {
 }
 
 /**
+ * Hash prefix for XEdDSA nonce generation.
+ *
+ * libsignal uses [0xFE, 0xFF, 0xFF, ..., 0xFF] (1 byte 0xFE + 31 bytes 0xFF).
+ * Reference: libsignal/rust/core/src/curve/curve25519.rs lines 76-79
+ */
+const HASH_PREFIX = new Uint8Array([
+  0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+]);
+
+/**
  * Sign a message using XEdDSA.
  *
  * Takes an X25519 private key and produces an Ed25519 signature.
- * Matches libsignal's curve25519.rs implementation exactly.
+ * Matches libsignal's curve25519.rs calculate_signature() exactly.
+ *
+ * Key difference from the XEdDSA paper: the scalar is NOT negated when the
+ * sign bit is set. Instead, the full compressed Edwards key (with its native
+ * sign bit) is used in the challenge hash, and the sign bit is stored in
+ * signature[63] for the verifier. This matches libsignal-protocol-java's
+ * behavior.
  *
  * @param privateKey - 32-byte X25519 private key
  * @param message - Arbitrary-length message to sign
@@ -99,10 +118,10 @@ export function xeddsaSign(
   message: Uint8Array,
   random?: Uint8Array,
 ): Uint8Array {
-  // 1. Clamp the private key
+  // 1. Clamp the private key (matches libsignal's scalar::clamp_integer)
   const clamped = clampPrivateKey(privateKey);
 
-  // 2. Compute scalar mod L for point multiplication
+  // 2. Compute scalar mod L (matches Scalar::from_bytes_mod_order(key_data))
   let scalar = mod(bytesToNumberLE(clamped), L);
   if (scalar === 0n) scalar = 1n;
 
@@ -110,28 +129,19 @@ export function xeddsaSign(
   const A = B.multiply(scalar);
   const compressedA = A.toBytes();
 
-  // 4. Record the sign bit (high bit of last byte of compressed Edwards key).
-  // If the sign bit is set, negate the scalar so the effective public key
-  // always has sign bit = 0. This ensures the hash input during signing
-  // matches what ed25519.verify will compute during verification.
+  // 4. Record the sign bit. Unlike the XEdDSA paper, we do NOT negate the
+  //    scalar. The sign bit is just stored in the signature for the verifier.
+  //    This matches libsignal's implementation.
   const signBit = (compressedA[31] >> 7) & 1;
-  if (signBit) {
-    scalar = mod(L - scalar, L);
-  }
 
-  // 5. Generate nonce using libsignal's hash_prefix: [0xFE; 32]
+  // 5. Generate nonce: SHA-512(hash_prefix || key_data || message || random)
   const rand = random ?? crypto.getRandomValues(new Uint8Array(64));
   if (rand.length !== 64) {
     throw new Error("XEdDSA random input must be 64 bytes");
   }
 
-  // hash_prefix = 32 bytes of 0xFE (matches libsignal's [0xFE; 32])
-  const hashPrefix = new Uint8Array(32).fill(0xfe);
-
-  // nonce = SHA-512(hash_prefix(32) || key_data(32) || msg || rand(64)) mod L
-  // key_data is the raw clamped bytes (before mod L reduction) -- matches libsignal
   const nonceInput = new Uint8Array(32 + 32 + message.length + 64);
-  nonceInput.set(hashPrefix, 0);
+  nonceInput.set(HASH_PREFIX, 0);
   nonceInput.set(clamped, 32);
   nonceInput.set(message, 64);
   nonceInput.set(rand, 64 + message.length);
@@ -143,27 +153,24 @@ export function xeddsaSign(
   const R = B.multiply(nonce);
   const compressedR = R.toBytes();
 
-  // 7. Public key bytes with sign bit cleared (always positive after negation)
-  const publicKeyBytes = new Uint8Array(compressedA);
-  publicKeyBytes[31] &= 0x7f;
-
-  // 8. h = SHA-512(R || A_positive || msg) mod L
+  // 7. h = SHA-512(R || A || msg) mod L
+  //    Uses the FULL compressed A (with native sign bit), NOT sign-cleared.
+  //    This matches libsignal exactly.
   const hInput = new Uint8Array(32 + 32 + message.length);
   hInput.set(compressedR, 0);
-  hInput.set(publicKeyBytes, 32);
+  hInput.set(compressedA, 32);
   hInput.set(message, 64);
   const hHash = sha512(hInput);
   const h = mod(bytesToNumberLE(hHash), L);
 
-  // 9. S = (nonce + h * scalar) mod L
-  const S = mod(nonce + h * scalar, L);
+  // 8. s = (h * a) + r mod L — matches libsignal's `let s = (h * a) + r`
+  const S = mod(h * scalar + nonce, L);
 
-  // 10. Signature = R || S_with_sign_bit
+  // 9. Signature = R || S, with sign bit embedded in signature[63]
   const signature = new Uint8Array(64);
   signature.set(compressedR, 0);
   const sBytes = numberToBytes32LE(S);
   signature.set(sBytes, 32);
-  // Embed sign bit in high bit of signature[63] (matches libsignal)
   signature[63] &= 0x7f;
   signature[63] |= signBit << 7;
 
@@ -171,7 +178,7 @@ export function xeddsaSign(
 }
 
 /**
- * Convert a Montgomery (X25519) public key to Edwards (Ed25519) form.
+ * Convert a Montgomery (X25519) public key to Edwards (Ed25519) y-coordinate.
  *
  * Given Montgomery u-coordinate, compute Edwards y = (u - 1) / (u + 1) mod p.
  * Returns the y-coordinate as 32-byte LE (with sign bit = 0).
@@ -194,9 +201,13 @@ function montgomeryToEdwards(montgomeryKey: Uint8Array): Uint8Array {
 /**
  * Verify an XEdDSA signature.
  *
- * Takes an X25519 public key, converts to Edwards form, then verifies
- * the standard Ed25519 signature. The sign bit is extracted from
- * signature[63] to deterministically choose the correct Edwards point.
+ * Takes an X25519 public key, converts to Edwards form using the sign bit
+ * embedded in signature[63], then verifies the standard Ed25519 signature.
+ *
+ * Matches libsignal's verify_signature() which uses:
+ *   mont_point.to_edwards(sign_bit_from_signature)
+ * to recover the correct Edwards point, then delegates to standard Ed25519
+ * verification.
  *
  * @param publicKey - 32-byte X25519 (Montgomery) public key
  * @param message - The signed message
@@ -211,19 +222,27 @@ export function xeddsaVerify(
   try {
     if (signature.length !== 64) return false;
 
-    // Convert Montgomery -> Edwards (y coordinate only, sign bit = 0)
+    // 1. Extract sign bit from signature[63] (matches libsignal)
+    const signBit = (signature[63] >> 7) & 1;
+
+    // 2. Convert Montgomery -> Edwards y-coordinate
     const edwardsY = montgomeryToEdwards(publicKey);
 
-    // The signing always uses the positive (sign-bit-cleared) public key in
-    // the hash, so verification must also use sign bit = 0. The sign bit
-    // stored in signature[63] is metadata for cross-protocol use.
+    // 3. Set the sign bit on the Edwards key from the signature.
+    //    libsignal uses mont_point.to_edwards(sign_bit) which returns the
+    //    Edwards point with the specified x-parity. We achieve the same by
+    //    setting bit 255 of the compressed y-coordinate.
     const edKey = new Uint8Array(edwardsY);
-    edKey[31] &= 0x7f;
+    edKey[31] = (edKey[31] & 0x7f) | (signBit << 7);
 
-    // Clear sign bit from signature S bytes for verification
+    // 4. Clear sign bit from signature S bytes for verification
     const cleanSig = new Uint8Array(signature);
     cleanSig[63] &= 0x7f;
 
+    // 5. Verify using standard Ed25519.
+    //    ed25519.verify computes h = SHA-512(R || edKey || msg), which matches
+    //    the hash computed during signing (both use the full compressed A
+    //    with the correct sign bit).
     return ed25519.verify(cleanSig, message, edKey);
   } catch {
     return false;
