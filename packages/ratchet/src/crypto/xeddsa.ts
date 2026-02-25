@@ -58,7 +58,7 @@ function modPow(base: bigint, exp: bigint, modulus: bigint): bigint {
   let result = 1n;
   base = ((base % modulus) + modulus) % modulus;
   while (exp > 0n) {
-    if (exp & 1n) {
+    if ((exp & 1n) !== 0n) {
       result = (result * base) % modulus;
     }
     exp >>= 1n;
@@ -135,7 +135,7 @@ export function xeddsaSign(
   const signBit = (compressedA[31] >> 7) & 1;
 
   // 5. Generate nonce: SHA-512(hash_prefix || key_data || message || random)
-  const rand = random ?? crypto.getRandomValues(new Uint8Array(64));
+  const rand = random ?? globalThis.crypto.getRandomValues(new Uint8Array(64));
   if (rand.length !== 64) {
     throw new Error("XEdDSA random input must be 64 bytes");
   }

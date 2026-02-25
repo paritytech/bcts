@@ -50,7 +50,7 @@ interface DecryptionErrorProto {
 
 function encodeDecryptionError(msg: DecryptionErrorProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (msg.ratchetKey) parts.push(encodeBytes(1, msg.ratchetKey));
+  if (msg.ratchetKey != null) parts.push(encodeBytes(1, msg.ratchetKey));
   if (msg.timestamp !== undefined) parts.push(encodeUint32(2, msg.timestamp));
   if (msg.deviceId !== undefined) parts.push(encodeUint32(3, msg.deviceId));
   return concatBytes(...parts);

@@ -21,7 +21,7 @@ export class SenderKeyRecord {
   static deserialize(data: Uint8Array): SenderKeyRecord {
     const proto = decodeSenderKeyRecordStructure(data);
     const record = new SenderKeyRecord();
-    if (proto.senderKeyStates) {
+    if (proto.senderKeyStates != null) {
       for (const state of proto.senderKeyStates) {
         record._states.push(SenderKeyState.fromProtobuf(state));
       }

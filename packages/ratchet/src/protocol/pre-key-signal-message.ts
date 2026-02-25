@@ -112,13 +112,13 @@ export class PreKeySignalMessage implements CiphertextMessageConvertible {
 
     const proto = decodePreKeySignalMessage(data.slice(1));
 
-    if (!proto.baseKey) {
+    if (proto.baseKey == null) {
       throw new InvalidMessageError("Missing base key");
     }
-    if (!proto.identityKey) {
+    if (proto.identityKey == null) {
       throw new InvalidMessageError("Missing identity key");
     }
-    if (!proto.message) {
+    if (proto.message == null) {
       throw new InvalidMessageError("Missing embedded message");
     }
     if (proto.signedPreKeyId === undefined) {

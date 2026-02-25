@@ -81,7 +81,7 @@ export class PlaintextContent implements CiphertextMessageConvertible {
       }
     }
 
-    if (!body) {
+    if (body == null) {
       throw new InvalidMessageError("Missing body in PlaintextContent");
     }
 

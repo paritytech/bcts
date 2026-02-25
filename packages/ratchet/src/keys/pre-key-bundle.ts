@@ -48,16 +48,13 @@ export class PreKeyBundle {
   validate(): boolean {
     // Core fields are enforced by the constructor's required params,
     // but we verify the actual values as a defensive check.
-    if (!this.identityKey) {
-      throw new Error("PreKeyBundle: missing identityKey");
-    }
     if (this.signedPreKeyId === undefined || this.signedPreKeyId === null) {
       throw new Error("PreKeyBundle: missing signedPreKeyId");
     }
-    if (!this.signedPreKey || this.signedPreKey.length === 0) {
+    if (this.signedPreKey.length === 0) {
       throw new Error("PreKeyBundle: missing signedPreKey");
     }
-    if (!this.signedPreKeySignature || this.signedPreKeySignature.length === 0) {
+    if (this.signedPreKeySignature.length === 0) {
       throw new Error("PreKeyBundle: missing signedPreKeySignature");
     }
 

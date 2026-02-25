@@ -86,7 +86,7 @@ export function isCanonicalPublicKey(publicKey: Uint8Array): boolean {
   if (isLowOrderPoint(publicKey)) return false;
 
   // Check non-canonical: high bit must be 0 (u < 2^255)
-  if (publicKey[31] & 0x80) return false;
+  if ((publicKey[31] & 0x80) !== 0) return false;
 
   return true;
 }

@@ -46,11 +46,11 @@ export class SenderKeyState {
       proto.senderChainKey?.iteration ?? 0,
       proto.senderChainKey?.seed ?? new Uint8Array(32),
       pubKey,
-      proto.senderSigningKey?.privateKey?.length ? proto.senderSigningKey.privateKey : undefined,
+      (proto.senderSigningKey?.privateKey?.length ?? 0) > 0 ? proto.senderSigningKey.privateKey : undefined,
     );
 
     // Restore cached message keys
-    if (proto.senderMessageKeys) {
+    if (proto.senderMessageKeys != null) {
       for (const smk of proto.senderMessageKeys) {
         state._messageKeys.push(
           new SenderMessageKey(smk.iteration ?? 0, smk.seed ?? new Uint8Array(0)),
@@ -113,7 +113,7 @@ export class SenderKeyState {
     return {
       messageVersion: this._messageVersion,
       chainId: this._chainId,
-      senderChainKey: this._senderChainKey
+      senderChainKey: this._senderChainKey != null
         ? { iteration: this._senderChainKey.iteration, seed: this._senderChainKey.seed }
         : undefined,
       senderSigningKey: {

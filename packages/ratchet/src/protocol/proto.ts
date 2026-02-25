@@ -123,10 +123,10 @@ export interface SignalMessageProto {
 
 export function encodeSignalMessage(msg: SignalMessageProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (msg.ratchetKey) parts.push(encodeBytes(1, msg.ratchetKey));
+  if (msg.ratchetKey != null) parts.push(encodeBytes(1, msg.ratchetKey));
   if (msg.counter !== undefined) parts.push(encodeUint32(2, msg.counter));
   if (msg.previousCounter !== undefined) parts.push(encodeUint32(3, msg.previousCounter));
-  if (msg.ciphertext) parts.push(encodeBytes(4, msg.ciphertext));
+  if (msg.ciphertext != null) parts.push(encodeBytes(4, msg.ciphertext));
 
   let totalLen = 0;
   for (const p of parts) totalLen += p.length;
@@ -186,9 +186,9 @@ export function encodePreKeySignalMessage(msg: PreKeySignalMessageProto): Uint8A
   const parts: Uint8Array[] = [];
   // Note: field numbers match Signal's proto2 definition
   if (msg.preKeyId !== undefined) parts.push(encodeUint32(1, msg.preKeyId));
-  if (msg.baseKey) parts.push(encodeBytes(2, msg.baseKey));
-  if (msg.identityKey) parts.push(encodeBytes(3, msg.identityKey));
-  if (msg.message) parts.push(encodeBytes(4, msg.message));
+  if (msg.baseKey != null) parts.push(encodeBytes(2, msg.baseKey));
+  if (msg.identityKey != null) parts.push(encodeBytes(3, msg.identityKey));
+  if (msg.message != null) parts.push(encodeBytes(4, msg.message));
   if (msg.registrationId !== undefined) parts.push(encodeUint32(5, msg.registrationId));
   if (msg.signedPreKeyId !== undefined) parts.push(encodeUint32(6, msg.signedPreKeyId));
 
@@ -397,7 +397,9 @@ export function parseProtoFields(data: Uint8Array): ParsedProtoFields {
       if (!result.repeatedVarints.has(fieldNumber)) {
         result.repeatedVarints.set(fieldNumber, []);
       }
-      result.repeatedVarints.get(fieldNumber)!.push(value);
+      const varintArr = result.repeatedVarints.get(fieldNumber);
+      if (varintArr == null) throw new Error("expected repeatedVarints entry");
+      varintArr.push(value);
     } else if (wireType === 2) {
       // Length-delimited (bytes/string/nested message)
       const [len, lenOffset] = decodeVarint(data, offset);
@@ -409,7 +411,9 @@ export function parseProtoFields(data: Uint8Array): ParsedProtoFields {
       if (!result.repeatedBytes.has(fieldNumber)) {
         result.repeatedBytes.set(fieldNumber, []);
       }
-      result.repeatedBytes.get(fieldNumber)!.push(value);
+      const bytesArr = result.repeatedBytes.get(fieldNumber);
+      if (bytesArr == null) throw new Error("expected repeatedBytes entry");
+      bytesArr.push(value);
     } else if (wireType === 5) {
       // Fixed32 -- skip 4 bytes
       offset += 4;
@@ -487,26 +491,26 @@ export interface RecordStructureProto {
 export function encodeChainKey(ck: ChainKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (ck.index !== undefined) parts.push(encodeUint32Field(1, ck.index));
-  if (ck.key) parts.push(encodeBytesField(2, ck.key));
+  if (ck.key != null) parts.push(encodeBytesField(2, ck.key));
   return concatProtoFields(...parts);
 }
 
 export function encodeMessageKey(mk: MessageKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (mk.index !== undefined) parts.push(encodeUint32Field(1, mk.index));
-  if (mk.cipherKey) parts.push(encodeBytesField(2, mk.cipherKey));
-  if (mk.macKey) parts.push(encodeBytesField(3, mk.macKey));
-  if (mk.iv) parts.push(encodeBytesField(4, mk.iv));
-  if (mk.seed) parts.push(encodeBytesField(5, mk.seed));
+  if (mk.cipherKey != null) parts.push(encodeBytesField(2, mk.cipherKey));
+  if (mk.macKey != null) parts.push(encodeBytesField(3, mk.macKey));
+  if (mk.iv != null) parts.push(encodeBytesField(4, mk.iv));
+  if (mk.seed != null) parts.push(encodeBytesField(5, mk.seed));
   return concatProtoFields(...parts);
 }
 
 export function encodeChainStructure(chain: ChainStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (chain.senderRatchetKey) parts.push(encodeBytesField(1, chain.senderRatchetKey));
-  if (chain.senderRatchetKeyPrivate) parts.push(encodeBytesField(2, chain.senderRatchetKeyPrivate));
-  if (chain.chainKey) parts.push(encodeNestedMessage(3, encodeChainKey(chain.chainKey)));
-  if (chain.messageKeys) {
+  if (chain.senderRatchetKey != null) parts.push(encodeBytesField(1, chain.senderRatchetKey));
+  if (chain.senderRatchetKeyPrivate != null) parts.push(encodeBytesField(2, chain.senderRatchetKeyPrivate));
+  if (chain.chainKey != null) parts.push(encodeNestedMessage(3, encodeChainKey(chain.chainKey)));
+  if (chain.messageKeys != null) {
     for (const mk of chain.messageKeys) {
       parts.push(encodeNestedMessage(4, encodeMessageKey(mk)));
     }
@@ -517,7 +521,7 @@ export function encodeChainStructure(chain: ChainStructureProto): Uint8Array {
 export function encodePendingPreKey(pk: PendingPreKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (pk.preKeyId !== undefined) parts.push(encodeUint32Field(1, pk.preKeyId));
-  if (pk.baseKey) parts.push(encodeBytesField(2, pk.baseKey));
+  if (pk.baseKey != null) parts.push(encodeBytesField(2, pk.baseKey));
   if (pk.signedPreKeyId !== undefined) parts.push(encodeUint32Field(3, pk.signedPreKeyId));
   if (pk.timestamp !== undefined) parts.push(encodeUint64Field(4, pk.timestamp));
   return concatProtoFields(...parts);
@@ -526,12 +530,12 @@ export function encodePendingPreKey(pk: PendingPreKeyProto): Uint8Array {
 export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (ss.sessionVersion !== undefined) parts.push(encodeUint32Field(1, ss.sessionVersion));
-  if (ss.localIdentityPublic) parts.push(encodeBytesField(2, ss.localIdentityPublic));
-  if (ss.remoteIdentityPublic) parts.push(encodeBytesField(3, ss.remoteIdentityPublic));
-  if (ss.rootKey) parts.push(encodeBytesField(4, ss.rootKey));
+  if (ss.localIdentityPublic != null) parts.push(encodeBytesField(2, ss.localIdentityPublic));
+  if (ss.remoteIdentityPublic != null) parts.push(encodeBytesField(3, ss.remoteIdentityPublic));
+  if (ss.rootKey != null) parts.push(encodeBytesField(4, ss.rootKey));
   if (ss.previousCounter !== undefined) parts.push(encodeUint32Field(5, ss.previousCounter));
-  if (ss.senderChain) parts.push(encodeNestedMessage(6, encodeChainStructure(ss.senderChain)));
-  if (ss.receiverChains) {
+  if (ss.senderChain != null) parts.push(encodeNestedMessage(6, encodeChainStructure(ss.senderChain)));
+  if (ss.receiverChains != null) {
     for (const rc of ss.receiverChains) {
       parts.push(encodeNestedMessage(7, encodeChainStructure(rc)));
     }

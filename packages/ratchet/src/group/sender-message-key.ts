@@ -17,7 +17,7 @@ export class SenderMessageKey {
   }
 
   private derive(): { iv: Uint8Array; cipherKey: Uint8Array } {
-    if (!this._derived) {
+    if (this._derived == null) {
       // HKDF with no salt, info="WhisperGroup", output=48 bytes
       const derived = hkdfSha256(
         this.seed,

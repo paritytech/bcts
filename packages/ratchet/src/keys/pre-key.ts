@@ -40,7 +40,7 @@ export class PreKeyRecord {
 
   static deserialize(data: Uint8Array): PreKeyRecord {
     const proto = decodePreKeyRecord(data);
-    if (proto.id === undefined || !proto.publicKey || !proto.privateKey) {
+    if (proto.id === undefined || proto.publicKey == null || proto.privateKey == null) {
       throw new Error("Invalid PreKeyRecord protobuf");
     }
     const rawPub =
@@ -97,7 +97,7 @@ export class SignedPreKeyRecord {
 
   static deserialize(data: Uint8Array): SignedPreKeyRecord {
     const proto = decodeSignedPreKeyRecord(data);
-    if (proto.id === undefined || !proto.publicKey || !proto.privateKey) {
+    if (proto.id === undefined || proto.publicKey == null || proto.privateKey == null) {
       throw new Error("Invalid SignedPreKeyRecord protobuf");
     }
     const rawPub =

@@ -31,18 +31,18 @@ export async function groupEncrypt(
   plaintext: Uint8Array,
 ): Promise<SenderKeyMessage> {
   const recordBytes = await senderKeyStore.loadSenderKey(sender, distributionId);
-  if (!recordBytes) {
+  if (recordBytes == null) {
     throw new NoSenderKeyStateError(distributionId);
   }
 
   const record = SenderKeyRecord.deserialize(recordBytes);
   const state = record.senderKeyState();
-  if (!state) {
+  if (state == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
 
   const senderChainKey = state.senderChainKey();
-  if (!senderChainKey) {
+  if (senderChainKey == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
 
@@ -53,7 +53,7 @@ export async function groupEncrypt(
 
   // Get signing private key
   const signingPrivateKey = state.signingKeyPrivate();
-  if (!signingPrivateKey) {
+  if (signingPrivateKey == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
 
@@ -92,13 +92,13 @@ export async function groupDecrypt(
   const distributionId = bytesToUuid(skm.distributionId);
 
   const recordBytes = await senderKeyStore.loadSenderKey(sender, distributionId);
-  if (!recordBytes) {
+  if (recordBytes == null) {
     throw new NoSenderKeyStateError(distributionId);
   }
 
   const record = SenderKeyRecord.deserialize(recordBytes);
   const state = record.senderKeyStateForChainId(skm.chainId);
-  if (!state) {
+  if (state == null) {
     throw new NoSenderKeyStateError(distributionId);
   }
 
@@ -137,13 +137,13 @@ export async function createSenderKeyDistributionMessage(
 ): Promise<SenderKeyDistributionMessage> {
   let recordBytes = await senderKeyStore.loadSenderKey(sender, distributionId);
 
-  if (!recordBytes) {
+  if (recordBytes == null) {
     // Generate new sender key state
     const chainId =
-      crypto.getRandomValues(new Uint8Array(4)).reduce((acc, b, i) => acc | (b << (i * 8)), 0) >>>
+      globalThis.crypto.getRandomValues(new Uint8Array(4)).reduce((acc, b, i) => acc | (b << (i * 8)), 0) >>>
       1; // 31-bit integer matching libsignal-protocol-java
-    const senderKey = crypto.getRandomValues(new Uint8Array(32));
-    const signingPrivateKey = crypto.getRandomValues(new Uint8Array(32));
+    const senderKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
+    const signingPrivateKey = globalThis.crypto.getRandomValues(new Uint8Array(32));
     const signingPublicKey = ed25519.getPublicKey(signingPrivateKey);
 
     const record = new SenderKeyRecord();
@@ -163,12 +163,12 @@ export async function createSenderKeyDistributionMessage(
 
   const record = SenderKeyRecord.deserialize(recordBytes);
   const state = record.senderKeyState();
-  if (!state) {
+  if (state == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
 
   const chainKey = state.senderChainKey();
-  if (!chainKey) {
+  if (chainKey == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
 
@@ -194,7 +194,7 @@ export async function processSenderKeyDistributionMessage(
   senderKeyStore: SenderKeyStore,
 ): Promise<void> {
   const recordBytes = await senderKeyStore.loadSenderKey(sender, distributionId);
-  const record = recordBytes ? SenderKeyRecord.deserialize(recordBytes) : new SenderKeyRecord();
+  const record = recordBytes != null ? SenderKeyRecord.deserialize(recordBytes) : new SenderKeyRecord();
 
   // Strip 0x05 prefix from signing key if present
   let signingKey = skdm.signingKey;
@@ -221,7 +221,7 @@ function getSenderKey(
   distributionId: string,
 ): SenderMessageKey {
   const chainKey = state.senderChainKey();
-  if (!chainKey) {
+  if (chainKey == null) {
     throw new InvalidSenderKeySessionError(distributionId);
   }
   const currentIteration = chainKey.iteration;
@@ -229,7 +229,7 @@ function getSenderKey(
   if (currentIteration > iteration) {
     // Look up cached key
     const cached = state.removeSenderMessageKey(iteration);
-    if (cached) return cached;
+    if (cached != null) return cached;
     throw new DuplicateMessageError(currentIteration, iteration);
   }
 

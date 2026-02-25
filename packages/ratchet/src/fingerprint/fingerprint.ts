@@ -194,10 +194,10 @@ export class ScannableFingerprint {
     if (version === undefined) {
       throw new FingerprintParsingError("Missing fingerprint version");
     }
-    if (!localContent) {
+    if (localContent == null) {
       throw new FingerprintParsingError("Missing local fingerprint");
     }
-    if (!remoteContent) {
+    if (remoteContent == null) {
       throw new FingerprintParsingError("Missing remote fingerprint");
     }
 

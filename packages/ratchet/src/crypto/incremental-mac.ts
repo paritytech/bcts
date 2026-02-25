@@ -95,7 +95,7 @@ export class IncrementalMac {
 
     // Process the first piece that fits in the current chunk
     const firstMac = this.updateChunk(toWrite);
-    if (firstMac) macs.push(firstMac);
+    if (firstMac !== null) macs.push(firstMac);
 
     // Process remaining data in chunkSize-sized pieces
     let offset = 0;
@@ -103,7 +103,7 @@ export class IncrementalMac {
       const end = Math.min(offset + this.chunkSize, overflow.length);
       const piece = overflow.subarray(offset, end);
       const mac = this.updateChunk(piece);
-      if (mac) macs.push(mac);
+      if (mac !== null) macs.push(mac);
       offset = end;
     }
 
@@ -183,7 +183,7 @@ export class IncrementalMacValidator {
     let wholeChunks = 0;
     for (const mac of macs) {
       const expected = this.expected.at(-1);
-      if (expected && constantTimeEqual(expected, mac)) {
+      if (expected !== undefined && constantTimeEqual(expected, mac)) {
         wholeChunks++;
         this.expected.pop();
       } else {

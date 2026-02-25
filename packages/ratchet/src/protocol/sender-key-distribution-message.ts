@@ -54,11 +54,11 @@ interface SKDMProto {
 
 function encodeSKDM(msg: SKDMProto): Uint8Array {
   const parts: Uint8Array[] = [];
-  if (msg.distributionId) parts.push(encodeBytes(1, msg.distributionId));
+  if (msg.distributionId != null) parts.push(encodeBytes(1, msg.distributionId));
   if (msg.chainId !== undefined) parts.push(encodeUint32(2, msg.chainId));
   if (msg.iteration !== undefined) parts.push(encodeUint32(3, msg.iteration));
-  if (msg.chainKey) parts.push(encodeBytes(4, msg.chainKey));
-  if (msg.signingKey) parts.push(encodeBytes(5, msg.signingKey));
+  if (msg.chainKey != null) parts.push(encodeBytes(4, msg.chainKey));
+  if (msg.signingKey != null) parts.push(encodeBytes(5, msg.signingKey));
   return concatBytes(...parts);
 }
 
@@ -186,7 +186,7 @@ export class SenderKeyDistributionMessage {
     if (proto.chainKey?.length !== 32) {
       throw new InvalidMessageError("Missing or invalid chain key");
     }
-    if (!proto.signingKey) {
+    if (proto.signingKey == null) {
       throw new InvalidMessageError("Missing signing key");
     }
 
