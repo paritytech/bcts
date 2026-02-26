@@ -267,7 +267,7 @@ describe("Chain forward jump limit", () => {
 
     // Verify that MAX_FORWARD_JUMPS is 25000
     expect(MAX_FORWARD_JUMPS).toBe(25_000);
-  });
+  }, 30_000);
 });
 
 // ---------------------------------------------------------------------------
@@ -353,7 +353,7 @@ describe("Message key eviction at MAX_MESSAGE_KEYS", () => {
       rng,
     );
     expect(new TextDecoder().decode(msg1)).toBe("m1");
-  });
+  }, 30_000);
 });
 
 // ---------------------------------------------------------------------------

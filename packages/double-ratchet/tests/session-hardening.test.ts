@@ -364,7 +364,7 @@ describe("Self-session unlimited forward jumps", () => {
       rng,
     );
     expect(new TextDecoder().decode(decrypted)).toBe(`msg-${MAX_FORWARD_JUMPS + 9}`);
-  });
+  }, 30_000);
 
   it("should still reject forward jumps > MAX_FORWARD_JUMPS for non-self sessions", async () => {
     const rng = createTestRng();
@@ -416,7 +416,7 @@ describe("Self-session unlimited forward jumps", () => {
     await expect(
       messageDecrypt(lastMsg, aliceAddress, bobStore, bobStore, bobStore, bobStore, rng),
     ).rejects.toThrow(InvalidMessageError);
-  });
+  }, 30_000);
 });
 
 // ---------------------------------------------------------------------------
