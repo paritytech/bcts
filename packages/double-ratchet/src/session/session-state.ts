@@ -18,6 +18,7 @@ import {
   MAX_MESSAGE_KEYS,
   MAX_UNACKNOWLEDGED_SESSION_AGE_MS,
 } from "../constants.js";
+import type { PendingPreKeyProto } from "../protocol/proto.js";
 import {
   encodeSessionStructure,
   decodeSessionStructure,
@@ -450,7 +451,7 @@ export class SessionState {
 
     // Pending pre-key
     if (this._pendingPreKey != null) {
-      const ppk: import("../protocol/proto.js").PendingPreKeyProto = {
+      const ppk: PendingPreKeyProto = {
         signedPreKeyId: this._pendingPreKey.signedPreKeyId,
         baseKey: this._pendingPreKey.baseKey,
         timestamp: this._pendingPreKey.timestamp,
