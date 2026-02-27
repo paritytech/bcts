@@ -45,13 +45,30 @@ class TestRng {
   constructor(seed = 1) {
     this.seed = seed;
   }
+  private next(): number {
+    this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff;
+    return this.seed;
+  }
+  nextU32(): number {
+    return this.next() >>> 0;
+  }
+  nextU64(): bigint {
+    const lo = BigInt(this.nextU32());
+    const hi = BigInt(this.nextU32());
+    return (hi << 32n) | lo;
+  }
+  fillBytes(dest: Uint8Array): void {
+    for (let i = 0; i < dest.length; i++) {
+      dest[i] = this.next() & 0xff;
+    }
+  }
   randomData(n: number): Uint8Array {
     const data = new Uint8Array(n);
-    for (let i = 0; i < n; i++) {
-      this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff;
-      data[i] = this.seed & 0xff;
-    }
+    this.fillBytes(data);
     return data;
+  }
+  fillRandomData(data: Uint8Array): void {
+    this.fillBytes(data);
   }
 }
 
