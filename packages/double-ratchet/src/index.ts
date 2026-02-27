@@ -70,6 +70,15 @@ export { MessageKeys, MessageKeyGeneratorFactory } from "./ratchet/message-keys.
 export type { MessageKeyGenerator } from "./ratchet/message-keys.js";
 export { RootKey } from "./ratchet/root-key.js";
 
+// Proto types (referenced by public APIs)
+export type {
+  SenderKeyStateStructureProto,
+  SenderKeyStateChainKeyProto,
+  SenderSigningKeyProto,
+  SenderKeyStateMessageKeyProto,
+  MessageKeyProto,
+} from "./protocol/proto.js";
+
 // Protocol messages
 export { SignalMessage } from "./protocol/signal-message.js";
 export { PreKeySignalMessage } from "./protocol/pre-key-signal-message.js";

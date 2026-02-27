@@ -38,6 +38,7 @@
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "docs": "typedoc",
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
@@ -64,7 +65,9 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.2",
     "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
     "tsdown": "^0.20.3",
+    "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

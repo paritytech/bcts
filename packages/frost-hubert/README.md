@@ -28,7 +28,7 @@ The `@noble` libraries were not used because they are intentionally minimal impl
 
 **These `@frosts` packages are unaudited** and have not undergone the same level of security review as the `@noble` libraries. Do not use this package in production environments or for securing real assets.
 
-For more details, see the [frosTS](https://github.com/paritytech/frosts).
+For more details, see the [frosTS](https://github.com/leonardocustodio/frosts).
 
 ## Rust Reference Implementation
 
