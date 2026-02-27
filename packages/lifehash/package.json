@@ -63,9 +63,9 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.3.0",
-    "eslint": "^9.39.2",
+    "@eslint/js": "^9.39.3",
+    "@types/node": "^25.3.2",
+    "eslint": "^9.39.3",
     "ts-node": "^10.9.2",
     "typedoc": "^0.28.17",
     "tsdown": "^0.20.3",

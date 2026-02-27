@@ -71,10 +71,10 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.3.0",
+    "@eslint/js": "^9.39.3",
+    "@types/node": "^25.3.2",
     "@types/pako": "^2.0.4",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.3",
     "tsdown": "^0.19.0",
     "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
