@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
   "description": "Blockchain Commons Deterministic CBOR (dCBOR) for TypeScript",
   "license": "BSD-2-Clause-Patent",

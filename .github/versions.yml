@@ -116,6 +116,25 @@ packages:
     version: "0.4.1"
     commit: "b5e8d431b918951b91b5c3cb8eee27f4469feb6b"
 
+  # Signal Protocol
+  double-ratchet:
+    npm: "@bcts/double-ratchet"
+    repo: "signalapp/libsignal"
+    version: "0.87.1"
+    commit: "f08390b0e2f67d5faf47bb9d1a3db191314db93c"
+
+  spqr:
+    npm: "@bcts/spqr"
+    repo: "signalapp/SparsePostQuantumRatchet"
+    version: "1.4.0"
+    commit: "d310c99c57a046549be205b9ce50d80dcbe5f3e4"
+
+  triple-ratchet:
+    npm: "@bcts/triple-ratchet"
+    repo: "signalapp/libsignal"
+    version: "0.87.1"
+    commit: "f08390b0e2f67d5faf47bb9d1a3db191314db93c"
+
 tools:
   dcbor-cli:
     npm: "@bcts/dcbor-cli"

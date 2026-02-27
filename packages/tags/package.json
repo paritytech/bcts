@@ -1,6 +1,6 @@
 {
   "name": "@bcts/tags",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
   "description": "Blockchain Commons CBOR Tags Registry for TypeScript",
   "license": "BSD-2-Clause-Patent",

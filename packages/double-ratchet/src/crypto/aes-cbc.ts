@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * AES-256-CBC encryption with PKCS#7 padding.
  * Compatible with Signal's aes_256_cbc_encrypt / aes_256_cbc_decrypt.

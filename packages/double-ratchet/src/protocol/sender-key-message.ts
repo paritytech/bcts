@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * SenderKeyMessage — encrypted group message with Ed25519 signature.
  *

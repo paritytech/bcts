@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * DH ratchet step — creates new chain keys when receiving a new ephemeral key.
  *

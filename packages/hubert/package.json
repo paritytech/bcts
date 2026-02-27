@@ -1,6 +1,6 @@
 {
   "name": "@bcts/hubert",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
   "description": "Hubert - Distributed infrastructure for secure multiparty transactions using Gordian Envelope",
   "license": "BSD-2-Clause-Patent",

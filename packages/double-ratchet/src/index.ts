@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * @bcts/double-ratchet — Signal Protocol Double Ratchet implementation.
  *
@@ -66,6 +69,15 @@ export { ChainKey } from "./ratchet/chain-key.js";
 export { MessageKeys, MessageKeyGeneratorFactory } from "./ratchet/message-keys.js";
 export type { MessageKeyGenerator } from "./ratchet/message-keys.js";
 export { RootKey } from "./ratchet/root-key.js";
+
+// Proto types (referenced by public APIs)
+export type {
+  SenderKeyStateStructureProto,
+  SenderKeyStateChainKeyProto,
+  SenderSigningKeyProto,
+  SenderKeyStateMessageKeyProto,
+  MessageKeyProto,
+} from "./protocol/proto.js";
 
 // Protocol messages
 export { SignalMessage } from "./protocol/signal-message.js";

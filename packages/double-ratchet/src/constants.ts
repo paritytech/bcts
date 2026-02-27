@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * Signal Protocol constants.
  * Values from libsignal/rust/protocol/src/consts.rs

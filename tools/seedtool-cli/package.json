@@ -1,6 +1,6 @@
 {
   "name": "@bcts/seedtool-cli",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
   "description": "A command-line tool for generating and transforming cryptographic seeds.",
   "license": "BSD-2-Clause-Patent",

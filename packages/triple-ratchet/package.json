@@ -1,8 +1,8 @@
 {
   "name": "@bcts/triple-ratchet",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
-  "description": "Triple Ratchet protocol for TypeScript",
+  "description": "Signal's Triple Ratchet for TypeScript",
   "license": "AGPL-3.0-only",
   "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
   "homepage": "https://bcts.dev",
@@ -38,6 +38,7 @@
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "docs": "typedoc",
     "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
@@ -64,7 +65,9 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.2",
     "eslint": "^10.0.2",
+    "prettier": "^3.8.1",
     "tsdown": "^0.20.3",
+    "typedoc": "^0.28.17",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
