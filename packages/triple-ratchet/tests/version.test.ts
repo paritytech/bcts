@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  TripleRatchetSignalMessage,
-  TripleRatchetPreKeySignalMessage,
-} from "../src/protocol.js";
+import { TripleRatchetSignalMessage, TripleRatchetPreKeySignalMessage } from "../src/protocol.js";
 import {
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
   CIPHERTEXT_MESSAGE_PRE_KYBER_VERSION,
@@ -299,9 +296,7 @@ describe("TripleRatchetSignalMessage.deserialize version validation", () => {
     // A valid message needs at least 1 version byte + 8-byte MAC = 9 bytes
     const tooShort = new Uint8Array(MAC_LENGTH); // exactly MAC_LENGTH, missing version byte
 
-    expect(() => TripleRatchetSignalMessage.deserialize(tooShort)).toThrowError(
-      /too short/i,
-    );
+    expect(() => TripleRatchetSignalMessage.deserialize(tooShort)).toThrowError(/too short/i);
   });
 
   it("should reject empty data", () => {
@@ -462,9 +457,7 @@ describe("TripleRatchetPreKeySignalMessage.deserialize version validation", () =
   it("should reject empty data", () => {
     const empty = new Uint8Array(0);
 
-    expect(() => TripleRatchetPreKeySignalMessage.deserialize(empty)).toThrowError(
-      /[Ee]mpty/,
-    );
+    expect(() => TripleRatchetPreKeySignalMessage.deserialize(empty)).toThrowError(/[Ee]mpty/);
   });
 });
 
@@ -479,8 +472,7 @@ describe("version byte encoding arithmetic", () => {
   });
 
   it("v4 version byte should be 0x44 = (4 << 4) | 4", () => {
-    const v4 =
-      (CIPHERTEXT_MESSAGE_CURRENT_VERSION << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
+    const v4 = (CIPHERTEXT_MESSAGE_CURRENT_VERSION << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
     expect(v4).toBe(0x44);
   });
 

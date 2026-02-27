@@ -29,10 +29,7 @@
 
 import { describe, it, expect } from "vitest";
 import { IdentityKey } from "@bcts/double-ratchet";
-import {
-  TripleRatchetSignalMessage,
-  TripleRatchetPreKeySignalMessage,
-} from "../src/protocol.js";
+import { TripleRatchetSignalMessage, TripleRatchetPreKeySignalMessage } from "../src/protocol.js";
 import { V3, V4, toHex } from "./fixtures/rust-vectors.js";
 
 // ---------------------------------------------------------------------------
@@ -279,8 +276,8 @@ describe("TripleRatchetPreKeySignalMessage — wire format vector V4", () => {
       undefined, // missing ciphertext
     );
 
-    expect(() =>
-      TripleRatchetPreKeySignalMessage.deserialize(msgWithIdOnly.serialized),
-    ).toThrow("Kyber fields must be both present or both absent");
+    expect(() => TripleRatchetPreKeySignalMessage.deserialize(msgWithIdOnly.serialized)).toThrow(
+      "Kyber fields must be both present or both absent",
+    );
   });
 });

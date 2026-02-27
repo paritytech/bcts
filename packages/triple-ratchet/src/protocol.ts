@@ -146,8 +146,7 @@ export class TripleRatchetSignalMessage {
     const protoEncoded = encodeTripleRatchetSignalMessage(proto);
 
     // version_byte = (messageVersion << 4) | CURRENT_VERSION
-    const versionByte =
-      ((messageVersion & 0xf) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
+    const versionByte = ((messageVersion & 0xf) << 4) | CIPHERTEXT_MESSAGE_CURRENT_VERSION;
     const messageContent = new Uint8Array(1 + protoEncoded.length);
     messageContent[0] = versionByte;
     messageContent.set(protoEncoded, 1);

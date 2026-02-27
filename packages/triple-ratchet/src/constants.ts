@@ -71,10 +71,7 @@ export const KYBER1024_PREFIXED_LENGTH = 1569;
  * Reference: libsignal/rust/protocol/src/kem.rs (Ciphertext::deserialize)
  */
 export function stripKemPrefix(data: Uint8Array): Uint8Array {
-  if (
-    data.length === KYBER1024_PREFIXED_LENGTH &&
-    data[0] === KYBER_KEY_TYPE_BYTE
-  ) {
+  if (data.length === KYBER1024_PREFIXED_LENGTH && data[0] === KYBER_KEY_TYPE_BYTE) {
     return data.slice(1);
   }
   if (data.length === KYBER1024_RAW_LENGTH) {
@@ -94,10 +91,7 @@ export function stripKemPrefix(data: Uint8Array): Uint8Array {
  * Reference: libsignal/rust/protocol/src/kem.rs (PublicKey::serialize)
  */
 export function addKemPrefix(data: Uint8Array): Uint8Array {
-  if (
-    data.length === KYBER1024_PREFIXED_LENGTH &&
-    data[0] === KYBER_KEY_TYPE_BYTE
-  ) {
+  if (data.length === KYBER1024_PREFIXED_LENGTH && data[0] === KYBER_KEY_TYPE_BYTE) {
     return data;
   }
   const prefixed = new Uint8Array(1 + data.length);

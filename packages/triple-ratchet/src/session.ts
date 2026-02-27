@@ -58,9 +58,7 @@ export async function processPreKeyBundle(
   const theirIdentityKey = bundle.identityKey;
 
   // 1. Check trust
-  if (
-    !(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "sending"))
-  ) {
+  if (!(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "sending"))) {
     throw new UntrustedIdentityError(remoteAddress.toString());
   }
 
@@ -70,12 +68,7 @@ export async function processPreKeyBundle(
   const serializedSignedPreKey = new Uint8Array(33);
   serializedSignedPreKey[0] = 0x05;
   serializedSignedPreKey.set(bundle.signedPreKey, 1);
-  if (
-    !theirIdentityKey.verifySignature(
-      serializedSignedPreKey,
-      bundle.signedPreKeySignature,
-    )
-  ) {
+  if (!theirIdentityKey.verifySignature(serializedSignedPreKey, bundle.signedPreKeySignature)) {
     throw new SignatureValidationError();
   }
 
@@ -85,12 +78,7 @@ export async function processPreKeyBundle(
   //    key is already prefixed (from Rust) it returns it unchanged; if it is
   //    raw (from TS) it prepends 0x08.
   const serializedKyberPreKey = addKemPrefix(bundle.kyberPreKey);
-  if (
-    !theirIdentityKey.verifySignature(
-      serializedKyberPreKey,
-      bundle.kyberPreKeySignature,
-    )
-  ) {
+  if (!theirIdentityKey.verifySignature(serializedKyberPreKey, bundle.kyberPreKeySignature)) {
     throw new TripleRatchetError(
       "Kyber pre-key signature verification failed",
       TripleRatchetErrorCode.MissingKyberPreKey,
@@ -98,8 +86,7 @@ export async function processPreKeyBundle(
   }
 
   // 4. Load or create session record
-  const sessionRecord =
-    (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
+  const sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
   // 5. Generate ephemeral base key pair
   const ourBaseKeyPair = KeyPair.generate(rng);
@@ -146,9 +133,7 @@ export async function processPreKeyBundle(
   });
 
   // 11. Set registration IDs
-  tripleState.setLocalRegistrationId(
-    await identityStore.getLocalRegistrationId(),
-  );
+  tripleState.setLocalRegistrationId(await identityStore.getLocalRegistrationId());
   tripleState.setRemoteRegistrationId(bundle.registrationId);
 
   // 12. Save identity and session
@@ -157,4 +142,3 @@ export async function processPreKeyBundle(
   sessionRecord.promoteState(tripleState.innerState());
   await sessionStore.storeSession(remoteAddress, sessionRecord);
 }
-

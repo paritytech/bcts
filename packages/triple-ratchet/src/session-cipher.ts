@@ -32,18 +32,12 @@ import {
 
 import type { KyberPreKeyStore } from "./stores.js";
 import { TripleRatchetSessionState } from "./session-state.js";
-import {
-  TripleRatchetSignalMessage,
-  TripleRatchetPreKeySignalMessage,
-} from "./protocol.js";
+import { TripleRatchetSignalMessage, TripleRatchetPreKeySignalMessage } from "./protocol.js";
 import { deriveMessageKeys } from "./message-keys.js";
 import { initializeBobSession } from "./session-init.js";
 import { TripleRatchetError, TripleRatchetErrorCode } from "./error.js";
 import type { PreKeysUsed, BobPQXDHParameters } from "./types.js";
-import {
-  MAX_UNACKNOWLEDGED_SESSION_AGE_SECS,
-  MAX_FORWARD_JUMPS,
-} from "./constants.js";
+import { MAX_UNACKNOWLEDGED_SESSION_AGE_SECS, MAX_FORWARD_JUMPS } from "./constants.js";
 
 // ---------------------------------------------------------------------------
 // Encrypt
@@ -125,17 +119,11 @@ export async function tripleRatchetEncrypt(
   const localIdentityKey = tripleState.localIdentityKey();
   const theirIdentityKey = tripleState.remoteIdentityKey();
   if (theirIdentityKey == null) {
-    throw new InvalidSessionError(
-      `No remote identity key for ${remoteAddress.toString()}`,
-    );
+    throw new InvalidSessionError(`No remote identity key for ${remoteAddress.toString()}`);
   }
 
   // 6. AES-256-CBC encrypt
-  const ciphertext = aes256CbcEncrypt(
-    plaintext,
-    messageKeys.cipherKey,
-    messageKeys.iv,
-  );
+  const ciphertext = aes256CbcEncrypt(plaintext, messageKeys.cipherKey, messageKeys.iv);
 
   // 7. Build message (PreKey or Signal)
   const pendingPreKey = tripleState.pendingPreKey();
@@ -192,13 +180,7 @@ export async function tripleRatchetEncrypt(
   tripleState.setSenderChainKey(chainKey.nextChainKey());
 
   // Trust check (matches Signal's post-encrypt check)
-  if (
-    !(await identityStore.isTrustedIdentity(
-      remoteAddress,
-      theirIdentityKey,
-      "sending",
-    ))
-  ) {
+  if (!(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "sending"))) {
     throw new UntrustedIdentityError(remoteAddress.toString());
   }
 
@@ -260,8 +242,7 @@ export async function tripleRatchetDecrypt(
 
   if (isPreKey) {
     try {
-      const preKeyMsg =
-        TripleRatchetPreKeySignalMessage.deserialize(message);
+      const preKeyMsg = TripleRatchetPreKeySignalMessage.deserialize(message);
       return decryptPreKeyMessage(
         preKeyMsg,
         remoteAddress,
@@ -274,10 +255,7 @@ export async function tripleRatchetDecrypt(
       );
     } catch (err) {
       // If deserialization fails due to missing fields, try as signal message.
-      if (
-        err instanceof TripleRatchetError &&
-        err.code === TripleRatchetErrorCode.InvalidMessage
-      ) {
+      if (err instanceof TripleRatchetError && err.code === TripleRatchetErrorCode.InvalidMessage) {
         // fall through
       } else {
         throw err;
@@ -286,13 +264,7 @@ export async function tripleRatchetDecrypt(
   }
 
   const signalMsg = TripleRatchetSignalMessage.deserialize(message);
-  return decryptSignalMessage(
-    signalMsg,
-    remoteAddress,
-    sessionStore,
-    identityStore,
-    rng,
-  );
+  return decryptSignalMessage(signalMsg, remoteAddress, sessionStore, identityStore, rng);
 }
 
 // ---------------------------------------------------------------------------
@@ -309,9 +281,7 @@ async function decryptPreKeyMessage(
   kyberPreKeyStore: KyberPreKeyStore,
   rng: RandomNumberGenerator,
 ): Promise<Uint8Array> {
-  const sessionRecord =
-    (await sessionStore.loadSession(remoteAddress)) ??
-    SessionRecord.newFresh();
+  const sessionRecord = (await sessionStore.loadSession(remoteAddress)) ?? SessionRecord.newFresh();
 
   const { preKeysUsed, theirIdentityKey } = await processTripleRatchetPreKeyMessage(
     message,
@@ -324,12 +294,7 @@ async function decryptPreKeyMessage(
   );
 
   // Decrypt the embedded signal message against the session
-  const plaintext = decryptWithRecord(
-    sessionRecord,
-    message.message,
-    rng,
-    "prekey",
-  );
+  const plaintext = decryptWithRecord(sessionRecord, message.message, rng, "prekey");
 
   // Save identity AFTER successful decryption (M1 fix)
   await identityStore.saveIdentity(remoteAddress, theirIdentityKey);
@@ -369,24 +334,12 @@ async function decryptSignalMessage(
     throw new SessionNotFoundError(remoteAddress.toString());
   }
 
-  const plaintext = decryptWithRecord(
-    sessionRecord,
-    ciphertext,
-    rng,
-    "signal",
-  );
+  const plaintext = decryptWithRecord(sessionRecord, ciphertext, rng, "signal");
 
   // Trust check (matches Signal's post-decrypt check)
-  const theirIdentityKey =
-    sessionRecord.sessionState()?.remoteIdentityKey();
+  const theirIdentityKey = sessionRecord.sessionState()?.remoteIdentityKey();
   if (theirIdentityKey != null) {
-    if (
-      !(await identityStore.isTrustedIdentity(
-        remoteAddress,
-        theirIdentityKey,
-        "receiving",
-      ))
-    ) {
+    if (!(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "receiving"))) {
       throw new UntrustedIdentityError(remoteAddress.toString());
     }
     await identityStore.saveIdentity(remoteAddress, theirIdentityKey);
@@ -472,19 +425,10 @@ function decryptWithState(
   const counter = ciphertext.counter;
 
   // 1. Get or create chain key (may trigger DH ratchet)
-  const chainKey = getOrCreateChainKeyTriple(
-    state,
-    theirEphemeral,
-    rng,
-  );
+  const chainKey = getOrCreateChainKeyTriple(state, theirEphemeral, rng);
 
   // 2. Advance chain to target counter, caching intermediate seeds
-  const { seed: chainKeySeed } = getOrCreateMessageSeed(
-    state,
-    theirEphemeral,
-    chainKey,
-    counter,
-  );
+  const { seed: chainKeySeed } = getOrCreateMessageSeed(state, theirEphemeral, chainKey, counter);
 
   // 3. PQ ratchet recv -> {pqrKey}
   const pqRatchetMsg = ciphertext.pqRatchet ?? new Uint8Array(0);
@@ -507,9 +451,7 @@ function decryptWithState(
   // 5. Verify MAC
   const theirIdentityKey = state.remoteIdentityKey();
   if (theirIdentityKey == null) {
-    throw new InvalidSessionError(
-      "Cannot decrypt without remote identity key",
-    );
+    throw new InvalidSessionError("Cannot decrypt without remote identity key");
   }
 
   const macValid = ciphertext.verifyMac(
@@ -522,11 +464,7 @@ function decryptWithState(
   }
 
   // 6. Decrypt
-  const plaintext = aes256CbcDecrypt(
-    ciphertext.ciphertext,
-    messageKeys.cipherKey,
-    messageKeys.iv,
-  );
+  const plaintext = aes256CbcDecrypt(ciphertext.ciphertext, messageKeys.cipherKey, messageKeys.iv);
 
   // 7. Clear pending prekey after successful decrypt
   state.clearPendingPreKey();
@@ -558,10 +496,7 @@ function getOrCreateChainKeyTriple(
   const rootKey = state.rootKey();
   const ourEphemeral = state.senderRatchetKeyPair();
 
-  const [receiverRootKey, receiverChainKey] = rootKey.createChain(
-    theirEphemeral,
-    ourEphemeral,
-  );
+  const [receiverRootKey, receiverChainKey] = rootKey.createChain(theirEphemeral, ourEphemeral);
 
   const ourNewEphemeral = KeyPair.generate(rng);
 
@@ -574,8 +509,7 @@ function getOrCreateChainKeyTriple(
   state.addReceiverChain(theirEphemeral, receiverChainKey);
 
   const currentSenderIndex = state.getSenderChainKey().index;
-  const previousIndex =
-    currentSenderIndex > 0 ? currentSenderIndex - 1 : 0;
+  const previousIndex = currentSenderIndex > 0 ? currentSenderIndex - 1 : 0;
   state.setPreviousCounter(previousIndex);
   state.setSenderChain(ourNewEphemeral, senderChainKey);
 
@@ -624,11 +558,7 @@ function getOrCreateMessageSeed(
   // Advance chain, caching intermediate seeds
   let current = chainKey;
   while (current.index < counter) {
-    state.setMessageKeys(
-      theirEphemeral,
-      current.messageKeySeed(),
-      current.index,
-    );
+    state.setMessageKeys(theirEphemeral, current.messageKeySeed(), current.index);
     current = current.nextChainKey();
   }
 
@@ -662,30 +592,17 @@ async function processTripleRatchetPreKeyMessage(
   // 1. Deserialize and trust-check identity key
   const theirIdentityKey = IdentityKey.deserialize(message.identityKey);
 
-  if (
-    !(await identityStore.isTrustedIdentity(
-      remoteAddress,
-      theirIdentityKey,
-      "receiving",
-    ))
-  ) {
+  if (!(await identityStore.isTrustedIdentity(remoteAddress, theirIdentityKey, "receiving"))) {
     throw new UntrustedIdentityError(remoteAddress.toString());
   }
 
   // 2. Check for existing matching session (by version + base key)
-  if (
-    sessionRecord.promoteMatchingSession(
-      message.messageVersion,
-      message.baseKey,
-    )
-  ) {
+  if (sessionRecord.promoteMatchingSession(message.messageVersion, message.baseKey)) {
     return { preKeysUsed: undefined, theirIdentityKey };
   }
 
   // 3. Load signed prekey
-  const ourSignedPreKeyRecord = await signedPreKeyStore.loadSignedPreKey(
-    message.signedPreKeyId,
-  );
+  const ourSignedPreKeyRecord = await signedPreKeyStore.loadSignedPreKey(message.signedPreKeyId);
 
   // 4. Load optional one-time EC prekey
   let ourOneTimePreKeyPair: KeyPair | undefined;
@@ -733,9 +650,7 @@ async function processTripleRatchetPreKeyMessage(
   const tripleState = initializeBobSession(bobParams);
 
   // 8. Set registration IDs
-  tripleState.setLocalRegistrationId(
-    await identityStore.getLocalRegistrationId(),
-  );
+  tripleState.setLocalRegistrationId(await identityStore.getLocalRegistrationId());
   tripleState.setRemoteRegistrationId(message.registrationId);
 
   // 9. Promote new session
@@ -763,16 +678,13 @@ async function processTripleRatchetPreKeyMessage(
  * If it is a plain SessionState, wraps it with an empty (V0) PQ state
  * for backward compatibility with classical X3DH sessions.
  */
-function asTripleRatchetState(
-  state: unknown,
-): TripleRatchetSessionState {
+function asTripleRatchetState(state: unknown): TripleRatchetSessionState {
   // Duck-type check
   if (
     state != null &&
     typeof state === "object" &&
     "pqRatchetSend" in state &&
-    typeof (state as TripleRatchetSessionState).pqRatchetSend ===
-      "function"
+    typeof (state as TripleRatchetSessionState).pqRatchetSend === "function"
   ) {
     return state as TripleRatchetSessionState;
   }

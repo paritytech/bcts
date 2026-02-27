@@ -121,12 +121,7 @@ export class KyberPreKeyRecord {
   readonly signature: Uint8Array;
   readonly timestamp: number;
 
-  constructor(
-    id: number,
-    keyPair: KyberKeyPair,
-    signature: Uint8Array,
-    timestamp: number,
-  ) {
+  constructor(id: number, keyPair: KyberKeyPair, signature: Uint8Array, timestamp: number) {
     this.id = id;
     this.keyPair = keyPair;
     this.signature = signature;
@@ -240,12 +235,7 @@ export class KyberPreKeyRecord {
       secretKey = secretKey.slice(1);
     }
 
-    return new KyberPreKeyRecord(
-      id,
-      { publicKey, secretKey },
-      signature,
-      timestamp,
-    );
+    return new KyberPreKeyRecord(id, { publicKey, secretKey }, signature, timestamp);
   }
 }
 
@@ -331,19 +321,12 @@ export class InMemoryKyberPreKeyStore implements KyberPreKeyStore {
     return Promise.resolve(record);
   }
 
-  storeKyberPreKey(
-    id: number,
-    record: KyberPreKeyRecord,
-  ): Promise<void> {
+  storeKyberPreKey(id: number, record: KyberPreKeyRecord): Promise<void> {
     this.keys.set(id, record);
     return Promise.resolve();
   }
 
-  markKyberPreKeyUsed(
-    id: number,
-    _signedEcPreKeyId: number,
-    _baseKey: Uint8Array,
-  ): Promise<void> {
+  markKyberPreKeyUsed(id: number, _signedEcPreKeyId: number, _baseKey: Uint8Array): Promise<void> {
     // In production this would mark for deletion; in-memory just deletes.
     this.keys.delete(id);
     return Promise.resolve();

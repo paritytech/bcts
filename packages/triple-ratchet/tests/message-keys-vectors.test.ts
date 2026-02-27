@@ -18,13 +18,7 @@
 import { describe, it, expect } from "vitest";
 import { hmacSha256 } from "@bcts/double-ratchet";
 import { deriveMessageKeys } from "../src/message-keys.js";
-import {
-  RUST_CHAIN_KEY,
-  RUST_MSG_KEY_SEED,
-  V2a,
-  V2b,
-  V2c,
-} from "./fixtures/rust-vectors.js";
+import { RUST_CHAIN_KEY, RUST_MSG_KEY_SEED, V2a, V2b, V2c } from "./fixtures/rust-vectors.js";
 
 describe("message key derivation — Rust cross-validated vectors", () => {
   // -------------------------------------------------------------------------
@@ -40,9 +34,9 @@ describe("message key derivation — Rust cross-validated vectors", () => {
       const nextChainKey = hmacSha256(RUST_CHAIN_KEY, new Uint8Array([0x02]));
       // From Rust test_chain_key_derivation():
       const expected = Uint8Array.from([
-        0x28, 0xe8, 0xf8, 0xfe, 0xe5, 0x4b, 0x80, 0x1e, 0xef, 0x7c, 0x5c,
-        0xfb, 0x2f, 0x17, 0xf3, 0x2c, 0x7b, 0x33, 0x44, 0x85, 0xbb, 0xb7,
-        0x0f, 0xac, 0x6e, 0xc1, 0x03, 0x42, 0xa2, 0x46, 0xd1, 0x5d,
+        0x28, 0xe8, 0xf8, 0xfe, 0xe5, 0x4b, 0x80, 0x1e, 0xef, 0x7c, 0x5c, 0xfb, 0x2f, 0x17, 0xf3,
+        0x2c, 0x7b, 0x33, 0x44, 0x85, 0xbb, 0xb7, 0x0f, 0xac, 0x6e, 0xc1, 0x03, 0x42, 0xa2, 0x46,
+        0xd1, 0x5d,
       ]);
       expect(nextChainKey).toEqual(expected);
     });

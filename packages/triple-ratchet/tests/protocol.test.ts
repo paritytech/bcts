@@ -1,10 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { IdentityKeyPair } from "@bcts/double-ratchet";
 import type { RandomNumberGenerator } from "@bcts/rand";
-import {
-  TripleRatchetSignalMessage,
-  TripleRatchetPreKeySignalMessage,
-} from "../src/protocol.js";
+import { TripleRatchetSignalMessage, TripleRatchetPreKeySignalMessage } from "../src/protocol.js";
 import {
   encodeTripleRatchetSignalMessage,
   decodeTripleRatchetSignalMessage,
@@ -508,8 +505,6 @@ describe("TripleRatchetPreKeySignalMessage", () => {
     expect(() => TripleRatchetPreKeySignalMessage.deserialize(new Uint8Array(0))).toThrow(
       TripleRatchetError,
     );
-    expect(() => TripleRatchetPreKeySignalMessage.deserialize(new Uint8Array(0))).toThrow(
-      /empty/i,
-    );
+    expect(() => TripleRatchetPreKeySignalMessage.deserialize(new Uint8Array(0))).toThrow(/empty/i);
   });
 });

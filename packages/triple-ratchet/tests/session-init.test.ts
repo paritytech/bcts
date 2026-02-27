@@ -91,7 +91,7 @@ describe("spqrChainParams", () => {
   it("should return maxJump=0xFFFFFFFF (4294967295) and maxOooKeys=2000 for a self-session", () => {
     const params = spqrChainParams(true);
 
-    expect(params.maxJump).toBe(0xFFFFFFFF);
+    expect(params.maxJump).toBe(0xffffffff);
     expect(params.maxJump).toBe(4_294_967_295);
     expect(params.maxOooKeys).toBe(2_000);
   });

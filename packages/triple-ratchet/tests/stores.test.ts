@@ -217,15 +217,11 @@ describe("KyberPreKeyRecord", () => {
   // -----------------------------------------------------------------------
   describe("deserialize with invalid data", () => {
     it("should reject an empty buffer", () => {
-      expect(() => KyberPreKeyRecord.deserialize(new Uint8Array(0))).toThrow(
-        "buffer too short",
-      );
+      expect(() => KyberPreKeyRecord.deserialize(new Uint8Array(0))).toThrow("buffer too short");
     });
 
     it("should reject a single-byte buffer", () => {
-      expect(() => KyberPreKeyRecord.deserialize(new Uint8Array(1))).toThrow(
-        "buffer too short",
-      );
+      expect(() => KyberPreKeyRecord.deserialize(new Uint8Array(1))).toThrow("buffer too short");
     });
 
     it("should reject a truncated protobuf (incomplete varint)", () => {
@@ -319,15 +315,11 @@ describe("InMemoryKyberPreKeyStore", () => {
   // -----------------------------------------------------------------------
   describe("load non-existent key", () => {
     it("should reject with an error when the key does not exist", async () => {
-      await expect(store.loadKyberPreKey(999)).rejects.toThrow(
-        "Kyber pre-key not found: 999",
-      );
+      await expect(store.loadKyberPreKey(999)).rejects.toThrow("Kyber pre-key not found: 999");
     });
 
     it("should reject with an error for id 0 when store is empty", async () => {
-      await expect(store.loadKyberPreKey(0)).rejects.toThrow(
-        "Kyber pre-key not found: 0",
-      );
+      await expect(store.loadKyberPreKey(0)).rejects.toThrow("Kyber pre-key not found: 0");
     });
   });
 
@@ -345,15 +337,11 @@ describe("InMemoryKyberPreKeyStore", () => {
       await store.markKyberPreKeyUsed(5, 1, new Uint8Array(32));
 
       // Key is gone after marking
-      await expect(store.loadKyberPreKey(5)).rejects.toThrow(
-        "Kyber pre-key not found: 5",
-      );
+      await expect(store.loadKyberPreKey(5)).rejects.toThrow("Kyber pre-key not found: 5");
     });
 
     it("should not throw when marking a non-existent key as used", async () => {
-      await expect(
-        store.markKyberPreKeyUsed(123, 1, new Uint8Array(32)),
-      ).resolves.toBeUndefined();
+      await expect(store.markKyberPreKeyUsed(123, 1, new Uint8Array(32))).resolves.toBeUndefined();
     });
 
     it("should only remove the targeted key, leaving others intact", async () => {
@@ -368,9 +356,7 @@ describe("InMemoryKyberPreKeyStore", () => {
       await store.markKyberPreKeyUsed(2, 1, new Uint8Array(32));
 
       await expect(store.loadKyberPreKey(1)).resolves.toBe(r1);
-      await expect(store.loadKyberPreKey(2)).rejects.toThrow(
-        "Kyber pre-key not found: 2",
-      );
+      await expect(store.loadKyberPreKey(2)).rejects.toThrow("Kyber pre-key not found: 2");
       await expect(store.loadKyberPreKey(3)).resolves.toBe(r3);
     });
   });

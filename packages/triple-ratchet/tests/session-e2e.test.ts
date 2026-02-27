@@ -78,12 +78,7 @@ function createKyberPreKey(
   const { publicKey, secretKey } = ml_kem1024.keygen();
   const serializedPk = addKemPrefix(publicKey);
   const signature = xeddsaSign(identityKeyPair.privateKey, serializedPk, rng.randomData(64));
-  return new KyberPreKeyRecord(
-    id,
-    { publicKey, secretKey },
-    signature,
-    Date.now(),
-  );
+  return new KyberPreKeyRecord(id, { publicKey, secretKey }, signature, Date.now());
 }
 
 interface PartySetup {
@@ -160,13 +155,7 @@ describe("S1: Alice↔Bob PQXDH handshake + message exchange", () => {
     const { bundle } = await createBobBundle(bob);
 
     // Alice processes Bob's bundle → creates session
-    await processPreKeyBundle(
-      bundle,
-      bob.address,
-      alice.store,
-      alice.store,
-      alice.rng,
-    );
+    await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
     // Alice encrypts first message (PreKeySignalMessage)
     const plaintext1 = new TextEncoder().encode("Hello Bob!");
@@ -223,13 +212,7 @@ describe("S1: Alice↔Bob PQXDH handshake + message exchange", () => {
   it("should consume the one-time Kyber pre-key after first message", async () => {
     const { bundle, kyberPreKeyId } = await createBobBundle(bob);
 
-    await processPreKeyBundle(
-      bundle,
-      bob.address,
-      alice.store,
-      alice.store,
-      alice.rng,
-    );
+    await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
     const encrypted = await tripleRatchetEncrypt(
       new TextEncoder().encode("test"),
@@ -273,13 +256,7 @@ describe("S2: multi-message ratchet progression", () => {
   it("should handle 10 messages in alternating directions", async () => {
     const { bundle } = await createBobBundle(bob);
 
-    await processPreKeyBundle(
-      bundle,
-      bob.address,
-      alice.store,
-      alice.store,
-      alice.rng,
-    );
+    await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
     for (let i = 0; i < 10; i++) {
       const isAliceTurn = i % 2 === 0;
@@ -317,13 +294,7 @@ describe("S2: multi-message ratchet progression", () => {
   it("should handle multiple consecutive messages in one direction", async () => {
     const { bundle } = await createBobBundle(bob);
 
-    await processPreKeyBundle(
-      bundle,
-      bob.address,
-      alice.store,
-      alice.store,
-      alice.rng,
-    );
+    await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
     // Alice sends 5 messages before Bob responds
     const encrypted: Uint8Array[] = [];
@@ -371,13 +342,7 @@ describe("S3: out-of-order message delivery", () => {
   it("should decrypt messages delivered out of order (same chain)", async () => {
     const { bundle } = await createBobBundle(bob);
 
-    await processPreKeyBundle(
-      bundle,
-      bob.address,
-      alice.store,
-      alice.store,
-      alice.rng,
-    );
+    await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
     // Alice sends first message (prekey), Bob processes it to establish session
     const ct0 = await tripleRatchetEncrypt(

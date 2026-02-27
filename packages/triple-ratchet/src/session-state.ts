@@ -220,10 +220,7 @@ export class TripleRatchetSessionState {
 
   /** Deep-clone the triple ratchet state for speculative decryption. */
   clone(): TripleRatchetSessionState {
-    return new TripleRatchetSessionState(
-      this.inner.clone(),
-      Uint8Array.from(this._pqRatchetState),
-    );
+    return new TripleRatchetSessionState(this.inner.clone(), Uint8Array.from(this._pqRatchetState));
   }
 }
 

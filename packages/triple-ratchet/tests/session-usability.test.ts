@@ -11,13 +11,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  IdentityKeyPair,
-  KeyPair,
-  SessionState,
-  RootKey,
-  ChainKey,
-} from "@bcts/double-ratchet";
+import { IdentityKeyPair, KeyPair, SessionState, RootKey, ChainKey } from "@bcts/double-ratchet";
 import * as spqr from "@bcts/spqr";
 
 import {

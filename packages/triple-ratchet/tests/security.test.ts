@@ -32,10 +32,7 @@ import {
   KyberPreKeyRecord,
   InMemoryKyberPreKeyStore,
 } from "../src/index.js";
-import {
-  TripleRatchetSignalMessage,
-  TripleRatchetPreKeySignalMessage,
-} from "../src/protocol.js";
+import { TripleRatchetSignalMessage, TripleRatchetPreKeySignalMessage } from "../src/protocol.js";
 import type { PQXDHPreKeyBundle } from "../src/stores.js";
 import { addKemPrefix } from "../src/constants.js";
 import { V3, toHex } from "./fixtures/rust-vectors.js";
@@ -144,13 +141,7 @@ async function establishSession(): Promise<{ alice: PartySetup; bob: PartySetup 
 
   const { bundle } = await createBobBundle(bob);
 
-  await processPreKeyBundle(
-    bundle,
-    bob.address,
-    alice.store,
-    alice.store,
-    alice.rng,
-  );
+  await processPreKeyBundle(bundle, bob.address, alice.store, alice.store, alice.rng);
 
   // Alice sends first message (PreKeySignalMessage), Bob processes it
   const ct0 = await tripleRatchetEncrypt(

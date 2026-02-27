@@ -55,10 +55,7 @@ function decodeVarint(data: Uint8Array, offset: number): [number, number] {
       throw new TripleRatchetError("Varint too long", TripleRatchetErrorCode.InvalidMessage);
     }
   }
-  throw new TripleRatchetError(
-    "Unexpected end of varint",
-    TripleRatchetErrorCode.InvalidMessage,
-  );
+  throw new TripleRatchetError("Unexpected end of varint", TripleRatchetErrorCode.InvalidMessage);
 }
 
 // ---------------------------------------------------------------------------
@@ -112,9 +109,7 @@ export interface TripleRatchetSignalMessageProto {
   pqRatchet?: Uint8Array;
 }
 
-export function encodeTripleRatchetSignalMessage(
-  msg: TripleRatchetSignalMessageProto,
-): Uint8Array {
+export function encodeTripleRatchetSignalMessage(msg: TripleRatchetSignalMessageProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (msg.ratchetKey != null) parts.push(encodeBytes(1, msg.ratchetKey));
   if (msg.counter !== undefined) parts.push(encodeUint32(2, msg.counter));

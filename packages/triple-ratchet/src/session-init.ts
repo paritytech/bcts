@@ -81,7 +81,7 @@ export function deriveKeys(secretInput: Uint8Array): PQXDHDerivedKeys {
  */
 export function spqrChainParams(selfSession: boolean): ChainParams {
   return {
-    maxJump: selfSession ? 0xFFFFFFFF : MAX_FORWARD_JUMPS,
+    maxJump: selfSession ? 0xffffffff : MAX_FORWARD_JUMPS,
     maxOooKeys: MAX_MESSAGE_KEYS,
   };
 }
@@ -143,9 +143,7 @@ export function initializeAliceSession(
   const secrets: Uint8Array[] = [DISCONTINUITY_BYTES];
 
   // DH1: DH(ourIdentity, theirSignedPreKey)
-  secrets.push(
-    x25519RawAgreement(params.ourIdentityKeyPair.privateKey, params.theirSignedPreKey),
-  );
+  secrets.push(x25519RawAgreement(params.ourIdentityKeyPair.privateKey, params.theirSignedPreKey));
 
   // DH2: DH(ourBase, theirIdentity)
   secrets.push(
@@ -153,15 +151,11 @@ export function initializeAliceSession(
   );
 
   // DH3: DH(ourBase, theirSignedPreKey)
-  secrets.push(
-    x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirSignedPreKey),
-  );
+  secrets.push(x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirSignedPreKey));
 
   // DH4: DH(ourBase, theirOneTimePreKey) — optional
   if (params.theirOneTimePreKey != null) {
-    secrets.push(
-      x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirOneTimePreKey),
-    );
+    secrets.push(x25519RawAgreement(params.ourBaseKeyPair.privateKey, params.theirOneTimePreKey));
   }
 
   // KEM: ML-KEM shared secret (already computed by caller)
@@ -236,9 +230,7 @@ export function initializeAliceSession(
  * @param params - Bob's PQXDH parameters
  * @returns A fully initialized TripleRatchetSessionState
  */
-export function initializeBobSession(
-  params: BobPQXDHParameters,
-): TripleRatchetSessionState {
+export function initializeBobSession(params: BobPQXDHParameters): TripleRatchetSessionState {
   // W1: Validate base key canonicity (matches libsignal)
   if (!isCanonicalPublicKey(params.theirBaseKey)) {
     throw new InvalidMessageError("Non-canonical base key");
@@ -253,20 +245,14 @@ export function initializeBobSession(
   );
 
   // DH2: DH(ourIdentity, theirBase)
-  secrets.push(
-    x25519RawAgreement(params.ourIdentityKeyPair.privateKey, params.theirBaseKey),
-  );
+  secrets.push(x25519RawAgreement(params.ourIdentityKeyPair.privateKey, params.theirBaseKey));
 
   // DH3: DH(ourSignedPreKey, theirBase)
-  secrets.push(
-    x25519RawAgreement(params.ourSignedPreKeyPair.privateKey, params.theirBaseKey),
-  );
+  secrets.push(x25519RawAgreement(params.ourSignedPreKeyPair.privateKey, params.theirBaseKey));
 
   // DH4: DH(ourOneTimePreKey, theirBase) — optional
   if (params.ourOneTimePreKeyPair != null) {
-    secrets.push(
-      x25519RawAgreement(params.ourOneTimePreKeyPair.privateKey, params.theirBaseKey),
-    );
+    secrets.push(x25519RawAgreement(params.ourOneTimePreKeyPair.privateKey, params.theirBaseKey));
   }
 
   // KEM: Decapsulate ML-KEM-1024 ciphertext to recover shared secret.
