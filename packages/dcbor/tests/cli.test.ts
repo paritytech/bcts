@@ -47,7 +47,9 @@ function runDcbor(args: string[]): string {
     return result.trim();
   } catch (error) {
     const execError = error as ExecError;
-    throw new Error(`dcbor command failed: ${execError.stderr || execError.message}`, { cause: error });
+    throw new Error(`dcbor command failed: ${execError.stderr || execError.message}`, {
+      cause: error,
+    });
   }
 }
 
@@ -64,7 +66,9 @@ function runDcborWithInput(args: string[], input: string): string {
     return result.trim();
   } catch (error) {
     const execError = error as ExecError;
-    throw new Error(`dcbor command failed: ${execError.stderr || execError.message}`, { cause: error });
+    throw new Error(`dcbor command failed: ${execError.stderr || execError.message}`, {
+      cause: error,
+    });
   }
 }
 

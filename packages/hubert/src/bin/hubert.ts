@@ -94,7 +94,9 @@ async function checkMainline(): Promise<void> {
     await dht.destroy();
     console.log("✓ Mainline DHT is available");
   } catch (e) {
-    throw new Error(`✗ Mainline DHT is not available: ${e instanceof Error ? e.message : e}`, { cause: e });
+    throw new Error(`✗ Mainline DHT is not available: ${e instanceof Error ? e.message : e}`, {
+      cause: e,
+    });
   }
 }
 
@@ -123,7 +125,9 @@ async function checkIpfs(port: number): Promise<void> {
     }
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
-      throw new Error(`✗ IPFS is not available at 127.0.0.1:${port}: connection timeout`, { cause: e });
+      throw new Error(`✗ IPFS is not available at 127.0.0.1:${port}: connection timeout`, {
+        cause: e,
+      });
     }
     throw new Error(
       `✗ IPFS is not available at 127.0.0.1:${port}: ${e instanceof Error ? e.message : e}`,
@@ -161,7 +165,9 @@ async function checkServer(host: string, port: number): Promise<void> {
     }
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") {
-      throw new Error(`✗ Server is not available at ${host}:${port}: connection timeout`, { cause: e });
+      throw new Error(`✗ Server is not available at ${host}:${port}: connection timeout`, {
+        cause: e,
+      });
     }
     throw new Error(
       `✗ Server is not available at ${host}:${port}: ${e instanceof Error ? e.message : e}`,

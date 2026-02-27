@@ -89,7 +89,9 @@ function parseInfo(raw: string, tagOverride?: number): Cbor {
     } catch (urErr) {
       const hexMsg = hexErr instanceof Error ? hexErr.message : String(hexErr);
       const urMsg = urErr instanceof Error ? urErr.message : String(urErr);
-      throw new Error(`failed to parse --info payload as hex (${hexMsg}) or UR (${urMsg})`, { cause: urErr });
+      throw new Error(`failed to parse --info payload as hex (${hexMsg}) or UR (${urMsg})`, {
+        cause: urErr,
+      });
     }
   }
 }

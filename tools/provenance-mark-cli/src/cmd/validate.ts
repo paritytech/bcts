@@ -172,7 +172,9 @@ export class ValidateCommand implements Exec {
         return ProvenanceMark.fromUntaggedCbor(cborValue);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        throw new Error(`Failed to decode provenance mark from '${urString}': ${message}`, { cause: e });
+        throw new Error(`Failed to decode provenance mark from '${urString}': ${message}`, {
+          cause: e,
+        });
       }
     }
 
