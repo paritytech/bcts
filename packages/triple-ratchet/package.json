@@ -1,6 +1,6 @@
 {
   "name": "@bcts/triple-ratchet",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.20",
   "type": "module",
   "description": "Triple Ratchet protocol for TypeScript",
   "license": "AGPL-3.0-only",
