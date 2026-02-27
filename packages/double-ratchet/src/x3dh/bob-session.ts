@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * Bob's X3DH session initialization (classic v3, no post-quantum).
  *

@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * Protobuf encoding/decoding for triple-ratchet wire messages.
  *

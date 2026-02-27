@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * Alice processes Bob's prekey bundle to establish a session (classic X3DH v3).
  *

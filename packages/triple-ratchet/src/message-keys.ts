@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 import { hkdfSha256, MessageKeys } from "@bcts/double-ratchet";
 
 const INFO = new TextEncoder().encode("WhisperMessageKeys");

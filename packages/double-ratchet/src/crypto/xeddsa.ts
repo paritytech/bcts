@@ -1,3 +1,6 @@
+// Copyright © 2025 Signal Messenger, LLC
+// Copyright © 2026 Parity Technologies
+
 /**
  * XEdDSA: Sign with X25519 keys using Edwards-curve operations.
  *
