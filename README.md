@@ -69,6 +69,14 @@ bun playground
 | [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 Docs](https://docs.bcts.dev/api/uniform-resources) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-ur-rust) |
 | [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 Docs](https://docs.bcts.dev/api/xid) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-xid-rust) |
 
+## 📡 Signal Protocol
+
+| Package | Description |
+|---------|-------------|
+| [**double-ratchet**](packages/double-ratchet) | Signal Protocol Double Ratchet implementation — X3DH key agreement, session management, group messaging (Sender Keys), sealed sender, and incremental MAC. [📖 Docs](https://docs.bcts.dev/api/double-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
+| [**spqr**](packages/spqr) | Signal's Sparse Post-Quantum Ratchet (SPQR) — ML-KEM based post-quantum key encapsulation with erasure coding for ratchet upgrades. [📖 Docs](https://docs.bcts.dev/api/spqr) \| [🦀 Rust](https://github.com/signalapp/SparsePostQuantumRatchet) |
+| [**triple-ratchet**](packages/triple-ratchet) | Triple Ratchet protocol — extends the Double Ratchet with SPQR post-quantum ratchet steps for quantum-resistant end-to-end encryption. [📖 Docs](https://docs.bcts.dev/api/triple-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
+
 ## 💻 CLI Tools
 
 | CLI                                                  | Description |
