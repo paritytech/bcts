@@ -44,5 +44,55 @@ export const KDF_LABEL_MESSAGE_KEYS = "WhisperMessageKeys";
 /** 32 bytes of 0xFF used as discontinuity bytes in X3DH/PQXDH secret input. */
 export const DISCONTINUITY_BYTES = new Uint8Array(32).fill(0xff);
 
-/** Type byte prefix for Kyber public keys in signature verification. */
+/** Type byte prefix for Kyber public keys (matches Rust kem::KeyType::Kyber1024). */
 export const KYBER_KEY_TYPE_BYTE = 0x08;
+
+/** Raw ML-KEM-1024 public key / ciphertext length (bytes). */
+export const KYBER1024_RAW_LENGTH = 1568;
+
+/** Prefixed ML-KEM-1024 public key / ciphertext length (1 type byte + raw bytes). */
+export const KYBER1024_PREFIXED_LENGTH = 1569;
+
+/**
+ * Strip the 0x08 KEM type prefix if present, returning raw bytes
+ * suitable for `@noble/post-quantum` ML-KEM operations.
+ *
+ * Handles both raw (1568-byte) and prefixed (1569-byte, 0x08 prefix) inputs.
+ *
+ * Reference: libsignal/rust/protocol/src/kem.rs (Ciphertext::deserialize)
+ */
+export function stripKemPrefix(data: Uint8Array): Uint8Array {
+  if (
+    data.length === KYBER1024_PREFIXED_LENGTH &&
+    data[0] === KYBER_KEY_TYPE_BYTE
+  ) {
+    return data.slice(1);
+  }
+  if (data.length === KYBER1024_RAW_LENGTH) {
+    return data;
+  }
+  throw new Error(
+    `Invalid KEM data length: ${data.length}, expected ${KYBER1024_RAW_LENGTH} or ${KYBER1024_PREFIXED_LENGTH}`,
+  );
+}
+
+/**
+ * Add the 0x08 KEM type prefix for wire serialization, matching
+ * Rust libsignal's `kem::PublicKey::serialize()` / `kem::SerializedCiphertext`.
+ *
+ * If the data is already prefixed, returns it as-is.
+ *
+ * Reference: libsignal/rust/protocol/src/kem.rs (PublicKey::serialize)
+ */
+export function addKemPrefix(data: Uint8Array): Uint8Array {
+  if (
+    data.length === KYBER1024_PREFIXED_LENGTH &&
+    data[0] === KYBER_KEY_TYPE_BYTE
+  ) {
+    return data;
+  }
+  const prefixed = new Uint8Array(1 + data.length);
+  prefixed[0] = KYBER_KEY_TYPE_BYTE;
+  prefixed.set(data, 1);
+  return prefixed;
+}

@@ -75,4 +75,9 @@ export {
   KDF_LABEL_PQXDH,
   KDF_LABEL_MESSAGE_KEYS,
   DISCONTINUITY_BYTES,
+  KYBER_KEY_TYPE_BYTE,
+  KYBER1024_RAW_LENGTH,
+  KYBER1024_PREFIXED_LENGTH,
+  stripKemPrefix,
+  addKemPrefix,
 } from "./constants.js";

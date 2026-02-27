@@ -33,7 +33,7 @@ import { ml_kem1024 } from "@noble/post-quantum/ml-kem.js";
 import type { PQXDHPreKeyBundle } from "./stores.js";
 import { initializeAliceSession } from "./session-init.js";
 import { TripleRatchetError, TripleRatchetErrorCode } from "./error.js";
-import { KYBER_KEY_TYPE_BYTE } from "./constants.js";
+import { stripKemPrefix, addKemPrefix } from "./constants.js";
 import type { AlicePQXDHParameters } from "./types.js";
 
 /**
@@ -80,11 +80,11 @@ export async function processPreKeyBundle(
   }
 
   // 3. Verify kyber prekey signature
-  //    The kyber public key is serialized with 0x08 type prefix for
-  //    signature verification, matching libsignal's behavior.
-  const serializedKyberPreKey = new Uint8Array(1 + bundle.kyberPreKey.length);
-  serializedKyberPreKey[0] = KYBER_KEY_TYPE_BYTE;
-  serializedKyberPreKey.set(bundle.kyberPreKey, 1);
+  //    Rust libsignal signs bundle.kyber_pre_key_public().serialize() which
+  //    includes the 0x08 type prefix. addKemPrefix() is idempotent: if the
+  //    key is already prefixed (from Rust) it returns it unchanged; if it is
+  //    raw (from TS) it prepends 0x08.
+  const serializedKyberPreKey = addKemPrefix(bundle.kyberPreKey);
   if (
     !theirIdentityKey.verifySignature(
       serializedKyberPreKey,
@@ -108,9 +108,13 @@ export async function processPreKeyBundle(
   const ourIdentityKeyPair = await identityStore.getIdentityKeyPair();
 
   // 7. ML-KEM encapsulate: (sharedSecret, ciphertext)
-  const encapsResult = ml_kem1024.encapsulate(bundle.kyberPreKey);
+  //    @noble/post-quantum expects raw 1568-byte key; strip 0x08 prefix if present.
+  //    The resulting ciphertext is prefixed with 0x08 for wire format, matching
+  //    Rust's kem::SerializedCiphertext which always includes the type byte.
+  const rawKyberPreKey = stripKemPrefix(bundle.kyberPreKey);
+  const encapsResult = ml_kem1024.encapsulate(rawKyberPreKey);
   const kyberSharedSecret = encapsResult.sharedSecret;
-  const kyberCiphertext = encapsResult.cipherText;
+  const kyberCiphertext = addKemPrefix(encapsResult.cipherText);
 
   // 8. Initialize Alice session via PQXDH
   const aliceParams: AlicePQXDHParameters = {

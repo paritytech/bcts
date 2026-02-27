@@ -193,6 +193,12 @@ export interface KyberPreKeyStore {
  *
  * Extends the classical X3DH bundle with an ML-KEM (Kyber) pre-key
  * and its identity-key signature.
+ *
+ * **KEM key format convention:**
+ * `kyberPreKey` may be provided in either raw form (1568 bytes) or
+ * with the Rust libsignal 0x08 type prefix (1569 bytes). The protocol
+ * layer handles prefix normalization transparently via `stripKemPrefix()`
+ * and `addKemPrefix()` — callers do not need to worry about the format.
  */
 export interface PQXDHPreKeyBundle {
   readonly registrationId: number;
@@ -204,6 +210,7 @@ export interface PQXDHPreKeyBundle {
   readonly signedPreKeySignature: Uint8Array;
   readonly identityKey: IdentityKey;
   readonly kyberPreKeyId: number;
+  /** ML-KEM-1024 public key — accepts raw (1568 bytes) or 0x08-prefixed (1569 bytes). */
   readonly kyberPreKey: Uint8Array;
   readonly kyberPreKeySignature: Uint8Array;
 }

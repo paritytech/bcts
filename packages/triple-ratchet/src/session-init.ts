@@ -15,7 +15,7 @@
  *   DH2 = DH(base_a, identity_b)
  *   DH3 = DH(base_a, signed_prekey_b)
  *   DH4 = DH(base_a, one_time_prekey_b) [optional]
- *   KEM_SS = ML-KEM-768 shared secret
+ *   KEM_SS = ML-KEM-1024 shared secret
  *
  * Reference: libsignal/rust/protocol/src/ratchet.rs
  */
@@ -41,6 +41,7 @@ import {
   KDF_LABEL_PQXDH,
   DISCONTINUITY_BYTES,
   CIPHERTEXT_MESSAGE_CURRENT_VERSION,
+  stripKemPrefix,
 } from "./constants.js";
 import type { AlicePQXDHParameters, BobPQXDHParameters, PQXDHDerivedKeys } from "./types.js";
 import { TripleRatchetSessionState } from "./session-state.js";
@@ -268,9 +269,13 @@ export function initializeBobSession(
     );
   }
 
-  // KEM: Decapsulate ML-KEM-768 ciphertext to recover shared secret
+  // KEM: Decapsulate ML-KEM-1024 ciphertext to recover shared secret.
+  //   Wire ciphertext arrives with 0x08 type prefix (from Rust kem::SerializedCiphertext
+  //   or from our own addKemPrefix in session.ts). Strip it before calling
+  //   @noble/post-quantum which expects raw 1568-byte ciphertext.
+  const rawKyberCiphertext = stripKemPrefix(params.theirKyberCiphertext);
   const kyberSharedSecret = ml_kem1024.decapsulate(
-    params.theirKyberCiphertext,
+    rawKyberCiphertext,
     params.ourKyberKeyPair.secretKey,
   );
   secrets.push(kyberSharedSecret);
