@@ -182,3 +182,24 @@ github-actions:
           - 'tools/lifehash-cli/**'
           - '!tools/lifehash-cli/package.json'
           - '!tools/lifehash-cli/CHANGELOG.md'
+
+"double-ratchet":
+  - changed-files:
+      - all-globs-to-any-file:
+          - 'packages/double-ratchet/**'
+          - '!packages/double-ratchet/package.json'
+          - '!packages/double-ratchet/CHANGELOG.md'
+
+"triple-ratchet":
+  - changed-files:
+      - all-globs-to-any-file:
+          - 'packages/triple-ratchet/**'
+          - '!packages/triple-ratchet/package.json'
+          - '!packages/triple-ratchet/CHANGELOG.md'
+
+"spqr":
+  - changed-files:
+      - all-globs-to-any-file:
+          - 'packages/spqr/**'
+          - '!packages/spqr/package.json'
+          - '!packages/spqr/CHANGELOG.md'
