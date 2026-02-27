@@ -78,6 +78,7 @@ export {
   KYBER_KEY_TYPE_BYTE,
   KYBER1024_RAW_LENGTH,
   KYBER1024_PREFIXED_LENGTH,
+  MAX_UNACKNOWLEDGED_SESSION_AGE_SECS,
   stripKemPrefix,
   addKemPrefix,
 } from "./constants.js";

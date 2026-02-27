@@ -255,8 +255,8 @@ export const TripleRatchetSessionUsability = {
 
 export type TripleRatchetSessionUsabilityFlags = number;
 
-/** Maximum pending prekey age before a session is considered stale. */
-const MAX_PENDING_PREKEY_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Maximum pending prekey age before a session is considered stale (seconds, matching Rust). */
+const MAX_PENDING_PREKEY_AGE_SECS = 30 * 24 * 60 * 60;
 
 /**
  * Check whether a triple-ratchet session meets the given usability
@@ -277,7 +277,7 @@ export function hasUsableTripleRatchetSession(
   if ((requirements & TripleRatchetSessionUsability.NotStale) !== 0) {
     const pending = state.pendingPreKey();
     if (pending != null) {
-      if (now - pending.timestamp > MAX_PENDING_PREKEY_AGE_MS) return false;
+      if (Math.floor(now / 1000) - pending.timestamp > MAX_PENDING_PREKEY_AGE_SECS) return false;
     }
   }
 

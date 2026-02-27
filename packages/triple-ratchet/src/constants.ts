@@ -44,6 +44,15 @@ export const KDF_LABEL_MESSAGE_KEYS = "WhisperMessageKeys";
 /** 32 bytes of 0xFF used as discontinuity bytes in X3DH/PQXDH secret input. */
 export const DISCONTINUITY_BYTES = new Uint8Array(32).fill(0xff);
 
+/**
+ * 30 days in seconds — matches Rust `MAX_UNACKNOWLEDGED_SESSION_AGE`.
+ *
+ * Used for pending prekey staleness checks. Rust stores PendingPreKey
+ * timestamps as seconds since epoch; we convert `Date.now()` (ms) to
+ * seconds at the storage boundary so the serialized value matches Rust.
+ */
+export const MAX_UNACKNOWLEDGED_SESSION_AGE_SECS = 30 * 24 * 60 * 60;
+
 /** Type byte prefix for Kyber public keys (matches Rust kem::KeyType::Kyber1024). */
 export const KYBER_KEY_TYPE_BYTE = 0x08;
 

@@ -41,7 +41,7 @@ import { initializeBobSession } from "./session-init.js";
 import { TripleRatchetError, TripleRatchetErrorCode } from "./error.js";
 import type { PreKeysUsed, BobPQXDHParameters } from "./types.js";
 import {
-  MAX_UNACKNOWLEDGED_SESSION_AGE_MS,
+  MAX_UNACKNOWLEDGED_SESSION_AGE_SECS,
   MAX_FORWARD_JUMPS,
 } from "./constants.js";
 
@@ -144,7 +144,7 @@ export async function tripleRatchetEncrypt(
 
   if (pendingPreKey != null) {
     // Check for stale unacknowledged session
-    if (pendingPreKey.timestamp + MAX_UNACKNOWLEDGED_SESSION_AGE_MS < now) {
+    if (pendingPreKey.timestamp + MAX_UNACKNOWLEDGED_SESSION_AGE_SECS < Math.floor(now / 1000)) {
       throw new SessionNotFoundError(remoteAddress.toString());
     }
 

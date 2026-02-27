@@ -136,7 +136,7 @@ export async function processPreKeyBundle(
     preKeyId: bundle.preKeyId,
     signedPreKeyId: bundle.signedPreKeyId,
     baseKey: ourBaseKeyPair.publicKey,
-    timestamp: now,
+    timestamp: Math.floor(now / 1000),
   });
 
   // 10. Set pending kyber prekey info (separate field for proper serialization)
