@@ -1,6 +1,6 @@
 {
   "name": "@bcts/sskr",
-  "version": "1.0.0-alpha.20",
+  "version": "1.0.0-alpha.21",
   "type": "module",
   "description": "Blockchain Commons Sharded Secret Key Reconstruction (SSKR) for TypeScript",
   "license": "BSD-2-Clause-Patent",

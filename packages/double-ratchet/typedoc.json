@@ -2,8 +2,9 @@
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src/index.ts"],
   "out": "docs",
-  "name": "Signal's Triple Ratchet for TypeScript",
+  "name": "Signal's Double Ratchet for TypeScript",
   "includeVersion": true,
+  "readme": "README.md",
   "exclude": [
     "**/*.test.ts",
     "**/*.spec.ts",
@@ -21,6 +22,16 @@
   },
   "categorizeByGroup": true,
   "defaultCategory": "Other",
+  "categoryOrder": [
+    "Protocol",
+    "State Machine",
+    "Erasure Coding",
+    "Galois Field",
+    "Chain",
+    "Serialization",
+    "Errors",
+    "*"
+  ],
   "sort": ["source-order"],
   "kindSortOrder": [
     "Function",
