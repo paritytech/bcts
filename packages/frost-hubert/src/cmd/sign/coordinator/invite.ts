@@ -275,7 +275,7 @@ export function loadEnvelopeFromPath(filePath: string): Envelope {
   try {
     return Envelope.fromURString(trimmed);
   } catch (e) {
-    throw new Error(`Failed to load target envelope from ${filePath}: ${String(e)}`);
+    throw new Error(`Failed to load target envelope from ${filePath}: ${String(e)}`, { cause: e });
   }
 }
 

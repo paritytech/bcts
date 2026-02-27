@@ -213,17 +213,15 @@ function walkInternal<State>(
   skipVisit = false,
 ): State {
   let currentState = state;
-  let stopDescent = false;
 
   // Visit the current element (unless skipVisit is true)
   if (!skipVisit) {
     const element: WalkElement = { type: "single", cbor };
     const [newState, stop] = visitor(element, level, edge, currentState);
     currentState = newState;
-    stopDescent = stop;
 
     // If visitor says to stop descending, return immediately
-    if (stopDescent) {
+    if (stop) {
       return currentState;
     }
   }

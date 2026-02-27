@@ -56,7 +56,7 @@ function parseSeedUr(input: string): ProvenanceSeed {
     return seedFromExact(seed.toData());
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`failed to parse seed UR: ${message}`);
+    throw new Error(`failed to parse seed UR: ${message}`, { cause: e });
   }
 }
 
@@ -86,7 +86,7 @@ function parseSeedHex(input: string): ProvenanceSeed | undefined {
     return seedFromExact(bytes);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`failed to decode hex seed: ${message}`);
+    throw new Error(`failed to decode hex seed: ${message}`, { cause: e });
   }
 }
 
@@ -101,7 +101,7 @@ function parseSeedBase64(input: string): ProvenanceSeed {
     return seedFromExact(bytes);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`failed to decode base64 seed: ${message}`);
+    throw new Error(`failed to decode base64 seed: ${message}`, { cause: e });
   }
 }
 

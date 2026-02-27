@@ -55,7 +55,7 @@ function parseHex(input: string): Cbor {
     return decodeCbor(bytes);
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`failed to decode hex info payload: ${message}`);
+    throw new Error(`failed to decode hex info payload: ${message}`, { cause: e });
   }
 }
 
@@ -89,7 +89,9 @@ function parseInfo(raw: string, tagOverride?: number): Cbor {
     } catch (urErr) {
       const hexMsg = hexErr instanceof Error ? hexErr.message : String(hexErr);
       const urMsg = urErr instanceof Error ? urErr.message : String(urErr);
-      throw new Error(`failed to parse --info payload as hex (${hexMsg}) or UR (${urMsg})`);
+      throw new Error(`failed to parse --info payload as hex (${hexMsg}) or UR (${urMsg})`, {
+        cause: urErr,
+      });
     }
   }
 }
@@ -105,7 +107,7 @@ function parseUrPayload(input: string, tagOverride?: number): Cbor {
     ur = UR.fromURString(input.trim());
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
-    throw new Error(`failed to parse UR info payload: ${message}`);
+    throw new Error(`failed to parse UR info payload: ${message}`, { cause: e });
   }
 
   const typeStr = ur.urTypeStr();

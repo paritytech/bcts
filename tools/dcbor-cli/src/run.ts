@@ -59,7 +59,7 @@ export function run(
   const { command, stdinContent } = options;
 
   let output: string;
-  let isBinary = false;
+  let isBinary: boolean;
 
   switch (command.type) {
     case "array": {

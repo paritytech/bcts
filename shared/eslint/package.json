@@ -9,19 +9,19 @@
     "./cli": "./cli.mjs"
   },
   "dependencies": {
-    "@eslint/js": "^9.39.2",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
-    "@typescript-eslint/parser": "^8.56.0"
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1"
   },
   "devDependencies": {
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@vercel/style-guide": "^6.0.0",
     "@vue/eslint-config-typescript": "^14.7.0",
-    "eslint-config-turbo": "^2.8.10",
+    "eslint-config-turbo": "^2.8.11",
     "typescript": "5.9.3"
   },
   "peerDependencies": {
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.2",
     "typescript": ">=5.0.0"
   }
 }

@@ -342,6 +342,7 @@ function finalizeFinalizeCollectionResults(
     } catch (err) {
       throw new Error(
         `Failed to extract verifying key for ${xid.urString()}: ${err instanceof Error ? err.message : String(err)}`,
+        { cause: err },
       );
     }
 
@@ -451,9 +452,9 @@ export async function finalize(
   }
 
   let verifyingKey: SigningPublicKey | undefined;
-  let collected = 0;
+  let collected: number;
   let rejected = 0;
-  let errors = 0;
+  let errors: number;
   let timeouts = 0;
 
   if (options.parallel === true) {

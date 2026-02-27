@@ -87,6 +87,11 @@ export interface PendingPreKey {
   timestamp: number;
 }
 
+export interface PendingKyberPreKey {
+  kyberPreKeyId: number;
+  kyberCiphertext: Uint8Array;
+}
+
 export class SessionState {
   private readonly _sessionVersion: number;
   private readonly _localIdentityKey: IdentityKey;
@@ -96,6 +101,8 @@ export class SessionState {
   private _senderChain: SenderChain | undefined;
   private _receiverChains: ReceiverChain[];
   private _pendingPreKey: PendingPreKey | undefined;
+  private _pendingKyberPreKey: PendingKyberPreKey | undefined;
+  private _pqRatchetState: Uint8Array | undefined;
   private _localRegistrationId: number;
   private _remoteRegistrationId: number;
   private readonly _aliceBaseKey: Uint8Array | undefined;
@@ -115,6 +122,8 @@ export class SessionState {
     this._senderChain = undefined;
     this._receiverChains = [];
     this._pendingPreKey = undefined;
+    this._pendingKyberPreKey = undefined;
+    this._pqRatchetState = undefined;
     this._localRegistrationId = 0;
     this._remoteRegistrationId = 0;
     // Store aliceBaseKey in 33-byte DJB-prefixed form (0x05 || raw_key)
@@ -281,6 +290,34 @@ export class SessionState {
     return MessageKeys.deriveFrom(stored.seed, stored.counter);
   }
 
+  /**
+   * Remove and return the raw message key seed for the given counter
+   * WITHOUT deriving keys. Used by the triple ratchet for PQ-salted
+   * derivation of out-of-order message keys.
+   */
+  removeMessageKeySeed(
+    senderRatchetKey: Uint8Array,
+    counter: number,
+  ): { seed: Uint8Array; counter: number } | undefined {
+    const chain = this._receiverChains.find((c) =>
+      bytesEqual(c.senderRatchetKey, senderRatchetKey),
+    );
+    if (chain == null) return undefined;
+
+    const idx = chain.messageKeys.findIndex((mk) => {
+      if (mk.type === "keys") return mk.keys.counter === counter;
+      return mk.counter === counter;
+    });
+    if (idx === -1) return undefined;
+
+    const [stored] = chain.messageKeys.splice(idx, 1);
+    if (stored.type === "seed") {
+      return { seed: stored.seed, counter: stored.counter };
+    }
+    // For fully-derived keys, return the cipherKey as seed (best effort)
+    return { seed: stored.keys.cipherKey, counter: stored.keys.counter };
+  }
+
   setMessageKeys(senderRatchetKey: Uint8Array, seed: Uint8Array, counter: number): void {
     const chain = this._receiverChains.find((c) =>
       bytesEqual(c.senderRatchetKey, senderRatchetKey),
@@ -308,6 +345,31 @@ export class SessionState {
 
   clearPendingPreKey(): void {
     this._pendingPreKey = undefined;
+    this._pendingKyberPreKey = undefined;
+  }
+
+  // --- Pending Kyber PreKey ---
+
+  pendingKyberPreKey(): PendingKyberPreKey | undefined {
+    return this._pendingKyberPreKey;
+  }
+
+  setPendingKyberPreKey(pending: PendingKyberPreKey): void {
+    this._pendingKyberPreKey = pending;
+  }
+
+  clearPendingKyberPreKey(): void {
+    this._pendingKyberPreKey = undefined;
+  }
+
+  // --- PQ Ratchet State ---
+
+  get pqRatchetState(): Uint8Array | undefined {
+    return this._pqRatchetState;
+  }
+
+  set pqRatchetState(state: Uint8Array | undefined) {
+    this._pqRatchetState = state;
   }
 
   // --- Registration IDs ---
@@ -462,6 +524,19 @@ export class SessionState {
       proto.pendingPreKey = ppk;
     }
 
+    // Pending kyber pre-key
+    if (this._pendingKyberPreKey != null) {
+      proto.pendingKyberPreKey = {
+        kyberPreKeyId: this._pendingKyberPreKey.kyberPreKeyId,
+        kyberCiphertext: this._pendingKyberPreKey.kyberCiphertext,
+      };
+    }
+
+    // PQ ratchet state
+    if (this._pqRatchetState != null && this._pqRatchetState.length > 0) {
+      proto.pqRatchetState = this._pqRatchetState;
+    }
+
     return encodeSessionStructure(proto);
   }
 
@@ -554,6 +629,21 @@ export class SessionState {
       });
     }
 
+    // Pending kyber pre-key
+    if (proto.pendingKyberPreKey != null) {
+      if (proto.pendingKyberPreKey.kyberPreKeyId !== undefined) {
+        state.setPendingKyberPreKey({
+          kyberPreKeyId: proto.pendingKyberPreKey.kyberPreKeyId,
+          kyberCiphertext: proto.pendingKyberPreKey.kyberCiphertext ?? new Uint8Array(0),
+        });
+      }
+    }
+
+    // PQ ratchet state
+    if (proto.pqRatchetState != null && proto.pqRatchetState.length > 0) {
+      state.pqRatchetState = proto.pqRatchetState;
+    }
+
     return state;
   }
 
@@ -574,6 +664,10 @@ export class SessionState {
     cloned._localRegistrationId = this._localRegistrationId;
     cloned._remoteRegistrationId = this._remoteRegistrationId;
     cloned._pendingPreKey = this._pendingPreKey != null ? { ...this._pendingPreKey } : undefined;
+    cloned._pendingKyberPreKey =
+      this._pendingKyberPreKey != null ? { ...this._pendingKyberPreKey } : undefined;
+    cloned._pqRatchetState =
+      this._pqRatchetState != null ? Uint8Array.from(this._pqRatchetState) : undefined;
 
     if (this._senderChain != null) {
       cloned._senderChain = {

@@ -150,9 +150,9 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
     );
   }
 
-  let index = 0;
-  let msgKey: Uint8Array = new Uint8Array(0);
-  let chainPb = statePb.chain;
+  let index: number;
+  let msgKey: Uint8Array;
+  let chainPb: typeof statePb.chain;
 
   if (chain === undefined) {
     // No chain (min_version === V0, still negotiating)
