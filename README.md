@@ -105,5 +105,5 @@ Found a vulnerability? We'd really appreciate you letting us know privately at *
 
 This project is dual-licensed:
 
-- **Signal Protocol packages** (`double-ratchet`, `spqr`, `triple-ratchet`) are licensed under the [AGPL-3.0 License](./packages/double-ratchet/LICENSE).
+- **Signal Protocol packages** are licensed under the [AGPL-3.0 License](./packages/double-ratchet/LICENSE).
 - **All other packages** are licensed under the [BSD-2-Clause-Patent License](./LICENSE).
