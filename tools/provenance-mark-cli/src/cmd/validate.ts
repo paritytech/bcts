@@ -159,7 +159,7 @@ export class ValidateCommand implements Exec {
       ur = UR.fromURString(urString);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      throw new Error(`Failed to parse UR '${urString}': ${message}`);
+      throw new Error(`Failed to parse UR '${urString}': ${message}`, { cause: e });
     }
 
     const urType = ur.urTypeStr();
@@ -172,7 +172,7 @@ export class ValidateCommand implements Exec {
         return ProvenanceMark.fromUntaggedCbor(cborValue);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        throw new Error(`Failed to decode provenance mark from '${urString}': ${message}`);
+        throw new Error(`Failed to decode provenance mark from '${urString}': ${message}`, { cause: e });
       }
     }
 
@@ -184,6 +184,7 @@ export class ValidateCommand implements Exec {
       const message = e instanceof Error ? e.message : String(e);
       throw new Error(
         `UR type '${urType}' is not 'provenance', and CBOR is not decodable as an envelope: ${message}`,
+        { cause: e },
       );
     }
 
@@ -242,6 +243,7 @@ export class ValidateCommand implements Exec {
       const message = e instanceof Error ? e.message : String(e);
       throw new Error(
         `Failed to decode ProvenanceMark from provenance assertion in '${urString}': ${message}`,
+        { cause: e },
       );
     }
   }
@@ -283,7 +285,7 @@ export class ValidateCommand implements Exec {
         marks.push(markInfo.mark());
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
-        throw new Error(`Failed to parse JSON from ${markFile}: ${message}`);
+        throw new Error(`Failed to parse JSON from ${markFile}: ${message}`, { cause: e });
       }
     }
 
