@@ -85,7 +85,7 @@ export { DecryptionErrorMessage } from "./protocol/decryption-error-message.js";
 
 // Session management
 export { SessionState, SessionUsabilityRequirements } from "./session/session-state.js";
-export type { PendingPreKey } from "./session/session-state.js";
+export type { PendingPreKey, PendingKyberPreKey } from "./session/session-state.js";
 export { SessionRecord } from "./session/session-record.js";
 
 // High-level API

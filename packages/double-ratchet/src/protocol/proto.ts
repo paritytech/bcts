@@ -449,6 +449,8 @@ export interface SessionStructureProto {
   remoteRegistrationId?: number; // field 10, varint
   localRegistrationId?: number; // field 11, varint
   aliceBaseKey?: Uint8Array; // field 13, bytes
+  pendingKyberPreKey?: PendingKyberPreKeyProto; // field 14, nested
+  pqRatchetState?: Uint8Array; // field 15, bytes
 }
 
 export interface ChainStructureProto {
@@ -476,6 +478,11 @@ export interface PendingPreKeyProto {
   signedPreKeyId?: number; // field 3, varint
   baseKey?: Uint8Array; // field 2, bytes
   timestamp?: number; // field 4, varint64 (ms since epoch)
+}
+
+export interface PendingKyberPreKeyProto {
+  kyberPreKeyId?: number; // field 1, varint
+  kyberCiphertext?: Uint8Array; // field 2, bytes
 }
 
 /**
@@ -519,6 +526,23 @@ export function encodeChainStructure(chain: ChainStructureProto): Uint8Array {
   return concatProtoFields(...parts);
 }
 
+export function encodePendingKyberPreKey(pk: PendingKyberPreKeyProto): Uint8Array {
+  const parts: Uint8Array[] = [];
+  if (pk.kyberPreKeyId !== undefined) parts.push(encodeUint32Field(1, pk.kyberPreKeyId));
+  if (pk.kyberCiphertext != null) parts.push(encodeBytesField(2, pk.kyberCiphertext));
+  return concatProtoFields(...parts);
+}
+
+export function decodePendingKyberPreKey(data: Uint8Array): PendingKyberPreKeyProto {
+  const fields = parseProtoFields(data);
+  const result: PendingKyberPreKeyProto = {};
+  const kyberPreKeyId = fields.varints.get(1);
+  if (kyberPreKeyId !== undefined) result.kyberPreKeyId = kyberPreKeyId;
+  const kyberCiphertext = fields.bytes.get(2);
+  if (kyberCiphertext !== undefined) result.kyberCiphertext = kyberCiphertext;
+  return result;
+}
+
 export function encodePendingPreKey(pk: PendingPreKeyProto): Uint8Array {
   const parts: Uint8Array[] = [];
   if (pk.preKeyId !== undefined) parts.push(encodeUint32Field(1, pk.preKeyId));
@@ -549,6 +573,10 @@ export function encodeSessionStructure(ss: SessionStructureProto): Uint8Array {
   if (ss.localRegistrationId !== undefined)
     parts.push(encodeUint32Field(11, ss.localRegistrationId));
   if (ss.aliceBaseKey != null) parts.push(encodeBytesField(13, ss.aliceBaseKey));
+  if (ss.pendingKyberPreKey != null)
+    parts.push(encodeNestedMessage(14, encodePendingKyberPreKey(ss.pendingKyberPreKey)));
+  if (ss.pqRatchetState != null && ss.pqRatchetState.length > 0)
+    parts.push(encodeBytesField(15, ss.pqRatchetState));
   return concatProtoFields(...parts);
 }
 
@@ -647,6 +675,11 @@ export function decodeSessionStructure(data: Uint8Array): SessionStructureProto 
   if (localRegistrationId !== undefined) result.localRegistrationId = localRegistrationId;
   const aliceBaseKey = fields.bytes.get(13);
   if (aliceBaseKey !== undefined) result.aliceBaseKey = aliceBaseKey;
+  const pendingKyberPreKeyBytes = fields.bytes.get(14);
+  if (pendingKyberPreKeyBytes != null)
+    result.pendingKyberPreKey = decodePendingKyberPreKey(pendingKyberPreKeyBytes);
+  const pqRatchetState = fields.bytes.get(15);
+  if (pqRatchetState !== undefined) result.pqRatchetState = pqRatchetState;
 
   return result;
 }
