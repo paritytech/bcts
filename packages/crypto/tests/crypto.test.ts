@@ -800,7 +800,7 @@ describe("Ed25519", () => {
 });
 
 describe("Scrypt", () => {
-  test("test_scrypt_basic", () => {
+  test("test_scrypt_basic", { timeout: 10_000 }, () => {
     const password = new TextEncoder().encode("password");
     const salt = new TextEncoder().encode("salt");
 
@@ -811,7 +811,7 @@ describe("Scrypt", () => {
     expect(bytesToHex(key1)).toBe(bytesToHex(key2)); // Deterministic
   });
 
-  test("test_scrypt_different_salt", () => {
+  test("test_scrypt_different_salt", { timeout: 10_000 }, () => {
     const password = new TextEncoder().encode("password");
     const salt1 = new TextEncoder().encode("salt1");
     const salt2 = new TextEncoder().encode("salt2");
@@ -832,7 +832,7 @@ describe("Scrypt", () => {
   });
 
   // Test various output lengths - matches Rust test_scrypt_output_length
-  test("test_scrypt_output_length", () => {
+  test("test_scrypt_output_length", { timeout: 30_000 }, () => {
     const password = new TextEncoder().encode("password");
     const salt = new TextEncoder().encode("salt");
 

@@ -60,10 +60,10 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@eslint/js": "^9.39.3",
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.2",
     "@types/pako": "^2.0.3",
-    "eslint": "^9.39.3",
+    "eslint": "^10.0.2",
     "prettier": "^3.8.1",
     "ts-node": "^10.9.2",
     "tsdown": "^0.20.3",

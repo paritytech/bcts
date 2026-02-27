@@ -320,11 +320,11 @@ describe("1000-step lockstep messaging", () => {
 
 describe("empty key until version negotiation", () => {
   it("should have null keys during negotiation with min_version=V0", () => {
-    let alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V0 }));
+    const alice = initialState(makeParams({ direction: Direction.A2B, minVersion: Version.V0 }));
 
     // First few sends should produce null keys (no chain yet when min_version=V0)
     const result1 = send(alice, rng);
-    alice = result1.state;
+    void result1.state;
     // With min_version=V0, chain is not created initially
     // Keys may be null during the negotiation phase
     // This is the expected behavior per the Rust implementation
@@ -338,12 +338,12 @@ describe("empty key until version negotiation", () => {
 
 describe("min_version=V1 always creates keys", () => {
   it("should have chain keys from the first message with min_version=V1", () => {
-    let alice = initialState(makeParams({ direction: Direction.A2B }));
-    let bob = initialState(makeParams({ direction: Direction.B2A }));
+    const alice = initialState(makeParams({ direction: Direction.A2B }));
+    const bob = initialState(makeParams({ direction: Direction.B2A }));
 
     // With min_version=V1, chain is created immediately
     const aliceSend = send(alice, rng);
-    alice = aliceSend.state;
+    void aliceSend.state;
 
     // The first message should have a key (chain is initialized)
     expect(aliceSend.key).not.toBeNull();
@@ -351,7 +351,7 @@ describe("min_version=V1 always creates keys", () => {
 
     // Bob receives and should also get a key
     const bobRecv = recv(bob, aliceSend.msg);
-    bob = bobRecv.state;
+    void bobRecv.state;
     expect(bobRecv.key).not.toBeNull();
     expect(defined(bobRecv.key).length).toBe(32);
 
