@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor-parse",
-  "version": "1.0.0-alpha.21",
+  "version": "1.0.0-alpha.22",
   "type": "module",
   "description": "dCBOR Diagnostic Parser and Composer for TypeScript",
   "license": "BSD-2-Clause-Patent",
