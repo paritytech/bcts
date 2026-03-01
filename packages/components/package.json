@@ -1,6 +1,6 @@
 {
   "name": "@bcts/components",
-  "version": "1.0.0-alpha.21",
+  "version": "1.0.0-alpha.22",
   "type": "module",
   "description": "A TypeScript implementation of Blockchain Commons cryptographic components. Supports key generation, signing, verification, encryption, and post-quantum cryptography.",
   "license": "BSD-2-Clause-Patent",
