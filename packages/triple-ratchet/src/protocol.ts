@@ -26,7 +26,6 @@ import {
   decodeTripleRatchetPreKeySignalMessage,
 } from "./proto.js";
 
-
 // ---------------------------------------------------------------------------
 // MAC computation
 //
