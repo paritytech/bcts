@@ -35,7 +35,7 @@ import {
 } from "@bcts/double-ratchet";
 import type { RandomNumberGenerator } from "@bcts/rand";
 import * as spqr from "@bcts/spqr";
-import type { ChainParams } from "@bcts/spqr";
+import type { ChainParams } from "./types.js";
 import { ml_kem1024 } from "@noble/post-quantum/ml-kem.js";
 
 import {
