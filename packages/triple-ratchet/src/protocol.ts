@@ -12,6 +12,7 @@
  *   version_byte = (4 << 4) | 4 = 0x44 for v4
  */
 
+import { timingSafeEqual } from "@std/crypto/timing-safe-equal";
 import { hmacSha256 } from "@bcts/double-ratchet";
 import type { IdentityKey } from "@bcts/double-ratchet";
 import { TripleRatchetError, TripleRatchetErrorCode } from "./error.js";
@@ -24,19 +25,6 @@ import {
   encodeTripleRatchetPreKeySignalMessage,
   decodeTripleRatchetPreKeySignalMessage,
 } from "./proto.js";
-
-// ---------------------------------------------------------------------------
-// Constant-time comparison
-// ---------------------------------------------------------------------------
-
-function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a[i] ^ b[i];
-  }
-  return diff === 0;
-}
 
 // ---------------------------------------------------------------------------
 // MAC computation
@@ -247,7 +235,7 @@ export class TripleRatchetSignalMessage {
     const content = this.serialized.slice(0, this.serialized.length - MAC_LENGTH);
     const theirMac = this.serialized.slice(this.serialized.length - MAC_LENGTH);
     const ourMac = computeMac(senderIdentityKey, receiverIdentityKey, macKey, content);
-    return constantTimeEqual(ourMac, theirMac);
+    return timingSafeEqual(ourMac, theirMac);
   }
 }
 
