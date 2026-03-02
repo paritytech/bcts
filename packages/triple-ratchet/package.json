@@ -53,11 +53,12 @@
   },
   "dependencies": {
     "@bcts/crypto": "workspace:*",
-    "@bcts/rand": "workspace:*",
     "@bcts/double-ratchet": "workspace:*",
+    "@bcts/rand": "workspace:*",
     "@bcts/spqr": "workspace:*",
     "@noble/hashes": "^2.0.1",
-    "@noble/post-quantum": "^0.5.4"
+    "@noble/post-quantum": "^0.5.4",
+    "@std/crypto": "npm:@jsr/std__crypto@1.0.4"
   },
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
