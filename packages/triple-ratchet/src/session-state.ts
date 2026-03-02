@@ -21,7 +21,7 @@ import type {
 } from "@bcts/double-ratchet";
 import * as spqr from "@bcts/spqr";
 import { TripleRatchetError, TripleRatchetErrorCode } from "./error.js";
-import type { PQRatchetState, PQRatchetMessage } from "./types.js";
+import type { PQRatchetState, PQRatchetMessage, RandomBytes } from "./types.js";
 
 export class TripleRatchetSessionState {
   private readonly inner: SessionState;
@@ -42,7 +42,7 @@ export class TripleRatchetSessionState {
    * Returns the serialized SPQR message to include in the wire envelope
    * and an optional 32-byte key that should be mixed into the root key.
    */
-  pqRatchetSend(rng: spqr.RandomBytes): { msg: PQRatchetMessage; key: Uint8Array | null } {
+  pqRatchetSend(rng: RandomBytes): { msg: PQRatchetMessage; key: Uint8Array | null } {
     try {
       const result = spqr.send(this._pqRatchetState, rng);
       this._pqRatchetState = result.state;
