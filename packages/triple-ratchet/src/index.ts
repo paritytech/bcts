@@ -37,18 +37,8 @@ export { KyberPreKeyRecord, InMemoryKyberPreKeyStore } from "./stores.js";
 export type { KyberPreKeyStore, PQXDHPreKeyBundle } from "./stores.js";
 
 // Types
-export type {
-  AlicePQXDHParameters,
-  BobPQXDHParameters,
-  KyberKeyPair,
-  KyberCiphertext,
-  PQXDHDerivedKeys,
-  PQRatchetState,
-  PQRatchetMessage,
-  InitialPQRKey,
-  PreKeysUsed,
-  TripleRatchetChainParams,
-} from "./types.js";
+export type * from "./types.js";
+export * from "@bcts/double-ratchet";
 
 // Session cipher (encrypt/decrypt)
 export { tripleRatchetEncrypt, tripleRatchetDecrypt } from "./session-cipher.js";

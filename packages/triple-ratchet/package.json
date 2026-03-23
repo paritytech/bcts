@@ -16,13 +16,17 @@
   },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
-  "types": "dist/index.d.mts",
+  "types": "dist/bundle.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.mjs"
+      "import": {
+        "types": "./dist/bundle.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
@@ -31,7 +35,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsdown",
+    "build": "tsc --noEmit -p tsconfig.build.json && tsdown && api-extractor run --local",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
@@ -64,6 +68,7 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^10.0.1",
+    "@microsoft/api-extractor": "^7.52.1",
     "@types/node": "^25.3.2",
     "eslint": "^10.0.2",
     "prettier": "^3.8.1",

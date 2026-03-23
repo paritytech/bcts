@@ -8,8 +8,10 @@
 import type { KeyPair, IdentityKeyPair, IdentityKey } from "@bcts/double-ratchet";
 import type { ChainParams } from "@bcts/spqr";
 
-// Re-export SPQR types used in our public API
-export type { ChainParams } from "@bcts/spqr";
+export type * from "@bcts/double-ratchet";
+
+export type { RandomBytes, ChainParams } from "@bcts/spqr";
+export type { RandomNumberGenerator } from "@bcts/rand";
 
 /** Opaque serialized SPQR state (protobuf bytes). */
 export type PQRatchetState = Uint8Array;
