@@ -57,7 +57,7 @@
     "@bcts/rand": "workspace:*",
     "@bcts/spqr": "workspace:*",
     "@noble/hashes": "^2.0.1",
-    "@noble/post-quantum": "^0.5.4",
+    "@noble/post-quantum": "^0.6.0",
     "@std/crypto": "npm:@jsr/std__crypto@1.0.4"
   },
   "devDependencies": {
@@ -69,7 +69,7 @@
     "prettier": "^3.8.1",
     "tsdown": "^0.21.0",
     "typedoc": "^0.28.17",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.0.18"
   }
 }

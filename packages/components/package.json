@@ -64,7 +64,7 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@noble/hashes": "^2.0.1",
-    "@noble/post-quantum": "^0.5.4",
+    "@noble/post-quantum": "^0.6.0",
     "@scure/sr25519": "^1.0.0",
     "pako": "^2.1.0"
   },
@@ -77,7 +77,7 @@
     "eslint": "^10.0.2",
     "tsdown": "^0.21.0",
     "typedoc": "^0.28.17",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitest": "^4.0.16"
   }
 }
