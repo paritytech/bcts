@@ -472,7 +472,7 @@ export class Chain {
     const params = chainParamsFromProto(pb.params);
 
     return new Chain(
-      pb.direction as Direction,
+      pb.direction,
       pb.currentEpoch,
       pb.sendEpoch,
       links,

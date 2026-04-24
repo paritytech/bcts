@@ -222,7 +222,7 @@ export function deserializeMessage(from: Uint8Array): {
   const msgType = from[at.offset++];
 
   let payload: MessagePayload;
-  switch (msgType as MessageType) {
+  switch (msgType) {
     case MessageType.None:
       payload = { type: "none" };
       break;

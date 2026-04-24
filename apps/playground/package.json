@@ -24,7 +24,7 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@bcts/xid": "workspace:*",
-    "@nuxt/ui": "^4.5.0",
+    "@nuxt/ui": "^4.7.0",
     "@paulmillr/qr": "^0.3.0",
     "@tailwindcss/vite": "^4.2.4",
     "tailwindcss": "^4.2.4",

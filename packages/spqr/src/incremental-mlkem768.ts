@@ -424,7 +424,7 @@ export function encaps1(hdr: Uint8Array, rng: RandomBytes): Encaps1Result {
     const tmp = new Uint16Array(N);
     for (let j = 0; j < K; j++) {
       const aij = SampleNTT(x.get(i, j));
-      polyAdd(tmp, MultiplyNTTs(aij, rHat[j].slice() as Poly));
+      polyAdd(tmp, MultiplyNTTs(aij, rHat[j].slice()));
     }
     polyAdd(e1, NTT.decode(tmp));
     u.push(e1);
@@ -475,7 +475,7 @@ export function encaps2(ek: Uint8Array, es: Uint8Array): Uint8Array {
   // Compute v = NTT^-1(sum(tHat[i] * rHat[i])) + e2 + Decompress1(m)
   const tmp = new Uint16Array(N);
   for (let i = 0; i < K; i++) {
-    polyAdd(tmp, MultiplyNTTs(tHat[i].slice() as Poly, rHat[i].slice() as Poly));
+    polyAdd(tmp, MultiplyNTTs(tHat[i].slice(), rHat[i].slice()));
   }
   const v = NTT.decode(tmp);
   polyAdd(v, e2);

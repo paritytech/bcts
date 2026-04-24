@@ -142,7 +142,7 @@ export function send(state: SerializedState, rng: RandomBytes): Send {
     chain = Chain.fromProto(statePb.chain);
   } else if (statePb.versionNegotiation !== undefined) {
     const vn = statePb.versionNegotiation;
-    if ((vn.minVersion as Version) > Version.V0) {
+    if (vn.minVersion > Version.V0) {
       chain = chainFromVersionNegotiation(vn);
     }
   } else {
@@ -241,7 +241,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
         SpqrErrorCode.VersionMismatch,
       );
     }
-    if (msgVer < (vn.minVersion as Version)) {
+    if (msgVer < vn.minVersion) {
       throw new SpqrError(
         `Minimum version not met: min=${vn.minVersion}, msg=${msgVer}`,
         SpqrErrorCode.MinimumVersion,
@@ -249,7 +249,7 @@ export function recv(state: SerializedState, msg: SerializedMessage): Recv {
     }
 
     // Negotiate down to the message version
-    const inner = initInner(msgVer, vn.direction as Direction, Uint8Array.from(vn.authKey));
+    const inner = initInner(msgVer, vn.direction, Uint8Array.from(vn.authKey));
     const chainResult = chainFrom(prenegotiatedPb.chain, vn);
     statePb = {
       v1: inner,
@@ -323,7 +323,7 @@ export function currentVersion(state: SerializedState): CurrentVersion {
     return {
       type: "still_negotiating",
       version,
-      minVersion: statePb.versionNegotiation.minVersion as Version,
+      minVersion: statePb.versionNegotiation.minVersion,
     };
   }
   return { type: "negotiation_complete", version };
@@ -383,7 +383,7 @@ function chainFromVersionNegotiation(vn: PbVersionNegotiation): Chain {
     maxJump: 25000,
     maxOooKeys: 2000,
   };
-  return Chain.create(Uint8Array.from(vn.authKey), vn.direction as Direction, chainParams);
+  return Chain.create(Uint8Array.from(vn.authKey), vn.direction, chainParams);
 }
 
 /**
