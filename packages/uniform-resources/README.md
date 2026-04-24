@@ -14,4 +14,4 @@ The primary specification for URs is [BCR-2020-005: Uniform Resources](https://g
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) **v0.19.0** ([commit](https://github.com/BlockchainCommons/bc-ur-rust/tree/285c849a546e68c5f6b983ee517cb66348fed0a3)).
+This TypeScript implementation is based on [bc-ur-rust](https://github.com/BlockchainCommons/bc-ur-rust) **v0.19.2** ([commit](https://github.com/BlockchainCommons/bc-ur-rust/tree/2f8b4e728945f9dc248eba71911b89371f076924)).

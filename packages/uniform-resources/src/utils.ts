@@ -580,39 +580,118 @@ export const BYTEMOJIS: string[] = [
 ];
 
 /**
- * Encodes a 4-byte slice as a string of bytewords for identification.
+ * Encodes an arbitrary byte slice as a string of space-separated bytewords.
+ *
+ * Mirrors `bytewords::encode_to_words` in `bc-ur-rust` (≥ v0.19.1). Does not
+ * add a CRC32 checksum — use {@link encodeBytewords} for UR-style encoding.
  */
-export function encodeBytewordsIdentifier(data: Uint8Array): string {
-  if (data.length !== 4) {
-    throw new Error("Identifier data must be exactly 4 bytes");
-  }
+export function encodeToWords(data: Uint8Array): string {
   const words: string[] = [];
-  for (let i = 0; i < 4; i++) {
-    const byte = data[i];
-    if (byte === undefined) throw new Error("Invalid byte");
+  for (const byte of data) {
     const word = BYTEWORDS[byte];
-    if (word === "" || word === undefined) throw new Error("Invalid byteword mapping");
+    if (word === undefined) throw new Error(`Invalid byte value: ${byte}`);
     words.push(word);
   }
   return words.join(" ");
 }
 
 /**
+ * Encodes an arbitrary byte slice as a string of space-separated bytemojis.
+ *
+ * Mirrors `bytewords::encode_to_bytemojis` in `bc-ur-rust` (≥ v0.19.1).
+ */
+export function encodeToBytemojis(data: Uint8Array): string {
+  const emojis: string[] = [];
+  for (const byte of data) {
+    const emoji = BYTEMOJIS[byte];
+    if (emoji === undefined) throw new Error(`Invalid byte value: ${byte}`);
+    emojis.push(emoji);
+  }
+  return emojis.join(" ");
+}
+
+/**
+ * Encodes an arbitrary byte slice as minimal bytewords (first + last letter of
+ * each word, concatenated with no separator).
+ *
+ * Mirrors `bytewords::encode_to_minimal_bytewords` in `bc-ur-rust`
+ * (≥ v0.19.1). Does not add a CRC32 checksum.
+ */
+export function encodeToMinimalBytewords(data: Uint8Array): string {
+  let out = "";
+  for (const byte of data) {
+    const word = BYTEWORDS[byte];
+    if (word === undefined) throw new Error(`Invalid byte value: ${byte}`);
+    out += word[0] + word[word.length - 1];
+  }
+  return out;
+}
+
+/**
+ * Encodes a 4-byte slice as a string of bytewords for identification.
+ *
+ * Thin wrapper over {@link encodeToWords} that enforces the 4-byte length
+ * contract historically used by `bc-ur-rust`'s `bytewords::identifier`.
+ */
+export function encodeBytewordsIdentifier(data: Uint8Array): string {
+  if (data.length !== 4) {
+    throw new Error("Identifier data must be exactly 4 bytes");
+  }
+  return encodeToWords(data);
+}
+
+/**
  * Encodes a 4-byte slice as a string of bytemojis for identification.
+ *
+ * Thin wrapper over {@link encodeToBytemojis} that enforces the 4-byte length
+ * contract historically used by `bc-ur-rust`'s `bytewords::bytemoji_identifier`.
  */
 export function encodeBytemojisIdentifier(data: Uint8Array): string {
   if (data.length !== 4) {
     throw new Error("Identifier data must be exactly 4 bytes");
   }
-  const emojis: string[] = [];
-  for (let i = 0; i < 4; i++) {
-    const byte = data[i];
-    if (byte === undefined) throw new Error("Invalid byte");
-    const emoji = BYTEMOJIS[byte];
-    if (emoji === "" || emoji === undefined) throw new Error("Invalid bytemoji mapping");
-    emojis.push(emoji);
+  return encodeToBytemojis(data);
+}
+
+/**
+ * Returns `true` if `emoji` is one of the 256 bytemojis.
+ *
+ * Mirrors `bytewords::is_valid_bytemoji` in `bc-ur-rust` (≥ v0.19.1).
+ */
+export function isValidBytemoji(emoji: string): boolean {
+  return BYTEMOJI_SET.has(emoji);
+}
+
+/**
+ * Canonicalises a byteword token (2–4 ASCII letters, case-insensitive) to its
+ * full 4-letter lowercase form. Returns `undefined` if the token is not a
+ * valid byteword or any of its short forms.
+ *
+ * Mirrors `bytewords::canonicalize_byteword` in `bc-ur-rust` (≥ v0.19.1).
+ *
+ * - 2-letter tokens are matched against the first + last letter of each
+ *   byteword (identical to the minimal bytewords encoding).
+ * - 3-letter tokens are matched against the first 3 and the last 3 letters of
+ *   each byteword; if both match different entries, the first-3 match wins
+ *   (matching rust's `or_else` priority).
+ * - 4-letter tokens must exactly match a full byteword (after lower-casing).
+ */
+export function canonicalizeByteword(token: string): string | undefined {
+  const lower = token.toLowerCase();
+  switch (lower.length) {
+    case 4:
+      return BYTEWORDS_MAP.has(lower) ? lower : undefined;
+    case 2:
+      return BYTEWORD_FIRST_LAST_MAP.get(lower);
+    case 3: {
+      return (
+        BYTEWORD_FIRST_THREE_MAP.get(lower) ??
+        BYTEWORD_LAST_THREE_MAP.get(lower)
+      );
+    }
+    default:
+      return undefined;
   }
-  return emojis.join(" ");
 }
 
 /**
@@ -641,6 +720,48 @@ function createMinimalBytewordsMap(): Map<string, number> {
 }
 
 export const MINIMAL_BYTEWORDS_MAP = createMinimalBytewordsMap();
+
+/**
+ * Set of all 256 bytemojis for fast membership testing. Backs
+ * {@link isValidBytemoji}.
+ */
+const BYTEMOJI_SET: ReadonlySet<string> = new Set(BYTEMOJIS);
+
+/**
+ * Lookup from a 2-letter (first+last) byteword short-form to its full
+ * lowercase 4-letter form. Backs {@link canonicalizeByteword}.
+ */
+const BYTEWORD_FIRST_LAST_MAP: ReadonlyMap<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const word of BYTEWORDS) {
+    map.set(word[0] + word[word.length - 1], word);
+  }
+  return map;
+})();
+
+/**
+ * Lookup from the first 3 letters of a byteword to its full lowercase 4-letter
+ * form. Backs {@link canonicalizeByteword}.
+ */
+const BYTEWORD_FIRST_THREE_MAP: ReadonlyMap<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const word of BYTEWORDS) {
+    map.set(word.slice(0, 3), word);
+  }
+  return map;
+})();
+
+/**
+ * Lookup from the last 3 letters of a byteword to its full lowercase 4-letter
+ * form. Backs {@link canonicalizeByteword}.
+ */
+const BYTEWORD_LAST_THREE_MAP: ReadonlyMap<string, string> = (() => {
+  const map = new Map<string, string>();
+  for (const word of BYTEWORDS) {
+    map.set(word.slice(1), word);
+  }
+  return map;
+})();
 
 /**
  * CRC32 lookup table (IEEE polynomial).

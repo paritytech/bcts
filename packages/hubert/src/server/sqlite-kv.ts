@@ -53,7 +53,7 @@ export class SqliteKv implements KvStore {
   /**
    * Create a new SQLite-backed key-value store.
    *
-   * Port of `SqliteKv::new()` from server/sqlite_kv.rs lines 26-67.
+   * Port of `SqliteKv::new()` from server/sqlite_kv.rs lines 37-72.
    *
    * @param dbPath - Path to the SQLite database file. Will be created if it doesn't exist.
    * @throws {SqliteError} If database initialization fails
@@ -93,7 +93,7 @@ export class SqliteKv implements KvStore {
   /**
    * Start a background task that prunes expired entries every minute.
    *
-   * Port of `start_cleanup_task()` from server/sqlite_kv.rs lines 70-126.
+   * Port of `start_cleanup_task()` from server/sqlite_kv.rs lines 73-125.
    *
    * @internal
    */
@@ -131,7 +131,7 @@ export class SqliteKv implements KvStore {
   /**
    * Check if an ARID exists and is not expired.
    *
-   * Port of `check_exists()` from server/sqlite_kv.rs lines 129-170.
+   * Port of `check_exists()` from server/sqlite_kv.rs lines 127-164.
    *
    * @internal
    */
@@ -162,7 +162,7 @@ export class SqliteKv implements KvStore {
   /**
    * Store an envelope at the given ARID.
    *
-   * Port of `KvStore::put()` implementation from server/sqlite_kv.rs lines 175-236.
+   * Port of `KvStore::put()` implementation from server/sqlite_kv.rs lines 168-224.
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async put(
@@ -207,7 +207,7 @@ export class SqliteKv implements KvStore {
   /**
    * Retrieve an envelope for the given ARID.
    *
-   * Port of `KvStore::get()` implementation from server/sqlite_kv.rs lines 238-354.
+   * Port of `KvStore::get()` implementation from server/sqlite_kv.rs lines 226-344.
    */
   async get(arid: ARID, timeoutSeconds?: number, verbose?: boolean): Promise<Envelope | null> {
     const timeout = timeoutSeconds ?? 30;
@@ -279,7 +279,7 @@ export class SqliteKv implements KvStore {
   /**
    * Check if an envelope exists at the given ARID.
    *
-   * Port of `KvStore::exists()` implementation from server/sqlite_kv.rs lines 356-359.
+   * Port of `KvStore::exists()` implementation from server/sqlite_kv.rs lines 346-348.
    */
   // eslint-disable-next-line @typescript-eslint/require-await
   async exists(arid: ARID): Promise<boolean> {

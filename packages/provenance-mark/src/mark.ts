@@ -13,8 +13,9 @@ import {
   BytewordsStyle,
   encodeBytewords,
   decodeBytewords,
-  encodeBytewordsIdentifier,
-  encodeBytemojisIdentifier,
+  encodeToWords,
+  encodeToBytemojis,
+  encodeToMinimalBytewords,
   UR,
 } from "@bcts/uniform-resources";
 import { Envelope } from "@bcts/envelope";
