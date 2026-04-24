@@ -240,13 +240,8 @@ export class UnidentifiedSenderMessageContent {
 
     const contentHintRaw = fields.varints.get(4);
     let contentHint = ContentHint.Default;
-    if (contentHintRaw !== undefined) {
-      if (
-        contentHintRaw === (ContentHint.Resendable as number) ||
-        contentHintRaw === (ContentHint.Implicit as number)
-      ) {
-        contentHint = contentHintRaw;
-      }
+    if (contentHintRaw !== undefined && KNOWN_CONTENT_HINTS.has(contentHintRaw)) {
+      contentHint = contentHintRaw as ContentHint;
     }
 
     const groupId = fields.bytes.get(5) ?? null;
