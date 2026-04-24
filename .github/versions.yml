@@ -29,8 +29,8 @@ packages:
   dcbor:
     npm: "@bcts/dcbor"
     repo: "BlockchainCommons/bc-dcbor-rust"
-    version: "0.24.1"
-    commit: "8344a256cc858b3a626a89e0b805ef0bda4d3b50"
+    version: "0.25.2"
+    commit: "c76a15a3729b5753824d0b08b95a08d7c7d8998d"
 
   dcbor-parse:
     npm: "@bcts/dcbor-parse"
@@ -53,14 +53,14 @@ packages:
   known-values:
     npm: "@bcts/known-values"
     repo: "BlockchainCommons/known-values-rust"
-    version: "0.15.4"
-    commit: "7a5153a8a9153bf30f99357ca463a83e62a8ec8e"
+    version: "0.15.5"
+    commit: "c1eefb4b6c2c9855802e2649ef70bad9beed6f35"
 
   uniform-resources:
     npm: "@bcts/uniform-resources"
     repo: "BlockchainCommons/bc-ur-rust"
-    version: "0.18.0"
-    commit: "285c849a546e68c5f6b983ee517cb66348fed0a3"
+    version: "0.19.2"
+    commit: "2f8b4e728945f9dc248eba71911b89371f076924"
 
   components:
     npm: "@bcts/components"
@@ -83,8 +83,8 @@ packages:
   provenance-mark:
     npm: "@bcts/provenance-mark"
     repo: "BlockchainCommons/provenance-mark-rust"
-    version: "0.23.0"
-    commit: "b4569d88c9df46ba093754c0efda35ae3c56a3a7"
+    version: "0.24.0"
+    commit: "1732c79c89a72c3bfd66d6b23537d50e79fff9b5"
 
   xid:
     npm: "@bcts/xid"
@@ -102,7 +102,7 @@ packages:
     npm: "@bcts/hubert"
     repo: "BlockchainCommons/hubert-rust"
     version: "0.5.0"
-    commit: "3c0b5c399f2763c1f4c66ceb7b674c4e5ff3c53f"
+    commit: "01dcffe708a88ad4a7c9091a3c99fcfee9b550ab"
 
   frost-hubert:
     npm: "@bcts/frost-hubert"
@@ -114,7 +114,7 @@ packages:
     npm: "@bcts/lifehash"
     repo: "BlockchainCommons/bc-lifehash"
     version: "0.4.1"
-    commit: "b5e8d431b918951b91b5c3cb8eee27f4469feb6b"
+    commit: "0444dbed5615fbc9a98163608c6499c025b7873b"
 
   # Signal Protocol
   double-ratchet:
@@ -145,14 +145,14 @@ tools:
   envelope-cli:
     npm: "@bcts/envelope-cli"
     repo: "BlockchainCommons/bc-envelope-cli-rust"
-    version: "0.34.0"
-    commit: "73f2ccd892209e0191f99e7317cdc62086b9ce3b"
+    version: "0.34.1"
+    commit: "a93a39675de44ace33b73718f5c6346af22dc25f"
 
   provenance-mark-cli:
     npm: "@bcts/provenance-mark-cli"
     repo: "BlockchainCommons/provenance-mark-cli-rust"
-    version: "0.6.0"
-    commit: "538cac10bee973adcae5398100ceb6195bc9079f"
+    version: "0.7.0"
+    commit: "167495aa19b1af66838f04fa8c74af2feef64fd6"
 
   seedtool-cli:
     npm: "@bcts/seedtool-cli"
