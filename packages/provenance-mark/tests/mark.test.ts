@@ -606,8 +606,16 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date));
       }
 
-      // Verify display strings
-      expect(marks.map((m) => m.toString())).toEqual(EXPECTED_DISPLAY_LOW);
+      // Legacy 8-char ID format (preserved via identifier())
+      expect(
+        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
+      ).toEqual(EXPECTED_DISPLAY_LOW);
+
+      // New 64-char Mark ID format via toString() (matches rust v0.24+ Display)
+      for (const m of marks) {
+        expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
+        expect(m.toString()).toMatch(/^ProvenanceMark\([0-9a-f]{64}\)$/);
+      }
     });
 
     it("should match Rust expected bytewords", () => {
@@ -727,8 +735,16 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      // Verify display strings
-      expect(marks.map((m) => m.toString())).toEqual(EXPECTED_DISPLAY_LOW_WITH_INFO);
+      // Legacy 8-char ID format (preserved via identifier())
+      expect(
+        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
+      ).toEqual(EXPECTED_DISPLAY_LOW_WITH_INFO);
+
+      // New 64-char Mark ID format via toString() (matches rust v0.24+ Display)
+      for (const m of marks) {
+        expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
+        expect(m.toString()).toMatch(/^ProvenanceMark\([0-9a-f]{64}\)$/);
+      }
 
       // Verify sequence is valid
       expect(ProvenanceMark.isSequenceValid(marks)).toBe(true);
@@ -770,7 +786,14 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.toString())).toEqual(EXPECTED_DISPLAY_MEDIUM_WITH_INFO);
+      expect(
+        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
+      ).toEqual(EXPECTED_DISPLAY_MEDIUM_WITH_INFO);
+
+      for (const m of marks) {
+        expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
+        expect(m.toString()).toMatch(/^ProvenanceMark\([0-9a-f]{64}\)$/);
+      }
     });
 
     it("should match Rust expected debug strings", () => {
@@ -882,7 +905,14 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.toString())).toEqual(EXPECTED_DISPLAY_QUARTILE_WITH_INFO);
+      expect(
+        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
+      ).toEqual(EXPECTED_DISPLAY_QUARTILE_WITH_INFO);
+
+      for (const m of marks) {
+        expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
+        expect(m.toString()).toMatch(/^ProvenanceMark\([0-9a-f]{64}\)$/);
+      }
     });
 
     it("should match Rust expected debug strings", () => {
@@ -996,7 +1026,14 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(marks.map((m) => m.toString())).toEqual(EXPECTED_DISPLAY_HIGH_WITH_INFO);
+      expect(
+        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
+      ).toEqual(EXPECTED_DISPLAY_HIGH_WITH_INFO);
+
+      for (const m of marks) {
+        expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
+        expect(m.toString()).toMatch(/^ProvenanceMark\([0-9a-f]{64}\)$/);
+      }
     });
 
     it("should match Rust expected debug strings", () => {

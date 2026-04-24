@@ -193,7 +193,7 @@ function formatText(report: ValidationReport): string {
       // Report each mark in the sequence
       for (const flaggedMark of seq.marks) {
         const mark = flaggedMark.mark;
-        const shortId = mark.identifier();
+        const shortId = mark.idHex().slice(0, 8);
         const seqNum = mark.seq();
 
         // Build the mark line with annotations

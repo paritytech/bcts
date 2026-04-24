@@ -278,66 +278,223 @@ export class ProvenanceMark {
   }
 
   /**
-   * Get the first four bytes of the hash as a hex string identifier.
+   * The 32-byte Mark ID.
+   *
+   * The first `linkLength` bytes are the mark's stored hash. The remaining
+   * bytes come from the mark's fingerprint (SHA-256 of CBOR encoding),
+   * ensuring a full 32-byte value is always available regardless of
+   * resolution.
+   */
+  id(): Uint8Array {
+    const result = new Uint8Array(32);
+    const n = this._hash.length;
+    result.set(this._hash, 0);
+    if (n < 32) {
+      const fp = this.fingerprint();
+      result.set(fp.subarray(0, 32 - n), n);
+    }
+    return result;
+  }
+
+  /**
+   * The full 32-byte Mark ID as a 64-character hex string.
+   */
+  idHex(): string {
+    return bytesToHex(this.id());
+  }
+
+  /**
+   * The first `wordCount` bytes of the Mark ID as upper-case ByteWords.
+   *
+   * @param wordCount Number of bytes to encode, must be in `4..=32`.
+   * @param prefix If `true`, prepends the provenance-mark prefix character.
+   * @throws if `wordCount` is not in the range `4..=32`.
+   */
+  idBytewords(wordCount: number, prefix: boolean): string {
+    if (!Number.isInteger(wordCount) || wordCount < 4 || wordCount > 32) {
+      throw new Error(`word_count must be 4..=32, got ${wordCount}`);
+    }
+    const s = encodeToWords(this.id().subarray(0, wordCount)).toUpperCase();
+    return prefix ? `\u{1F151} ${s}` : s;
+  }
+
+  /**
+   * The first `wordCount` bytes of the Mark ID as Bytemoji.
+   *
+   * @param wordCount Number of bytes to encode, must be in `4..=32`.
+   * @param prefix If `true`, prepends the provenance-mark prefix character.
+   * @throws if `wordCount` is not in the range `4..=32`.
+   */
+  idBytemoji(wordCount: number, prefix: boolean): string {
+    if (!Number.isInteger(wordCount) || wordCount < 4 || wordCount > 32) {
+      throw new Error(`word_count must be 4..=32, got ${wordCount}`);
+    }
+    const s = encodeToBytemojis(this.id().subarray(0, wordCount)).toUpperCase();
+    return prefix ? `\u{1F151} ${s}` : s;
+  }
+
+  /**
+   * The first `wordCount` bytes of the Mark ID as upper-case minimal
+   * ByteWords (2 letters per byte, concatenated without separator).
+   *
+   * @param wordCount Number of bytes to encode, must be in `4..=32`.
+   * @param prefix If `true`, prepends the provenance-mark prefix character.
+   * @throws if `wordCount` is not in the range `4..=32`.
+   */
+  idBytewordsMinimal(wordCount: number, prefix: boolean): string {
+    if (!Number.isInteger(wordCount) || wordCount < 4 || wordCount > 32) {
+      throw new Error(`word_count must be 4..=32, got ${wordCount}`);
+    }
+    const s = encodeToMinimalBytewords(
+      this.id().subarray(0, wordCount),
+    ).toUpperCase();
+    return prefix ? `\u{1F151} ${s}` : s;
+  }
+
+  /**
+   * Legacy 8-character hex identifier — the first 4 bytes of the Mark ID.
+   *
+   * @deprecated Use {@link idHex} for the full 64-char hex, or
+   *   `idHex().slice(0, 8)` for this legacy short form. Retained for
+   *   backwards compatibility; will be removed in a future alpha.
    */
   identifier(): string {
-    return Array.from(this._hash.slice(0, 4))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
+    return this.idHex().slice(0, 8);
   }
 
   /**
-   * Get the first four bytes of the hash as upper-case ByteWords.
+   * Legacy 4-byte upper-case ByteWords identifier.
+   *
+   * @deprecated Equivalent to `idBytewords(4, prefix)`. Retained for
+   *   backwards compatibility; will be removed in a future alpha.
    */
   bytewordsIdentifier(prefix: boolean): string {
-    const bytes = this._hash.slice(0, 4);
-    const s = encodeBytewordsIdentifier(bytes).toUpperCase();
-    return prefix ? `\u{1F151} ${s}` : s;
+    return this.idBytewords(4, prefix);
   }
 
   /**
-   * A compact 8-letter identifier derived from the upper-case ByteWords
-   * identifier by taking the first and last letter of each ByteWords word
-   * (4 words x 2 letters = 8 letters).
+   * Legacy 8-letter minimal ByteWords identifier (first+last letter of each
+   * of the 4 ByteWords). Example: "ABLE ACID ALSO APEX" -> "AEADAOAX".
    *
-   * Example: "ABLE ACID ALSO APEX" -> "AEADAOAX"
-   * If prefix is true, prepends the provenance mark prefix character.
+   * @deprecated Equivalent to `idBytewordsMinimal(4, prefix)`. Retained
+   *   for backwards compatibility; will be removed in a future alpha.
    */
   bytewordsMinimalIdentifier(prefix: boolean): string {
-    const full = encodeBytewordsIdentifier(this._hash.slice(0, 4));
-
-    const words = full.split(/\s+/);
-    let out = "";
-    if (words.length === 4) {
-      for (const w of words) {
-        if (w.length === 0) continue;
-        out += w[0].toUpperCase();
-        out += w[w.length - 1].toUpperCase();
-      }
-    }
-
-    // Conservative fallback: if the input wasn't in the expected
-    // space-separated 4-word format, remove whitespace and chunk the
-    // remaining letters.
-    if (out.length !== 8) {
-      out = "";
-      const compact = full.replace(/[^a-zA-Z]/g, "").toUpperCase();
-      for (let i = 0; i + 3 < compact.length; i += 4) {
-        out += compact[i];
-        out += compact[i + 3];
-      }
-    }
-
-    return prefix ? `\u{1F151} ${out}` : out;
+    return this.idBytewordsMinimal(4, prefix);
   }
 
   /**
-   * Get the first four bytes of the hash as Bytemoji.
+   * Legacy 4-byte upper-case Bytemoji identifier.
+   *
+   * @deprecated Equivalent to `idBytemoji(4, prefix)`. Retained for
+   *   backwards compatibility; will be removed in a future alpha.
    */
   bytemojiIdentifier(prefix: boolean): string {
-    const bytes = this._hash.slice(0, 4);
-    const s = encodeBytemojisIdentifier(bytes).toUpperCase();
-    return prefix ? `\u{1F151} ${s}` : s;
+    return this.idBytemoji(4, prefix);
+  }
+
+  /**
+   * Computes the minimum prefix length (in bytes, `4..=32`) each mark needs
+   * so that every mark in the set has a unique Mark ID prefix.
+   *
+   * Non-colliding marks get the minimum of 4. Only marks whose 4-byte
+   * prefixes collide are extended.
+   */
+  private static minimalNoncollidingPrefixLengths(
+    ids: Uint8Array[],
+  ): number[] {
+    const n = ids.length;
+    const lengths: number[] = new Array<number>(n).fill(4);
+
+    // Group by 4-byte prefix (fast path)
+    const groups = new Map<string, number[]>();
+    for (let i = 0; i < n; i++) {
+      const key = bytesToHex(ids[i].subarray(0, 4));
+      const g = groups.get(key);
+      if (g !== undefined) g.push(i);
+      else groups.set(key, [i]);
+    }
+
+    // Resolve each collision group
+    for (const indices of groups.values()) {
+      if (indices.length <= 1) continue;
+      ProvenanceMark.resolveCollisionGroup(ids, indices, lengths);
+    }
+
+    return lengths;
+  }
+
+  private static resolveCollisionGroup(
+    ids: Uint8Array[],
+    initialIndices: number[],
+    lengths: number[],
+  ): void {
+    let unresolved: number[] = [...initialIndices];
+
+    for (let prefixLen = 5; prefixLen <= 32; prefixLen++) {
+      const subGroups = new Map<string, number[]>();
+      for (const i of unresolved) {
+        const key = bytesToHex(ids[i].subarray(0, prefixLen));
+        const g = subGroups.get(key);
+        if (g !== undefined) g.push(i);
+        else subGroups.set(key, [i]);
+      }
+
+      const nextUnresolved: number[] = [];
+      for (const subIndices of subGroups.values()) {
+        if (subIndices.length === 1) {
+          lengths[subIndices[0]] = prefixLen;
+        } else {
+          nextUnresolved.push(...subIndices);
+        }
+      }
+
+      if (nextUnresolved.length === 0) return;
+      unresolved = nextUnresolved;
+    }
+
+    // At 32 bytes, truly identical IDs remain — assign 32
+    for (const i of unresolved) {
+      lengths[i] = 32;
+    }
+  }
+
+  /**
+   * Returns disambiguated upper-case ByteWords Mark IDs for a set of marks.
+   *
+   * Non-colliding marks get 4-word identifiers. Only marks whose 4-byte
+   * prefixes collide are extended with additional words (up to 32 bytes
+   * per identifier).
+   */
+  static disambiguatedIdBytewords(
+    marks: ProvenanceMark[],
+    prefix: boolean,
+  ): string[] {
+    const ids = marks.map((m) => m.id());
+    const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
+    return ids.map((id, i) => {
+      const s = encodeToWords(id.subarray(0, lengths[i])).toUpperCase();
+      return prefix ? `\u{1F151} ${s}` : s;
+    });
+  }
+
+  /**
+   * Returns disambiguated Bytemoji Mark IDs for a set of marks.
+   *
+   * Non-colliding marks get 4-emoji identifiers. Only marks whose 4-byte
+   * prefixes collide are extended with additional emojis (up to 32 bytes
+   * per identifier).
+   */
+  static disambiguatedIdBytemoji(
+    marks: ProvenanceMark[],
+    prefix: boolean,
+  ): string[] {
+    const ids = marks.map((m) => m.id());
+    const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
+    return ids.map((id, i) => {
+      const s = encodeToBytemojis(id.subarray(0, lengths[i])).toUpperCase();
+      return prefix ? `\u{1F151} ${s}` : s;
+    });
   }
 
   /**
@@ -604,9 +761,13 @@ export class ProvenanceMark {
 
   /**
    * Debug string representation.
+   *
+   * As of provenance-mark v0.24, this includes the full 64-character Mark ID
+   * hex (matching rust's `Display` impl). Pre-v0.24 callers that depended on
+   * the 8-character prefix should use `idHex().slice(0, 8)` directly.
    */
   toString(): string {
-    return `ProvenanceMark(${this.identifier()})`;
+    return `ProvenanceMark(${this.idHex()})`;
   }
 
   /**

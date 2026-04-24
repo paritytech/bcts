@@ -197,56 +197,60 @@ export class ValidateCommand implements Exec {
   /**
    * Extract a ProvenanceMark from an Envelope.
    *
-   * The envelope must contain exactly one 'provenance' assertion,
-   * and the object subject of that assertion must be a ProvenanceMark.
+   * The envelope must contain exactly one 'provenance' assertion (possibly
+   * inside one or more wrapper layers), and the object subject of that
+   * assertion must be a ProvenanceMark.
    *
-   * Corresponds to Rust `extract_provenance_mark_from_envelope()`
+   * Corresponds to Rust `extract_provenance_mark_from_envelope()` in
+   * `rust/provenance-mark-cli-rust/src/cmd/validate.rs` (as of v0.7.0).
    */
   private extractProvenanceMarkFromEnvelope(envelope: Envelope, urString: string): ProvenanceMark {
-    // If the envelope is wrapped, unwrap it to get to the actual content
-    let workingEnvelope = envelope;
-    if (envelope.isWrapped()) {
-      const innerEnvelope = envelope.unwrap();
-      if (innerEnvelope !== undefined) {
-        workingEnvelope = innerEnvelope;
-      }
-    }
-
-    // Find all assertions with the 'provenance' predicate
     const provenancePredicate = Envelope.newWithKnownValue(PROVENANCE);
-    const provenanceAssertions = workingEnvelope.assertionsWithPredicate(provenancePredicate);
+    let current = envelope;
 
-    // Verify exactly one provenance assertion exists
-    if (provenanceAssertions.length === 0) {
-      throw new Error(`Envelope in '${urString}' does not contain a 'provenance' assertion`);
-    }
-    if (provenanceAssertions.length > 1) {
-      throw new Error(
-        `Envelope in '${urString}' contains ${provenanceAssertions.length} 'provenance' assertions, expected exactly one`,
-      );
-    }
+    // Strip wrapper layers one at a time, looking for a 'provenance'
+    // assertion at each level. Stops at the first match, or when no more
+    // layers can be unwrapped.
+    for (;;) {
+      const provenanceAssertions = current.assertionsWithPredicate(provenancePredicate);
 
-    // Get the object of the provenance assertion
-    const provenanceAssertion = provenanceAssertions[0];
-    const objectEnvelope = provenanceAssertion.asObject();
-    if (objectEnvelope === undefined) {
-      throw new Error(`Failed to extract object from provenance assertion in '${urString}'`);
-    }
-
-    // The object should be decodable as a ProvenanceMark.
-    // Extract the CBOR from the leaf envelope and parse it.
-    try {
-      const cborValue = objectEnvelope.asLeaf();
-      if (cborValue === undefined) {
-        throw new Error("Object envelope is not a leaf");
+      if (provenanceAssertions.length > 1) {
+        throw new Error(
+          `Envelope in '${urString}' contains ${provenanceAssertions.length} 'provenance' assertions, expected exactly one`,
+        );
       }
-      return ProvenanceMark.fromTaggedCbor(cborValue);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      throw new Error(
-        `Failed to decode ProvenanceMark from provenance assertion in '${urString}': ${message}`,
-        { cause: e },
-      );
+
+      if (provenanceAssertions.length === 1) {
+        const provenanceAssertion = provenanceAssertions[0];
+        const objectEnvelope = provenanceAssertion.asObject();
+        if (objectEnvelope === undefined) {
+          throw new Error(`Failed to extract object from provenance assertion in '${urString}'`);
+        }
+
+        // The object should be decodable as a ProvenanceMark.
+        // Extract the CBOR from the leaf envelope and parse it.
+        try {
+          const cborValue = objectEnvelope.asLeaf();
+          if (cborValue === undefined) {
+            throw new Error("Object envelope is not a leaf");
+          }
+          return ProvenanceMark.fromTaggedCbor(cborValue);
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          throw new Error(
+            `Failed to decode ProvenanceMark from provenance assertion in '${urString}': ${message}`,
+            { cause: e },
+          );
+        }
+      }
+
+      // No provenance at this level. If this is a wrapper around a
+      // signed/content envelope, strip one layer and try again.
+      try {
+        current = current.tryUnwrap();
+      } catch {
+        throw new Error(`Envelope in '${urString}' does not contain a 'provenance' assertion`);
+      }
     }
   }
 
