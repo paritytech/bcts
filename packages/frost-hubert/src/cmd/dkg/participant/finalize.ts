@@ -447,7 +447,7 @@ export async function finalize(
   );
 
   // Get the group verifying key
-  const verifyingKeyBytes = publicKeyPackage.verifyingKey as Uint8Array;
+  const verifyingKeyBytes = publicKeyPackage.verifyingKey;
   const groupVerifyingKey = signingKeyFromVerifying(verifyingKeyBytes);
 
   if (isVerbose() || options.verbose === true) {

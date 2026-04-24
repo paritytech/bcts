@@ -123,7 +123,7 @@ function parseRelaxedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
     throw new Error(`Expected a ur:xid document, found ur:${ur.urTypeStr()}`);
   }
 
-  const envelopeCbor = ur.cbor() as unknown as Cbor;
+  const envelopeCbor = ur.cbor();
   let envelope: Envelope;
   try {
     envelope = Envelope.fromTaggedCbor(envelopeCbor);
