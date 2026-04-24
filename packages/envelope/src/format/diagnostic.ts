@@ -33,8 +33,7 @@ type CborValue =
 function cborToDiagnostic(cbor: CborValue, indent = 0): string {
   // Handle tagged values (CBOR tags)
   if (typeof cbor === "object" && cbor !== null && "tag" in cbor && "value" in cbor) {
-    const tagged = cbor as { tag: number; value: CborValue };
-    return `${tagged.tag}(${cborToDiagnostic(tagged.value, indent)})`;
+    return `${cbor.tag}(${cborToDiagnostic(cbor.value, indent)})`;
   }
 
   // Handle arrays
@@ -75,7 +74,7 @@ function cborToDiagnostic(cbor: CborValue, indent = 0): string {
 
   // Handle CBOR objects with type information
   if (typeof cbor === "object" && cbor !== null && "type" in cbor) {
-    const typed = cbor as { type: number; value: unknown };
+    const typed = cbor;
     switch (typed.type) {
       case 0: // Unsigned
         return String(typed.value);

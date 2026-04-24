@@ -204,7 +204,7 @@ Envelope.prototype.makeSignedAssertion = function (
   signature: Signature,
   note?: string,
 ): Envelope {
-  let envelope = Envelope.newAssertion(SIGNED, signature as unknown as EnvelopeEncodableValue);
+  let envelope = Envelope.newAssertion(SIGNED, signature);
   if (note !== undefined) {
     envelope = envelope.addAssertion(NOTE, note);
   }

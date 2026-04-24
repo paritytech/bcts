@@ -707,7 +707,7 @@ export class Envelope implements DigestProvider {
 
     // Handle known values (unsigned integers)
     if (cbor.type === MajorType.Unsigned) {
-      const knownValue = new KnownValue(cbor.value as number | bigint);
+      const knownValue = new KnownValue(cbor.value);
       return Envelope.newWithKnownValue(knownValue);
     }
 
