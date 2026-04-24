@@ -143,7 +143,7 @@ export function parsePartial(input: string): Result<[Pattern, number]> {
   const lexer = new Lexer(input);
   const result = parseOr(lexer);
   if (!result.ok) {
-    return result as Result<[Pattern, number]>;
+    return result;
   }
   return ok([result.value, lexer.position]);
 }

@@ -16,7 +16,7 @@ import { PROVENANCE_GENERATOR, SALT, type KnownValue } from "@bcts/known-values"
 import { Salt, type KeyDerivationMethod, defaultKeyDerivationMethod } from "@bcts/components";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 import { ProvenanceMark, ProvenanceMarkGenerator } from "@bcts/provenance-mark";
 import { XIDError } from "./error";
 
@@ -289,10 +289,7 @@ export class Provenance implements EnvelopeEncodable {
               const wrapped = generatorEnvelope.wrap() as EnvelopeExt;
               const method: KeyDerivationMethod =
                 generatorOptions.method ?? defaultKeyDerivationMethod();
-              const encrypted = (wrapped as unknown as EnvelopeExt).lockSubject(
-                method,
-                generatorOptions.password,
-              );
+              const encrypted = wrapped.lockSubject(method, generatorOptions.password);
               envelope = envelope.addAssertion(kv(PROVENANCE_GENERATOR), encrypted);
               envelope = envelope.addAssertion(kv(SALT), salt.toData());
             }

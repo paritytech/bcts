@@ -15,7 +15,7 @@ import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@
 import { KEY, DELEGATE, NAME, CAPABILITY, ALLOW, type KnownValue } from "@bcts/known-values";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 import { Reference, type PublicKeys, type XID } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { privilegeFromEnvelope } from "./privilege";

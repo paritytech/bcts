@@ -92,7 +92,7 @@ export class SplitCommand implements Exec {
     const spec = SSKRSpec.new(this.args.groupThreshold, groupSpecs);
 
     // Split: adds SSKR share assertions to the encrypted envelope
-    const groupedShares = (encrypted as EnvelopeWithSskr).sskrSplit(spec, contentKey);
+    const groupedShares = encrypted.sskrSplit(spec, contentKey);
 
     // Flatten the grouped shares
     let flatShares: Envelope[] = groupedShares.flat();

@@ -106,7 +106,7 @@ export const map = <T, U>(result: Result<T>, fn: (value: T) => U): Result<U> => 
   if (result.ok) {
     return Ok(fn(result.value));
   }
-  return result as Result<U>;
+  return result;
 };
 
 /**
