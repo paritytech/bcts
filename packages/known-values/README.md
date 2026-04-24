@@ -8,4 +8,4 @@ This package defines the [known values](https://github.com/BlockchainCommons/Res
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) **v0.15.1** ([commit](https://github.com/BlockchainCommons/known-values-rust/tree/abbbe31454edd82bebd49a4176e0a3717e2d094c)).
+This TypeScript implementation is based on [known-values-rust](https://github.com/BlockchainCommons/known-values-rust) **v0.15.5** ([commit](https://github.com/BlockchainCommons/known-values-rust/tree/c1eefb4b6c2c9855802e2649ef70bad9beed6f35)).

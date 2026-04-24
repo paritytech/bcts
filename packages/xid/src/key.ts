@@ -17,7 +17,7 @@ import type { EnvelopeEncodableValue } from "@bcts/envelope";
 import { type Cbor } from "@bcts/dcbor";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 import {
   Salt,
   type Reference,

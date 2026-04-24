@@ -16,18 +16,23 @@ import type { Chunk } from "../../encoding/polynomial.js";
 import type { Message, MessagePayload } from "./states.js";
 
 // ---------------------------------------------------------------------------
-// Message type enum
+// Message type tag
 // ---------------------------------------------------------------------------
+//
+// Using an `as const` object + union type (rather than a numeric `enum`)
+// so the tag and the raw byte read from the wire share a literal-number
+// type. This keeps the switch below free of `@typescript-eslint/no-unsafe-
+// enum-comparison` complaints while still being exhaustive.
 
-const enum MessageType {
-  None = 0,
-  Hdr = 1,
-  Ek = 2,
-  EkCt1Ack = 3,
-  Ct1Ack = 4,
-  Ct1 = 5,
-  Ct2 = 6,
-}
+const MessageType = {
+  None: 0,
+  Hdr: 1,
+  Ek: 2,
+  EkCt1Ack: 3,
+  Ct1Ack: 4,
+  Ct1: 5,
+  Ct2: 6,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Varint encoding/decoding (LEB128, matching protobuf varint)
@@ -222,7 +227,7 @@ export function deserializeMessage(from: Uint8Array): {
   const msgType = from[at.offset++];
 
   let payload: MessagePayload;
-  switch (msgType as MessageType) {
+  switch (msgType) {
     case MessageType.None:
       payload = { type: "none" };
       break;

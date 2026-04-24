@@ -11,7 +11,6 @@
  */
 
 import { type XID } from "@bcts/components";
-import { type Cbor } from "@bcts/dcbor";
 import { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
@@ -123,7 +122,7 @@ function parseRelaxedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
     throw new Error(`Expected a ur:xid document, found ur:${ur.urTypeStr()}`);
   }
 
-  const envelopeCbor = ur.cbor() as unknown as Cbor;
+  const envelopeCbor = ur.cbor();
   let envelope: Envelope;
   try {
     envelope = Envelope.fromTaggedCbor(envelopeCbor);

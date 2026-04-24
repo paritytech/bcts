@@ -650,7 +650,7 @@ export class PolyDecoder implements Decoder {
     const pts: SortedPtSet[] = data.pts.map((buf) => SortedPtSet.deserialize(buf));
     // Ensure we always have exactly 16 sets
     while (pts.length < NUM_POLYS) {
-      pts.push(new SortedPtSet() as unknown as SortedPtSet);
+      pts.push(new SortedPtSet());
     }
     return new PolyDecoder(data.ptsNeeded, pts, data.isComplete);
   }

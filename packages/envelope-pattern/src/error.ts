@@ -114,7 +114,7 @@ export function map<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
   if (result.ok) {
     return ok(fn(result.value));
   }
-  return result as Result<U>;
+  return result;
 }
 
 /**

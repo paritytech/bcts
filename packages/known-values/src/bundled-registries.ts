@@ -68,20 +68,20 @@ import communityExtRegistry from "../data/100000_community_registry.json";
  * Later entries override earlier entries when codepoints collide.
  */
 const ALL_REGISTRIES: RegistryFile[] = [
-  bcRegistry as RegistryFile,
-  communityRegistry as RegistryFile,
-  rdfRegistry as RegistryFile,
-  rdfsRegistry as RegistryFile,
-  owl2Registry as RegistryFile,
-  dceRegistry as RegistryFile,
-  dctRegistry as RegistryFile,
-  foafRegistry as RegistryFile,
-  skosRegistry as RegistryFile,
-  solidRegistry as RegistryFile,
-  vcRegistry as RegistryFile,
-  gs1Registry as RegistryFile,
-  schemaRegistry as RegistryFile,
-  communityExtRegistry as RegistryFile,
+  bcRegistry,
+  communityRegistry,
+  rdfRegistry,
+  rdfsRegistry,
+  owl2Registry,
+  dceRegistry,
+  dctRegistry,
+  foafRegistry,
+  skosRegistry,
+  solidRegistry,
+  vcRegistry,
+  gs1Registry,
+  schemaRegistry,
+  communityExtRegistry,
 ];
 
 /**

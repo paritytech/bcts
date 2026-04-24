@@ -45,4 +45,9 @@ export {
   decodeBytewords,
   encodeBytewordsIdentifier,
   encodeBytemojisIdentifier,
+  encodeToWords,
+  encodeToBytemojis,
+  encodeToMinimalBytewords,
+  isValidBytemoji,
+  canonicalizeByteword,
 } from "./utils";

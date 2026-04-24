@@ -46,8 +46,8 @@ export class ProvenanceMarkInfo {
     }
     const cborValue = decodeCbor(mark.toCborData());
     const ur = UR.new(tagName, cborValue);
-    const bytewords = mark.bytewordsIdentifier(true);
-    const bytemoji = mark.bytemojiIdentifier(true);
+    const bytewords = mark.idBytewords(4, true);
+    const bytemoji = mark.idBytemoji(4, true);
     return new ProvenanceMarkInfo(mark, ur, bytewords, bytemoji, comment);
   }
 

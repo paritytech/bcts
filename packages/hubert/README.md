@@ -15,4 +15,4 @@ Hubert provides distributed infrastructure for secure multiparty transactions, d
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [hubert-rust](https://github.com/BlockchainCommons/hubert-rust) **v0.5.0** ([commit](https://github.com/BlockchainCommons/hubert-rust/tree/3c0b5c399f2763c1f4c66ceb7b674c4e5ff3c53f)).
+This TypeScript implementation is based on [hubert-rust](https://github.com/BlockchainCommons/hubert-rust) **v0.5.0** ([commit](https://github.com/BlockchainCommons/hubert-rust/tree/01dcffe708a88ad4a7c9091a3c99fcfee9b550ab)).

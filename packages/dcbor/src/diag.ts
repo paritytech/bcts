@@ -171,15 +171,14 @@ export function diagnosticFlat(input: Cbor | WalkElement): string {
     "type" in input &&
     (input.type === "single" || input.type === "keyvalue")
   ) {
-    const element = input as WalkElement;
-    if (element.type === "single") {
-      return diagnosticOpt(element.cbor, { flat: true });
+    if (input.type === "single") {
+      return diagnosticOpt(input.cbor, { flat: true });
     } else {
-      return `${diagnosticOpt(element.key, { flat: true })}: ${diagnosticOpt(element.value, { flat: true })}`;
+      return `${diagnosticOpt(input.key, { flat: true })}: ${diagnosticOpt(input.value, { flat: true })}`;
     }
   }
   // Otherwise treat as Cbor
-  return diagnosticOpt(input as Cbor, { flat: true });
+  return diagnosticOpt(input, { flat: true });
 }
 
 /**

@@ -31,7 +31,7 @@ import {
 } from "@bcts/known-values";
 
 // Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v as unknown as EnvelopeEncodableValue;
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 import {
   Reference,
   XID,

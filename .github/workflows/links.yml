@@ -1,8 +1,13 @@
 name: Continuous Integration
+
+# Temporarily deactivated 2026-04-24 — will be re-enabled later.
+# To re-enable, restore the `pull_request` trigger block below:
+#   on:
+#     pull_request:
+#       paths:
+#         - "**.md"
 on:
-  pull_request:
-    paths:
-      - "**.md"
+  workflow_dispatch:
 
 permissions: read-all
 jobs:

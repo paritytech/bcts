@@ -15,4 +15,4 @@ LifeHash generates a unique, colorful, abstract image from any input data. It's 
 
 ## C++ Reference Implementation
 
-This TypeScript implementation is based on [bc-lifehash](https://github.com/BlockchainCommons/bc-lifehash) ([commit b5e8d43](https://github.com/BlockchainCommons/bc-lifehash/tree/b5e8d431b918951b91b5c3cb8eee27f4469feb6b)).
+This TypeScript implementation is based on [bc-lifehash](https://github.com/BlockchainCommons/bc-lifehash) ([commit 0444dbe](https://github.com/BlockchainCommons/bc-lifehash/tree/0444dbed5615fbc9a98163608c6499c025b7873b)). Test parity is enforced against the 35 upstream test vectors vendored at `tests/fixtures/test-vectors.json`.

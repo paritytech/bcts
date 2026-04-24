@@ -56,7 +56,7 @@ export enum ProvenanceMarkResolution {
  * Convert a resolution to its numeric value.
  */
 export function resolutionToNumber(res: ProvenanceMarkResolution): number {
-  return res as number;
+  return res;
 }
 
 /**
@@ -288,7 +288,7 @@ export function resolutionToString(res: ProvenanceMarkResolution): string {
  * Convert a resolution to CBOR.
  */
 export function resolutionToCbor(res: ProvenanceMarkResolution): Cbor {
-  return cbor(res as number);
+  return cbor(res);
 }
 
 /**

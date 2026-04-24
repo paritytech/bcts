@@ -12,4 +12,4 @@ Provenance Marks are specified in [this white paper](https://provemark.com).
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [provenance-mark-rust](https://github.com/BlockchainCommons/provenance-mark-rust) **v0.22.0** ([commit](https://github.com/BlockchainCommons/provenance-mark-rust/tree/234f7fefe380b06f65e153d8f4faf664ab0ba2c4)).
+This TypeScript implementation is based on [provenance-mark-rust](https://github.com/BlockchainCommons/provenance-mark-rust) **v0.24.0** ([commit](https://github.com/BlockchainCommons/provenance-mark-rust/tree/1732c79c89a72c3bfd66d6b23537d50e79fff9b5)).

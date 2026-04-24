@@ -462,7 +462,7 @@ export class Lexer {
         break;
       }
       if (!result.ok) {
-        return result as Result<SpannedToken[]>;
+        return result;
       }
       tokens.push(result.value);
     }

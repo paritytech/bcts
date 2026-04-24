@@ -110,6 +110,18 @@ export enum ContentHint {
   Implicit = 2,
 }
 
+/**
+ * Set of known `ContentHint` codes (used for runtime validation when
+ * decoding from the wire). Backed by `number` so comparisons with raw
+ * protobuf varint values don't trip `@typescript-eslint/no-unsafe-enum-
+ * comparison` while still letting us narrow to `ContentHint` afterwards.
+ */
+const KNOWN_CONTENT_HINTS: ReadonlySet<number> = new Set<number>([
+  ContentHint.Default,
+  ContentHint.Resendable,
+  ContentHint.Implicit,
+]);
+
 // ============================================================================
 // UnidentifiedSenderMessageContent (Task 2.2)
 // ============================================================================
@@ -240,13 +252,8 @@ export class UnidentifiedSenderMessageContent {
 
     const contentHintRaw = fields.varints.get(4);
     let contentHint = ContentHint.Default;
-    if (contentHintRaw !== undefined) {
-      if (
-        contentHintRaw === (ContentHint.Resendable as number) ||
-        contentHintRaw === (ContentHint.Implicit as number)
-      ) {
-        contentHint = contentHintRaw;
-      }
+    if (contentHintRaw !== undefined && KNOWN_CONTENT_HINTS.has(contentHintRaw)) {
+      contentHint = contentHintRaw;
     }
 
     const groupId = fields.bytes.get(5) ?? null;

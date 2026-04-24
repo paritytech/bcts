@@ -188,7 +188,7 @@ const parseTaggedInner = (
         end: error.span.end + offset,
       };
       // Create a new error with the adjusted span
-      return Err({ ...error, span: adjustedSpan } as typeof error);
+      return Err({ ...error, span: adjustedSpan });
     }
     return contentResult;
   }

@@ -385,7 +385,7 @@ export class KnownValue
     if (cborValue.type !== MajorType.Unsigned) {
       throw new Error(`Expected unsigned integer for KnownValue, got major type ${cborValue.type}`);
     }
-    const numValue = cborValue.value as number | bigint;
+    const numValue = cborValue.value;
     return new KnownValue(typeof numValue === "bigint" ? numValue : BigInt(numValue));
   }
 

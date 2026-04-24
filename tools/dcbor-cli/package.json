@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor-cli",
-  "version": "1.0.0-alpha.22",
+  "version": "1.0.0-alpha.23",
   "type": "module",
   "description": "Command line parser/validator for deterministic CBOR (dCBOR)",
   "license": "BSD-2-Clause-Patent",
@@ -59,12 +59,12 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@types/node": "^25.3.2",
-    "eslint": "^10.0.2",
+    "@types/node": "^25.6.0",
+    "eslint": "^10.2.1",
     "tsdown": "^0.21.0",
-    "typedoc": "^0.28.17",
+    "typedoc": "^0.28.19",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@bcts/components": "workspace:*",
