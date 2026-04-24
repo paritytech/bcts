@@ -13,12 +13,6 @@ import { readEnvelope } from "../../utils.js";
 import { SymmetricKey, PublicKeys, SSKRGroupSpec, SSKRSpec } from "@bcts/components";
 import { type Envelope, PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
 
-// SSKR extension methods are added to Envelope.prototype at import time
-// but the module augmentation uses relative paths that don't resolve across packages.
-interface EnvelopeWithSskr extends Envelope {
-  sskrSplit(spec: SSKRSpec, contentKey: SymmetricKey): Envelope[][];
-}
-
 /**
  * Command arguments for the split command.
  */

@@ -11,7 +11,6 @@
  */
 
 import { type ARID, type XID } from "@bcts/components";
-import { type Cbor } from "@bcts/dcbor";
 import { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
