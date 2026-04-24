@@ -8,6 +8,8 @@
  * `exactOptionalPropertyTypes: true` in tsconfig.
  */
 
+import { type Direction, type Version } from "../types.js";
+
 /** PqRatchetState - top level state (proto field numbers in comments) */
 export interface PbPqRatchetState {
   versionNegotiation?: PbVersionNegotiation | undefined; // field 1
@@ -17,8 +19,8 @@ export interface PbPqRatchetState {
 
 export interface PbVersionNegotiation {
   authKey: Uint8Array; // field 1
-  direction: number; // field 2 (Direction enum)
-  minVersion: number; // field 3 (Version enum)
+  direction: Direction; // field 2 (Direction enum; stored as varint on the wire)
+  minVersion: Version; // field 3 (Version enum; stored as varint on the wire)
   chainParams?: PbChainParams | undefined; // field 4
 }
 
@@ -28,7 +30,7 @@ export interface PbChainParams {
 }
 
 export interface PbChain {
-  direction: number; // field 1 (Direction enum)
+  direction: Direction; // field 1 (Direction enum; stored as varint on the wire)
   currentEpoch: bigint; // field 2 (uint64)
   links: PbEpoch[]; // field 3 (repeated)
   nextRoot: Uint8Array; // field 4
