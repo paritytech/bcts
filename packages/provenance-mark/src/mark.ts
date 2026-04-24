@@ -345,9 +345,7 @@ export class ProvenanceMark {
     if (!Number.isInteger(wordCount) || wordCount < 4 || wordCount > 32) {
       throw new Error(`word_count must be 4..=32, got ${wordCount}`);
     }
-    const s = encodeToMinimalBytewords(
-      this.id().subarray(0, wordCount),
-    ).toUpperCase();
+    const s = encodeToMinimalBytewords(this.id().subarray(0, wordCount)).toUpperCase();
     return prefix ? `\u{1F151} ${s}` : s;
   }
 
@@ -400,9 +398,7 @@ export class ProvenanceMark {
    * Non-colliding marks get the minimum of 4. Only marks whose 4-byte
    * prefixes collide are extended.
    */
-  private static minimalNoncollidingPrefixLengths(
-    ids: Uint8Array[],
-  ): number[] {
+  private static minimalNoncollidingPrefixLengths(ids: Uint8Array[]): number[] {
     const n = ids.length;
     const lengths: number[] = new Array<number>(n).fill(4);
 
@@ -466,10 +462,7 @@ export class ProvenanceMark {
    * prefixes collide are extended with additional words (up to 32 bytes
    * per identifier).
    */
-  static disambiguatedIdBytewords(
-    marks: ProvenanceMark[],
-    prefix: boolean,
-  ): string[] {
+  static disambiguatedIdBytewords(marks: ProvenanceMark[], prefix: boolean): string[] {
     const ids = marks.map((m) => m.id());
     const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
     return ids.map((id, i) => {
@@ -485,10 +478,7 @@ export class ProvenanceMark {
    * prefixes collide are extended with additional emojis (up to 32 bytes
    * per identifier).
    */
-  static disambiguatedIdBytemoji(
-    marks: ProvenanceMark[],
-    prefix: boolean,
-  ): string[] {
+  static disambiguatedIdBytemoji(marks: ProvenanceMark[], prefix: boolean): string[] {
     const ids = marks.map((m) => m.id());
     const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
     return ids.map((id, i) => {

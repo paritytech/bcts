@@ -1,19 +1,12 @@
 import { describe, it, expect } from "vitest";
-import {
-  ProvenanceMark,
-  ProvenanceMarkGenerator,
-  ProvenanceMarkResolution,
-} from "../src";
+import { ProvenanceMark, ProvenanceMarkGenerator, ProvenanceMarkResolution } from "../src";
 
 // Ported from rust/provenance-mark-rust/tests/identifier.rs
 
 const BASE_DATE_MS = Date.UTC(2023, 5, 20, 12, 0, 0, 0); // 2023-06-20T12:00:00Z
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function makeMarksForResolution(
-  res: ProvenanceMarkResolution,
-  count: number,
-): ProvenanceMark[] {
+function makeMarksForResolution(res: ProvenanceMarkResolution, count: number): ProvenanceMark[] {
   const generator = ProvenanceMarkGenerator.newWithPassphrase(res, "Wolf");
   // Mirror the rust helper which serializes / deserializes the generator
   // each round to ensure state persistence works identically.
@@ -58,9 +51,7 @@ describe("ProvenanceMark.id()", () => {
       for (const mark of marks) {
         const id = mark.id();
         const hash = mark.hash();
-        expect(Array.from(id.subarray(0, hash.length))).toEqual(
-          Array.from(hash),
-        );
+        expect(Array.from(id.subarray(0, hash.length))).toEqual(Array.from(hash));
       }
     }
   });
@@ -176,9 +167,7 @@ describe("ProvenanceMark.idBytewordsMinimal()", () => {
 
   it("throws for wordCount below 4", () => {
     const [mark] = makeTestMarks(1);
-    expect(() =>
-      mark.idBytewordsMinimal(3, false),
-    ).toThrow(/word_count must be 4\.\.=32/);
+    expect(() => mark.idBytewordsMinimal(3, false)).toThrow(/word_count must be 4\.\.=32/);
   });
 });
 

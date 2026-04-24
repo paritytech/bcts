@@ -684,10 +684,7 @@ export function canonicalizeByteword(token: string): string | undefined {
     case 2:
       return BYTEWORD_FIRST_LAST_MAP.get(lower);
     case 3: {
-      return (
-        BYTEWORD_FIRST_THREE_MAP.get(lower) ??
-        BYTEWORD_LAST_THREE_MAP.get(lower)
-      );
+      return BYTEWORD_FIRST_THREE_MAP.get(lower) ?? BYTEWORD_LAST_THREE_MAP.get(lower);
     }
     default:
       return undefined;

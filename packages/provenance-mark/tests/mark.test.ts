@@ -607,9 +607,7 @@ describe("ProvenanceMark", () => {
       }
 
       // Legacy 8-char ID format (preserved via identifier())
-      expect(
-        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
-      ).toEqual(EXPECTED_DISPLAY_LOW);
+      expect(marks.map((m) => `ProvenanceMark(${m.identifier()})`)).toEqual(EXPECTED_DISPLAY_LOW);
 
       // New 64-char Mark ID format via toString() (matches rust v0.24+ Display)
       for (const m of marks) {
@@ -736,9 +734,9 @@ describe("ProvenanceMark", () => {
       }
 
       // Legacy 8-char ID format (preserved via identifier())
-      expect(
-        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
-      ).toEqual(EXPECTED_DISPLAY_LOW_WITH_INFO);
+      expect(marks.map((m) => `ProvenanceMark(${m.identifier()})`)).toEqual(
+        EXPECTED_DISPLAY_LOW_WITH_INFO,
+      );
 
       // New 64-char Mark ID format via toString() (matches rust v0.24+ Display)
       for (const m of marks) {
@@ -786,9 +784,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(
-        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
-      ).toEqual(EXPECTED_DISPLAY_MEDIUM_WITH_INFO);
+      expect(marks.map((m) => `ProvenanceMark(${m.identifier()})`)).toEqual(
+        EXPECTED_DISPLAY_MEDIUM_WITH_INFO,
+      );
 
       for (const m of marks) {
         expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
@@ -905,9 +903,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(
-        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
-      ).toEqual(EXPECTED_DISPLAY_QUARTILE_WITH_INFO);
+      expect(marks.map((m) => `ProvenanceMark(${m.identifier()})`)).toEqual(
+        EXPECTED_DISPLAY_QUARTILE_WITH_INFO,
+      );
 
       for (const m of marks) {
         expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);
@@ -1026,9 +1024,9 @@ describe("ProvenanceMark", () => {
         marks.push(generator.next(date, cbor("Lorem ipsum sit dolor amet.")));
       }
 
-      expect(
-        marks.map((m) => `ProvenanceMark(${m.identifier()})`),
-      ).toEqual(EXPECTED_DISPLAY_HIGH_WITH_INFO);
+      expect(marks.map((m) => `ProvenanceMark(${m.identifier()})`)).toEqual(
+        EXPECTED_DISPLAY_HIGH_WITH_INFO,
+      );
 
       for (const m of marks) {
         expect(m.toString()).toBe(`ProvenanceMark(${m.idHex()})`);

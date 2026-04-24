@@ -15,10 +15,7 @@ import { ValidateCommand, ValidateFormat } from "../src/cmd/validate.js";
 // - test_validate_signed_xid_with_provenance
 
 function createTestMark(): ProvenanceMark {
-  const generator = ProvenanceMarkGenerator.newWithPassphrase(
-    ProvenanceMarkResolution.Low,
-    "test",
-  );
+  const generator = ProvenanceMarkGenerator.newWithPassphrase(ProvenanceMarkResolution.Low, "test");
   return generator.next(new Date(Date.UTC(2023, 5, 20, 12, 0, 0, 0)));
 }
 
@@ -27,10 +24,7 @@ function wrappedMarkUr(mark: ProvenanceMark, urType: string): string {
   //   let inner = Envelope::new("fixture").add_assertion(PROVENANCE, mark.clone());
   //   let signed_like = inner.wrap().add_assertion("signed", "fixture-signature");
   //   UR::new(ur_type, signed_like.untagged_cbor())
-  const inner = Envelope.new("fixture").addAssertion(
-    PROVENANCE,
-    mark.intoEnvelope(),
-  );
+  const inner = Envelope.new("fixture").addAssertion(PROVENANCE, mark.intoEnvelope());
   const signedLike = inner.wrap().addAssertion("signed", "fixture-signature");
   return UR.new(urType, signedLike.untaggedCbor()).toString();
 }
@@ -70,10 +64,7 @@ describe("ValidateCommand — wrapped-envelope unwrap", () => {
 
   it("still validates an unwrapped `ur:envelope` with a single provenance assertion", () => {
     const mark = createTestMark();
-    const plain = Envelope.new("fixture").addAssertion(
-      PROVENANCE,
-      mark.intoEnvelope(),
-    );
+    const plain = Envelope.new("fixture").addAssertion(PROVENANCE, mark.intoEnvelope());
     const urString = UR.new("envelope", plain.untaggedCbor()).toString();
 
     const { success } = runValidate([urString]);
