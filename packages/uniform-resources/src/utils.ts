@@ -4,11 +4,13 @@
  *
  */
 
-import { InvalidTypeError } from "./error.js";
+import { BytewordsError, InvalidTypeError } from "./error.js";
 
 /**
  * Checks if a character is a valid UR type character.
- * Valid characters are lowercase letters, digits, and hyphens.
+ *
+ * Mirrors Rust's `URTypeChar::is_ur_type` (`bc-ur-rust/src/utils.rs:6-19`):
+ * lowercase a-z, digits 0-9, and the hyphen `-`.
  */
 export function isURTypeChar(char: string): boolean {
   const code = char.charCodeAt(0);
@@ -23,10 +25,14 @@ export function isURTypeChar(char: string): boolean {
 
 /**
  * Checks if a string is a valid UR type.
- * Valid UR types contain only lowercase letters, digits, and hyphens.
+ *
+ * Mirrors Rust's `URTypeString::is_ur_type` (`bc-ur-rust/src/utils.rs:26-32`)
+ * which is `self.chars().all(...)` — meaning **the empty string is accepted**
+ * (a vacuously-true `all` over no chars). We mirror that here so that
+ * `URType::new("")` succeeds in both ports; the round-trip then fails at
+ * decode-time with `TypeUnspecified`.
  */
 export function isValidURType(urType: string): boolean {
-  if (urType.length === 0) return false;
   return Array.from(urType).every((char) => isURTypeChar(char));
 }
 
@@ -843,13 +849,44 @@ export function encodeBytewords(
 }
 
 /**
+ * Returns true if every code unit of `s` is in the ASCII range (0..=127).
+ *
+ * Mirrors Rust's `str::is_ascii` used at `ur::bytewords::decode` line 105.
+ * We test the raw code units (rather than Array.from + codepoint) because
+ * any non-BMP character has surrogate pairs both ≥ 0xD800, which already
+ * exceed 0x7F.
+ */
+function isAsciiString(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 0x7f) return false;
+  }
+  return true;
+}
+
+/**
  * Decode bytewords string back to data.
  * Validates and removes CRC32 checksum.
+ *
+ * Errors mirror the upstream Rust `ur::bytewords::Error` enum
+ * (`ur-0.4.1/src/bytewords.rs`):
+ * - `NonAscii` — input contains non-ASCII characters (checked first).
+ * - `InvalidLength` — minimal-style input has odd length.
+ * - `InvalidWord` — a token does not map to a byteword index.
+ * - `InvalidChecksum` — the trailing 4-byte CRC32 does not match.
+ *
+ * All variants are surfaced as {@link BytewordsError} with the same default
+ * `Display` strings as Rust (e.g. "invalid checksum", "non-ASCII"), so
+ * callers can branch on the error class rather than the bare `Error`
+ * thrown by earlier revisions of this port.
  */
 export function decodeBytewords(
   encoded: string,
   style: BytewordsStyle = BytewordsStyle.Minimal,
 ): Uint8Array {
+  // Rust rejects non-ASCII input up-front (`bytewords.rs:105-107`).
+  if (!isAsciiString(encoded)) {
+    throw new BytewordsError("bytewords string contains non-ASCII characters");
+  }
   const lowercased = encoded.toLowerCase();
   let bytes: number[];
 
@@ -859,7 +896,7 @@ export function decodeBytewords(
       bytes = words.map((word) => {
         const index = BYTEWORDS_MAP.get(word);
         if (index === undefined) {
-          throw new Error(`Invalid byteword: ${word}`);
+          throw new BytewordsError("invalid word");
         }
         return index;
       });
@@ -871,7 +908,7 @@ export function decodeBytewords(
       bytes = words.map((word) => {
         const index = BYTEWORDS_MAP.get(word);
         if (index === undefined) {
-          throw new Error(`Invalid byteword: ${word}`);
+          throw new BytewordsError("invalid word");
         }
         return index;
       });
@@ -880,14 +917,14 @@ export function decodeBytewords(
     case BytewordsStyle.Minimal: {
       // 2-character minimal words with no separator
       if (lowercased.length % 2 !== 0) {
-        throw new Error("Invalid minimal bytewords length");
+        throw new BytewordsError("invalid length");
       }
       bytes = [];
       for (let i = 0; i < lowercased.length; i += 2) {
         const minimal = lowercased.slice(i, i + 2);
         const index = MINIMAL_BYTEWORDS_MAP.get(minimal);
         if (index === undefined) {
-          throw new Error(`Invalid minimal byteword: ${minimal}`);
+          throw new BytewordsError("invalid word");
         }
         bytes.push(index);
       }
@@ -896,7 +933,7 @@ export function decodeBytewords(
   }
 
   if (bytes.length < 4) {
-    throw new Error("Bytewords data too short (missing checksum)");
+    throw new BytewordsError("invalid checksum");
   }
 
   // Extract data and checksum
@@ -914,9 +951,7 @@ export function decodeBytewords(
     0;
 
   if (expectedChecksum !== actualChecksum) {
-    throw new Error(
-      `Bytewords checksum mismatch: expected ${expectedChecksum.toString(16)}, got ${actualChecksum.toString(16)}`,
-    );
+    throw new BytewordsError("invalid checksum");
   }
 
   return data;
