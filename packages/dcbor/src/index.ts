@@ -31,26 +31,46 @@ export {
 export { type Simple, simpleName, isNaN } from "./simple";
 
 // Encoding/Decoding
-export { cbor, cborData } from "./cbor";
+export { cbor, cborData, cborEquals } from "./cbor";
 export { decodeCbor } from "./decode";
 
-// Factory functions (static creators)
-export { toByteString, toByteStringFromHex, toTaggedValue } from "./cbor";
+// Factory functions (static creators).
+// `cborFalse`, `cborTrue`, `cborNull`, `cborNaN` mirror Rust
+// `CBOR::r#false()`, `CBOR::r#true()`, `CBOR::null()`, `CBOR::nan()`.
+export {
+  toByteString,
+  toByteStringFromHex,
+  toTaggedValue,
+  cborFalse,
+  cborTrue,
+  cborNull,
+  cborNaN,
+} from "./cbor";
 
 // Map and Set
 export { CborMap, type MapEntry } from "./map";
 export { CborSet } from "./set";
 
 // Tags and Tagged values
-export { type Tag, createTag } from "./tag";
+export {
+  type Tag,
+  type TagValue,
+  createTag,
+  tagWithValue,
+  tagWithStaticName,
+  tagsEqual,
+} from "./tag";
 export {
   type CborTagged,
   type CborTaggedEncodable,
   type CborTaggedDecodable,
   type CborTaggedCodable,
   createTaggedCbor,
+  taggedCborData,
   validateTag,
   extractTaggedContent,
+  fromTaggedCborData,
+  fromUntaggedCborData,
 } from "./cbor-tagged";
 export {
   TagsStore,
@@ -101,6 +121,14 @@ export {
   biguintFromUntaggedCbor,
   bigintFromNegativeUntaggedCbor,
 } from "./bignum";
+
+// CBOR-encoding-based array sorting (Rust `array.rs::CBORSortable`).
+export {
+  sortArrayByCborEncoding,
+  arraySortable,
+  setSortable,
+  type CBORSortable,
+} from "./sortable";
 
 // Float utilities
 export { hasFractionalPart } from "./float";
@@ -179,7 +207,19 @@ export {
 // Extract native JavaScript value from CBOR
 export { extractCbor } from "./conveniences";
 
-// Envelope compatibility functions
+// =============================================================================
+// Envelope compatibility helpers (TS-only, no Rust counterpart)
+//
+// These wrappers expose `dcbor` types to `@bcts/envelope`'s decode pipeline
+// in the shape it expects — mostly thin renames around the convenience
+// functions above. They have no equivalents in `bc-dcbor-rust` (Rust
+// envelope decoding goes through `TryFrom<CBOR>` directly).
+//
+// Down-stream callers wanting strict Rust parity should prefer the
+// canonical names (`asTagged` / `asBytes` / `asArray` / `asMap`,
+// `isNumber` is just a type guard). Kept here for backwards compatibility
+// with older Envelope code; do not extend.
+// =============================================================================
 export {
   asTaggedValue,
   asByteString,

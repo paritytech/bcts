@@ -249,8 +249,9 @@ export function cborToBiguint(cbor: Cbor): bigint {
     case MajorType.Negative:
       throw new CborError({ type: "OutOfRange" });
     case MajorType.Tagged: {
-      const tagValue = Number(cbor.tag);
-      if (tagValue === TAG_2_POSITIVE_BIGNUM) {
+      // bigint-aware comparison: avoids `Number(tag)` precision loss for
+      // tag values > MAX_SAFE_INTEGER.
+      if (tagEquals(cbor.tag, TAG_2_POSITIVE_BIGNUM)) {
         const inner = cbor.value;
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });
@@ -258,7 +259,7 @@ export function cborToBiguint(cbor: Cbor): bigint {
         const bytes = inner.value;
         validateBignumMagnitude(bytes, false);
         return bytesToBigint(bytes);
-      } else if (tagValue === TAG_3_NEGATIVE_BIGNUM) {
+      } else if (tagEquals(cbor.tag, TAG_3_NEGATIVE_BIGNUM)) {
         throw new CborError({ type: "OutOfRange" });
       }
       throw new CborError({ type: "WrongType" });
@@ -270,6 +271,15 @@ export function cborToBiguint(cbor: Cbor): bigint {
     case MajorType.Simple:
       throw new CborError({ type: "WrongType" });
   }
+}
+
+/**
+ * Compare a CBOR tag value (which may be `number` or `bigint`) against a
+ * small numeric literal. Avoids the `Number(tag) === literal` precision
+ * loss for huge bigint tags.
+ */
+function tagEquals(tag: number | bigint, literal: number): boolean {
+  return typeof tag === "bigint" ? tag === BigInt(literal) : tag === literal;
 }
 
 /**
@@ -302,8 +312,7 @@ export function cborToBigint(cbor: Cbor): bigint {
       return -magnitude;
     }
     case MajorType.Tagged: {
-      const tagValue = Number(cbor.tag);
-      if (tagValue === TAG_2_POSITIVE_BIGNUM) {
+      if (tagEquals(cbor.tag, TAG_2_POSITIVE_BIGNUM)) {
         const inner = cbor.value;
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });
@@ -315,7 +324,7 @@ export function cborToBigint(cbor: Cbor): bigint {
           return 0n;
         }
         return mag;
-      } else if (tagValue === TAG_3_NEGATIVE_BIGNUM) {
+      } else if (tagEquals(cbor.tag, TAG_3_NEGATIVE_BIGNUM)) {
         const inner = cbor.value;
         if (inner.type !== MajorType.ByteString) {
           throw new CborError({ type: "WrongType" });

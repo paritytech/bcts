@@ -53,21 +53,20 @@ export const encodeVarInt = (value: CborNumber, majorType: MajorType): Uint8Arra
       return new Uint8Array(buffer);
     }
   } else {
-    value = BigInt(value);
-    const bitsNeeded = Math.ceil(Math.log2(Number(value)) / 8) * 8;
-    if (bitsNeeded > 64) {
+    // Bigint branch — value is strictly greater than `Number.MAX_SAFE_INTEGER`,
+    // therefore strictly greater than `0xffffffff`. The CBOR encoding rule
+    // collapses to: 9 bytes total (header `0x1b | type` + 8 big-endian bytes)
+    // if the value fits in u64, otherwise `OutOfRange`. We must NOT use
+    // `Math.log2(Number(value))` here — `Number(value)` is lossy past 2^53
+    // and would mis-pick the encoding length for values near u64::MAX.
+    const big = BigInt(value);
+    if (big > 0xffffffffffffffffn) {
       throw new CborError({ type: "OutOfRange" });
     }
-    const length = Math.ceil(bitsNeeded / 8) + 1;
-    const buffer = new ArrayBuffer(length);
+    const buffer = new ArrayBuffer(9);
     const view = new DataView(buffer);
-    let i = length - 1;
-    while (value > 0) {
-      view.setUint8(i, Number(value & 0xffn));
-      value >>= 8n;
-      i--;
-    }
     view.setUint8(0, 0x1b | type);
+    view.setBigUint64(1, big);
     return new Uint8Array(buffer);
   }
 };

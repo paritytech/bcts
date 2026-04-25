@@ -17,8 +17,7 @@ import type { ByteString } from "./byte-string";
 import type { CborDate } from "./date";
 import { diagnosticOpt } from "./diag";
 import { decodeCbor } from "./decode";
-import type { TagsStore } from "./tags-store";
-import { getGlobalTagsStore } from "./tags-store";
+import { getGlobalTagsStore, type TagsStore } from "./tags-store";
 import type { Visitor } from "./walk";
 import { walk } from "./walk";
 import { CborError } from "./error";
@@ -296,6 +295,40 @@ export interface TaggedCborEncodable {
 /**
  * Type guard to check if value has taggedCbor method.
  */
+/**
+ * Resolve a numeric/bigint tag value to a `Tag` object, looking up the
+ * canonical name from the global tags store (matches Rust's
+ * `try_into_tagged_value` returning the stored `Tag`). Falls back to a
+ * name-less `{ value }` if no name is registered — never synthesizes a
+ * placeholder `tag-${value}` string.
+ */
+const resolveTag = (value: number | bigint): Tag => {
+  const stored = getGlobalTagsStore().tagForValue(value);
+  if (stored !== undefined) return stored;
+  return { value };
+};
+
+/**
+ * Structural CBOR value equality.
+ *
+ * Mirrors Rust's `derive(PartialEq) for CBOR`. dCBOR encoding is
+ * deterministic, so two CBOR values are equal iff they encode to the
+ * same byte sequence — this is the simplest correct comparator.
+ *
+ * Use this rather than `===` (which compares JS object references) when
+ * you need value equality across two `Cbor` instances built independently.
+ */
+export const cborEquals = (a: Cbor, b: Cbor): boolean => {
+  if (a === b) return true;
+  const aBytes = a.toData();
+  const bBytes = b.toData();
+  if (aBytes.length !== bBytes.length) return false;
+  for (let i = 0; i < aBytes.length; i++) {
+    if (aBytes[i] !== bBytes[i]) return false;
+  }
+  return true;
+};
+
 const hasTaggedCbor = (value: unknown): value is TaggedCborEncodable => {
   return (
     typeof value === "object" &&
@@ -343,6 +376,17 @@ export const cbor = (value: CborInput): Cbor => {
       result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: Infinity } };
     } else if (value == -Infinity) {
       result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: -Infinity } };
+    } else if (typeof value === "number" && !Number.isSafeInteger(value)) {
+      // Mirrors Rust `f64::exact_from_f64`: any finite, integer-valued
+      // float that exceeds the safe-integer range (so adjacent integers
+      // can't be distinguished, e.g. `1e21`) cannot be encoded as a
+      // canonical integer. Route to Float instead — Rust's `From<f64>
+      // for CBOR` does the same fallback.
+      result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: value } };
+    } else if (typeof value === "bigint" && (value > 0xffffffffffffffffn || value < -0x10000000000000000n)) {
+      // bigint outside the [-(2^64), 2^64 - 1] CBOR-encodable integer
+      // range. Surface immediately rather than crashing in encodeVarInt.
+      throw new CborError({ type: "OutOfRange" });
     } else if (value < 0) {
       // Store the magnitude to encode, matching Rust's representation
       // For a negative value n, CBOR encodes it as -1-n, so we store -n-1
@@ -648,8 +692,7 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
       if (this.type !== MajorType.Tagged) {
         return undefined;
       }
-      const tag: Tag = { value: this.tag, name: `tag-${this.tag}` };
-      return [tag, this.value];
+      return [resolveTag(this.tag), this.value];
     },
     asBool(this: Cbor): boolean | undefined {
       if (this.type !== MajorType.Simple) return undefined;
@@ -726,8 +769,7 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
           `Cannot convert CBOR to Tagged: expected Tagged type, got ${getMajorTypeName(this.type)}`,
         );
       }
-      const tag: Tag = { value: this.tag, name: `tag-${this.tag}` };
-      return [tag, this.value];
+      return [resolveTag(this.tag), this.value];
     },
     toBool(this: Cbor): boolean {
       const result = this.asBool();
@@ -768,12 +810,16 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
       if (this.type !== MajorType.Tagged) {
         throw new CborError({ type: "WrongType" });
       }
-      const expectedValue =
-        typeof expectedTag === "object" && "value" in expectedTag ? expectedTag.value : expectedTag;
-      if (this.tag !== expectedValue) {
+      const expected: Tag =
+        typeof expectedTag === "object" && "value" in expectedTag
+          ? expectedTag
+          : { value: expectedTag };
+      if (this.tag !== expected.value) {
+        // Mirror Rust `Error::WrongTag(expected, actual)`.
         throw new CborError({
-          type: "Custom",
-          message: `Wrong tag: expected ${expectedValue}, got ${this.tag}`,
+          type: "WrongTag",
+          expected,
+          actual: { value: this.tag },
         });
       }
       return this.value;
@@ -787,14 +833,14 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
       if (this.type !== MajorType.Tagged) {
         throw new CborError({ type: "WrongType" });
       }
-      const expectedValues = expectedTags.map((t) => t.value);
       const tagValue = this.tag;
       const matchingTag = expectedTags.find((t) => t.value === tagValue);
       if (matchingTag === undefined) {
-        const expectedStr = expectedValues.join(" or ");
+        // Mirror Rust `Error::WrongTag(expected, actual)`.
         throw new CborError({
-          type: "Custom",
-          message: `Wrong tag: expected ${expectedStr}, got ${tagValue}`,
+          type: "WrongTag",
+          expected: expectedTags[0],
+          actual: { value: tagValue },
         });
       }
       return matchingTag;

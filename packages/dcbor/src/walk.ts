@@ -129,16 +129,18 @@ export const asKeyValue = (element: WalkElement): [Cbor, Cbor] | undefined => {
 };
 
 /**
- * Visitor function type with state threading.
+ * Visitor function type.
  *
- * @template State - The type of state passed through the traversal
+ * @template State - The type of state passed into each visit
  * @param element - The element being visited
  * @param level - The depth level in the tree (0 = root)
  * @param edge - Information about the edge leading to this element
- * @param state - Current state value
+ * @param state - The state value cloned from the parent visit
  * @returns Tuple of [newState, stopDescent] where:
- *   - newState: The updated state to pass to subsequent visits
- *   - stopDescent: If true, don't descend into children of this element
+ *   - newState: The state to pass into descendants of this element. Each
+ *     descendant receives an independent clone of `newState`; sibling
+ *     subtrees do *not* see each other's mutations.
+ *   - stopDescent: If true, do not descend into children of this element.
  */
 export type Visitor<State> = (
   element: WalkElement,
@@ -148,52 +150,43 @@ export type Visitor<State> = (
 ) => [State, boolean];
 
 /**
+ * Clone helper used to give each descendant subtree an independent copy of
+ * the post-visit state — mirrors Rust `State: Clone` + `state.clone()` per
+ * child in `walk.rs`. Falls back to the value as-is for primitives (which
+ * don't need cloning) and uses `structuredClone` for objects.
+ */
+const cloneState = <S>(s: S): S => {
+  if (s === null) return s;
+  const t = typeof s;
+  if (t !== "object" && t !== "function") return s;
+  // `structuredClone` is a host-provided global available in modern Node
+  // (≥ 17) and every modern browser; declare it inline so eslint's
+  // `no-undef` is satisfied without a project-wide globals declaration.
+  return (globalThis as { structuredClone(v: unknown): unknown }).structuredClone(s) as S;
+};
+
+/**
  * Walk a CBOR tree, visiting each element with a visitor function.
  *
  * The visitor function is called for each element in the tree, in depth-first order.
- * State is threaded through the traversal, allowing accumulation of results.
+ * State semantics mirror Rust's `walk_internal`:
+ *
+ * - The visitor's returned `newState` propagates **down** to descendants of
+ *   the just-visited node only.
+ * - Sibling subtrees each receive an independent clone of the parent's
+ *   post-visit state, so accumulating mutations in one subtree never leak
+ *   into a sibling.
+ * - State changes do not propagate **up**: the public `walk` returns `void`.
  *
  * For maps, the visitor is called with:
  * 1. A 'keyvalue' element containing both key and value
  * 2. The key individually (if descent wasn't stopped)
  * 3. The value individually (if descent wasn't stopped)
  *
- * @template State - The type of state to thread through the traversal
+ * @template State - The type of state to pass into each visit
  * @param cbor - The CBOR value to traverse
  * @param initialState - Initial state value
  * @param visitor - Function to call for each element
- *
- * @example
- * ```typescript
- * // Count all text strings in a structure using RefCell-like pattern
- * const count = { value: 0 };
- *
- * const structure = cbor({ name: 'Alice', tags: ['urgent', 'draft'] });
- * walk(structure, null, (element, level, edge, state) => {
- *   if (element.type === 'single' && element.cbor.type === MajorType.Text) {
- *     count.value++;
- *   }
- *   return [state, false];
- * });
- * console.log(count.value); // 3 (name, urgent, draft)
- * ```
- *
- * @example
- * ```typescript
- * // Find first occurrence and stop
- * const structure = cbor([1, 2, 3, 'found', 5, 6]);
- * let found = false;
- *
- * walk(structure, null, (element, level, edge, state) => {
- *   if (element.type === 'single' &&
- *       element.cbor.type === MajorType.Text &&
- *       element.cbor.value === 'found') {
- *     found = true;
- *     return [null, true]; // Stop descending
- *   }
- *   return [null, false];
- * });
- * ```
  */
 export const walk = <State>(cbor: Cbor, initialState: State, visitor: Visitor<State>): void => {
   walkInternal(cbor, 0, { type: EdgeType.None }, initialState, visitor);
@@ -210,60 +203,43 @@ function walkInternal<State>(
   edge: EdgeTypeVariant,
   state: State,
   visitor: Visitor<State>,
-  skipVisit = false,
-): State {
-  let currentState = state;
+): void {
+  // Visit the current element.
+  const element: WalkElement = { type: "single", cbor };
+  const [postVisitState, stop] = visitor(element, level, edge, state);
+  if (stop) return;
 
-  // Visit the current element (unless skipVisit is true)
-  if (!skipVisit) {
-    const element: WalkElement = { type: "single", cbor };
-    const [newState, stop] = visitor(element, level, edge, currentState);
-    currentState = newState;
-
-    // If visitor says to stop descending, return immediately
-    if (stop) {
-      return currentState;
-    }
-  }
-
-  // Recursively visit children based on CBOR type
-  // Only container types (Array, Map, Tagged) need special handling; leaf nodes use default
+  // Recursively visit children based on CBOR type. Each child receives an
+  // independent clone of `postVisitState`, matching Rust `state.clone()`.
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (cbor.type) {
     case MajorType.Array:
-      currentState = walkArray(cbor, level, currentState, visitor);
+      walkArray(cbor, level, postVisitState, visitor);
       break;
-
     case MajorType.Map:
-      currentState = walkMap(cbor, level, currentState, visitor);
+      walkMap(cbor, level, postVisitState, visitor);
       break;
-
     case MajorType.Tagged:
-      currentState = walkTagged(cbor, level, currentState, visitor);
+      walkTagged(cbor, level, postVisitState, visitor);
       break;
-
-    // Leaf nodes: Unsigned, Negative, Bytes, Text, Simple
     default:
-      // No children to visit
+      // Leaf nodes (Unsigned, Negative, Bytes, Text, Simple) have no children.
       break;
   }
-
-  return currentState;
 }
 
 /**
- * Walk an array's elements.
+ * Walk an array's elements. Each element is visited with an independent
+ * clone of `parentState`.
  *
  * @internal
  */
 function walkArray<State>(
   cbor: CborArrayType,
   level: number,
-  state: State,
+  parentState: State,
   visitor: Visitor<State>,
-): State {
-  let currentState = state;
-
+): void {
   for (let index = 0; index < cbor.value.length; index++) {
     const item = cbor.value[index];
     if (item === undefined) {
@@ -272,76 +248,77 @@ function walkArray<State>(
         message: `Array element at index ${index} is undefined`,
       });
     }
-    currentState = walkInternal(
+    walkInternal(
       item,
       level + 1,
       { type: EdgeType.ArrayElement, index },
-      currentState,
+      cloneState(parentState),
       visitor,
     );
   }
-
-  return currentState;
 }
 
 /**
  * Walk a map's key-value pairs.
  *
- * For each entry:
- * 1. Visit the key-value pair as a semantic unit
- * 2. If not stopped, visit the key individually
- * 3. If not stopped, visit the value individually
+ * Each kv pair receives a clone of `parentState`. If descent isn't stopped,
+ * the key and value subtrees receive independent clones of the kv-visit's
+ * post-visit state.
  *
  * @internal
  */
 function walkMap<State>(
   cbor: CborMapType,
   level: number,
-  state: State,
+  parentState: State,
   visitor: Visitor<State>,
-): State {
-  let currentState = state;
-
+): void {
   for (const entry of cbor.value.entriesArray) {
     const { key, value } = entry;
 
-    // First, visit the key-value pair as a semantic unit
     const kvElement: WalkElement = { type: "keyvalue", key, value };
-    const [kvState, kvStop] = visitor(
+    const [kvPostState, kvStop] = visitor(
       kvElement,
       level + 1,
       { type: EdgeType.MapKeyValue },
-      currentState,
+      cloneState(parentState),
     );
-    currentState = kvState;
+    if (kvStop) continue;
 
-    // If not stopped, visit key and value individually
-    if (!kvStop) {
-      currentState = walkInternal(key, level + 1, { type: EdgeType.MapKey }, currentState, visitor);
-
-      currentState = walkInternal(
-        value,
-        level + 1,
-        { type: EdgeType.MapValue },
-        currentState,
-        visitor,
-      );
-    }
+    walkInternal(
+      key,
+      level + 1,
+      { type: EdgeType.MapKey },
+      cloneState(kvPostState),
+      visitor,
+    );
+    walkInternal(
+      value,
+      level + 1,
+      { type: EdgeType.MapValue },
+      cloneState(kvPostState),
+      visitor,
+    );
   }
-
-  return currentState;
 }
 
 /**
- * Walk a tagged value's content.
+ * Walk a tagged value's content. The content visit receives a clone of
+ * `parentState`.
  *
  * @internal
  */
 function walkTagged<State>(
   cbor: CborTaggedType,
   level: number,
-  state: State,
+  parentState: State,
   visitor: Visitor<State>,
-): State {
-  return walkInternal(cbor.value, level + 1, { type: EdgeType.TaggedContent }, state, visitor);
+): void {
+  walkInternal(
+    cbor.value,
+    level + 1,
+    { type: EdgeType.TaggedContent },
+    cloneState(parentState),
+    visitor,
+  );
 }

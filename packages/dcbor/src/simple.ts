@@ -124,10 +124,19 @@ export const simpleEquals = (a: Simple, b: Simple): boolean => {
 /**
  * Hash a Simple value.
  *
- * Matches Rust's Hash trait implementation.
+ * **Cross-language note.** Rust derives `Hash` on `Simple` via
+ * `f64::to_bits().hash(state)` through `DefaultHasher` (SipHash). JS
+ * doesn't expose SipHash, so this implementation uses FNV-1a — a fast
+ * non-cryptographic hash. The hash codes therefore **differ between
+ * Rust and TS at runtime**; this is intentional and harmless because
+ * `Hash` is only used to drive per-runtime hash tables (e.g. dedup in
+ * `HashSet<Simple>`). It is **not** part of the deterministic CBOR wire
+ * format, which uses bytewise lex on the encoded CBOR (see
+ * `lexicographicallyCompareBytes`). Do not rely on these hash values
+ * across implementations.
  */
 export const simpleHash = (simple: Simple): number => {
-  // Simple FNV-1a hash
+  // FNV-1a hash. (See doc-comment above for why this differs from Rust.)
   let hash = 2166136261;
 
   switch (simple.type) {

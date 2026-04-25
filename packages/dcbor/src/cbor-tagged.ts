@@ -99,10 +99,16 @@ export interface CborTagged {
 }
 
 // Re-export interfaces and functions from separate modules for convenience
-export { type CborTaggedEncodable, createTaggedCbor } from "./cbor-tagged-encodable";
+export {
+  type CborTaggedEncodable,
+  createTaggedCbor,
+  taggedCborData,
+} from "./cbor-tagged-encodable";
 export {
   type CborTaggedDecodable,
   validateTag,
   extractTaggedContent,
+  fromTaggedCborData,
+  fromUntaggedCborData,
 } from "./cbor-tagged-decodable";
 export { type CborTaggedCodable } from "./cbor-tagged-codable";

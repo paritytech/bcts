@@ -41,6 +41,13 @@ export const bytesToHex = (bytes: Uint8Array): string => {
 
 /**
  * Convert hex string to bytes.
+ *
+ * **Whitespace tolerance.** This implementation strips ASCII whitespace
+ * before decoding so users can paste annotated hex dumps directly. Rust's
+ * `hex::decode` is strict and panics on any whitespace. This is a
+ * deliberate TS-side ergonomic divergence — callers who need strict
+ * Rust-compatible parsing should validate the input first (e.g.
+ * `if (/\s/.test(s)) throw …`).
  */
 export const hexToBytes = (hexString: string): Uint8Array => {
   const hex = hexString.replace(/\s/g, "");
@@ -227,10 +234,10 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
       if (tagValue === undefined) {
         throw new CborError({ type: "Custom", message: "Tagged CBOR value must have a tag" });
       }
-      const header = encodeVarInt(
-        typeof tagValue === "bigint" ? Number(tagValue) : tagValue,
-        MajorType.Tagged,
-      );
+      // Pass the tag value through directly — `encodeVarInt` accepts both
+      // `number` and `bigint`. The previous `Number(bigint)` cast was lossy
+      // for tags > MAX_SAFE_INTEGER.
+      const header = encodeVarInt(tagValue, MajorType.Tagged);
       const firstByte = header[0];
       if (firstByte === undefined) {
         throw new CborError({ type: "Custom", message: "Invalid varint encoding" });
@@ -239,9 +246,9 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
 
       const noteComponents: string[] = [`tag(${tagValue})`];
 
-      // Add tag name if tags store is provided
-      const numericTagValue = typeof tagValue === "bigint" ? Number(tagValue) : tagValue;
-      const tag = createTag(numericTagValue);
+      // Add tag name if tags store is provided. `createTag` accepts the
+      // raw `tagValue` (number | bigint); no `Number()` coercion needed.
+      const tag = createTag(tagValue);
       const tagName = opts.tagsStore?.assignedNameForTag(tag);
       if (tagName !== undefined) {
         noteComponents.push(tagName);
