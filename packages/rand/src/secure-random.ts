@@ -9,20 +9,11 @@
 import type { RandomNumberGenerator } from "./random-number-generator.js";
 
 /**
- * Detects the crypto API available in the current environment.
- * Works in both Node.js and browser environments.
+ * Returns the Web Crypto API for the current environment. Available natively
+ * in browsers and in Node.js >= 15 via `globalThis.crypto`.
  */
 function getCrypto(): Crypto {
-  // Browser environment
-  if (
-    typeof globalThis !== "undefined" &&
-    globalThis.crypto !== null &&
-    globalThis.crypto !== undefined
-  ) {
-    return globalThis.crypto;
-  }
-  // Node.js environment - globalThis.crypto is also available in Node.js >= 15
-  if (typeof globalThis.crypto !== "undefined") {
+  if (typeof globalThis !== "undefined" && globalThis.crypto != null) {
     return globalThis.crypto;
   }
   throw new Error("No crypto API available in this environment");
@@ -47,8 +38,11 @@ export function fillRandomData(data: Uint8Array): void {
 
 /**
  * Returns the next cryptographically strong random 64-bit unsigned integer.
+ *
+ * This mirrors Rust's module-private `secure_random::next_u64()` and is not
+ * re-exported from the package surface (matches Rust `lib.rs` behavior).
  */
-export function nextU64(): bigint {
+function nextU64(): bigint {
   const data = new Uint8Array(8);
   fillRandomData(data);
   const view = new DataView(data.buffer);
@@ -65,12 +59,12 @@ export function nextU64(): bigint {
 export class SecureRandomNumberGenerator implements RandomNumberGenerator {
   /**
    * Returns the next random 32-bit unsigned integer.
+   *
+   * Mirrors Rust's `next_u32` impl which returns `next_u64() as u32` —
+   * the low 32 bits of a 64-bit draw.
    */
   nextU32(): number {
-    const data = new Uint8Array(4);
-    fillRandomData(data);
-    const view = new DataView(data.buffer);
-    return view.getUint32(0, true) >>> 0; // little-endian, unsigned
+    return Number(this.nextU64() & 0xffffffffn) >>> 0;
   }
 
   /**
@@ -100,4 +94,14 @@ export class SecureRandomNumberGenerator implements RandomNumberGenerator {
   fillRandomData(data: Uint8Array): void {
     fillRandomData(data);
   }
+}
+
+/**
+ * Returns a thread-local cryptographically-strong RNG. Mirrors Rust's
+ * `thread_rng()`. In TypeScript there are no thread-locals, so this returns
+ * a fresh `SecureRandomNumberGenerator` — every instance backs onto the
+ * same Web Crypto source, so the effect is equivalent.
+ */
+export function threadRng(): SecureRandomNumberGenerator {
+  return new SecureRandomNumberGenerator();
 }

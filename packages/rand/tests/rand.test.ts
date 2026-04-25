@@ -3,17 +3,41 @@
 import {
   SeededRandomNumberGenerator,
   SecureRandomNumberGenerator,
-  TEST_SEED,
   makeFakeRandomNumberGenerator,
   fakeRandomData,
   randomData,
+  threadRng,
+  rngRandomArray,
+  rngRandomBool,
+  rngRandomU32,
+  rngFillRandomData,
   rngNextWithUpperBound,
+  rngNextWithUpperBoundU8,
+  rngNextWithUpperBoundU16,
   rngNextWithUpperBoundU32,
+  rngNextWithUpperBoundU64,
   rngNextInRange,
   rngNextInRangeI32,
   rngNextInClosedRange,
   rngNextInClosedRangeI32,
+  wideMulU8,
+  wideMulU16,
+  wideMulU32,
+  wideMulU64,
+  toMagnitude,
+  toMagnitude64,
+  fromMagnitude,
+  fromMagnitude64,
 } from "../src/index";
+
+// Standard test seed used across Blockchain Commons implementations.
+// Mirrors the private TEST_SEED in `bc-rand-rust/src/seeded_random.rs`.
+const TEST_SEED: [bigint, bigint, bigint, bigint] = [
+  17295166580085024720n,
+  422929670265678780n,
+  5577237070365765850n,
+  7953171132032326923n,
+];
 
 function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -188,6 +212,12 @@ describe("SecureRandomNumberGenerator", () => {
     expect(v2).toBeGreaterThanOrEqual(0n);
     expect(v2).toBeLessThanOrEqual(0xffffffffffffffffn);
   });
+
+  test("threadRng returns a working SecureRandomNumberGenerator", () => {
+    const rng = threadRng();
+    expect(rng).toBeInstanceOf(SecureRandomNumberGenerator);
+    expect(rng.randomData(16).length).toBe(16);
+  });
 });
 
 describe("rng utility functions", () => {
@@ -210,6 +240,14 @@ describe("rng utility functions", () => {
     expect(() => rngNextWithUpperBound(rng, 0n)).toThrow("upperBound must be non-zero");
   });
 
+  test("rngNextWithUpperBoundU8/U16/U32/U64 throw on zero", () => {
+    const rng = makeFakeRandomNumberGenerator();
+    expect(() => rngNextWithUpperBoundU8(rng, 0)).toThrow("upperBound must be non-zero");
+    expect(() => rngNextWithUpperBoundU16(rng, 0)).toThrow("upperBound must be non-zero");
+    expect(() => rngNextWithUpperBoundU32(rng, 0)).toThrow("upperBound must be non-zero");
+    expect(() => rngNextWithUpperBoundU64(rng, 0n)).toThrow("upperBound must be non-zero");
+  });
+
   test("rngNextInRange throws on invalid range", () => {
     const rng = makeFakeRandomNumberGenerator();
     expect(() => rngNextInRange(rng, 100n, 0n)).toThrow("start must be less than end");
@@ -220,5 +258,112 @@ describe("rng utility functions", () => {
     expect(() => rngNextInClosedRange(rng, 100n, 0n)).toThrow(
       "start must be less than or equal to end",
     );
+  });
+
+  test("rngRandomBool produces both values across a deterministic seed", () => {
+    const rng = makeFakeRandomNumberGenerator();
+    let trues = 0;
+    let falses = 0;
+    for (let i = 0; i < 200; i++) {
+      if (rngRandomBool(rng)) trues++;
+      else falses++;
+    }
+    expect(trues).toBeGreaterThan(0);
+    expect(falses).toBeGreaterThan(0);
+    expect(trues + falses).toBe(200);
+  });
+
+  test("rngRandomU32 returns a valid u32", () => {
+    const rng = makeFakeRandomNumberGenerator();
+    for (let i = 0; i < 50; i++) {
+      const v = rngRandomU32(rng);
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(0xffffffff);
+      expect(Number.isInteger(v)).toBe(true);
+    }
+  });
+
+  test("rngRandomArray reproduces fakeRandomData for the same seed", () => {
+    const rng1 = makeFakeRandomNumberGenerator();
+    const rng2 = makeFakeRandomNumberGenerator();
+    expect(rngRandomArray(rng1, 50)).toEqual(rng2.randomData(50));
+  });
+
+  test("rngFillRandomData fills exactly the buffer", () => {
+    const rng = makeFakeRandomNumberGenerator();
+    const buf = new Uint8Array(8);
+    rngFillRandomData(rng, buf);
+    // Same as the first 8 bytes of fakeRandomData(8): 7eb559bbbf6cce26
+    expect(bytesToHex(buf)).toBe("7eb559bbbf6cce26");
+  });
+});
+
+describe("widening multiplication", () => {
+  test("wideMulU8 boundary 0xff * 0xff", () => {
+    // 0xff * 0xff = 0xfe01 → low=0x01, high=0xfe
+    expect(wideMulU8(0xff, 0xff)).toEqual([0x01, 0xfe]);
+    expect(wideMulU8(0, 0)).toEqual([0, 0]);
+    expect(wideMulU8(0x10, 0x10)).toEqual([0x00, 0x01]);
+  });
+
+  test("wideMulU16 boundary 0xffff * 0xffff", () => {
+    // 0xffff * 0xffff = 0xfffe0001 → low=0x0001, high=0xfffe
+    expect(wideMulU16(0xffff, 0xffff)).toEqual([0x0001, 0xfffe]);
+    expect(wideMulU16(0, 0)).toEqual([0, 0]);
+    expect(wideMulU16(0x100, 0x100)).toEqual([0x0000, 0x0001]);
+  });
+
+  test("wideMulU32 boundary 0xffffffff * 0xffffffff", () => {
+    // 0xffffffff * 0xffffffff = 0xfffffffe00000001
+    expect(wideMulU32(0xffffffff, 0xffffffff)).toEqual([0x00000001n, 0xfffffffen]);
+    expect(wideMulU32(0, 0)).toEqual([0n, 0n]);
+    expect(wideMulU32(0x10000, 0x10000)).toEqual([0n, 1n]);
+  });
+
+  test("wideMulU64 boundary u64::MAX * u64::MAX", () => {
+    // u64::MAX * u64::MAX = 2^128 - 2^65 + 1
+    //                    = 0xfffffffffffffffe_0000000000000001
+    const max = 0xffffffffffffffffn;
+    expect(wideMulU64(max, max)).toEqual([1n, 0xfffffffffffffffen]);
+    expect(wideMulU64(0n, 0n)).toEqual([0n, 0n]);
+    expect(wideMulU64(1n << 32n, 1n << 32n)).toEqual([0n, 1n]);
+  });
+});
+
+describe("magnitude conversion (MIN-value edges)", () => {
+  test("toMagnitude for i8::MIN, i16::MIN, i32::MIN", () => {
+    // i8::MIN = -128 → wrapping_abs as u8 = 128
+    expect(toMagnitude(-128, 8)).toBe(128);
+    // i16::MIN = -32768 → wrapping_abs as u16 = 32768
+    expect(toMagnitude(-32768, 16)).toBe(32768);
+    // i32::MIN = -2147483648 → wrapping_abs as u32 = 2147483648
+    expect(toMagnitude(-2147483648, 32)).toBe(2147483648);
+  });
+
+  test("toMagnitude64 for i64::MIN", () => {
+    const i64Min = -(1n << 63n);
+    // wrapping_abs(i64::MIN) as u64 = 0x8000000000000000
+    expect(toMagnitude64(i64Min)).toBe(0x8000000000000000n);
+  });
+
+  test("fromMagnitude reinterprets as signed", () => {
+    expect(fromMagnitude(128, 8)).toBe(-128);
+    expect(fromMagnitude(32768, 16)).toBe(-32768);
+    expect(fromMagnitude(2147483648, 32)).toBe(-2147483648);
+  });
+
+  test("fromMagnitude64 reinterprets sign bit", () => {
+    expect(fromMagnitude64(0x8000000000000000n)).toBe(-(1n << 63n));
+    expect(fromMagnitude64(0xffffffffffffffffn)).toBe(-1n);
+    expect(fromMagnitude64(0n)).toBe(0n);
+    expect(fromMagnitude64(0x7fffffffffffffffn)).toBe(0x7fffffffffffffffn);
+  });
+
+  test("toMagnitude / fromMagnitude round-trip on MIN edges", () => {
+    expect(fromMagnitude(toMagnitude(-128, 8), 8)).toBe(-128);
+    expect(fromMagnitude(toMagnitude(-32768, 16), 16)).toBe(-32768);
+    expect(fromMagnitude(toMagnitude(-2147483648, 32), 32)).toBe(-2147483648);
+    const i64Min = -(1n << 63n);
+    expect(fromMagnitude64(toMagnitude64(i64Min))).toBe(i64Min);
   });
 });

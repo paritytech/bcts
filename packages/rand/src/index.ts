@@ -13,9 +13,10 @@
 // deterministic random number generator `SeededRandomNumberGenerator`.
 //
 // These primitive random number generators implement the `RandomNumberGenerator`
-// interface to produce random numbers compatible with the RandomNumberGenerator
-// Swift protocol used in MacOS and iOS, which is important when using the
-// deterministic random number generator for cross-platform testing.
+// interface to produce random numbers compatible with the `RandomNumberGenerator`
+// trait used in `bc-rand-rust`, which in turn is compatible with the Swift
+// protocol used in MacOS and iOS — important for cross-platform testing
+// against the deterministic random number generator.
 
 // Widening multiplication utilities
 export {
@@ -36,11 +37,28 @@ export {
   rngRandomData,
   rngFillRandomData,
   rngNextWithUpperBound,
+  rngNextWithUpperBoundU8,
+  rngNextWithUpperBoundU16,
   rngNextWithUpperBoundU32,
+  rngNextWithUpperBoundU64,
   rngNextInRange,
+  rngNextInRangeU8,
+  rngNextInRangeU16,
+  rngNextInRangeU32,
+  rngNextInRangeU64,
+  rngNextInRangeI8,
+  rngNextInRangeI16,
   rngNextInRangeI32,
+  rngNextInRangeI64,
   rngNextInClosedRange,
+  rngNextInClosedRangeU8,
+  rngNextInClosedRangeU16,
+  rngNextInClosedRangeU32,
+  rngNextInClosedRangeU64,
+  rngNextInClosedRangeI8,
+  rngNextInClosedRangeI16,
   rngNextInClosedRangeI32,
+  rngNextInClosedRangeI64,
   rngRandomArray,
   rngRandomBool,
   rngRandomU32,
@@ -51,13 +69,12 @@ export {
   SecureRandomNumberGenerator,
   randomData,
   fillRandomData,
-  nextU64,
+  threadRng,
 } from "./secure-random.js";
 
 // Seeded random number generator (deterministic, for testing)
 export {
   SeededRandomNumberGenerator,
-  TEST_SEED,
   makeFakeRandomNumberGenerator,
   fakeRandomData,
 } from "./seeded-random.js";
