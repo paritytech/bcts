@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Changed
+
+- Removed redundant `as RegistryFile` casts on bundled-registry imports and the `as number | bigint` cast in `KnownValue.fromCbor`
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed

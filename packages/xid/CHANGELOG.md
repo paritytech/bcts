@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Changed
+
+- Removed redundant `as unknown as EnvelopeEncodableValue` casts in `key.ts`, `provenance.ts`, `service.ts`, and `xid-document.ts` now that `KnownValue` satisfies `EnvelopeEncodableValue` directly.
+- Simplified the `Provenance` envelope-locking path in `provenance.ts` by dropping the unused intermediate cast around `lockSubject`.
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed

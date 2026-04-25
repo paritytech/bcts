@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Changed
+
+- Updated `SqliteKv` doc comments.
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed

@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Added
+
+- New 32-byte Mark identifier API on `ProvenanceMark`, mirroring `bc-provenance-mark-rust` ≥ v0.7.0:
+  - `id()` — composes the full 32-byte ID from the stored hash plus fingerprint padding.
+  - `idHex()` — 64-character hex representation of the ID.
+  - `idBytewords(wordCount, prefix)` — first `wordCount ∈ 4..=32` bytes as upper-case ByteWords, optionally with the provenance-mark prefix glyph.
+  - `idBytemoji(wordCount, prefix)` — same range as Bytemojis.
+  - `idMinimalBytewords(wordCount, prefix)` — same range as 2-letter minimal ByteWords.
+- `tests/identifier.test.ts` covering the new identifier surface against shared test vectors.
+
+### Changed
+
+- Switched internal ByteWords helpers to the new `encodeToWords` / `encodeToBytemojis` / `encodeToMinimalBytewords` exports from `@bcts/uniform-resources`.
+- Minor cleanups in `mark-info.ts`, `resolution.ts`, and `validate.ts` to drop redundant casts.
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed

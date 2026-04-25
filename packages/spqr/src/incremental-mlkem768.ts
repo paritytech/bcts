@@ -124,7 +124,7 @@ function MultiplyNTTs(f: Poly, g: Poly): Poly {
   return f;
 }
 
-type XofGet = ReturnType<ReturnType<typeof XOF128>["get"]>;
+type XofGet = () => Uint8Array;
 
 function SampleNTT(xof: XofGet): Poly {
   const r: Poly = new Uint16Array(N);
@@ -184,7 +184,8 @@ const compress = (d: number): { encode: (i: number) => number; decode: (i: numbe
   };
 };
 
-const polyCoder = (d: number): ReturnType<typeof bitsCoder> => bitsCoder(d, compress(d));
+type PolyCoder = ReturnType<typeof bitsCoder>;
+const polyCoder = (d: number): PolyCoder => bitsCoder(d, compress(d)) as PolyCoder;
 
 // Coders for encoding/decoding polynomials
 const poly12 = polyCoder(12); // for tHat encoding (ByteEncode12)

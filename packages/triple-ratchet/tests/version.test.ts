@@ -31,13 +31,14 @@ function createTestRng(): RandomNumberGenerator {
       const hi = BigInt((b[4] | (b[5] << 8) | (b[6] << 16) | (b[7] << 24)) >>> 0);
       return (hi << 32n) | lo;
     },
-    fillBytes: (d: Uint8Array) => globalThis.crypto.getRandomValues(d),
+    fillBytes: (d: Uint8Array) => globalThis.crypto.getRandomValues(d as Uint8Array<ArrayBuffer>),
     randomData: (n: number) => {
       const d = new Uint8Array(n);
       globalThis.crypto.getRandomValues(d);
       return d;
     },
-    fillRandomData: (d: Uint8Array) => globalThis.crypto.getRandomValues(d),
+    fillRandomData: (d: Uint8Array) =>
+      globalThis.crypto.getRandomValues(d as Uint8Array<ArrayBuffer>),
   };
 }
 

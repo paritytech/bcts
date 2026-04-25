@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Changed
+
+- `validate` command now strips wrapper layers iteratively when looking for the `provenance` assertion
+
+### Added
+
+- `tests/validate.test.ts` covering the validate command's envelope-extraction logic.
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed
