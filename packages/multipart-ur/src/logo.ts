@@ -33,9 +33,7 @@ export function logoClearShapeFromString(s: string): LogoClearShape {
     case "circle":
       return LogoClearShape.Circle;
     default:
-      throw new Error(
-        `unknown clear shape: ${s} (expected square or circle)`,
-      );
+      throw new Error(`unknown clear shape: ${s} (expected square or circle)`);
   }
 }
 
@@ -136,9 +134,7 @@ export class Logo {
         const decoded = jpeg.decode(data, { useTArray: true });
         width = decoded.width;
         height = decoded.height;
-        pixels = decoded.data instanceof Uint8Array
-          ? decoded.data
-          : new Uint8Array(decoded.data);
+        pixels = decoded.data instanceof Uint8Array ? decoded.data : new Uint8Array(decoded.data);
       } catch (e) {
         throw MurError.imageEncode(
           `failed to decode image: ${e instanceof Error ? e.message : String(e)}`,
@@ -156,9 +152,7 @@ export class Logo {
 
 function validateFraction(f: number): number {
   if (!(f >= 0.01 && f <= 0.99)) {
-    throw MurError.invalidParameter(
-      `logo fraction must be 0.01–0.99, got ${f}`,
-    );
+    throw MurError.invalidParameter(`logo fraction must be 0.01–0.99, got ${f}`);
   }
   return f;
 }
@@ -188,15 +182,9 @@ function isJpeg(data: Uint8Array): boolean {
   return data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
 }
 
-function ensureRgba8(
-  data: Uint8Array,
-  channels: number,
-  depth: number,
-): Uint8Array {
+function ensureRgba8(data: Uint8Array, channels: number, depth: number): Uint8Array {
   if (depth !== 8) {
-    throw MurError.imageEncode(
-      `unsupported PNG bit depth: ${depth} (expected 8)`,
-    );
+    throw MurError.imageEncode(`unsupported PNG bit depth: ${depth} (expected 8)`);
   }
   if (channels === 4) {
     return data;
@@ -237,3 +225,11 @@ function ensureRgba8(
   }
   throw MurError.imageEncode(`unsupported PNG channel count: ${channels}`);
 }
+
+/**
+ * Internal test-only exports mirroring the rust `#[cfg(test)] mod tests`
+ * block's access to private helpers. Not re-exported from `index.ts`.
+ *
+ * @internal
+ */
+export const __testables = { validateFraction, validateClearBorder };

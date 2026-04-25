@@ -62,6 +62,12 @@ packages:
     version: "0.19.2"
     commit: "2f8b4e728945f9dc248eba71911b89371f076924"
 
+  multipart-ur:
+    npm: "@bcts/multipart-ur"
+    repo: "BlockchainCommons/bc-mur-rust"
+    version: "0.1.0"
+    commit: "15c7c701d0b7bce8215d092014510595d577f827"
+
   components:
     npm: "@bcts/components"
     repo: "BlockchainCommons/bc-components-rust"

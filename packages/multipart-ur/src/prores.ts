@@ -63,11 +63,10 @@ export async function encodeProres(
         if (code === 0) {
           resolve();
         } else {
-          reject(
-            MurError.ffmpegFailed(
-              `ffmpeg exited with status ${code}\n${stderr}`,
-            ),
-          );
+          // Keep the stderr output visible on the console for debuggability,
+          // but mirror rust's exact error-message format (no stderr suffix).
+          if (stderr.length > 0) process.stderr.write(stderr);
+          reject(MurError.ffmpegFailed(`ffmpeg exited with status ${code}`));
         }
       });
     });

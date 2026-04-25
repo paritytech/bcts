@@ -104,10 +104,7 @@ export class QrFrame {
  *
  * Cycles through the fountain-coded parts `params.cycles` times.
  */
-export function generateFrames(
-  ur: UR,
-  params: AnimateParams = {},
-): QrFrame[] {
+export function generateFrames(ur: UR, params: AnimateParams = {}): QrFrame[] {
   const p = resolveParams(params);
   let encoder: MultipartEncoder;
   try {
@@ -116,8 +113,7 @@ export function generateFrames(
     throw MurError.ur(e instanceof Error ? e.message : String(e));
   }
   const partsCount = encoder.partsCount();
-  const totalFrames =
-    p.frameCount !== null ? p.frameCount : partsCount * p.cycles;
+  const totalFrames = p.frameCount !== null ? p.frameCount : partsCount * p.cycles;
 
   if (totalFrames < partsCount) {
     throw MurError.insufficientFrames(totalFrames, partsCount);
@@ -138,17 +134,10 @@ export function generateFrames(
     const matrix = QrMatrix.encode(new TextEncoder().encode(upper), correction);
 
     if (i === 0 && p.maxModules !== null) {
-      checkQrDensity(matrix.width, p.maxModules);
+      checkQrDensity(matrix.width(), p.maxModules);
     }
 
-    const image = renderFromMatrix(
-      matrix,
-      p.size,
-      p.foreground,
-      p.background,
-      p.quietZone,
-      p.logo,
-    );
+    const image = renderFromMatrix(matrix, p.size, p.foreground, p.background, p.quietZone, p.logo);
     frames[i] = new QrFrame(image, index);
   }
 
@@ -161,10 +150,7 @@ export function generateFrames(
  * For QR codes without logos, uses a small global palette (2–4 colors).
  * For QR codes with logos, uses per-frame quantization.
  */
-export function encodeAnimatedGif(
-  frames: readonly QrFrame[],
-  fps: number,
-): Uint8Array {
+export function encodeAnimatedGif(frames: readonly QrFrame[], fps: number): Uint8Array {
   if (frames.length === 0) {
     throw MurError.invalidParameter("no frames to encode");
   }
@@ -177,9 +163,7 @@ export function encodeAnimatedGif(
   try {
     gif = GIFEncoder();
   } catch (e) {
-    throw MurError.gifEncode(
-      `GIF init: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw MurError.gifEncode(`GIF init: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   for (const frame of frames) {
@@ -192,27 +176,20 @@ export function encodeAnimatedGif(
         repeat: 0,
       });
     } catch (e) {
-      throw MurError.gifEncode(
-        `GIF write frame: ${e instanceof Error ? e.message : String(e)}`,
-      );
+      throw MurError.gifEncode(`GIF write frame: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
   try {
     gif.finish();
   } catch (e) {
-    throw MurError.gifEncode(
-      `GIF finalize: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw MurError.gifEncode(`GIF finalize: ${e instanceof Error ? e.message : String(e)}`);
   }
   return gif.bytes();
 }
 
 /** Write frames as numbered PNG files (Node-only — uses fs). */
-export async function writeFramePngs(
-  frames: readonly QrFrame[],
-  outputDir: string,
-): Promise<void> {
+export async function writeFramePngs(frames: readonly QrFrame[], outputDir: string): Promise<void> {
   const fs = await import("node:fs/promises");
   const path = await import("node:path");
   await fs.mkdir(outputDir, { recursive: true });
@@ -255,9 +232,7 @@ function quantizeFrame(rgba: Uint8Array): QuantizedFrame {
   }
 
   if (!exceeded) {
-    const palette = uniqueColors.map(
-      (c) => [c[0], c[1], c[2]] as [number, number, number],
-    );
+    const palette = uniqueColors.map((c) => [c[0], c[1], c[2]] as [number, number, number]);
     const lookup = new Map<number, number>();
     uniqueColors.forEach((c, i) => {
       const key = ((c[0] << 24) | (c[1] << 16) | (c[2] << 8) | c[3]) >>> 0;
@@ -265,23 +240,14 @@ function quantizeFrame(rgba: Uint8Array): QuantizedFrame {
     });
     const indexed = new Uint8Array(rgba.length / 4);
     for (let i = 0, j = 0; i < rgba.length; i += 4, j++) {
-      const key =
-        ((rgba[i] << 24) |
-          (rgba[i + 1] << 16) |
-          (rgba[i + 2] << 8) |
-          rgba[i + 3]) >>>
-        0;
+      const key = ((rgba[i] << 24) | (rgba[i + 1] << 16) | (rgba[i + 2] << 8) | rgba[i + 3]) >>> 0;
       indexed[j] = lookup.get(key) ?? 0;
     }
     return { palette, indexed };
   }
 
   // Many colors — quantize via gifenc.
-  const palette = quantize(rgba, 256, { format: "rgb565" }) as [
-    number,
-    number,
-    number,
-  ][];
+  const palette = quantize(rgba, 256, { format: "rgb565" }) as [number, number, number][];
   const indexed = applyPalette(rgba, palette, "rgb565");
   return { palette, indexed };
 }

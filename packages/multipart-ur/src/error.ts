@@ -109,4 +109,11 @@ export class MurError extends Error {
 }
 
 export { MurError as Error };
+
+/**
+ * Rust returns `Result<T, Error>`; the TS port is throw-based, so fallible
+ * functions simply return `T` and throw `MurError` on failure. This alias
+ * is kept for source-level alignment with rust signatures — think of it as
+ * "the function returns `T`, but may throw `MurError`".
+ */
 export type Result<T> = T;

@@ -54,9 +54,7 @@ export class Color {
         return new Color(r, g, b, a);
       }
       default:
-        throw MurError.invalidColor(
-          `expected #RGB, #RRGGBB, or #RRGGBBAA, got: #${stripped}`,
-        );
+        throw MurError.invalidColor(`expected #RGB, #RRGGBB, or #RRGGBBAA, got: #${stripped}`);
     }
   }
 
@@ -74,15 +72,6 @@ export class Color {
     }
     const a = this.a.toString(16).padStart(2, "0").toUpperCase();
     return `#${r}${g}${b}${a}`;
-  }
-
-  equals(other: Color): boolean {
-    return (
-      this.r === other.r &&
-      this.g === other.g &&
-      this.b === other.b &&
-      this.a === other.a
-    );
   }
 }
 

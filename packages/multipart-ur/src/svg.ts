@@ -21,17 +21,15 @@ let initPromise: Promise<void> | null = null;
  * BufferSource, WebAssembly.Module, or a Promise of one) before invoking
  * any SVG-rendering API.
  */
-export function initSvgRenderer(
-  wasm?: Parameters<typeof initWasm>[0],
-): Promise<void> {
+export function initSvgRenderer(wasm?: Parameters<typeof initWasm>[0]): Promise<void> {
   initPromise ??= (async () => {
-      if (wasm) {
-        await initWasm(wasm);
-        return;
-      }
-      // Try to auto-load from Node.
-      const wasmBytes = await loadWasmFromNode();
-      await initWasm(wasmBytes);
+    if (wasm) {
+      await initWasm(wasm);
+      return;
+    }
+    // Try to auto-load from Node.
+    const wasmBytes = await loadWasmFromNode();
+    await initWasm(wasmBytes);
   })().catch((e: unknown) => {
     initPromise = null;
     throw e;
@@ -40,9 +38,7 @@ export function initSvgRenderer(
 }
 
 async function loadWasmFromNode(): Promise<Uint8Array> {
-  const isNode =
-    typeof process !== "undefined" &&
-    process.versions?.node !== undefined;
+  const isNode = typeof process !== "undefined" && process.versions?.node !== undefined;
   if (!isNode) {
     throw MurError.svgRender(
       "SVG renderer not initialized — call initSvgRenderer(wasmBytes) first",
@@ -72,9 +68,7 @@ export async function rasterizeSvgTo512(svg: Uint8Array): Promise<Uint8Array> {
       background: "rgba(0, 0, 0, 0)",
     });
   } catch (e) {
-    throw MurError.svgRender(
-      `SVG parse: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw MurError.svgRender(`SVG parse: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // Recompute fitTo using the smaller dimension to ensure aspect-preserving
@@ -94,9 +88,7 @@ export async function rasterizeSvgTo512(svg: Uint8Array): Promise<Uint8Array> {
       background: "rgba(0, 0, 0, 0)",
     });
   } catch (e) {
-    throw MurError.svgRender(
-      `SVG parse: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw MurError.svgRender(`SVG parse: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   const rendered = scaledResvg.render();
@@ -116,10 +108,7 @@ export async function rasterizeSvgTo512(svg: Uint8Array): Promise<Uint8Array> {
   for (let y = 0; y < h; y++) {
     const dstRow = (offsetY + y) * renderSize + offsetX;
     const srcRow = y * w;
-    out.set(
-      straight.subarray(srcRow * 4, (srcRow + w) * 4),
-      dstRow * 4,
-    );
+    out.set(straight.subarray(srcRow * 4, (srcRow + w) * 4), dstRow * 4);
   }
   return out;
 }

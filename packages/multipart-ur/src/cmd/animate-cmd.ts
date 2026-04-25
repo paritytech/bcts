@@ -14,7 +14,7 @@ import {
   logoClearShapeFromString,
 } from "../index.js";
 import type { Exec } from "./exec.js";
-import { readInput } from "./input.js";
+import { readInput } from "./single.js";
 
 export interface AnimateCommandArgs {
   urString: string;
@@ -35,7 +35,11 @@ export interface AnimateCommandArgs {
   format: string;
   frameCount?: number;
   maxModules: number;
-  noDensityCheck: boolean;
+  /**
+   * When `true` (default), reject QR codes whose module count exceeds
+   * `maxModules`. Matches commander's `--no-density-check` flag behaviour.
+   */
+  densityCheck: boolean;
 }
 
 export class AnimateCommand implements Exec {
@@ -52,12 +56,7 @@ export class AnimateCommand implements Exec {
       const fs = await import("node:fs/promises");
       const svgData = new Uint8Array(await fs.readFile(args.logo));
       const shape = logoClearShapeFromString(args.logoShape);
-      logo = await Logo.fromSvg(
-        svgData,
-        args.logoFraction,
-        args.logoBorder,
-        shape,
-      );
+      logo = await Logo.fromSvg(svgData, args.logoFraction, args.logoBorder, shape);
     }
 
     const correction: CorrectionLevel | null = args.correction
@@ -77,7 +76,7 @@ export class AnimateCommand implements Exec {
       fps: args.fps,
       cycles: args.cycles,
       frameCount: args.frameCount ?? null,
-      maxModules: args.noDensityCheck ? null : args.maxModules,
+      maxModules: args.densityCheck ? args.maxModules : null,
     };
 
     const frames = generateFrames(ur, params);
@@ -94,9 +93,7 @@ export class AnimateCommand implements Exec {
         return `Wrote ${frames.length} frames as ProRes to ${args.output}`;
       }
       default:
-        throw new Error(
-          `unknown format: ${args.format} (expected gif or prores)`,
-        );
+        throw new Error(`unknown format: ${args.format} (expected gif or prores)`);
     }
   }
 }
@@ -115,5 +112,5 @@ export const ANIMATE_DEFAULTS: Omit<AnimateCommandArgs, "urString" | "output"> =
   cycles: 3,
   format: "gif",
   maxModules: DEFAULT_MAX_MODULES,
-  noDensityCheck: false,
+  densityCheck: true,
 };

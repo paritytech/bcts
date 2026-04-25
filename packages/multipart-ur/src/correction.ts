@@ -57,8 +57,6 @@ export function correctionLevelFromString(s: string): CorrectionLevel {
     case "h":
       return CorrectionLevel.High;
     default:
-      throw new Error(
-        `unknown correction level: ${s} (expected low, medium, quartile, or high)`,
-      );
+      throw new Error(`unknown correction level: ${s} (expected low, medium, quartile, or high)`);
   }
 }

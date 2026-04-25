@@ -1,6 +1,6 @@
 {
   "name": "@bcts/multipart-ur",
-  "version": "1.0.0-alpha.0",
+  "version": "1.0.0-alpha.24",
   "type": "module",
   "description": "Multipart UR QR code generator - single-frame and animated fountain-coded QR sequences with optional logo overlay.",
   "license": "BSD-2-Clause-Patent",
@@ -60,7 +60,7 @@
   "dependencies": {
     "@bcts/uniform-resources": "workspace:*",
     "@resvg/resvg-wasm": "^2.6.2",
-    "fast-png": "^6.2.0",
+    "fast-png": "^8.0.0",
     "gifenc": "^1.0.3",
     "jpeg-js": "^0.4.4",
     "qrcode-generator": "^2.0.4"
@@ -72,7 +72,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
     "@types/qrcode-generator": "^1.0.6",
-    "commander": "^12.1.0",
+    "commander": "^14.0.3",
     "eslint": "^10.2.1",
     "prettier": "^3.8.3",
     "tsdown": "^0.21.0",

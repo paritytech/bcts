@@ -26,9 +26,7 @@ import {
   writeFramePngs,
 } from "../src/index.js";
 
-const TEST_SVG = new Uint8Array(
-  readFileSync(new URL("./test_data/bc-logo.svg", import.meta.url)),
-);
+const TEST_SVG = new Uint8Array(readFileSync(new URL("./test_data/bc-logo.svg", import.meta.url)));
 
 // A short UR string that fits in a single QR frame.
 const SHORT_UR = "ur:bytes/hdcxdwinvezm";
@@ -44,15 +42,7 @@ function longUr(): UR {
 
 describe("single frame", () => {
   it("png dimensions", () => {
-    const img = renderUrQr(
-      SHORT_UR,
-      CorrectionLevel.Low,
-      512,
-      Color.BLACK,
-      Color.WHITE,
-      1,
-      null,
-    );
+    const img = renderUrQr(SHORT_UR, CorrectionLevel.Low, 512, Color.BLACK, Color.WHITE, 1, null);
     expect(img.width).toBe(512);
     expect(img.height).toBe(512);
 
@@ -88,11 +78,7 @@ describe("single frame", () => {
     expect(img.width).toBe(128);
     let hasBlue = false;
     for (let i = 0; i < img.pixels.length; i += 4) {
-      if (
-        img.pixels[i] === 0 &&
-        img.pixels[i + 1] === 0 &&
-        img.pixels[i + 2] === 255
-      ) {
+      if (img.pixels[i] === 0 && img.pixels[i + 1] === 0 && img.pixels[i + 2] === 255) {
         hasBlue = true;
         break;
       }
@@ -101,15 +87,7 @@ describe("single frame", () => {
   });
 
   it("dark mode", () => {
-    const img = renderUrQr(
-      SHORT_UR,
-      CorrectionLevel.Low,
-      256,
-      Color.WHITE,
-      Color.BLACK,
-      1,
-      null,
-    );
+    const img = renderUrQr(SHORT_UR, CorrectionLevel.Low, 256, Color.WHITE, Color.BLACK, 1, null);
     expect(img.pixels[0]).toBe(0);
     expect(img.pixels[1]).toBe(0);
     expect(img.pixels[2]).toBe(0);
@@ -151,21 +129,13 @@ describe("logo overlay", () => {
     expect(logo.width).toBe(512);
     expect(logo.height).toBe(512);
 
-    const img = renderUrQr(
-      SHORT_UR,
-      CorrectionLevel.High,
-      512,
-      Color.BLACK,
-      Color.WHITE,
-      1,
-      logo,
-    );
+    const img = renderUrQr(SHORT_UR, CorrectionLevel.High, 512, Color.BLACK, Color.WHITE, 1, logo);
     const png = img.toPng();
     expect(png.length).toBeGreaterThan(100);
   });
 
   it("circle logo", async () => {
-    const logo = await Logo.fromSvg(TEST_SVG, 0.30, 2, LogoClearShape.Circle);
+    const logo = await Logo.fromSvg(TEST_SVG, 0.3, 2, LogoClearShape.Circle);
 
     const img = renderQr(
       new TextEncoder().encode("UR:BYTES/TEST"),
@@ -200,7 +170,7 @@ describe("animated", () => {
 
   it("gif with logo", async () => {
     const ur = longUr();
-    const logo = await Logo.fromSvg(TEST_SVG, 0.20, 1, LogoClearShape.Square);
+    const logo = await Logo.fromSvg(TEST_SVG, 0.2, 1, LogoClearShape.Square);
     const frames = generateFrames(ur, {
       maxFragmentLen: 50,
       size: 256,
@@ -239,12 +209,8 @@ describe("error cases", () => {
   });
 
   it("logo fraction out of range", async () => {
-    await expect(
-      Logo.fromSvg(TEST_SVG, 0.0, 1, LogoClearShape.Square),
-    ).rejects.toThrow();
-    await expect(
-      Logo.fromSvg(TEST_SVG, 1.0, 1, LogoClearShape.Square),
-    ).rejects.toThrow();
+    await expect(Logo.fromSvg(TEST_SVG, 0.0, 1, LogoClearShape.Square)).rejects.toThrow();
+    await expect(Logo.fromSvg(TEST_SVG, 1.0, 1, LogoClearShape.Square)).rejects.toThrow();
   });
 });
 
@@ -252,10 +218,7 @@ describe("error cases", () => {
 
 describe("density", () => {
   it("module count small", () => {
-    const count = qrModuleCount(
-      new TextEncoder().encode("HELLO"),
-      CorrectionLevel.Low,
-    );
+    const count = qrModuleCount(new TextEncoder().encode("HELLO"), CorrectionLevel.Low);
     expect(count).toBe(21);
   });
 
@@ -284,10 +247,7 @@ describe("density", () => {
     const ur = UR.new("bytes", toByteString(data));
     const urString = ur.qrString();
     const upper = urString.toUpperCase();
-    const modules = qrModuleCount(
-      new TextEncoder().encode(upper),
-      CorrectionLevel.Low,
-    );
+    const modules = qrModuleCount(new TextEncoder().encode(upper), CorrectionLevel.Low);
     expect(modules).toBeGreaterThan(DEFAULT_MAX_MODULES);
     try {
       checkQrDensity(modules, DEFAULT_MAX_MODULES);

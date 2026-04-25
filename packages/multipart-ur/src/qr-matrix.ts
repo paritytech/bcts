@@ -17,12 +17,9 @@ import { MurError } from "./error.js";
 export const DEFAULT_MAX_MODULES = 117;
 
 /** Get the QR module count for a message without rendering. */
-export function qrModuleCount(
-  message: Uint8Array,
-  correction: CorrectionLevel,
-): number {
+export function qrModuleCount(message: Uint8Array, correction: CorrectionLevel): number {
   const matrix = QrMatrix.encode(message, correction);
-  return matrix.width;
+  return matrix.width();
 }
 
 /**
@@ -30,10 +27,7 @@ export function qrModuleCount(
  *
  * Throws `MurError.qrCodeTooDense` if `moduleCount > maxModules`.
  */
-export function checkQrDensity(
-  moduleCount: number,
-  maxModules: number,
-): void {
+export function checkQrDensity(moduleCount: number, maxModules: number): void {
   if (moduleCount > maxModules) {
     throw MurError.qrCodeTooDense(moduleCount, maxModules);
   }
@@ -41,12 +35,12 @@ export function checkQrDensity(
 
 /** A boolean QR module matrix. */
 export class QrMatrix {
-  private readonly modules: boolean[];
-  readonly width: number;
+  private readonly _modules: boolean[];
+  private readonly _width: number;
 
   private constructor(modules: boolean[], width: number) {
-    this.modules = modules;
-    this.width = width;
+    this._modules = modules;
+    this._width = width;
   }
 
   /** Encode a byte message into a QR matrix at the given correction level. */
@@ -75,8 +69,13 @@ export class QrMatrix {
     return new QrMatrix(modules, width);
   }
 
+  /** Module count (width == height for QR codes). */
+  width(): number {
+    return this._width;
+  }
+
   /** True if the module at (col, row) is dark. */
   isDark(col: number, row: number): boolean {
-    return this.modules[row * this.width + col];
+    return this._modules[row * this._width + col];
   }
 }

@@ -46,11 +46,15 @@ export default [
       "@typescript-eslint/prefer-nullish-coalescing": "off",
     },
   },
-  // Styles helper: allow short arrow-style helpers without explicit return types.
+  // Test files: Node fs/child_process/url helpers — allow the globals vitest adds.
   {
-    files: ["src/cmd/styles.ts"],
-    rules: {
-      "@typescript-eslint/explicit-module-boundary-types": "off",
+    files: ["tests/**/*.ts"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+      },
     },
   },
 ];

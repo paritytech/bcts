@@ -11,7 +11,25 @@ import {
   renderUrQr,
 } from "../index.js";
 import type { Exec } from "./exec.js";
-import { readInput } from "./input.js";
+
+/**
+ * Read input from stdin if `s === "-"`, otherwise return as-is.
+ *
+ * Mirror of rust `bc_mur::cmd::single::read_input`. Lives here (rather than
+ * in a separate module) so the sibling `animate` and `frames` commands can
+ * import it from `super::single::read_input` — same as rust.
+ */
+export async function readInput(s: string): Promise<string> {
+  if (s === "-") {
+    const chunks: Buffer[] = [];
+    return new Promise<string>((resolve, reject) => {
+      process.stdin.on("data", (chunk: Buffer) => chunks.push(chunk));
+      process.stdin.on("end", () => resolve(Buffer.concat(chunks).toString("utf8").trim()));
+      process.stdin.on("error", reject);
+    });
+  }
+  return s;
+}
 
 export interface SingleArgs {
   urString: string;
@@ -29,7 +47,12 @@ export interface SingleArgs {
   format: string;
   jpegQuality: number;
   maxModules: number;
-  noDensityCheck: boolean;
+  /**
+   * When `true` (default), reject QR codes whose module count exceeds
+   * `maxModules`. Set to `false` to disable the check. Matches commander's
+   * `--no-density-check` flag behaviour.
+   */
+  densityCheck: boolean;
 }
 
 export class SingleCommand implements Exec {
@@ -46,12 +69,7 @@ export class SingleCommand implements Exec {
       const fs = await import("node:fs/promises");
       const svgData = new Uint8Array(await fs.readFile(args.logo));
       const shape = logoClearShapeFromString(args.logoShape);
-      logo = await Logo.fromSvg(
-        svgData,
-        args.logoFraction,
-        args.logoBorder,
-        shape,
-      );
+      logo = await Logo.fromSvg(svgData, args.logoFraction, args.logoBorder, shape);
     }
 
     const correction: CorrectionLevel = args.correction
@@ -60,24 +78,13 @@ export class SingleCommand implements Exec {
         ? CorrectionLevel.High
         : CorrectionLevel.Low;
 
-    if (!args.noDensityCheck) {
+    if (args.densityCheck) {
       const upper = urString.toUpperCase();
-      const modules = qrModuleCount(
-        new TextEncoder().encode(upper),
-        correction,
-      );
+      const modules = qrModuleCount(new TextEncoder().encode(upper), correction);
       checkQrDensity(modules, args.maxModules);
     }
 
-    const img = renderUrQr(
-      urString,
-      correction,
-      args.size,
-      fg,
-      bg,
-      args.quietZone,
-      logo,
-    );
+    const img = renderUrQr(urString, correction, args.size, fg, bg, args.quietZone, logo);
 
     let data: Uint8Array;
     switch (args.format) {
@@ -116,5 +123,5 @@ export const SINGLE_DEFAULTS: Omit<SingleArgs, "urString"> = {
   format: "png",
   jpegQuality: 90,
   maxModules: DEFAULT_MAX_MODULES,
-  noDensityCheck: false,
+  densityCheck: true,
 };

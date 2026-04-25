@@ -13,7 +13,7 @@ import {
   writeFramePngs,
 } from "../index.js";
 import type { Exec } from "./exec.js";
-import { readInput } from "./input.js";
+import { readInput } from "./single.js";
 
 export interface FramesArgs {
   urString: string;
@@ -33,7 +33,11 @@ export interface FramesArgs {
   cycles: number;
   frameCount?: number;
   maxModules: number;
-  noDensityCheck: boolean;
+  /**
+   * When `true` (default), reject QR codes whose module count exceeds
+   * `maxModules`. Matches commander's `--no-density-check` flag behaviour.
+   */
+  densityCheck: boolean;
 }
 
 export class FramesCommand implements Exec {
@@ -50,12 +54,7 @@ export class FramesCommand implements Exec {
       const fs = await import("node:fs/promises");
       const svgData = new Uint8Array(await fs.readFile(args.logo));
       const shape = logoClearShapeFromString(args.logoShape);
-      logo = await Logo.fromSvg(
-        svgData,
-        args.logoFraction,
-        args.logoBorder,
-        shape,
-      );
+      logo = await Logo.fromSvg(svgData, args.logoFraction, args.logoBorder, shape);
     }
 
     const correction: CorrectionLevel | null = args.correction
@@ -75,7 +74,7 @@ export class FramesCommand implements Exec {
       fps: args.fps,
       cycles: args.cycles,
       frameCount: args.frameCount ?? null,
-      maxModules: args.noDensityCheck ? null : args.maxModules,
+      maxModules: args.densityCheck ? args.maxModules : null,
     };
 
     const frames = generateFrames(ur, params);
@@ -98,5 +97,5 @@ export const FRAMES_DEFAULTS: Omit<FramesArgs, "urString" | "output"> = {
   fps: 8,
   cycles: 3,
   maxModules: DEFAULT_MAX_MODULES,
-  noDensityCheck: false,
+  densityCheck: true,
 };

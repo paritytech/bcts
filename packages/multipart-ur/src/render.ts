@@ -38,9 +38,7 @@ export class RenderedImage {
         channels: 4,
       });
     } catch (e) {
-      throw MurError.imageEncode(
-        e instanceof Error ? e.message : String(e),
-      );
+      throw MurError.imageEncode(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -51,13 +49,9 @@ export class RenderedImage {
         { data: this.pixels, width: this.width, height: this.height },
         quality,
       );
-      return result.data instanceof Uint8Array
-        ? result.data
-        : new Uint8Array(result.data);
+      return result.data instanceof Uint8Array ? result.data : new Uint8Array(result.data);
     } catch (e) {
-      throw MurError.imageEncode(
-        e instanceof Error ? e.message : String(e),
-      );
+      throw MurError.imageEncode(e instanceof Error ? e.message : String(e));
     }
   }
 }
@@ -102,15 +96,7 @@ export function renderUrQr(
   logo: Logo | null,
 ): RenderedImage {
   const upper = urString.toUpperCase();
-  return renderQr(
-    new TextEncoder().encode(upper),
-    correction,
-    size,
-    fg,
-    bg,
-    quietZone,
-    logo,
-  );
+  return renderQr(new TextEncoder().encode(upper), correction, size, fg, bg, quietZone, logo);
 }
 
 /**
@@ -125,7 +111,7 @@ export function renderFromMatrix(
   quietZone: number,
   logo: Logo | null,
 ): RenderedImage {
-  const qrModules = matrix.width;
+  const qrModules = matrix.width();
   const totalModules = qrModules + 2 * quietZone;
   const pixelsPerModule = Math.max(1, Math.floor(size / totalModules));
   const compositingSize = totalModules * pixelsPerModule;
@@ -146,41 +132,19 @@ export function renderFromMatrix(
       const color = matrix.isDark(col, row) ? fg : bg;
       const px = qzPx + col * pixelsPerModule;
       const py = qzPx + row * pixelsPerModule;
-      fillRect(
-        pixels,
-        compositingSize,
-        px,
-        py,
-        pixelsPerModule,
-        pixelsPerModule,
-        color,
-      );
+      fillRect(pixels, compositingSize, px, py, pixelsPerModule, pixelsPerModule, color);
     }
   }
 
   // Logo overlay.
   if (logo) {
-    compositeLogo(
-      pixels,
-      compositingSize,
-      qrModules,
-      pixelsPerModule,
-      qzPx,
-      bg,
-      logo,
-    );
+    compositeLogo(pixels, compositingSize, qrModules, pixelsPerModule, qzPx, bg, logo);
   }
 
   // Scale to final requested size if different.
   const finalPixels =
     compositingSize !== size
-      ? nearestNeighborScale(
-          pixels,
-          compositingSize,
-          compositingSize,
-          size,
-          size,
-        )
+      ? nearestNeighborScale(pixels, compositingSize, compositingSize, size, size)
       : pixels;
 
   return new RenderedImage(finalPixels, size, size);
@@ -261,15 +225,7 @@ function compositeLogo(
           if (dx * dx + dy * dy <= radius * radius) {
             const px = qzPx + (startModule + col) * pixelsPerModule;
             const py = qzPx + (startModule + row) * pixelsPerModule;
-            fillRect(
-              pixels,
-              compositingSize,
-              px,
-              py,
-              pixelsPerModule,
-              pixelsPerModule,
-              clearColor,
-            );
+            fillRect(pixels, compositingSize, px, py, pixelsPerModule, pixelsPerModule, clearColor);
           }
         }
       }
@@ -281,13 +237,7 @@ function compositeLogo(
   const logoPixels = layout.logoModules * pixelsPerModule;
   const logoOrigin = qzPx + Math.floor((qrPx - logoPixels) / 2);
 
-  const scaled = bilinearScale(
-    logo.pixels,
-    logo.width,
-    logo.height,
-    logoPixels,
-    logoPixels,
-  );
+  const scaled = bilinearScale(logo.pixels, logo.width, logo.height, logoPixels, logoPixels);
 
   // Alpha-composite the scaled logo onto the QR.
   for (let row = 0; row < logoPixels; row++) {
@@ -312,9 +262,8 @@ function compositeLogo(
           for (let c = 0; c < 3; c++) {
             const sc = scaled[srcOffset + c];
             const dc = pixels[dstOffset + c];
-            pixels[dstOffset + c] = Math.floor(
-              (sc * sa + Math.floor((dc * da * invSa) / 255)) / outA,
-            ) & 0xff;
+            pixels[dstOffset + c] =
+              Math.floor((sc * sa + Math.floor((dc * da * invSa) / 255)) / outA) & 0xff;
           }
           pixels[dstOffset + 3] = Math.min(outA, 255);
         }
@@ -410,3 +359,11 @@ export function bilinearScale(
   }
   return dst;
 }
+
+/**
+ * Internal test-only exports mirroring the rust `#[cfg(test)] mod tests`
+ * block's access to private helpers. Not re-exported from `index.ts`.
+ *
+ * @internal
+ */
+export const __testables = { LogoLayout };
