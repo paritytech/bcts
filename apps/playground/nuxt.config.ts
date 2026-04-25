@@ -22,6 +22,11 @@ export default defineNuxtConfig({
       }
     },
   },
+  vite: {
+    optimizeDeps: {
+      include: ["@paulmillr/qr", "@paulmillr/qr/decode.js", "@paulmillr/qr/dom.js"],
+    },
+  },
   app: {
     head: {
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],

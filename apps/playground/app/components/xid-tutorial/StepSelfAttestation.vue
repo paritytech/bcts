@@ -1,278 +1,238 @@
 <script setup lang="ts">
+import { Privilege } from '@bcts/xid'
+import type { Envelope } from '@bcts/envelope'
+import {
+  buildSignedAttestation,
+  verifyAttestationAgainstXid,
+  buildSupersedingAttestation,
+  buildRetractionAttestation,
+} from '@/utils/xid-tutorial/attestation'
+
 const {
-  error,
-  keyList,
-  attachmentList,
-  provenanceMark,
-  addAttachment,
-  addService,
-  advanceProvenance,
-  getKeyAlgorithm,
-  getKeyRefHex,
-  completeAndAdvance,
+  activeSlot, activeDoc, addSideKey, advanceProvenance, completeAndAdvance,
 } = useXidTutorial()
 
-const vendor = ref('self')
-const customVendor = ref('')
-const payloadType = ref('github-account')
-const payloadValue = ref('')
-const conformsTo = ref('')
+const claim = ref('Contributed mass spec visualization code to galaxyproject/galaxy (PR #12847, merged 2024)')
+const verifiableAt = ref('https://github.com/galaxyproject/galaxy/pull/12847')
+const extraNotes = ref('')
 
-const serviceUri = ref('')
-const serviceName = ref('')
-const serviceCapability = ref('')
-const serviceKeyRef = ref('')
+interface StoredAttestation {
+  id: string
+  label: string
+  signed: Envelope
+  tree: string
+  supersedesId?: string
+  retracted?: boolean
+}
+const attestations = shallowRef<StoredAttestation[]>([])
+const verifyResults = ref<Record<string, { verified: boolean; keyNickname?: string }>>({})
 
-const vendorOptions = [
-  { label: 'self (Self-authored)', value: 'self' },
-  { label: 'github', value: 'github' },
-  { label: 'custom', value: 'custom' },
-]
-
-const payloadTypeOptions = [
-  { label: 'GitHub Account', value: 'github-account' },
-  { label: 'SSH Public Key', value: 'ssh-key' },
-  { label: 'Website URL', value: 'website' },
-  { label: 'Custom Text', value: 'custom' },
-]
-
-const payloadPlaceholder = computed(() => {
-  const map: Record<string, string> = {
-    'github-account': 'github.com/username',
-    'ssh-key': 'ssh-ed25519 AAAA...',
-    'website': 'https://example.com',
-    'custom': 'Enter your attestation data...',
+function ensureAttestationKey() {
+  if (!activeSlot.value.attestationKey) {
+    addSideKey('amira', 'attestation', 'Ed25519', [Privilege.Sign])
   }
-  return map[payloadType.value] ?? ''
-})
-
-const usesTextarea = computed(() => payloadType.value === 'ssh-key' || payloadType.value === 'custom')
-
-const keyRefOptions = computed(() =>
-  keyList.value.map(key => ({
-    label: `${getKeyAlgorithm(key)} (${getKeyRefHex(key).substring(0, 8)}...)`,
-    value: getKeyRefHex(key),
-  })),
-)
-
-const hasAttachments = computed(() => attachmentList.value.length > 0)
-
-function handleAddAttestation() {
-  const v = vendor.value === 'custom' ? customVendor.value.trim() : vendor.value
-  if (!v || !payloadValue.value.trim()) return
-  addAttachment(payloadValue.value.trim(), v, conformsTo.value.trim() || undefined)
-  payloadValue.value = ''
-  conformsTo.value = ''
 }
 
-function handleAddService() {
-  if (!serviceUri.value.trim()) return
-  addService(
-    serviceUri.value.trim(),
-    serviceName.value.trim(),
-    serviceCapability.value.trim(),
-    serviceKeyRef.value || undefined,
+function handleCreateClaim() {
+  const doc = activeDoc.value
+  if (!doc) return
+  ensureAttestationKey()
+  const key = activeSlot.value.attestationKey
+  if (!key) return
+  const xidUr = doc.xid().urString()
+  const signed = buildSignedAttestation(
+    {
+      claim: claim.value,
+      sourceXidUr: xidUr,
+      targetXidUr: xidUr,
+      verifiableAt: verifiableAt.value || undefined,
+      date: new Date(),
+      extras: extraNotes.value ? { note: extraNotes.value } : undefined,
+    },
+    key.prvKeys,
   )
-  serviceUri.value = ''
-  serviceName.value = ''
-  serviceCapability.value = ''
-  serviceKeyRef.value = ''
+  const entry: StoredAttestation = {
+    id: crypto.randomUUID(),
+    label: claim.value.slice(0, 60),
+    signed,
+    tree: signed.treeFormat(),
+  }
+  attestations.value = [...attestations.value, entry]
 }
 
-function truncatePayload(text: string, maxLen = 60): string {
-  return text.length > maxLen ? text.slice(0, maxLen) + '...' : text
+function verifyOne(entry: StoredAttestation) {
+  const doc = activeDoc.value
+  if (!doc) return
+  const r = verifyAttestationAgainstXid(entry.signed, doc)
+  verifyResults.value = {
+    ...verifyResults.value,
+    [entry.id]: { verified: r.verified, keyNickname: r.keyNickname },
+  }
 }
+
+function handleSupersede(entry: StoredAttestation) {
+  const doc = activeDoc.value
+  const key = activeSlot.value.attestationKey
+  if (!doc || !key) return
+  const xidUr = doc.xid().urString()
+  const superseded = buildSupersedingAttestation(
+    entry.signed,
+    {
+      claim: claim.value,
+      sourceXidUr: xidUr,
+      targetXidUr: xidUr,
+      verifiableAt: verifiableAt.value || undefined,
+      date: new Date(),
+    },
+    key.prvKeys,
+  )
+  attestations.value = [...attestations.value, {
+    id: crypto.randomUUID(),
+    label: `(supersedes) ${entry.label.slice(0, 40)}`,
+    signed: superseded,
+    tree: superseded.treeFormat(),
+    supersedesId: entry.id,
+  }]
+}
+
+function handleRetract(entry: StoredAttestation) {
+  const key = activeSlot.value.attestationKey
+  if (!key) return
+  const retracted = buildRetractionAttestation(
+    entry.signed,
+    'Claim was overstated',
+    key.prvKeys,
+    `RETRACTED: ${entry.label}`,
+  )
+  attestations.value = [...attestations.value, {
+    id: crypto.randomUUID(),
+    label: `(retraction) ${entry.label.slice(0, 40)}`,
+    signed: retracted,
+    tree: retracted.treeFormat(),
+    retracted: true,
+  }]
+}
+
+function handleAdvance() { advanceProvenance() }
+
+const hasAttestationKey = computed(() => activeSlot.value.attestationKey !== null)
+const hasAttestations = computed(() => attestations.value.length > 0)
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- Section 1: Introduction -->
-    <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-      Now you can add verifiable claims to your XID. Attachments are vendor-qualified
-      containers that hold custom data — like proving you control a GitHub account or an
-      SSH signing key. Services declare endpoints where your identity can be used.
-    </p>
+    <section class="space-y-2">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">📜</span>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Self-Attestations</h2>
+      </div>
+      <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+        A self-attestation is a signed claim <strong>about yourself</strong>. Following the
+        <em>fair witness methodology</em>, the best attestations are specific, dated, and point
+        to verifiable evidence. They're signed by a dedicated attestation key (not your inception
+        key) so that claims can be rotated without affecting your core identity.
+      </p>
+    </section>
 
-    <!-- Section 2: Concept Cards -->
-    <div class="space-y-3">
-      <XidTutorialConceptCard title="Attachments" icon="i-heroicons-paper-clip">
-        Attachments are vendor-qualified payload containers. The vendor field identifies
-        who authored the data (e.g., 'self' for self-authored claims). They can optionally
-        include a conformsTo URI indicating the data format.
-      </XidTutorialConceptCard>
+    <UAlert
+      v-if="!activeDoc"
+      color="warning" icon="i-heroicons-exclamation-triangle"
+      title="Need a XID first" description="Go back to §1.3."
+    />
 
-      <XidTutorialConceptCard title="Proof-of-Control" icon="i-heroicons-key">
-        By embedding a public key (like an SSH signing key) inside an attachment and signing
-        the XID with your inception key, you create cryptographic proof that the same entity
-        controls both the XID and the attested account.
-      </XidTutorialConceptCard>
-    </div>
+    <template v-if="activeDoc">
+      <UAlert
+        color="info"
+        variant="subtle"
+        icon="i-heroicons-book-open"
+        title="Amira's story"
+        description="Ben has verified BRadvoc8's XID but still doesn't know if they can code. Amira contributed to Galaxy Project — PR #12847 — a real merged contribution. She creates a separate attestation key (Sign-only), registers it, then builds a signed fair-witness attestation pointing to the PR."
+      />
 
-    <!-- Section 3: Add Attestation Form -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-4">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Add an Attestation</h3>
-
-      <div class="space-y-3">
-        <UFormField label="Vendor">
-          <USelect v-model="vendor" :items="vendorOptions" class="w-full" />
-        </UFormField>
-
-        <UFormField v-if="vendor === 'custom'" label="Custom Vendor Name">
-          <UInput v-model="customVendor" placeholder="e.g. my-org" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Payload Type">
-          <USelect v-model="payloadType" :items="payloadTypeOptions" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Payload">
-          <UTextarea
-            v-if="usesTextarea"
-            v-model="payloadValue"
-            :placeholder="payloadPlaceholder"
-            class="w-full"
-            :rows="3"
-          />
-          <UInput
-            v-else
-            v-model="payloadValue"
-            :placeholder="payloadPlaceholder"
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField label="Conforms To (optional)">
-          <UInput
-            v-model="conformsTo"
-            placeholder="https://schema.example.com/github-v1"
-            class="w-full"
-          />
-        </UFormField>
-
+      <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Attestation key</h3>
+        <div v-if="hasAttestationKey" class="flex items-center gap-2 text-sm">
+          <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
+          <span>Registered in your XID with <code class="text-xs">Sign</code>-only permission.</span>
+        </div>
         <UButton
-          label="Add Attestation"
-          icon="i-heroicons-paper-clip"
-          color="primary"
-          @click="handleAddAttestation"
+          v-else label="Create + register attestation key"
+          color="primary" icon="i-heroicons-key"
+          @click="ensureAttestationKey"
         />
       </div>
 
-      <UAlert v-if="error" color="error" :title="error" variant="subtle" />
-    </div>
+      <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Build a fair-witness claim</h3>
+        <UFormField label="Claim (specific, verifiable — no vague opinions)">
+          <UTextarea v-model="claim" :rows="2" class="w-full" />
+        </UFormField>
+        <UFormField label="verifiableAt (URL to evidence)">
+          <UInput v-model="verifiableAt" placeholder="https://github.com/…/pull/…" class="w-full" />
+        </UFormField>
+        <UFormField label="Extra note (optional)">
+          <UInput v-model="extraNotes" class="w-full" />
+        </UFormField>
+        <UButton
+          label="Sign attestation"
+          icon="i-heroicons-pencil-square"
+          color="primary"
+          @click="handleCreateClaim"
+        />
+      </div>
 
-    <!-- Section 4: Current Attestations -->
-    <div v-if="hasAttachments" class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Your Attestations</h3>
-
-      <div class="space-y-2">
+      <div v-if="hasAttestations" class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Your attestations</h3>
         <div
-          v-for="att in attachmentList"
-          :key="att.digestHex"
-          class="flex items-start gap-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 p-3"
+          v-for="a in attestations"
+          :key="a.id"
+          class="rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 p-3 space-y-2"
         >
-          <UIcon name="i-heroicons-paper-clip" class="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-          <div class="flex-1 min-w-0 space-y-1">
+          <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-              <UBadge color="neutral" variant="subtle" size="sm">{{ att.vendor }}</UBadge>
+              <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-gray-400" />
+              <span class="text-sm font-medium">{{ a.label }}</span>
+              <UBadge v-if="a.supersedesId" color="info" size="xs" variant="subtle">supersedes</UBadge>
+              <UBadge v-if="a.retracted" color="warning" size="xs" variant="subtle">retraction</UBadge>
             </div>
-            <pre class="font-mono text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-all">{{ truncatePayload(att.payloadPreview) }}</pre>
+            <div class="flex items-center gap-1">
+              <UButton size="xs" variant="ghost" icon="i-heroicons-magnifying-glass" label="Verify" @click="verifyOne(a)" />
+              <UButton v-if="!a.retracted" size="xs" variant="ghost" icon="i-heroicons-arrow-path-rounded-square" label="Supersede" @click="handleSupersede(a)" />
+              <UButton v-if="!a.retracted" size="xs" variant="ghost" color="warning" icon="i-heroicons-x-circle" label="Retract" @click="handleRetract(a)" />
+            </div>
           </div>
+          <pre class="font-mono text-xs bg-gray-950 text-gray-200 p-3 rounded-md overflow-auto max-h-48">{{ a.tree }}</pre>
+          <UAlert
+            v-if="verifyResults[a.id]?.verified === true"
+            color="success" icon="i-heroicons-check-circle"
+            :title="`Verified with key: ${verifyResults[a.id]?.keyNickname ?? '(unnamed)'}`"
+          />
+          <UAlert
+            v-else-if="verifyResults[a.id]?.verified === false"
+            color="error" icon="i-heroicons-x-circle"
+            title="No key in the XID verified this signature"
+          />
         </div>
       </div>
-    </div>
 
-    <!-- Section 5: Add Service Endpoint -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-4">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Add a Service Endpoint</h3>
-
-      <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-        Services declare where your identity is used, linking a URI to specific keys and capabilities.
-      </p>
-
-      <div class="space-y-3">
-        <UFormField label="Service URI">
-          <UInput v-model="serviceUri" placeholder="https://github.com/BRadvoc8" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Service Name">
-          <UInput v-model="serviceName" placeholder="GitHub" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Capability">
-          <UInput v-model="serviceCapability" placeholder="code-signing" class="w-full" />
-        </UFormField>
-
-        <UFormField label="Key Reference">
-          <USelect v-model="serviceKeyRef" :items="keyRefOptions" class="w-full" />
-        </UFormField>
-
-        <UButton
-          label="Add Service"
-          icon="i-heroicons-server-stack"
-          color="primary"
-          variant="outline"
-          @click="handleAddService"
-        />
-      </div>
-    </div>
-
-    <!-- Section 6: Record Update (Provenance) -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
-      <template v-if="provenanceMark">
-        <UButton
-          label="Record Update (Advance Provenance)"
-          icon="i-heroicons-arrow-path"
-          color="primary"
-          variant="soft"
-          @click="advanceProvenance"
-        />
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          Sequence: 0 (genesis) &rarr; 1 (attestation added)
+      <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-2">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Advance provenance</h3>
+        <p class="text-xs text-gray-500">
+          Publishing a new edition of the XID (now with the attestation key) advances the
+          provenance mark.
         </p>
-      </template>
-      <UAlert
-        v-else
-        color="info"
-        title="Provenance not enabled"
-        description="Provenance tracking was not enabled during XID creation. You can still add attestations without it."
-        variant="subtle"
-      />
-    </div>
-
-    <!-- Section 7: Trust Progression & Complete -->
-    <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-4">
-      <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Trust Progression</h3>
-
-      <ul class="space-y-2 text-sm">
-        <li class="flex items-center gap-2">
-          <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
-          <span class="text-gray-700 dark:text-gray-300">Identity Exists</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
-          <span class="text-gray-700 dark:text-gray-300">Verifiable &amp; Fresh</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <UIcon
-            :name="hasAttachments ? 'i-heroicons-check-circle' : 'i-heroicons-minus-circle'"
-            :class="['w-5 h-5 shrink-0', hasAttachments ? 'text-green-500' : 'text-gray-300 dark:text-gray-600']"
-          />
-          <span :class="['text-gray-700 dark:text-gray-300', !hasAttachments && 'opacity-50']">
-            Claims Present
-          </span>
-        </li>
-      </ul>
+        <UButton label="Advance provenance" icon="i-heroicons-arrow-path" variant="outline" color="neutral" @click="handleAdvance" />
+      </div>
 
       <div class="flex justify-end">
         <UButton
-          label="Continue to Step 4"
+          label="Continue to §2.2"
           trailing-icon="i-heroicons-arrow-right"
-          color="primary"
-          size="lg"
-          :disabled="!hasAttachments"
-          @click="completeAndAdvance(2)"
+          color="primary" size="lg"
+          :disabled="!hasAttestations"
+          @click="completeAndAdvance(4)"
         />
       </div>
-    </div>
+    </template>
   </div>
 </template>
