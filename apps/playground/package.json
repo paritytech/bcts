@@ -28,7 +28,8 @@
     "@paulmillr/qr": "^0.3.0",
     "@tailwindcss/vite": "^4.2.4",
     "tailwindcss": "^4.2.4",
-    "vue-draggable-plus": "^0.6.0"
+    "vue-draggable-plus": "^0.6.0",
+    "vue-router": "^5.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -42,7 +43,7 @@
     "eslint": "^10.2.1",
     "nuxt": "^4.4.2",
     "nuxt-gtag": "4.1.0",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vue-tsc": "^3.2.7",
     "wrangler": "^4.85.0"
   }

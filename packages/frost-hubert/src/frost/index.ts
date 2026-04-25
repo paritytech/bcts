@@ -61,7 +61,7 @@ export type DkgRound2SecretPackage = keys.dkg.round2.SecretPackage;
  */
 export class SecureRng implements RandomSource {
   fill(array: Uint8Array): void {
-    globalThis.crypto.getRandomValues(array);
+    globalThis.crypto.getRandomValues(array as Uint8Array<ArrayBuffer>);
   }
 }
 

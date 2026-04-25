@@ -23,7 +23,7 @@ export function createTestRng(): RandomNumberGenerator {
       return (hi << 32n) | lo;
     },
     fillBytes(dest: Uint8Array): void {
-      globalThis.crypto.getRandomValues(dest);
+      globalThis.crypto.getRandomValues(dest as Uint8Array<ArrayBuffer>);
     },
     randomData(count: number): Uint8Array {
       const data = new Uint8Array(count);
@@ -31,7 +31,7 @@ export function createTestRng(): RandomNumberGenerator {
       return data;
     },
     fillRandomData(data: Uint8Array): void {
-      globalThis.crypto.getRandomValues(data);
+      globalThis.crypto.getRandomValues(data as Uint8Array<ArrayBuffer>);
     },
   };
 }

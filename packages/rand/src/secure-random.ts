@@ -42,7 +42,7 @@ export function randomData(size: number): Uint8Array {
  */
 export function fillRandomData(data: Uint8Array): void {
   const crypto = getCrypto();
-  crypto.getRandomValues(data);
+  crypto.getRandomValues(data as Uint8Array<ArrayBuffer>);
 }
 
 /**
