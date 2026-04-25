@@ -56,6 +56,19 @@ export enum ProvenanceMarkErrorType {
   IntegerConversionError = "IntegerConversionError",
   /** Validation error */
   ValidationError = "ValidationError",
+  /**
+   * Envelope serialization/deserialization error.
+   *
+   * Mirrors Rust `Error::Envelope(...)`
+   * (`provenance-mark-rust/src/error.rs`). The Rust enum surfaces
+   * envelope-format failures as their own variant; in earlier
+   * revisions of this port they collapsed into `CborError`. Both
+   * shapes are still emitted in practice (CBOR errors during envelope
+   * round-trip stay as `CborError`); this variant exists for the
+   * structural-level mismatches the Rust port tags as
+   * `Error::Envelope`.
+   */
+  EnvelopeError = "EnvelopeError",
 }
 
 /**
@@ -135,6 +148,8 @@ export class ProvenanceMarkError extends Error {
         return `integer conversion error: ${d("message")}`;
       case ProvenanceMarkErrorType.ValidationError:
         return `validation error: ${d("message")}`;
+      case ProvenanceMarkErrorType.EnvelopeError:
+        return `envelope error: ${d("message")}`;
       default:
         return type;
     }

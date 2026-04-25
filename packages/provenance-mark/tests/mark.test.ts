@@ -1,9 +1,37 @@
 import { cbor } from "@bcts/dcbor";
-import { ProvenanceMark, ProvenanceMarkGenerator, ProvenanceMarkResolution } from "../src";
+import {
+  ProvenanceMark,
+  ProvenanceMarkGenerator,
+  ProvenanceMarkInfo,
+  ProvenanceMarkResolution,
+} from "../src";
 
 // =============================================================================
 // Test Vectors from Rust provenance-mark-rust/tests/mark.rs
 // =============================================================================
+
+// Expected debug strings for low resolution marks.
+//
+// Mirrors Rust `tests/mark.rs::test_low::expected_debug` (lines 180-191).
+// The Low-resolution wire format only stores year/month/day, so the
+// deserialised date is always midnight UTC and `toDebugString` —
+// per the Rust `Date::Display` rules — emits just `YYYY-MM-DD`.
+//
+// This vector exists to lock down the `dateToDisplay` parity fix; an
+// older revision of this port emitted `2023-06-20T00:00:00Z` for these
+// marks, which broke the Rust expected-debug comparison.
+const EXPECTED_DEBUG_LOW = [
+  "ProvenanceMark(key: 090bf2f8, hash: 5bdcec81, chainID: 090bf2f8, seq: 0, date: 2023-06-20)",
+  "ProvenanceMark(key: 558dbfc6, hash: 477e3ce6, chainID: 090bf2f8, seq: 1, date: 2023-06-21)",
+  "ProvenanceMark(key: 536b2968, hash: 3e5da986, chainID: 090bf2f8, seq: 2, date: 2023-06-22)",
+  "ProvenanceMark(key: 75bb47d0, hash: 41c525a1, chainID: 090bf2f8, seq: 3, date: 2023-06-23)",
+  "ProvenanceMark(key: 85cf746e, hash: 8095afb4, chainID: 090bf2f8, seq: 4, date: 2023-06-24)",
+  "ProvenanceMark(key: ca274110, hash: 3bcacc8d, chainID: 090bf2f8, seq: 5, date: 2023-06-25)",
+  "ProvenanceMark(key: de5cbde4, hash: 41486af2, chainID: 090bf2f8, seq: 6, date: 2023-06-26)",
+  "ProvenanceMark(key: 0f34e1b6, hash: 5fa35da9, chainID: 090bf2f8, seq: 7, date: 2023-06-27)",
+  "ProvenanceMark(key: 51372ca2, hash: e369288f, chainID: 090bf2f8, seq: 8, date: 2023-06-28)",
+  "ProvenanceMark(key: abc6aa64, hash: 7ce8f8bc, chainID: 090bf2f8, seq: 9, date: 2023-06-29)",
+];
 
 // Expected display strings for low resolution marks
 const EXPECTED_DISPLAY_LOW = [
@@ -639,6 +667,54 @@ describe("ProvenanceMark", () => {
         );
         expect(marks[i].equals(restored)).toBe(true);
       }
+    });
+
+    it("ProvenanceMarkInfo.ur() matches mark.ur() (untagged-CBOR parity)", () => {
+      // Rust `ProvenanceMarkInfo::new(mark, ...)` calls `mark.ur()` —
+      // i.e. the {@link UREncodable} implementation, whose payload is
+      // the **untagged** CBOR with type `"provenance"`. Earlier
+      // revisions of this port wrapped tagged CBOR in
+      // `UR.new("provenance", ...)`, which prepended the CBOR tag to
+      // the UR bytewords and broke cross-impl interop. This test
+      // locks the fix in place: the wrapper's UR string must equal the
+      // first Wolf-passphrase Low-res mark's UR string verbatim.
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.Low,
+        "Wolf",
+      );
+      const mark = generator.next(new Date(Date.UTC(2023, 5, 20, 12, 0, 0, 0)));
+
+      const info = ProvenanceMarkInfo.new(mark, "Test comment");
+
+      // The wrapper's UR string is byte-for-byte the mark's UR string.
+      expect(info.ur().toString()).toBe(mark.urString());
+      expect(info.ur().toString()).toBe(EXPECTED_URS_LOW[0]);
+
+      // markdownSummary uses `dateToDisplay` so midnight-UTC dates
+      // render `YYYY-MM-DD` (not `YYYY-MM-DDT00:00:00Z`), matching
+      // Rust `format!("{}", self.mark.date())`.
+      expect(info.markdownSummary()).toContain("\n2023-06-20\n");
+      expect(info.markdownSummary()).not.toContain("2023-06-20T00:00:00Z");
+    });
+
+    it("should match Rust expected debug strings (date-only Display)", () => {
+      // Mirrors Rust `tests/mark.rs::test_low` — locks down the
+      // `Date::Display` parity behaviour for Low resolution. The
+      // Low-resolution wire format stores only year/month/day, so the
+      // deserialised mark date is always midnight UTC and Rust's
+      // `Date::Display` rules render `YYYY-MM-DD` (no time suffix).
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.Low,
+        "Wolf",
+      );
+
+      const marks: ProvenanceMark[] = [];
+      for (let i = 0; i < 10; i++) {
+        const date = new Date(Date.UTC(2023, 5, 20 + i, 12, 0, 0, 0));
+        marks.push(generator.next(date));
+      }
+
+      expect(marks.map((m) => m.toDebugString())).toEqual(EXPECTED_DEBUG_LOW);
     });
 
     it("should match Rust expected bytewords identifiers", () => {
