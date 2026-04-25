@@ -10,6 +10,26 @@ import { MAX_SHARE_COUNT } from "@bcts/shamir";
 import { SSKRError, SSKRErrorType } from "./error.js";
 
 /**
+ * Strictly parses a non-negative integer string the way Rust's
+ * `<usize as FromStr>::from_str` does (`bc-sskr-rust/src/spec.rs:102, 108`).
+ *
+ * Accepts an optional leading `+` followed by one or more decimal digits.
+ * Rejects whitespace, decimals (`"2.5"`), trailing characters (`"2x"`),
+ * the `-` sign, and the empty string. Returns `undefined` on rejection so
+ * callers surface the appropriate `GroupSpecInvalid` error in the same
+ * spot Rust's `?` would.
+ */
+const STRICT_USIZE_RE = /^\+?\d+$/;
+function parseStrictUsize(s: string): number | undefined {
+  if (!STRICT_USIZE_RE.test(s)) return undefined;
+  const n = Number(s);
+  // `Number.isSafeInteger` rejects values outside ±2^53; usize on
+  // 64-bit Rust covers a larger range but for SSKR's `member_count`
+  // (capped at 16) this is far beyond any meaningful input.
+  return Number.isSafeInteger(n) ? n : undefined;
+}
+
+/**
  * A specification for a group of shares within an SSKR split.
  */
 export class GroupSpec {
@@ -61,7 +81,15 @@ export class GroupSpec {
 
   /**
    * Parses a group specification from a string.
-   * Format: "M-of-N" where M is the threshold and N is the count.
+   * Format: `"M-of-N"` where `M` is the threshold and `N` is the count.
+   *
+   * Mirrors Rust's `GroupSpec::parse` (`bc-sskr-rust/src/spec.rs:97-112`),
+   * which calls `parts[0].parse::<usize>()`. Rust's `usize::FromStr` is
+   * strict: it rejects whitespace, decimals, trailing characters, and the
+   * `-` sign, accepting only an optional `+` prefix followed by digits.
+   * We mirror that with the regex `^\+?\d+$` so strings like `"2.5"`,
+   * `"2x"`, `" 2"`, `"-2"`, and `""` all surface
+   * {@link SSKRErrorType.GroupSpecInvalid} on both sides.
    */
   static parse(s: string): GroupSpec {
     const parts = s.split("-");
@@ -69,8 +97,8 @@ export class GroupSpec {
       throw new SSKRError(SSKRErrorType.GroupSpecInvalid);
     }
 
-    const memberThreshold = parseInt(parts[0], 10);
-    if (isNaN(memberThreshold)) {
+    const memberThreshold = parseStrictUsize(parts[0]);
+    if (memberThreshold === undefined) {
       throw new SSKRError(SSKRErrorType.GroupSpecInvalid);
     }
 
@@ -78,8 +106,8 @@ export class GroupSpec {
       throw new SSKRError(SSKRErrorType.GroupSpecInvalid);
     }
 
-    const memberCount = parseInt(parts[2], 10);
-    if (isNaN(memberCount)) {
+    const memberCount = parseStrictUsize(parts[2]);
+    if (memberCount === undefined) {
       throw new SSKRError(SSKRErrorType.GroupSpecInvalid);
     }
 

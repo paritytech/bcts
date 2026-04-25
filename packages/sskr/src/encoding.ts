@@ -295,15 +295,24 @@ function combineShares(shares: SSKRShare[]): Secret {
       continue;
     }
 
-    // Recover the group secret
+    // Recover the group secret. Mirrors Rust's `if let Ok(group_secret)
+    // = recover_secret(...)` (`bc-sskr-rust/src/encoding.rs:289-294`):
+    // we silently skip groups whose Shamir recovery fails (the
+    // seedtool-cli #6 fix), but **rethrow any non-Shamir error** so
+    // unexpected exceptions don't get swallowed — Rust's match-by-Result
+    // already enforces that distinction at the type level.
     try {
       const memberSharesData = group.memberShares.map((s) => s.getData());
       const groupSecret = recoverSecret(group.memberIndexes, memberSharesData);
       masterIndexes.push(group.groupIndex);
       masterShares.push(groupSecret);
-    } catch {
-      // If we can't recover this group, just skip it
-      continue;
+    } catch (e) {
+      if (e instanceof ShamirError) {
+        // Equivalent to Rust's "Err arm" of `if let Ok` — the seedtool
+        // #6 fix demands we keep iterating to other groups.
+        continue;
+      }
+      throw e;
     }
 
     // Stop if we have enough groups to recover the master secret

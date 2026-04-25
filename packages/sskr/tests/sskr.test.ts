@@ -3,7 +3,6 @@
 import type { RandomNumberGenerator } from "@bcts/rand";
 import {
   rngNextInClosedRange,
-  rngNextInClosedRangeI32,
   makeFakeRandomNumberGenerator,
 } from "@bcts/rand";
 import {
@@ -297,6 +296,37 @@ describe("SSKR", () => {
       expect(() => GroupSpec.parse("2-3")).toThrow(SSKRError);
       expect(() => GroupSpec.parse("2-from-3")).toThrow(SSKRError);
     });
+
+    // Rust parity: `usize::FromStr` rejects whitespace, decimals,
+    // trailing characters, the `-` sign, and the empty string; only an
+    // optional leading `+` is permitted. (`bc-sskr-rust/src/spec.rs:97-112`).
+    it("should reject decimal numbers in group spec", () => {
+      expect(() => GroupSpec.parse("2.5-of-3")).toThrow(SSKRError);
+      expect(() => GroupSpec.parse("2-of-3.0")).toThrow(SSKRError);
+    });
+
+    it("should reject trailing characters in group spec numbers", () => {
+      expect(() => GroupSpec.parse("2x-of-3")).toThrow(SSKRError);
+      expect(() => GroupSpec.parse("2-of-3x")).toThrow(SSKRError);
+    });
+
+    it("should reject negative numbers and whitespace in group spec", () => {
+      expect(() => GroupSpec.parse("-2-of-3")).toThrow(SSKRError);
+      expect(() => GroupSpec.parse(" 2-of-3")).toThrow(SSKRError);
+      expect(() => GroupSpec.parse("2-of- 3")).toThrow(SSKRError);
+    });
+
+    it("should reject empty number components", () => {
+      expect(() => GroupSpec.parse("-of-3")).toThrow(SSKRError);
+      expect(() => GroupSpec.parse("2-of-")).toThrow(SSKRError);
+    });
+
+    it("accepts a leading `+` in group spec numbers (Rust usize::FromStr parity)", () => {
+      // `usize::from_str("+2")` returns Ok(2) in Rust; mirror that.
+      const spec = GroupSpec.parse("+2-of-+3");
+      expect(spec.memberThreshold()).toBe(2);
+      expect(spec.memberCount()).toBe(3);
+    });
   });
 
   describe("shuffle", () => {
@@ -408,23 +438,31 @@ describe("SSKR", () => {
 
     /**
      * Single fuzz test iteration.
-     * Matches one_fuzz_test in Rust tests.
+     *
+     * Mirrors Rust `one_fuzz_test` (`bc-sskr-rust/src/lib.rs:333-355`).
+     * Rust uses `rng_next_in_closed_range` (u64-arith via Lemire) routed
+     * through `usize` ranges; we route through {@link rngNextInClosedRange}
+     * — the bigint variant — so the seeded RNG consumes bytes in the same
+     * order on both sides. Using the i32 variant here would diverge on
+     * mixed parts because the underlying u32 vs u64 sampling pattern
+     * differs.
      */
     function oneFuzzTest(rng: RandomNumberGenerator): void {
       // Generate random secret length (even, between MIN and MAX)
-      const secretLen = rngNextInClosedRangeI32(rng, MIN_SECRET_LEN, MAX_SECRET_LEN) & ~1;
+      const secretLen =
+        Number(rngNextInClosedRange(rng, BigInt(MIN_SECRET_LEN), BigInt(MAX_SECRET_LEN))) & ~1;
       const secret = Secret.new(rng.randomData(secretLen));
 
       // Generate random group specifications
-      const groupCount = rngNextInClosedRangeI32(rng, 1, MAX_GROUPS_COUNT);
+      const groupCount = Number(rngNextInClosedRange(rng, 1n, BigInt(MAX_GROUPS_COUNT)));
       const groupSpecs: GroupSpec[] = [];
       for (let i = 0; i < groupCount; i++) {
-        const memberCount = rngNextInClosedRangeI32(rng, 1, MAX_SHARE_COUNT);
-        const memberThreshold = rngNextInClosedRangeI32(rng, 1, memberCount);
+        const memberCount = Number(rngNextInClosedRange(rng, 1n, BigInt(MAX_SHARE_COUNT)));
+        const memberThreshold = Number(rngNextInClosedRange(rng, 1n, BigInt(memberCount)));
         groupSpecs.push(GroupSpec.new(memberThreshold, memberCount));
       }
 
-      const groupThreshold = rngNextInClosedRangeI32(rng, 1, groupCount);
+      const groupThreshold = Number(rngNextInClosedRange(rng, 1n, BigInt(groupCount)));
       const spec = Spec.new(groupThreshold, groupSpecs);
       const shares = sskrGenerateUsing(spec, secret, rng);
 
