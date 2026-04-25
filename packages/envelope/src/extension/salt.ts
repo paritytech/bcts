@@ -84,6 +84,20 @@ if (Envelope?.prototype) {
     return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
+  /// Implementation of addSaltInstance() — mirrors Rust
+  /// `Envelope::add_salt_instance(salt)`
+  /// (`bc-envelope-rust/src/extension/salt.rs:125`).
+  /// Used by callers that need a specific salt value (e.g. for digest
+  /// stability across calls), most notably `xid::Key` /
+  /// `xid::Provenance` whose salts are constructed once and stored on
+  /// the value type.
+  Envelope.prototype.addSaltInstance = function (
+    this: Envelope,
+    salt: SaltComponent,
+  ): Envelope {
+    return this.addAssertion(SALT, salt);
+  };
+
   /// Implementation of addSaltWithLength()
   Envelope.prototype.addSaltWithLength = function (this: Envelope, count: number): Envelope {
     if (count < MIN_SALT_SIZE) {

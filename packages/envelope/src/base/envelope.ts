@@ -42,7 +42,14 @@ import type { TreeFormatOptions } from "../format/tree";
 import type { EnvelopeFormatOpts } from "../format/notation";
 import type { MermaidFormatOpts } from "../format/mermaid";
 import type { FormatContext } from "../format/format-context";
-import type { KeyDerivationMethod, Encrypter, Decrypter, Nonce, SSKRSpec } from "@bcts/components";
+import type {
+  KeyDerivationMethod,
+  Encrypter,
+  Decrypter,
+  Nonce,
+  SSKRSpec,
+  Salt,
+} from "@bcts/components";
 import type { RandomNumberGenerator } from "@bcts/rand";
 
 /// Import tag values from the tags registry
@@ -1102,6 +1109,7 @@ export class Envelope implements DigestProvider {
 
   // From salt.ts
   declare addSalt: () => Envelope;
+  declare addSaltInstance: (salt: Salt) => Envelope;
   declare addSaltWithLength: (count: number) => Envelope;
   declare addSaltWithLen: (count: number) => Envelope;
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
