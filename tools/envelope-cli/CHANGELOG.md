@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-alpha.23] - 2026-04-24
+
+### Changed
+
+- `sskr split` no longer needs the local `EnvelopeWithSskr` interface shim — the SSKR module augmentation is now picked up directly from `@bcts/envelope`.
+
 ## [1.0.0-alpha.22] - 2026-03-01
 
 ### Changed
