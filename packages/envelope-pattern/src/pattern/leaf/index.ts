@@ -22,7 +22,7 @@ export { NumberPattern, registerNumberPatternFactory } from "./number-pattern";
 export { TextPattern, registerTextPatternFactory } from "./text-pattern";
 export { ByteStringPattern, registerByteStringPatternFactory } from "./byte-string-pattern";
 export { DatePattern, registerDatePatternFactory } from "./date-pattern";
-export { ArrayPattern, type ArrayPatternType, registerArrayPatternFactory } from "./array-pattern";
+export { ArrayPattern, registerArrayPatternFactory } from "./array-pattern";
 export { MapPattern, type MapPatternType, registerMapPatternFactory } from "./map-pattern";
 export { KnownValuePattern, registerKnownValuePatternFactory } from "./known-value-pattern";
 export { TaggedPattern, registerTaggedPatternFactory } from "./tagged-pattern";

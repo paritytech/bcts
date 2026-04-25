@@ -225,39 +225,43 @@ describe("Parser", () => {
     });
 
     it("parses capture pattern", () => {
-      const result = parse("@myCapture number");
+      // Capture requires explicit parentheses; mirrors Rust grammar.
+      const result = parse("@myCapture(number)");
       expect(result.ok).toBe(true);
     });
   });
 
   describe("Quantifiers", () => {
+    // Quantifier suffixes attach only to parenthesised groups in Rust;
+    // bare-primary forms like `number*` are syntax errors. The tests
+    // below use the parenthesised form to mirror that grammar.
     it("parses zero or more", () => {
-      const result = parse("number*");
+      const result = parse("(number)*");
       expect(result.ok).toBe(true);
     });
 
     it("parses one or more", () => {
-      const result = parse("number+");
+      const result = parse("(number)+");
       expect(result.ok).toBe(true);
     });
 
     it("parses zero or one", () => {
-      const result = parse("number?");
+      const result = parse("(number)?");
       expect(result.ok).toBe(true);
     });
 
     it("parses exact range", () => {
-      const result = parse("number{3}");
+      const result = parse("(number){3}");
       expect(result.ok).toBe(true);
     });
 
     it("parses bounded range", () => {
-      const result = parse("number{2,5}");
+      const result = parse("(number){2,5}");
       expect(result.ok).toBe(true);
     });
 
     it("parses open-ended range", () => {
-      const result = parse("number{2,}");
+      const result = parse("(number){2,}");
       expect(result.ok).toBe(true);
     });
   });

@@ -112,38 +112,41 @@ describe("Repeat Pattern Tests", () => {
   });
 
   describe("Pattern Parsing", () => {
+    // Quantifier suffixes attach only to parenthesised groups in Rust;
+    // bare-primary forms like `unwrap*` are syntax errors and the
+    // previous TS port silently accepted them.
     it("parses zero or more pattern", () => {
-      const result = parse("unwrap*");
+      const result = parse("(unwrap)*");
       expect(result.ok).toBe(true);
     });
 
     it("parses one or more pattern", () => {
-      const result = parse("unwrap+");
+      const result = parse("(unwrap)+");
       expect(result.ok).toBe(true);
     });
 
     it("parses optional pattern", () => {
-      const result = parse("unwrap?");
+      const result = parse("(unwrap)?");
       expect(result.ok).toBe(true);
     });
 
     it("parses lazy quantifiers", () => {
-      const result = parse("unwrap*?");
+      const result = parse("(unwrap)*?");
       expect(result.ok).toBe(true);
     });
 
     it("parses possessive quantifiers", () => {
-      const result = parse("unwrap*+");
+      const result = parse("(unwrap)*+");
       expect(result.ok).toBe(true);
     });
 
     it("parses exact count quantifier", () => {
-      const result = parse("unwrap{3}");
+      const result = parse("(unwrap){3}");
       expect(result.ok).toBe(true);
     });
 
     it("parses range quantifier", () => {
-      const result = parse("unwrap{2,5}");
+      const result = parse("(unwrap){2,5}");
       expect(result.ok).toBe(true);
     });
 

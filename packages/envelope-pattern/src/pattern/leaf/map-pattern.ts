@@ -118,7 +118,7 @@ export class MapPattern implements Matcher {
   toString(): string {
     switch (this._pattern.type) {
       case "Any":
-        return "{*}";
+        return "map";
       case "Interval":
         return `{{${this._pattern.interval.toString()}}}`;
     }

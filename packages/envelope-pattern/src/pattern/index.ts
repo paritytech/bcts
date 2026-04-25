@@ -110,6 +110,9 @@ import {
   registerObscuredPatternFactory,
   registerWrappedPatternFactory,
   registerWrappedPatternDispatch,
+  registerWrappedPatternAny,
+  registerAssertionsPatternToStringDispatch,
+  registerSubjectPatternDispatch,
 } from "./structure";
 
 // Import meta patterns
@@ -801,6 +804,12 @@ function registerAllFactories(): void {
     compile: patternCompile,
     toString: patternToString,
   });
+  registerWrappedPatternAny(any);
+  registerAssertionsPatternToStringDispatch(patternToString);
+  registerSubjectPatternDispatch({
+    compile: patternCompile,
+    toString: patternToString,
+  });
 
   // Meta pattern factories
   registerAnyPatternFactory((p) => patternMeta(metaAny(p)));
@@ -819,6 +828,26 @@ registerAllFactories();
 // Register VM pattern functions to resolve circular dependencies
 import { registerVMPatternFunctions } from "./vm";
 registerVMPatternFunctions(patternPathsWithCaptures, patternMatches, patternPaths);
+
+// Register pattern-construction factories used by `parse/utils.ts` while it
+// runs `parse_cbor_inner` / `parse_array_inner`. These mirror Rust's direct
+// calls to `Pattern::cbor_pattern`, `Pattern::any_array`, etc. — exposed
+// here as factory hooks because the parser sits one module layer below the
+// `Pattern` factories and would otherwise create a circular import.
+import { registerPatternFactories as registerParseUtilsFactories } from "../parse/utils";
+import { type Pattern as DCBORPatternRegister } from "@bcts/dcbor-pattern";
+import type { Cbor } from "@bcts/dcbor";
+
+registerParseUtilsFactories({
+  cborPattern: (value: Cbor) => cborValue(value),
+  cborPatternFromDcbor: (pattern: DCBORPatternRegister) => cborPattern(pattern),
+  anyArray,
+  arrayWithCount: (count: number) => patternLeaf(leafArray(ArrayPattern.count(count))),
+  arrayWithRange: (min: number, max?: number) =>
+    patternLeaf(leafArray(ArrayPattern.interval(min, max))),
+  arrayFromDcborPattern: (pattern: DCBORPatternRegister) =>
+    patternLeaf(leafArray(ArrayPattern.fromDcborPattern(pattern))),
+});
 
 // Register pattern dispatch functions for meta patterns
 import { registerPatternMatchFn, registerPatternDispatchFns } from "./matcher";

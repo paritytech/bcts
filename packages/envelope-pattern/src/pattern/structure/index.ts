@@ -24,6 +24,7 @@ export {
   SubjectPattern,
   type SubjectPatternType,
   registerSubjectPatternFactory,
+  registerSubjectPatternDispatch,
 } from "./subject-pattern";
 export {
   PredicatePattern,
@@ -39,6 +40,7 @@ export {
   AssertionsPattern,
   type AssertionsPatternType,
   registerAssertionsPatternFactory,
+  registerAssertionsPatternToStringDispatch,
 } from "./assertions-pattern";
 export {
   DigestPattern,
@@ -56,6 +58,7 @@ export {
   type WrappedPatternType,
   registerWrappedPatternFactory,
   registerWrappedPatternDispatch,
+  registerWrappedPatternAny,
 } from "./wrapped-pattern";
 
 // Import concrete types for use in StructurePattern

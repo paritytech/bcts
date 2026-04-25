@@ -19,6 +19,12 @@ import type { Pattern } from "../index";
 // Forward declaration for Pattern factory
 let createStructureWrappedPattern: ((pattern: WrappedPattern) => Pattern) | undefined;
 
+// Forward declaration for `Pattern::any()` so that
+// `WrappedPattern.unwrap()` can mirror Rust's
+// `Self::unwrap_matching(Pattern::any())` factory exactly. Resolved during
+// pattern-module registration to avoid the circular import.
+let createAnyPattern: (() => Pattern) | undefined;
+
 // Forward declaration for pattern dispatch (avoids circular imports)
 let dispatchPatternPathsWithCaptures:
   | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
@@ -30,6 +36,10 @@ let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
 
 export function registerWrappedPatternFactory(factory: (pattern: WrappedPattern) => Pattern): void {
   createStructureWrappedPattern = factory;
+}
+
+export function registerWrappedPatternAny(factory: () => Pattern): void {
+  createAnyPattern = factory;
 }
 
 export function registerWrappedPatternDispatch(dispatch: {
@@ -80,12 +90,17 @@ export class WrappedPattern implements Matcher {
 
   /**
    * Creates a new WrappedPattern that matches any wrapped envelope and descends into it.
-   * Note: This requires Pattern.any() to be available, so it's set up during registration.
+   *
+   * Mirrors Rust `WrappedPattern::unwrap()` which delegates to
+   * `Self::unwrap_matching(Pattern::any())`. The `any` factory is wired in
+   * during module-load registration to break the circular import on the
+   * top-level `Pattern` type.
    */
   static unwrap(): WrappedPattern {
-    // This will be filled in when Pattern.any() is available
-    // For now, create a placeholder that will be replaced
-    return new WrappedPattern({ type: "Any" }); // Will be overwritten
+    if (createAnyPattern === undefined) {
+      throw new Error("WrappedPattern.unwrap() requires Pattern.any factory; not registered");
+    }
+    return WrappedPattern.unwrapMatching(createAnyPattern());
   }
 
   /**
@@ -184,13 +199,17 @@ export class WrappedPattern implements Matcher {
       case "Any":
         return "wrapped";
       case "Unwrap": {
-        const patternStr =
-          dispatchPatternToString !== undefined
-            ? dispatchPatternToString(this._pattern.pattern)
-            : "*";
-        if (patternStr === "*") {
+        // Rust collapses `Unwrap(Pattern::any())` to the bare keyword
+        // `unwrap`. We detect the "any" pattern by inspecting the tagged
+        // union shape rather than by string compare so this stays correct
+        // if `Pattern::any()`'s display ever changes.
+        const inner = this._pattern.pattern;
+        const isAny = inner.type === "Meta" && inner.pattern.type === "Any";
+        if (isAny) {
           return "unwrap";
         }
+        const patternStr =
+          dispatchPatternToString !== undefined ? dispatchPatternToString(inner) : "?";
         return `unwrap(${patternStr})`;
       }
     }

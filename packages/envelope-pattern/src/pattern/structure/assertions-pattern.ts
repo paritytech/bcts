@@ -18,6 +18,7 @@ import type { Pattern } from "../index";
 
 // Forward declaration for Pattern factory
 let createStructureAssertionsPattern: ((pattern: AssertionsPattern) => Pattern) | undefined;
+let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
 
 export function registerAssertionsPatternFactory(
   factory: (pattern: AssertionsPattern) => Pattern,
@@ -25,20 +26,24 @@ export function registerAssertionsPatternFactory(
   createStructureAssertionsPattern = factory;
 }
 
+export function registerAssertionsPatternToStringDispatch(
+  fn: (pattern: Pattern) => string,
+): void {
+  dispatchPatternToString = fn;
+}
+
 /**
  * Pattern type for assertions pattern matching.
  *
- * Corresponds to the Rust `AssertionsPattern` enum in assertions_pattern.rs
+ * Corresponds to the Rust `AssertionsPattern` enum in assertions_pattern.rs:
+ * - `Any` matches any assertion.
+ * - `WithPredicate` matches assertions whose predicate matches a sub-pattern.
+ * - `WithObject` matches assertions whose object matches a sub-pattern.
  */
 export type AssertionsPatternType =
   | { readonly type: "Any" }
   | { readonly type: "WithPredicate"; readonly pattern: Pattern }
-  | { readonly type: "WithObject"; readonly pattern: Pattern }
-  | {
-      readonly type: "WithBoth";
-      readonly predicatePattern: Pattern;
-      readonly objectPattern: Pattern;
-    };
+  | { readonly type: "WithObject"; readonly pattern: Pattern };
 
 /**
  * Pattern for matching assertions in envelopes.
@@ -76,14 +81,6 @@ export class AssertionsPattern implements Matcher {
   }
 
   /**
-   * Creates a new AssertionsPattern that matches assertions with both
-   * predicate and object patterns.
-   */
-  static withBoth(predicatePattern: Pattern, objectPattern: Pattern): AssertionsPattern {
-    return new AssertionsPattern({ type: "WithBoth", predicatePattern, objectPattern });
-  }
-
-  /**
    * Gets the pattern type.
    */
   get patternType(): AssertionsPatternType {
@@ -97,9 +94,6 @@ export class AssertionsPattern implements Matcher {
     if (this._pattern.type === "WithPredicate") {
       return this._pattern.pattern;
     }
-    if (this._pattern.type === "WithBoth") {
-      return this._pattern.predicatePattern;
-    }
     return undefined;
   }
 
@@ -109,9 +103,6 @@ export class AssertionsPattern implements Matcher {
   objectPattern(): Pattern | undefined {
     if (this._pattern.type === "WithObject") {
       return this._pattern.pattern;
-    }
-    if (this._pattern.type === "WithBoth") {
-      return this._pattern.objectPattern;
     }
     return undefined;
   }
@@ -137,19 +128,6 @@ export class AssertionsPattern implements Matcher {
           const object = assertion.asObject?.();
           if (object !== undefined) {
             if (matchPattern(this._pattern.pattern, object)) {
-              paths.push([assertion]);
-            }
-          }
-          break;
-        }
-        case "WithBoth": {
-          const predicate = assertion.asPredicate?.();
-          const object = assertion.asObject?.();
-          if (predicate !== undefined && object !== undefined) {
-            if (
-              matchPattern(this._pattern.predicatePattern, predicate) &&
-              matchPattern(this._pattern.objectPattern, object)
-            ) {
               paths.push([assertion]);
             }
           }
@@ -183,15 +161,18 @@ export class AssertionsPattern implements Matcher {
   }
 
   toString(): string {
+    const fmt = dispatchPatternToString;
     switch (this._pattern.type) {
       case "Any":
         return "assert";
-      case "WithPredicate":
-        return `assertpred(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
-      case "WithObject":
-        return `assertobj(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
-      case "WithBoth":
-        return `assert(${(this._pattern.predicatePattern as unknown as { toString(): string }).toString()}, ${(this._pattern.objectPattern as unknown as { toString(): string }).toString()})`;
+      case "WithPredicate": {
+        const inner = fmt !== undefined ? fmt(this._pattern.pattern) : "?";
+        return `assertpred(${inner})`;
+      }
+      case "WithObject": {
+        const inner = fmt !== undefined ? fmt(this._pattern.pattern) : "?";
+        return `assertobj(${inner})`;
+      }
     }
   }
 
@@ -215,17 +196,6 @@ export class AssertionsPattern implements Matcher {
         ).pattern;
         return thisPattern === otherPattern;
       }
-      case "WithBoth": {
-        const otherBoth = other._pattern as {
-          type: "WithBoth";
-          predicatePattern: Pattern;
-          objectPattern: Pattern;
-        };
-        return (
-          this._pattern.predicatePattern === otherBoth.predicatePattern &&
-          this._pattern.objectPattern === otherBoth.objectPattern
-        );
-      }
     }
   }
 
@@ -240,8 +210,6 @@ export class AssertionsPattern implements Matcher {
         return 1;
       case "WithObject":
         return 2;
-      case "WithBoth":
-        return 3;
     }
   }
 }

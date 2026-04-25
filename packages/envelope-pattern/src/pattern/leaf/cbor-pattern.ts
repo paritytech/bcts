@@ -12,7 +12,7 @@
 
 import { Envelope } from "@bcts/envelope";
 import type { Cbor } from "@bcts/dcbor";
-import { cbor as toCbor, type CborInput } from "@bcts/dcbor";
+import { cbor as toCbor, cborData, cborEquals, type CborInput } from "@bcts/dcbor";
 import {
   type Pattern as DCBORPattern,
   patternPathsWithCaptures as dcborPatternPathsWithCaptures,
@@ -110,6 +110,13 @@ export class CBORPattern implements Matcher {
 
   /**
    * Convert a single dcbor path to an envelope path.
+   *
+   * Uses canonical CBOR-byte equality (`cborEquals`) for the "skip the
+   * dcbor root if it duplicates our base envelope" check, mirroring
+   * Rust's `dcbor_path.first().map(|first| first == &base_cbor)`. The
+   * earlier port compared diagnostic strings, which collapses values
+   * that share a textual representation but differ structurally
+   * (e.g. NaN payloads).
    */
   private _convertDcborPathToEnvelopePath(
     dcborPath: Cbor[],
@@ -118,14 +125,12 @@ export class CBORPattern implements Matcher {
   ): Envelope[] {
     const envelopePath: Envelope[] = [baseEnvelope];
 
-    // Skip first element if it matches the base envelope's CBOR content (compare by diagnostic)
-    const skipFirst =
-      dcborPath.length > 0 && dcborPath[0]?.toDiagnostic() === baseCbor.toDiagnostic();
+    const first = dcborPath[0];
+    const skipFirst = first !== undefined && cborEquals(first, baseCbor);
 
     const elementsToAdd = skipFirst ? dcborPath.slice(1) : dcborPath;
 
     for (const cborElement of elementsToAdd) {
-      // Use newLeaf to create envelope from CBOR value
       envelopePath.push(Envelope.newLeaf(cborElement));
     }
 
@@ -162,7 +167,10 @@ export class CBORPattern implements Matcher {
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
     const envCase = haystack.subject().case();
 
-    // Special case for KnownValue envelope
+    // Special case for KnownValue envelope. Rust uses `known_value.to_cbor()`,
+    // and the `From<KnownValue> for CBOR` impl returns
+    // `tagged_cbor()` — i.e. the same tagged form `taggedCbor()` produces
+    // here.
     if (envCase.type === "knownValue") {
       const knownValue = envCase.value;
       const knownValueCbor = knownValue.taggedCbor();
@@ -171,8 +179,8 @@ export class CBORPattern implements Matcher {
         case "Any":
           return [[[haystack]], new Map<string, Path[]>()];
         case "Value": {
-          // Compare using diagnostic representation
-          if (knownValueCbor.toDiagnostic() === this._pattern.cbor.toDiagnostic()) {
+          // Use canonical CBOR equality (mirrors Rust `==`).
+          if (cborEquals(knownValueCbor, this._pattern.cbor)) {
             return [[[haystack]], new Map<string, Path[]>()];
           }
           return [[], new Map<string, Path[]>()];
@@ -220,8 +228,8 @@ export class CBORPattern implements Matcher {
         return [[[haystack]], new Map<string, Path[]>()];
 
       case "Value":
-        // Compare using diagnostic representation
-        if (leafCbor.toDiagnostic() === this._pattern.cbor.toDiagnostic()) {
+        // Canonical CBOR-byte equality, mirroring Rust `==`.
+        if (cborEquals(leafCbor, this._pattern.cbor)) {
           return [[[haystack]], new Map<string, Path[]>()];
         }
         return [[], new Map<string, Path[]>()];
@@ -237,9 +245,8 @@ export class CBORPattern implements Matcher {
 
           const envelopePaths: Path[] = dcborPaths.map((dcborPath: Cbor[]) => {
             const extendedPath = [...basePath];
-            // Skip the first element only if it exactly matches our root CBOR
-            const skipFirst =
-              dcborPath.length > 0 && dcborPath[0]?.toDiagnostic() === leafCbor.toDiagnostic();
+            const first = dcborPath[0];
+            const skipFirst = first !== undefined && cborEquals(first, leafCbor);
 
             const elementsToAdd = skipFirst ? dcborPath.slice(1) : dcborPath;
 
@@ -303,7 +310,10 @@ export class CBORPattern implements Matcher {
   }
 
   /**
-   * Equality comparison.
+   * Equality comparison. `Value` variants compare by canonical CBOR
+   * byte sequence (mirrors Rust `==` on `CBOR`); `Pattern` variants fall
+   * back to display-string compare since `DCBORPattern` doesn't expose
+   * structural equality outside the crate.
    */
   equals(other: CBORPattern): boolean {
     if (this._pattern.type !== other._pattern.type) {
@@ -313,13 +323,11 @@ export class CBORPattern implements Matcher {
       case "Any":
         return true;
       case "Value":
-        // Compare using diagnostic representation
-        return (
-          this._pattern.cbor.toDiagnostic() ===
-          (other._pattern as { type: "Value"; cbor: Cbor }).cbor.toDiagnostic()
+        return cborEquals(
+          this._pattern.cbor,
+          (other._pattern as { type: "Value"; cbor: Cbor }).cbor,
         );
       case "Pattern":
-        // Compare using display representation
         return (
           dcborPatternDisplay(this._pattern.pattern) ===
           dcborPatternDisplay(
@@ -336,11 +344,17 @@ export class CBORPattern implements Matcher {
     switch (this._pattern.type) {
       case "Any":
         return 0;
-      case "Value":
-        // Simple hash based on diagnostic string
-        return simpleStringHash(this._pattern.cbor.toDiagnostic());
+      case "Value": {
+        // Hash the canonical CBOR-byte representation so two values
+        // that compare equal under `cborEquals` always hash the same.
+        const bytes = cborData(this._pattern.cbor);
+        let hash = 0;
+        for (const byte of bytes) {
+          hash = (hash * 31 + byte) | 0;
+        }
+        return hash;
+      }
       case "Pattern":
-        // Simple hash based on display string
         return simpleStringHash(dcborPatternDisplay(this._pattern.pattern));
     }
   }

@@ -184,7 +184,8 @@ describe("Meta Parsing Tests", () => {
     });
 
     it("parses unwrap repeat pattern", () => {
-      const result = parse("unwrap*");
+      // Quantifier suffixes attach only to parenthesised groups in Rust.
+      const result = parse("(unwrap)*");
       expect(result.ok).toBe(true);
     });
   });
