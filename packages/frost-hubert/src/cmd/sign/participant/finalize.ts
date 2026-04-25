@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { ARID, type Digest, Signature, type SigningPublicKey, XID } from "@bcts/components";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { Envelope } from "@bcts/envelope";
 import { SealedEvent } from "@bcts/gstp";
 
@@ -191,8 +192,11 @@ function loadReceiveState(
 
   const targetUr = getStr("target");
 
-  // Sort participants by XID UR string
-  participants.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort participants by XID byte order — mirrors Rust `XID::cmp`.
+  // The earlier port used `urString().localeCompare(...)`, which
+  // diverges from byte order for bytes ≥ 0x80 and is locale-aware,
+  // producing a different signing-package order than Rust.
+  participants.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   return {
     groupId,

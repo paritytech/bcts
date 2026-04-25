@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { type ARID, type XID } from "@bcts/components";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { CborDate } from "@bcts/dcbor";
 import type { Envelope } from "@bcts/envelope";
 
@@ -335,8 +336,10 @@ export async function receive(
     throw new Error("signInvite request missing response ARID");
   }
 
-  // Sort participants by XID
-  participants.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort participants by XID byte order — mirrors Rust `XID::cmp`.
+  // The earlier port used `urString().localeCompare(...)`, which
+  // diverges from byte order for bytes ≥ 0x80 and is locale-aware.
+  participants.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   const targetEnvelope = sealedRequest.objectForParameter("target");
 

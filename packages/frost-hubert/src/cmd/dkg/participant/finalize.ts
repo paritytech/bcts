@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { ARID, JSON as JSONWrapper, XID } from "@bcts/components";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { CborDate } from "@bcts/dcbor";
 import { Envelope, Function as EnvelopeFunction } from "@bcts/envelope";
 import { SealedRequest, SealedResponse } from "@bcts/gstp";
@@ -85,34 +86,61 @@ function loadRound2State(registryPath: string, groupId: ARID): Round2State {
     throw new Error(`Round 2 secret not found at ${round2SecretPath}. Did you run round2?`);
   }
 
+  // Mirrors Rust `frost::keys::dkg::round2::SecretPackage` JSON
+  // (`frost-rust/frost-core/src/keys/dkg.rs:269-287`):
+  //
+  //   {
+  //     "identifier": "<lowercase hex scalar>",
+  //     "commitment": ["<hex>", "<hex>", ...],
+  //     "secret_share": "<hex>",
+  //     "min_signers": <u16>,
+  //     "max_signers": <u16>
+  //   }
+  //
+  // The struct is `#[serde(deny_unknown_fields)]` and the
+  // `commitment` is a `VerifiableSecretSharingCommitment` (a
+  // single-field tuple struct over `Vec<CoefficientCommitment>`),
+  // which serde flattens to a bare JSON array. The earlier port
+  // emitted camelCase keys plus a nested `commitment.coefficients`
+  // shape and a numeric `identifier`, which Rust would reject and
+  // which had no chance of being read by Rust's standard derive.
   const secretJson = JSON.parse(fs.readFileSync(round2SecretPath, "utf-8")) as {
-    identifier: number;
-    commitment: {
-      coefficients: string[];
-    };
-    secretShare: string;
-    minSigners: number;
-    maxSigners: number;
+    identifier: string;
+    commitment: string[];
+    secret_share: string;
+    min_signers: number;
+    max_signers: number;
   };
 
-  // Reconstruct the round 2 secret package
-  const identifier = identifierFromU16(secretJson.identifier);
+  // Identifier hex → little-endian u16 (the FROST 1-indexed
+  // participant position). The scalar bytes are 32-LE for Ed25519, so
+  // the first two bytes hold the u16 value when the identifier is in
+  // the small-integer range (1..=N) used by the DKG.
+  const idBytes = hexToBytes(secretJson.identifier);
+  let identifierU16 = 1;
+  if (idBytes.length >= 2) {
+    identifierU16 = idBytes[0] | (idBytes[1] << 8);
+  }
+  if (identifierU16 === 0) {
+    identifierU16 = 1;
+  }
+  const identifier = identifierFromU16(identifierU16);
 
-  const coefficientCommitments = secretJson.commitment.coefficients.map((hex) =>
+  const coefficientCommitments = secretJson.commitment.map((hex) =>
     CoefficientCommitment.deserialize(Ed25519Sha512, hexToBytes(hex)),
   );
 
   const commitment = new VerifiableSecretSharingCommitment(Ed25519Sha512, coefficientCommitments);
 
-  const secretShareScalar = Ed25519Sha512.deserializeScalar(hexToBytes(secretJson.secretShare));
+  const secretShareScalar = Ed25519Sha512.deserializeScalar(hexToBytes(secretJson.secret_share));
 
   const secretPackage: DkgRound2SecretPackage = new round2.SecretPackage(
     Ed25519Sha512,
     identifier,
     commitment,
     secretShareScalar,
-    secretJson.minSigners,
-    secretJson.maxSigners,
+    secretJson.min_signers,
+    secretJson.max_signers,
   );
 
   // Load collected Round 1 packages (from round2 phase)
@@ -202,8 +230,11 @@ function extractFinalizePackages(
     sortedXids.push(ownerXid);
   }
 
-  // Sort by XID UR string
-  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used `urString().localeCompare(...)`,
+  // which differs from byte order for any byte ≥ 0x80 and is locale-
+  // aware, producing different FROST identifier assignments than Rust.
+  sortedXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   // Deduplicate
   const deduped: XID[] = [];
@@ -401,8 +432,11 @@ export async function finalize(
     sortedXids.push(owner.xid());
   }
 
-  // Sort by XID UR string
-  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used `urString().localeCompare(...)`,
+  // which differs from byte order for any byte ≥ 0x80 and is locale-
+  // aware, producing different FROST identifier assignments than Rust.
+  sortedXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   // Deduplicate
   const deduped: XID[] = [];

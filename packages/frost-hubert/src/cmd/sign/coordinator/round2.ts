@@ -25,6 +25,7 @@ import {
   JSON as JSONComponent,
 } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { type XIDDocument } from "@bcts/xid";
 
 import { Registry, resolveRegistryPath } from "../../../registry/index.js";
@@ -405,7 +406,10 @@ function loadStartState(registryPath: string, sessionId: ARID, groupHint?: ARID)
   for (const xidStr of Object.keys(participantsVal)) {
     participants.push(XIDClass.fromURString(xidStr));
   }
-  participants.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used
+  // `urString().localeCompare(...)`, which diverges for bytes ≥ 0x80.
+  participants.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   const targetUr = getStr("target");
 

@@ -13,6 +13,7 @@
 import * as path from "node:path";
 
 import { type ARID, type XID } from "@bcts/components";
+import { compareXidBytes } from "../../dkg/proposed-participant.js";
 import { type Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import { type XIDDocument } from "@bcts/xid";
@@ -30,19 +31,45 @@ export { groupStateDir } from "../common.js";
 /**
  * Parse an ARID from a UR string.
  *
- * Port of `parse_arid_ur()` from cmd/dkg/common.rs.
+ * Mirrors Rust `parse_arid_ur` (`cmd/common.rs:27-43`):
+ *
+ * 1. Trim and reject empty input.
+ * 2. Parse as a UR; require `ur_type` of `"arid"`.
+ * 3. Try `ARID::try_from(cbor)` (the tagged-CBOR form).
+ * 4. If that fails, fall back to interpreting the CBOR as a bare
+ *    byte string and constructing the ARID from those bytes via
+ *    `ARID::from_data_ref`.
+ *
+ * The earlier port only accepted the tagged form; this matches Rust
+ * by accepting the byte-string fallback too.
  */
 export function parseAridUr(urString: string): ARID {
-  const ur = UR.fromURString(urString.trim());
+  const trimmed = urString.trim();
+  if (trimmed.length === 0) {
+    throw new Error("ARID is required");
+  }
+  const ur = UR.fromURString(trimmed);
 
   if (ur.urTypeStr() !== "arid") {
-    throw new Error(`Expected ur:arid, found ur:${ur.urTypeStr()}`);
+    throw new Error(`Expected a ur:arid, found ur:${ur.urTypeStr()}`);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, no-undef
   const { ARID: ARIDClass } = require("@bcts/components");
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-  return ARIDClass.fromCbor(ur.cbor());
+  const cbor = ur.cbor();
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    return ARIDClass.fromTaggedCbor(cbor);
+  } catch {
+    // Fall back to a bare byte string payload, mirroring Rust's
+    // `CBOR::try_into_byte_string(cbor) → ARID::from_data_ref(bytes)`.
+    const bytes = (cbor as { asByteString(): Uint8Array | undefined }).asByteString?.();
+    if (bytes === undefined) {
+      throw new Error("Invalid ARID payload");
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    return ARIDClass.fromData(bytes);
+  }
 }
 
 /**
@@ -64,11 +91,15 @@ export function parseEnvelopeUr(urString: string): Envelope {
 }
 
 /**
- * Resolve the sender XID document from the registry.
+ * Resolve the registry owner's XID document.
  *
- * Port of `resolve_sender()` from cmd/dkg/common.rs.
+ * The earlier port called this `resolveSender(registry)`, but its
+ * behaviour — "give me the owner" — has nothing in common with Rust's
+ * `resolve_sender(registry, input)` (which resolves an arbitrary
+ * named sender). This helper is renamed to its actual behaviour;
+ * the Rust-equivalent `resolveSender(registry, input)` lives below.
  */
-export function resolveSender(registry: Registry): XIDDocument {
+export function resolveOwnerXidDocument(registry: Registry): XIDDocument {
   const owner = registry.owner();
 
   if (!owner) {
@@ -76,6 +107,59 @@ export function resolveSender(registry: Registry): XIDDocument {
   }
 
   return owner.xidDocument();
+}
+
+/**
+ * Resolve a sender XID document from the registry by UR or pet name.
+ *
+ * Mirrors Rust `resolve_sender(registry, input)`
+ * (`cmd/dkg/common.rs:76-94`):
+ *
+ * 1. Trim and reject empty input.
+ * 2. Try parsing the input as a `ur:xid`. If that succeeds, look it
+ *    up via `registry.participant(xid)`; if no record is found,
+ *    error with `Sender with XID {ur} not found`.
+ * 3. Otherwise look it up by pet name via
+ *    `registry.participantByPetName(name)`; if no record is found,
+ *    error with `Sender with pet name '{name}' not found`.
+ *
+ * Note Rust does NOT check the owner here — only the participants
+ * map. The earlier inline duplicate in `participant/round1.ts` did
+ * an extra owner-check fallback which is removed to match Rust.
+ */
+export function resolveSender(registry: Registry, input: string): XIDDocument {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    throw new Error("Sender is required");
+  }
+
+  // Try parsing as an XID UR string first. `XID.fromURString` throws
+  // when the input isn't a `ur:xid`; that's the signal to fall back
+  // to pet-name lookup.
+  let xid: XID | undefined;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports, no-undef
+    const { XID: XIDClass } = require("@bcts/components");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    xid = XIDClass.fromURString(trimmed) as XID;
+  } catch {
+    xid = undefined;
+  }
+
+  if (xid !== undefined) {
+    const record = registry.participant(xid);
+    if (record !== undefined) {
+      return record.xidDocument();
+    }
+    throw new Error(`Sender with XID ${xid.urString()} not found`);
+  }
+
+  const result = registry.participantByPetName(trimmed);
+  if (result !== undefined) {
+    const [, record] = result;
+    return record.xidDocument();
+  }
+  throw new Error(`Sender with pet name '${trimmed}' not found`);
 }
 
 // -----------------------------------------------------------------------------
@@ -232,9 +316,12 @@ export function participantNamesFromRegistry(
   ownerXid: XID,
   ownerPetName: string | undefined,
 ): string[] {
-  // Sort by XID UR string
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used
+  // `urString().localeCompare(...)`, which diverges from byte order
+  // for bytes ≥ 0x80 and is locale-aware.
   const sorted = [...participants].sort((a, b) =>
-    a.xid().urString().localeCompare(b.xid().urString()),
+    compareXidBytes(a.xid().toData(), b.xid().toData()),
   );
 
   return sorted.map((document) => {

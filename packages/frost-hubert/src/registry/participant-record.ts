@@ -141,8 +141,21 @@ export class ParticipantRecord {
 
   /**
    * Deserialize from JSON object.
+   *
+   * Mirrors Rust's `#[serde(deny_unknown_fields)]` derive on
+   * `ParticipantRecord` (`participant_record.rs:12-17`) — Rust's
+   * `serde_json::from_str` errors with `unknown field` for any
+   * field outside `{xid_document, pet_name}`. We mirror that
+   * behaviour so a registry file produced by a future Rust
+   * version with extra fields is rejected explicitly rather than
+   * silently lossy.
    */
   static fromJSON(json: Record<string, unknown>): ParticipantRecord {
+    for (const key of Object.keys(json)) {
+      if (key !== "xid_document" && key !== "pet_name") {
+        throw new Error(`unknown field \`${key}\`, expected \`xid_document\` or \`pet_name\``);
+      }
+    }
     const xidDocumentUr = json["xid_document"] as string;
     const petName = json["pet_name"] as string | undefined;
     return ParticipantRecord.recreateFromSerialized(xidDocumentUr, petName);

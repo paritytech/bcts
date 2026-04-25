@@ -101,8 +101,20 @@ export class OwnerRecord {
 
   /**
    * Deserialize from JSON object.
+   *
+   * Mirrors Rust's `#[serde(deny_unknown_fields)]` derive on
+   * `OwnerRecord` (`owner_record.rs:13-17`) — any field not in
+   * `{xid_document, pet_name}` causes Rust's `serde_json::from_str`
+   * to error with `unknown field`, and we mirror that here so a
+   * registry file produced by a future Rust version with extra
+   * fields is rejected explicitly rather than silently lossy.
    */
   static fromJSON(json: Record<string, unknown>): OwnerRecord {
+    for (const key of Object.keys(json)) {
+      if (key !== "xid_document" && key !== "pet_name") {
+        throw new Error(`unknown field \`${key}\`, expected \`xid_document\` or \`pet_name\``);
+      }
+    }
     const xidDocumentUr = json["xid_document"] as string;
     const petName = json["pet_name"] as string | undefined;
     return OwnerRecord.fromSignedXidUr(xidDocumentUr, petName);
