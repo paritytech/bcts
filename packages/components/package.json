@@ -64,8 +64,8 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@noble/hashes": "^2.2.0",
-    "@noble/post-quantum": "^0.5.4",
-    "@scure/sr25519": "^1.0.0",
+    "@noble/post-quantum": "^0.6.1",
+    "@scure/sr25519": "^2.2.0",
     "pako": "^2.1.0"
   },
   "devDependencies": {

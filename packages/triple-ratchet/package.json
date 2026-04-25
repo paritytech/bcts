@@ -57,7 +57,7 @@
     "@bcts/rand": "workspace:*",
     "@bcts/spqr": "workspace:*",
     "@noble/hashes": "^2.2.0",
-    "@noble/post-quantum": "^0.5.4",
+    "@noble/post-quantum": "^0.6.1",
     "@std/crypto": "npm:@jsr/std__crypto@1.1.0"
   },
   "devDependencies": {
