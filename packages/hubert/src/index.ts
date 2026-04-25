@@ -42,6 +42,8 @@ export {
   AlreadyExistsError,
   NotFoundError,
   InvalidAridError,
+  HubertEnvelopeError,
+  HubertCborError,
   IoError,
 } from "./error.js";
 
