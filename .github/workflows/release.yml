@@ -59,10 +59,11 @@ jobs:
         run: bun run scripts/replace-workspace-protocols.ts
 
       - name: Publish to NPM
-        run: bun changeset publish --provenance
+        run: bun changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
 
   tag:
     name: Add NPM Tag (${{ matrix.tag }})
