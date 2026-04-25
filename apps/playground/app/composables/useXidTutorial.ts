@@ -1,15 +1,19 @@
+import { XIDPrivateKeyOptions, XIDGeneratorOptions, Service, Privilege, type Key } from "@bcts/xid";
+import type { Envelope } from "@bcts/envelope";
+import type { IdentityName, IdentitySlot } from "@/utils/xid-tutorial/types";
+import { TUTORIAL_SECTIONS } from "@/utils/xid-tutorial/sections";
 import {
-  XIDDocument,
-  XIDPrivateKeyOptions,
-  XIDGeneratorOptions,
-  XIDVerifySignature,
-  type Key,
-  Service,
-  Privilege,
-  type XIDGenesisMarkOptions,
-} from "@bcts/xid";
-import { Envelope } from "@bcts/envelope";
-import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
+  createEncryptedXid,
+  exportPublicEnvelope,
+  privateKeyOptions,
+  generatorOptions,
+  addSideKeyToXid,
+  generateSideKey,
+  loadXidFromUr,
+  verifyInceptionSignature,
+  sshPublicKeyText,
+  type TutorialScheme,
+} from "@/utils/xid-tutorial/identity";
 
 type AttachmentEnvelope = Envelope & {
   attachmentVendor(): string;
@@ -17,19 +21,55 @@ type AttachmentEnvelope = Envelope & {
   attachmentPayload(): Envelope;
 };
 
-const STORAGE_KEY = "xid-tutorial-state";
+const STORAGE_KEY = "xid-tutorial-state-v2";
+const LEGACY_STORAGE_KEY = "xid-tutorial-state";
 
-const xidDocument = shallowRef<XIDDocument | null>(null);
-const docVersion = ref<number>(0);
-const currentStep = ref<number>(0);
-const stepsCompleted = ref<boolean[]>([false, false, false, false]);
+/** Each identity is a full workspace slot — active identity is the one step components operate on. */
+function emptySlot(
+  name: IdentityName,
+  displayName: string,
+  role: string,
+  color: string,
+): IdentitySlot {
+  return {
+    name,
+    displayName,
+    role,
+    color,
+    document: null,
+    password: "",
+    attestationKey: null,
+    sshKey: null,
+    contractKey: null,
+  };
+}
+
+const identities = shallowRef<Record<IdentityName, IdentitySlot>>({
+  amira: emptySlot(
+    "amira",
+    "Amira (BRadvoc8)",
+    "Software developer, pseudonymous contributor",
+    "primary",
+  ),
+  charlene: emptySlot("charlene", "Charlene", "Friend, character endorser", "emerald"),
+  devreviewer: emptySlot(
+    "devreviewer",
+    "DevReviewer",
+    "Head security programmer @ SisterSpaces",
+    "violet",
+  ),
+  ben: emptySlot("ben", "Ben", "SisterSpaces project manager", "amber"),
+});
+const activeIdentity = ref<IdentityName>("amira");
+const docVersion = ref(0);
+const currentSection = ref(0);
+const sectionsCompleted = ref<boolean[]>(new Array(TUTORIAL_SECTIONS.length).fill(false));
 const error = ref<string | null>(null);
 
 const xidHex = ref("");
 const xidUrString = ref("");
 const xidBytewords = ref("");
 const xidBytemojis = ref("");
-
 const treeOutput = ref("");
 const hexOutput = ref("");
 const notationOutput = ref("");
@@ -38,29 +78,43 @@ const envelopeUrOutput = ref("");
 
 let restored = false;
 
+// Encrypted-private-envelope cache. Building one runs Argon2id (~700ms in-browser),
+// so we hold onto the result until secret material actually changes.
+// Keyed by identity name; cleared whenever the document, keys, or generator mutate.
+const cachedPrivateEnvelopes = new Map<IdentityName, Envelope>();
+function invalidatePrivateEnvelope(name: IdentityName) {
+  cachedPrivateEnvelopes.delete(name);
+}
+
+// Debounce handle for saveState — multiple rapid mutations coalesce into one write.
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function useXidTutorial() {
+  const activeSlot = computed(() => identities.value[activeIdentity.value]);
+  const activeDoc = computed(() => {
+    void docVersion.value;
+    return activeSlot.value.document;
+  });
   const keyList = computed(() => {
     void docVersion.value;
-    return xidDocument.value?.keys() ?? [];
+    return activeDoc.value?.keys() ?? [];
   });
-
   const resolutionMethodList = computed(() => {
     void docVersion.value;
-    return xidDocument.value ? Array.from(xidDocument.value.resolutionMethods()) : [];
+    return activeDoc.value ? Array.from(activeDoc.value.resolutionMethods()) : [];
   });
-
   const attachmentList = computed(() => {
     void docVersion.value;
-    if (!xidDocument.value)
-      return [] as { digestHex: string; vendor: string; payloadPreview: string }[];
-    const results: { digestHex: string; vendor: string; payloadPreview: string }[] = [];
-    for (const [digestHex, envelope] of xidDocument.value.getAttachments().iter()) {
+    const doc = activeDoc.value;
+    if (!doc) return [] as { digestHex: string; vendor: string; payloadPreview: string }[];
+    const out: { digestHex: string; vendor: string; payloadPreview: string }[] = [];
+    for (const [digestHex, envelope] of doc.getAttachments().iter()) {
       let vendor = "(unknown)";
       let payloadPreview = "";
       try {
         vendor = (envelope as AttachmentEnvelope).attachmentVendor();
       } catch {
-        /* vendor extraction failed */
+        /* */
       }
       try {
         const payload = (envelope as AttachmentEnvelope).attachmentPayload();
@@ -69,19 +123,32 @@ export function useXidTutorial() {
       } catch {
         payloadPreview = "(binary data)";
       }
-      results.push({ digestHex, vendor, payloadPreview });
+      out.push({ digestHex, vendor, payloadPreview });
     }
-    return results;
+    return out;
   });
-
   const serviceList = computed(() => {
     void docVersion.value;
-    return xidDocument.value?.services() ?? [];
+    return activeDoc.value?.services() ?? [];
   });
-
+  const edgeList = computed(() => {
+    void docVersion.value;
+    const doc = activeDoc.value;
+    if (!doc) return [] as { digestHex: string; envelope: Envelope }[];
+    const out: { digestHex: string; envelope: Envelope }[] = [];
+    for (const [hex, env] of doc.edges().iter()) {
+      out.push({ digestHex: hex, envelope: env });
+    }
+    return out;
+  });
   const provenanceMark = computed(() => {
     void docVersion.value;
-    return xidDocument.value?.provenance() ?? null;
+    return activeDoc.value?.provenance() ?? null;
+  });
+  const currentSectionMeta = computed(() => TUTORIAL_SECTIONS[currentSection.value] ?? null);
+  const progress = computed(() => {
+    const done = sectionsCompleted.value.filter(Boolean).length;
+    return { done, total: TUTORIAL_SECTIONS.length };
   });
 
   if (import.meta.client && !restored) {
@@ -89,7 +156,8 @@ export function useXidTutorial() {
     restoreState();
   }
 
-  function clearIdentity() {
+  // ---- Display ----
+  function clearIdentityDisplay() {
     xidHex.value = "";
     xidUrString.value = "";
     xidBytewords.value = "";
@@ -103,10 +171,12 @@ export function useXidTutorial() {
     envelopeUrOutput.value = "";
   }
 
-  function updateIdentityDisplay() {
-    const doc = xidDocument.value;
+  function refreshDisplay() {
+    const slot = activeSlot.value;
+    const doc = slot.document;
     if (!doc) {
-      clearIdentity();
+      clearIdentityDisplay();
+      clearOutput();
       return;
     }
     const xid = doc.xid();
@@ -114,18 +184,13 @@ export function useXidTutorial() {
     xidUrString.value = xid.urString();
     xidBytewords.value = xid.bytewordsIdentifier(true);
     xidBytemojis.value = xid.bytemojisIdentifier(true);
-  }
 
-  function updateOutput() {
-    const doc = xidDocument.value;
-    if (!doc) {
-      clearOutput();
-      return;
-    }
     try {
-      const envelope = doc.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
-        type: "none",
-      });
+      const envelope = doc.toEnvelope(
+        XIDPrivateKeyOptions.Elide,
+        XIDGeneratorOptions.Elide,
+        slot.password ? { type: "inception" } : { type: "none" },
+      );
       treeOutput.value = envelope.treeFormat();
       notationOutput.value = envelope.format();
       diagnosticOutput.value = envelope.diagnostic();
@@ -140,116 +205,157 @@ export function useXidTutorial() {
     }
   }
 
-  function refreshDocument() {
+  function bumpDoc() {
     docVersion.value++;
-    updateIdentityDisplay();
-    updateOutput();
+    refreshDisplay();
   }
 
-  function saveState() {
-    if (!import.meta.client) return;
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          step: currentStep.value,
-          stepsCompleted: stepsCompleted.value,
-          xidUr: getPrivateEnvelope()?.urString(),
-        }),
-      );
-    } catch {
-      /* localStorage unavailable */
-    }
+  // ---- Identity lifecycle ----
+  function setActive(name: IdentityName) {
+    activeIdentity.value = name;
+    bumpDoc();
   }
 
-  function restoreState() {
-    if (!import.meta.client) return;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const { step, stepsCompleted: sc, xidUr } = JSON.parse(raw);
-      currentStep.value = step ?? 0;
-      stepsCompleted.value = sc ?? [false, false, false, false];
-      if (xidUr) {
-        const envelope = (
-          Envelope as unknown as { fromURString(s: string): Envelope }
-        ).fromURString(xidUr);
-        xidDocument.value = XIDDocument.fromEnvelope(envelope);
-        refreshDocument();
-      }
-    } catch {
-      /* state restoration failed */
-    }
-  }
-
-  function createXid(
+  function createIdentity(
+    name: IdentityName,
     nickname: string,
-    scheme: "Ed25519" | "Schnorr" | "ECDSA",
+    scheme: TutorialScheme,
+    password: string,
     withProvenance: boolean,
-    passphrase?: string,
   ) {
     try {
       error.value = null;
-      const markOptions: XIDGenesisMarkOptions =
-        withProvenance && passphrase
-          ? {
-              type: "passphrase",
-              passphrase,
-              resolution: ProvenanceMarkResolution.High,
-              date: new Date(),
-            }
-          : { type: "none" };
-      const doc = XIDDocument.new({ type: "default" }, markOptions);
-      const key = doc.inceptionKey();
-      if (key) doc.setNameForKey(key.publicKeys(), nickname);
-      xidDocument.value = doc;
-      updateIdentityDisplay();
-      updateOutput();
-      completeStep(0);
+      const doc = createEncryptedXid(nickname, scheme, password, withProvenance);
+      const slot = identities.value[name];
+      slot.document = doc;
+      slot.password = password;
+      identities.value = { ...identities.value, [name]: slot };
+      activeIdentity.value = name;
+      invalidatePrivateEnvelope(name);
+      bumpDoc();
       saveState();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : "Failed to create XID document";
+      error.value = e instanceof Error ? e.message : "Failed to create identity";
     }
   }
 
+  function loadIdentityFromUr(name: IdentityName, ur: string, password?: string) {
+    try {
+      error.value = null;
+      const doc = loadXidFromUr(ur, password);
+      const slot = identities.value[name];
+      slot.document = doc;
+      if (password !== undefined) slot.password = password;
+      identities.value = { ...identities.value, [name]: slot };
+      activeIdentity.value = name;
+      invalidatePrivateEnvelope(name);
+      bumpDoc();
+      saveState();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to load identity";
+    }
+  }
+
+  function forgetIdentity(name: IdentityName) {
+    const slot = emptySlot(
+      name,
+      identities.value[name].displayName,
+      identities.value[name].role,
+      identities.value[name].color,
+    );
+    identities.value = { ...identities.value, [name]: slot };
+    invalidatePrivateEnvelope(name);
+    bumpDoc();
+    saveState();
+  }
+
+  // ---- Keys ----
+  function addSideKey(
+    slotName: IdentityName,
+    kind: "attestation" | "ssh" | "contract",
+    scheme: TutorialScheme,
+    allow: Privilege[],
+  ) {
+    try {
+      error.value = null;
+      const slot = identities.value[slotName];
+      if (!slot.document) throw new Error("No identity document to add a key to");
+      const side = generateSideKey(
+        kind === "attestation"
+          ? "attestation-key"
+          : kind === "ssh"
+            ? "ssh-signing-key"
+            : "contract-key",
+        scheme,
+      );
+      addSideKeyToXid(slot.document, side, allow);
+      if (kind === "attestation") slot.attestationKey = side;
+      if (kind === "ssh") slot.sshKey = side;
+      if (kind === "contract") slot.contractKey = side;
+      identities.value = { ...identities.value, [slotName]: slot };
+      invalidatePrivateEnvelope(slotName);
+      bumpDoc();
+      saveState();
+      return side;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to add key";
+      return null;
+    }
+  }
+
+  // ---- Resolution ----
   function addResolutionMethod(uri: string) {
-    const doc = xidDocument.value;
+    const doc = activeDoc.value;
     if (!doc) return;
     try {
       doc.addResolutionMethod(uri);
-      refreshDocument();
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
       saveState();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to add resolution method";
     }
   }
+  function removeResolutionMethodUri(uri: string) {
+    const doc = activeDoc.value;
+    if (!doc) return;
+    doc.removeResolutionMethod(uri);
+    invalidatePrivateEnvelope(activeIdentity.value);
+    bumpDoc();
+    saveState();
+  }
 
+  // ---- Provenance ----
   function advanceProvenance() {
-    const doc = xidDocument.value;
+    const slot = activeSlot.value;
+    const doc = slot.document;
     if (!doc) return;
     try {
-      doc.nextProvenanceMarkWithEmbeddedGenerator(undefined, new Date());
-      refreshDocument();
+      const pw = slot.password ? new TextEncoder().encode(slot.password) : undefined;
+      doc.nextProvenanceMarkWithEmbeddedGenerator(pw, new Date());
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
       saveState();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to advance provenance";
     }
   }
 
+  // ---- Attachments & services (kept for backwards compat with earlier screens) ----
   function addAttachment(payload: string, vendor: string, conformsTo?: string) {
-    const doc = xidDocument.value;
+    const doc = activeDoc.value;
     if (!doc) return;
     try {
       doc.addAttachment(payload, vendor, conformsTo);
-      refreshDocument();
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
       saveState();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to add attachment";
     }
   }
-
   function addService(uri: string, name: string, capability: string, keyRefHex?: string) {
-    const doc = xidDocument.value;
+    const doc = activeDoc.value;
     if (!doc) return;
     try {
       const service = Service.new(uri);
@@ -260,73 +366,212 @@ export function useXidTutorial() {
         service.permissionsMut().addAllow(Privilege.All);
       }
       doc.addService(service);
-      refreshDocument();
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
       saveState();
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to add service";
     }
   }
 
-  function completeStep(step: number) {
-    stepsCompleted.value = [...stepsCompleted.value.map((v, i) => (i === step ? true : v))];
-    saveState();
-  }
-
-  function completeAndAdvance(step: number) {
-    completeStep(step);
-    if (step < 3) currentStep.value = step + 1;
-  }
-
-  function goToStep(step: number) {
-    currentStep.value = step;
-  }
-
-  function resetTutorial() {
-    xidDocument.value = null;
-    docVersion.value = 0;
-    currentStep.value = 0;
-    stepsCompleted.value = [false, false, false, false];
-    error.value = null;
-    clearIdentity();
-    clearOutput();
-    if (import.meta.client) localStorage.removeItem(STORAGE_KEY);
-  }
-
-  function getPublicEnvelope(): Envelope | null {
-    if (!xidDocument.value) return null;
+  // ---- Edges ----
+  function attachEdgeToActive(edgeEnvelope: Envelope) {
+    const doc = activeDoc.value;
+    if (!doc) return;
     try {
-      return xidDocument.value.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
-        type: "none",
+      doc.addEdge(edgeEnvelope);
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to attach edge";
+    }
+  }
+  function removeEdgeFromActive(edgeEnvelope: Envelope) {
+    const doc = activeDoc.value;
+    if (!doc) return;
+    try {
+      doc.removeEdge(edgeEnvelope.digest());
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to remove edge";
+    }
+  }
+
+  // ---- Views / serialization ----
+  function getPrivateEnvelope(name?: IdentityName): Envelope | null {
+    const slotName: IdentityName = name ?? activeIdentity.value;
+    const slot = identities.value[slotName];
+    if (!slot.document) return null;
+    const cached = cachedPrivateEnvelopes.get(slotName);
+    if (cached) return cached;
+    try {
+      const env = slot.document.toEnvelope(
+        privateKeyOptions(slot.password),
+        generatorOptions(slot.password),
+        { type: "inception" },
+      );
+      cachedPrivateEnvelopes.set(slotName, env);
+      return env;
+    } catch {
+      return null;
+    }
+  }
+  // Autosave envelope: plaintext-private (Include). No Argon2id — the same password
+  // is already stored in plaintext in localStorage, so encrypting at this boundary
+  // adds no protection. Encrypt is reserved for user-initiated downloads.
+  function getPersistEnvelope(name?: IdentityName): Envelope | null {
+    const slotName: IdentityName = name ?? activeIdentity.value;
+    const slot = identities.value[slotName];
+    if (!slot.document) return null;
+    try {
+      return slot.document.toEnvelope(XIDPrivateKeyOptions.Include, XIDGeneratorOptions.Include, {
+        type: "inception",
       });
     } catch {
       return null;
     }
   }
-
-  function getPrivateEnvelope(): Envelope | null {
-    if (!xidDocument.value) return null;
+  function getPublicEnvelope(name?: IdentityName): Envelope | null {
+    const slot = name ? identities.value[name] : activeSlot.value;
+    if (!slot.document) return null;
     try {
-      return xidDocument.value.toEnvelope(
-        XIDPrivateKeyOptions.Include,
-        XIDGeneratorOptions.Include,
-        { type: "inception" },
-      );
+      return exportPublicEnvelope(slot.document);
     } catch {
       return null;
     }
   }
-
   function verifySignature(): boolean {
+    const env = getPublicEnvelope();
+    if (!env) return false;
+    return verifyInceptionSignature(env.urString());
+  }
+
+  // ---- Step progression ----
+  function completeSection(index: number) {
+    if (index >= 0 && index < TUTORIAL_SECTIONS.length) {
+      const arr = [...sectionsCompleted.value];
+      arr[index] = true;
+      sectionsCompleted.value = arr;
+      saveState();
+    }
+  }
+  function completeAndAdvance(index: number) {
+    completeSection(index);
+    if (index < TUTORIAL_SECTIONS.length - 1) currentSection.value = index + 1;
+  }
+  function goToSection(index: number) {
+    if (index >= 0 && index < TUTORIAL_SECTIONS.length) {
+      currentSection.value = index;
+      bumpDoc();
+    }
+  }
+  function resetTutorial() {
+    for (const name of Object.keys(identities.value) as IdentityName[]) forgetIdentity(name);
+    currentSection.value = 0;
+    sectionsCompleted.value = new Array(TUTORIAL_SECTIONS.length).fill(false);
+    error.value = null;
+    if (import.meta.client) {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+    bumpDoc();
+  }
+
+  // ---- Persistence ----
+  type PersistedSlot = { ur?: string; password?: string };
+  type Persisted = {
+    version: 2;
+    currentSection: number;
+    sectionsCompleted: boolean[];
+    activeIdentity: IdentityName;
+    identities: Partial<Record<IdentityName, PersistedSlot>>;
+  };
+
+  function saveState() {
+    if (!import.meta.client) return;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      persistNow();
+    }, 300);
+  }
+
+  function persistNow() {
     try {
-      const envelope = getPublicEnvelope();
-      if (!envelope) return false;
-      XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.Inception);
-      return true;
+      const persisted: Persisted = {
+        version: 2,
+        currentSection: currentSection.value,
+        sectionsCompleted: sectionsCompleted.value,
+        activeIdentity: activeIdentity.value,
+        identities: {},
+      };
+      for (const key of Object.keys(identities.value) as IdentityName[]) {
+        const slot = identities.value[key];
+        if (!slot.document) continue;
+        const env = getPersistEnvelope(key);
+        if (!env) continue;
+        persisted.identities[key] = {
+          ur: env.urString(),
+          password: slot.password,
+        };
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
     } catch {
-      return false;
+      /* localStorage unavailable */
     }
   }
 
+  function restoreState() {
+    if (!import.meta.client) return;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const p = JSON.parse(raw) as Persisted;
+        if (p.version !== 2) return;
+        currentSection.value = p.currentSection ?? 0;
+        sectionsCompleted.value =
+          p.sectionsCompleted ?? new Array(TUTORIAL_SECTIONS.length).fill(false);
+        activeIdentity.value = p.activeIdentity ?? "amira";
+        for (const [name, data] of Object.entries(p.identities)) {
+          if (!data?.ur) continue;
+          const slot = identities.value[name as IdentityName];
+          try {
+            slot.document = loadXidFromUr(data.ur, data.password);
+            slot.password = data.password ?? "";
+          } catch {
+            /* bad data */
+          }
+        }
+        bumpDoc();
+        return;
+      }
+      // Legacy v1 migration
+      const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const old = JSON.parse(legacy) as {
+          step?: number;
+          stepsCompleted?: boolean[];
+          xidUr?: string;
+        };
+        if (old.xidUr) {
+          const doc = loadXidFromUr(old.xidUr);
+          identities.value.amira.document = doc;
+        }
+        bumpDoc();
+      }
+    } catch {
+      /* restore failed */
+    }
+  }
+
+  // ---- Utility ----
   function getKeyAlgorithm(key: Key): string {
     try {
       return key.publicKeys().signingPublicKey().keyType();
@@ -334,17 +579,23 @@ export function useXidTutorial() {
       return "Unknown";
     }
   }
-
   function getKeyRefHex(key: Key): string {
     return key.reference().toHex();
   }
 
   return {
-    xidDocument,
+    // state
+    identities,
+    activeIdentity,
+    activeSlot,
+    activeDoc,
     docVersion,
-    currentStep,
-    stepsCompleted,
+    currentSection,
+    currentSectionMeta,
+    sectionsCompleted,
+    progress,
     error,
+    // display
     xidHex,
     xidUrString,
     xidBytewords,
@@ -354,23 +605,44 @@ export function useXidTutorial() {
     notationOutput,
     diagnosticOutput,
     envelopeUrOutput,
+    refreshDisplay,
+    bumpDoc,
+    // computed lists
     keyList,
     resolutionMethodList,
     attachmentList,
     serviceList,
+    edgeList,
     provenanceMark,
-    createXid,
+    // identity lifecycle
+    setActive,
+    createIdentity,
+    loadIdentityFromUr,
+    forgetIdentity,
+    // keys
+    addSideKey,
+    // resolution
     addResolutionMethod,
+    removeResolutionMethodUri,
+    // provenance
     advanceProvenance,
+    // attachments/services (legacy)
     addAttachment,
     addService,
-    completeStep,
-    completeAndAdvance,
-    goToStep,
-    resetTutorial,
-    getPublicEnvelope,
+    // edges
+    attachEdgeToActive,
+    removeEdgeFromActive,
+    // serialization
     getPrivateEnvelope,
+    getPublicEnvelope,
     verifySignature,
+    sshPublicKeyText,
+    // progression
+    completeSection,
+    completeAndAdvance,
+    goToSection,
+    resetTutorial,
+    // utility
     getKeyAlgorithm,
     getKeyRefHex,
   };
