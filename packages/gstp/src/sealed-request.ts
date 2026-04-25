@@ -404,9 +404,12 @@ export class SealedRequest implements SealedRequestBehavior {
     const stateEnvelope = this._state ?? Envelope.new(null);
     const continuation = new Continuation(stateEnvelope, this.id(), validUntil);
 
-    // Get sender's encryption key (from inception key)
-    const senderInceptionKey = this._sender.inceptionKey();
-    const senderEncryptionKey = senderInceptionKey?.publicKeys()?.encapsulationPublicKey();
+    // Mirrors Rust `self.sender.encryption_key()` which prefers the
+    // inception key's encapsulation public key but falls back to the
+    // first key in the document's key set. The earlier port called
+    // `inceptionKey()?.publicKeys()?.encapsulationPublicKey()` directly
+    // and skipped that fallback.
+    const senderEncryptionKey = this._sender.encryptionKey();
     if (senderEncryptionKey === undefined) {
       throw GstpError.senderMissingEncryptionKey();
     }
@@ -485,9 +488,10 @@ export class SealedRequest implements SealedRequestBehavior {
       throw GstpError.xid(e instanceof Error ? e : new Error(String(e)));
     }
 
-    // Get sender's verification key and verify signature (from inception key)
-    const senderInceptionKey = sender.inceptionKey();
-    const senderVerificationKey = senderInceptionKey?.publicKeys()?.signingPublicKey();
+    // Mirrors Rust `sender.verification_key()` (with first-key
+    // fallback). The earlier port read the inception signing key
+    // directly and skipped that fallback.
+    const senderVerificationKey = sender.verificationKey();
     if (senderVerificationKey === undefined) {
       throw GstpError.senderMissingVerificationKey();
     }

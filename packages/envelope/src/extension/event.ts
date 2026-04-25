@@ -25,7 +25,7 @@
 
 import { ARID } from "@bcts/components";
 import { EVENT as TAG_EVENT } from "@bcts/tags";
-import { toTaggedValue } from "@bcts/dcbor";
+import { toTaggedValue, CborDate } from "@bcts/dcbor";
 import { CONTENT, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
@@ -168,7 +168,10 @@ export class Event<T extends EnvelopeEncodableValue>
     }
 
     if (this._date !== undefined) {
-      envelope = envelope.addAssertion(DATE, this._date.toISOString());
+      // Pass a tagged-CBOR Date (tag 1); mirrors Rust
+      // `Envelope::add_assertion(DATE, self.date)`. The earlier port
+      // emitted an ISO 8601 string here.
+      envelope = envelope.addAssertion(DATE, CborDate.fromDatetime(this._date));
     }
 
     return envelope;
@@ -221,14 +224,21 @@ export class Event<T extends EnvelopeEncodableValue>
       // Note is optional
     }
 
-    // Extract optional date
+    // Extract optional date — mirrors Rust
+    // `extract_optional_object_for_predicate::<Date>(DATE)` (tag 1).
     let date: Date | undefined;
     try {
       const dateObj = envelope.objectForPredicate(DATE);
       if (dateObj !== undefined) {
-        const dateStr = dateObj.asText();
-        if (dateStr !== undefined) {
-          date = new Date(dateStr);
+        const leaf = dateObj.asLeaf();
+        if (leaf !== undefined) {
+          date = CborDate.fromTaggedCbor(leaf).datetime();
+        } else {
+          // Back-compat shim for legacy ISO-string producers.
+          const dateStr = dateObj.asText();
+          if (dateStr !== undefined) {
+            date = new Date(dateStr);
+          }
         }
       }
     } catch {

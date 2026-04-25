@@ -287,9 +287,12 @@ export class SealedEvent<T extends EnvelopeEncodableValue> implements SealedEven
     signer?: Signer,
     recipients?: XIDDocument[],
   ): Envelope {
-    // Get sender's encryption key (from inception key)
-    const senderInceptionKey = this._sender.inceptionKey();
-    const senderEncryptionKey = senderInceptionKey?.publicKeys()?.encapsulationPublicKey();
+    // Mirrors Rust `self.sender.encryption_key()` — uses the
+    // inception key's encapsulation public key when available, falls
+    // back to the first key in the document's key set. Eagerly fetched
+    // (matching Rust `sealed_event.rs:247–250`) so the error is raised
+    // even when neither state nor validUntil is present.
+    const senderEncryptionKey = this._sender.encryptionKey();
     if (senderEncryptionKey === undefined) {
       throw GstpError.senderMissingEncryptionKey();
     }
@@ -381,9 +384,9 @@ export class SealedEvent<T extends EnvelopeEncodableValue> implements SealedEven
       throw GstpError.xid(e instanceof Error ? e : new Error(String(e)));
     }
 
-    // Get sender's verification key and verify signature (from inception key)
-    const senderInceptionKey = sender.inceptionKey();
-    const senderVerificationKey = senderInceptionKey?.publicKeys()?.signingPublicKey();
+    // Mirrors Rust `sender.verification_key()` (with first-key
+    // fallback).
+    const senderVerificationKey = sender.verificationKey();
     if (senderVerificationKey === undefined) {
       throw GstpError.senderMissingVerificationKey();
     }
