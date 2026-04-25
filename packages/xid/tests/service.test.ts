@@ -56,7 +56,9 @@ describe("Service", () => {
   describe("Service properties", () => {
     it("should get and set URI", () => {
       const service = Service.new("https://example.com");
-      expect(service.uri()).toBe("https://example.com");
+      // `uri()` now returns a typed URI value (mirrors Rust `&URI`);
+      // use `uriString()` for the string form.
+      expect(service.uriString()).toBe("https://example.com");
     });
 
     it("should get and set capability", () => {

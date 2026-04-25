@@ -12,7 +12,7 @@
  */
 
 import { type Envelope, type EnvelopeEncodable } from "@bcts/envelope";
-import { Reference, type XID } from "@bcts/components";
+import { type Reference, type XID } from "@bcts/components";
 import { Permissions, type HasPermissions } from "./permissions";
 import { Shared } from "./shared";
 
@@ -76,9 +76,15 @@ export class Delegate implements HasPermissions, EnvelopeEncodable {
 
   /**
    * Get the reference for this delegate.
+   *
+   * Mirrors Rust `impl ReferenceProvider for Delegate`, which delegates
+   * to `self.controller.read().xid().reference()` — i.e. the XID's
+   * 32 bytes used directly as the Reference. The previous TS port
+   * SHA-256-hashed the XID bytes, producing a different reference
+   * value that did not round-trip across implementations.
    */
   reference(): Reference {
-    return Reference.hash(this.xid().toData());
+    return this.xid().reference();
   }
 
   // HasPermissions implementation

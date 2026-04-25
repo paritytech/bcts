@@ -223,6 +223,25 @@ export class Envelope implements DigestProvider {
       return Envelope.newWithKnownValue(subject);
     }
 
+    // If the value implements `EnvelopeEncodable`, defer to its
+    // `intoEnvelope()` so structured types (e.g. `ProvenanceMarkGenerator`,
+    // `Permissions`) build the same envelope shape Rust produces via
+    // its `EnvelopeEncodable` blanket impl. Tagged-CBOR primitives
+    // (those whose `intoEnvelope` is just `Envelope::new(self.tagged_cbor())`)
+    // still resolve to the same leaf — Rust collapses the two paths
+    // identically. Skip this branch for `Uint8Array`, which is a
+    // built-in encodable but should produce a byte-string leaf, not be
+    // confused with a class that happens to have an `intoEnvelope`.
+    if (
+      typeof subject === "object" &&
+      subject !== null &&
+      !(subject instanceof Uint8Array) &&
+      "intoEnvelope" in subject &&
+      typeof (subject as { intoEnvelope?: unknown }).intoEnvelope === "function"
+    ) {
+      return (subject as { intoEnvelope(): Envelope }).intoEnvelope();
+    }
+
     // Handle primitives and create leaf envelopes
     return Envelope.newLeaf(subject);
   }
