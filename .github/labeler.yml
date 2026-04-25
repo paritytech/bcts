@@ -50,6 +50,13 @@ github-actions:
           - '!packages/uniform-resources/package.json'
           - '!packages/uniform-resources/CHANGELOG.md'
 
+"multipart-ur":
+  - changed-files:
+      - all-globs-to-any-file:
+          - 'packages/multipart-ur/**'
+          - '!packages/multipart-ur/package.json'
+          - '!packages/multipart-ur/CHANGELOG.md'
+
 "shamir":
   - changed-files:
       - all-globs-to-any-file:

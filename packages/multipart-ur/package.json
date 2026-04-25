@@ -1,0 +1,83 @@
+{
+  "name": "@bcts/multipart-ur",
+  "version": "1.0.0-alpha.24",
+  "type": "module",
+  "description": "Multipart UR QR code generator - single-frame and animated fountain-coded QR sequences with optional logo overlay.",
+  "license": "BSD-2-Clause-Patent",
+  "author": "Parity Technologies <admin@parity.io> (https://parity.io)",
+  "homepage": "https://bcts.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paritytech/bcts",
+    "directory": "packages/multipart-ur"
+  },
+  "bugs": {
+    "url": "https://github.com/paritytech/bcts/issues"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "browser": "dist/index.iife.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "bin": {
+    "mur": "./dist/bin/mur.cjs"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
+    "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "docs": "typedoc",
+    "prepublishOnly": "bun run clean && bun run build && bun test"
+  },
+  "keywords": [
+    "multipart-ur",
+    "ur",
+    "qrcode",
+    "blockchain-commons",
+    "fountain",
+    "animated",
+    "encoding"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@bcts/uniform-resources": "workspace:*",
+    "@resvg/resvg-wasm": "^2.6.2",
+    "fast-png": "^8.0.0",
+    "gifenc": "^1.0.3",
+    "jpeg-js": "^0.4.4",
+    "qrcode-generator": "^2.0.4"
+  },
+  "devDependencies": {
+    "@bcts/dcbor": "workspace:*",
+    "@bcts/eslint": "workspace:*",
+    "@bcts/tsconfig": "workspace:*",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.0",
+    "@types/qrcode-generator": "^1.0.6",
+    "commander": "^14.0.3",
+    "eslint": "^10.2.1",
+    "prettier": "^3.8.3",
+    "tsdown": "^0.21.0",
+    "typedoc": "^0.28.19",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}
