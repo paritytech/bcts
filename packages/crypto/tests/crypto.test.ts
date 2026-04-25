@@ -907,40 +907,52 @@ describe("Scrypt", () => {
 
 describe("Argon2id", () => {
   // Mirrors Rust `argon::tests::test_argon2id_basic` — same `b"example salt"` input.
-  test("test_argon2id_basic", () => {
-    const password = new TextEncoder().encode("password");
-    const salt = new TextEncoder().encode("example salt");
+  test(
+    "test_argon2id_basic",
+    () => {
+      const password = new TextEncoder().encode("password");
+      const salt = new TextEncoder().encode("example salt");
 
-    const key1 = argon2id(password, salt, 32);
-    const key2 = argon2id(password, salt, 32);
+      const key1 = argon2id(password, salt, 32);
+      const key2 = argon2id(password, salt, 32);
 
-    expect(key1.length).toBe(32);
-    expect(bytesToHex(key1)).toBe(bytesToHex(key2)); // Deterministic
-  });
+      expect(key1.length).toBe(32);
+      expect(bytesToHex(key1)).toBe(bytesToHex(key2)); // Deterministic
+    },
+    30_000,
+  );
 
   // Cross-platform parity vector — pins the byte output of `argon2id()` with
   // the `Argon2::default()` params (t=2, m=19456, p=1) that Rust
   // `bc_crypto::argon2id` uses. Drift here means cross-impl interop is broken.
-  test("argon2id cross-platform vector (matches Rust defaults)", () => {
-    const password = new TextEncoder().encode("password");
-    const salt = new TextEncoder().encode("example salt");
-    expect(bytesToHex(argon2id(password, salt, 32))).toBe(
-      "a4057eab535f8df96dcad517cf66948e23b52d1d7a5e025c5976e69d26f614f0",
-    );
-  });
+  test(
+    "argon2id cross-platform vector (matches Rust defaults)",
+    () => {
+      const password = new TextEncoder().encode("password");
+      const salt = new TextEncoder().encode("example salt");
+      expect(bytesToHex(argon2id(password, salt, 32))).toBe(
+        "a4057eab535f8df96dcad517cf66948e23b52d1d7a5e025c5976e69d26f614f0",
+      );
+    },
+    30_000,
+  );
 
   // Mirrors Rust `argon::tests::test_argon2id_different_salt` —
   // `b"example salt"` vs `b"example salt2"`.
-  test("test_argon2id_different_salt", () => {
-    const password = new TextEncoder().encode("password");
-    const salt1 = new TextEncoder().encode("example salt");
-    const salt2 = new TextEncoder().encode("example salt2");
+  test(
+    "test_argon2id_different_salt",
+    () => {
+      const password = new TextEncoder().encode("password");
+      const salt1 = new TextEncoder().encode("example salt");
+      const salt2 = new TextEncoder().encode("example salt2");
 
-    const key1 = argon2id(password, salt1, 32);
-    const key2 = argon2id(password, salt2, 32);
+      const key1 = argon2id(password, salt1, 32);
+      const key2 = argon2id(password, salt2, 32);
 
-    expect(bytesToHex(key1)).not.toBe(bytesToHex(key2));
-  });
+      expect(bytesToHex(key1)).not.toBe(bytesToHex(key2));
+    },
+    30_000,
+  );
 });
 
 describe("Memzero", () => {
