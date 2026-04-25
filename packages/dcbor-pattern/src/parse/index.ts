@@ -81,10 +81,13 @@ export const parse = (input: string): Result<Pattern> => {
  * ```
  */
 export const parsePartial = (input: string): Result<[Pattern, number]> => {
-  if (input.trim().length === 0) {
-    return Err({ type: "EmptyInput" });
-  }
-
+  // Mirrors Rust `parse_partial`
+  // (`bc-dcbor-pattern-rust/src/parse/mod.rs`) which delegates straight
+  // to `parse_or(&mut lexer)`. Empty / all-whitespace input falls
+  // through to `parse_primary` which surfaces
+  // `Error::UnexpectedEndOfInput`. Earlier revisions of this port
+  // short-circuited with `EmptyInput` here, which produced a different
+  // error variant than Rust for the same input.
   const lexer = new Lexer(input);
   const patternResult = parseOr(lexer);
 

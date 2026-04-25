@@ -151,11 +151,12 @@ describe("new sequence APIs", () => {
   it("test_empty_sequence_pattern", () => {
     const emptySequence = sequence();
 
-    // Empty sequence should display as "()" or empty string
-    // Note: The TypeScript implementation may format this differently
+    // Empty sequence displays as `()` to match Rust
+    // (`bc-dcbor-pattern-rust/src/pattern/meta/sequence_pattern.rs:117-127`).
+    // Earlier this port emitted `""` (empty string), which broke
+    // `parse(format(emptySequence()))` round-trip.
     const display = patternDisplay(emptySequence);
-    // In TypeScript, an empty sequence displays as empty string when joined with ", "
-    expect(display).toBe("");
+    expect(display).toBe("()");
 
     // Empty sequence should not be complex (has no patterns)
     if (emptySequence.kind === "Meta" && emptySequence.pattern.type === "Sequence") {

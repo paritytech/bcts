@@ -13,7 +13,7 @@ import { isMap, mapSize, mapKeys, mapValue, cbor } from "@bcts/dcbor";
 import type { Path } from "../../format";
 import type { Pattern } from "../index";
 import { Interval } from "../../interval";
-import { matchPattern } from "../match-registry";
+import { matchPattern, getPatternPathsWithCapturesDirect } from "../match-registry";
 
 /**
  * Pattern for matching CBOR map structures.
@@ -121,14 +121,22 @@ export const mapPatternPaths = (pattern: MapPattern, haystack: Cbor): Path[] => 
 };
 
 /**
- * Helper to build a map context path (map -> element).
- */
-const buildMapContextPath = (mapCbor: Cbor, element: Cbor): Path => {
-  return [mapCbor, element];
-};
-
-/**
- * Collects captures from a pattern by checking if it's a capture pattern.
+ * Collects captures from a pattern by delegating to its
+ * `paths_with_captures` implementation.
+ *
+ * Mirrors Rust `pattern.paths_with_captures(value)`
+ * (`bc-dcbor-pattern-rust/src/pattern/structure/map_pattern.rs`):
+ * the per-pattern dispatcher recurses through `Or`, `And`, `Not`,
+ * `Repeat`, `Sequence`, `Capture`, etc. so captures nested arbitrarily
+ * deep inside a constraint's key or value pattern are all collected.
+ *
+ * Earlier this port only inspected the top-level pattern type for
+ * `Capture`, which silently lost captures inside any meta wrapper —
+ * e.g. `{key: text | @cap(text)}` would not capture.
+ *
+ * Each captured path produced by the inner dispatcher is rebased
+ * onto the map context (`[mapCbor, matchedValue, ...]`) so that
+ * downstream consumers see a path rooted at the map.
  */
 const collectCapturesFromPattern = (
   pattern: Pattern,
@@ -136,15 +144,21 @@ const collectCapturesFromPattern = (
   mapContext: Cbor,
   captures: Map<string, Path[]>,
 ): void => {
-  if (pattern.kind === "Meta" && pattern.pattern.type === "Capture") {
-    const captureName = pattern.pattern.pattern.name;
-    const contextPath = buildMapContextPath(mapContext, matchedValue);
-    const existing = captures.get(captureName) ?? [];
-    existing.push(contextPath);
-    captures.set(captureName, existing);
-
-    // Also collect from inner pattern
-    collectCapturesFromPattern(pattern.pattern.pattern.pattern, matchedValue, mapContext, captures);
+  const result = getPatternPathsWithCapturesDirect(pattern, matchedValue);
+  if (result.captures.size === 0) return;
+  for (const [name, capturedPaths] of result.captures) {
+    const existing = captures.get(name) ?? [];
+    for (const innerPath of capturedPaths) {
+      // Re-root the captured path on the map context. Rust uses
+      // `[mapCbor, matchedValue]` for the simple capture case; deeper
+      // captures append the relative subpath after the matched value.
+      const rebased: Path = [mapContext, matchedValue];
+      if (innerPath.length > 1) {
+        rebased.push(...innerPath.slice(1));
+      }
+      existing.push(rebased);
+    }
+    captures.set(name, existing);
   }
 };
 

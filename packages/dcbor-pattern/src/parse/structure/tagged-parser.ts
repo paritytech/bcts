@@ -29,9 +29,13 @@ import { parse } from "../index";
 
 /**
  * Tag selector discriminated union.
+ *
+ * `Value` carries `number | bigint` — `bigint` is required for tag
+ * values above `Number.MAX_SAFE_INTEGER` so we don't silently truncate
+ * to `f64` precision. Mirrors Rust `parse_tagged`'s `u64` parsing.
  */
 type TagSelector =
-  | { type: "Value"; value: number }
+  | { type: "Value"; value: number | bigint }
   | { type: "Name"; name: string }
   | { type: "Regex"; regex: RegExp };
 
@@ -140,9 +144,23 @@ const parseTaggedInner = (
     const [word, newPos] = wordResult.value;
     pos = newPos;
 
-    const numValue = parseInt(word, 10);
-    if (!isNaN(numValue) && numValue.toString() === word) {
-      tagSelector = { type: "Value", value: numValue };
+    // Mirrors Rust `parse_tagged`'s `word.parse::<u64>()` —
+    // accept the full `0..=2^64-1` range for tag values. Use
+    // `BigInt` for parsing so we don't silently truncate values
+    // above `Number.MAX_SAFE_INTEGER`. Narrow back to plain `number`
+    // when safe so common-case callers don't see a `bigint`.
+    if (/^\d+$/.test(word)) {
+      const big = BigInt(word);
+      if (big > 0xffffffffffffffffn) {
+        // Value out of u64 range — fall back to treating the word
+        // as a tag name (Rust parses with `u64::parse`, which fails
+        // here, then falls into the name branch).
+        tagSelector = { type: "Name", name: word };
+      } else {
+        const numericValue: number | bigint =
+          big <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(big) : big;
+        tagSelector = { type: "Value", value: numericValue };
+      }
     } else {
       tagSelector = { type: "Name", name: word };
     }

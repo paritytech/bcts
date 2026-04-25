@@ -59,11 +59,19 @@ export const sequencePatternPaths = (_pattern: SequencePattern, _haystack: Cbor)
 
 /**
  * Formats a SequencePattern as a string.
+ *
+ * Mirrors Rust `Display for SequencePattern`
+ * (`bc-dcbor-pattern-rust/src/pattern/meta/sequence_pattern.rs:117-127`):
+ * an empty sequence renders as `()` (empty parens), not `""`. This
+ * keeps `parse(format(emptySequence()))` round-trippable.
  */
 export const sequencePatternDisplay = (
   pattern: SequencePattern,
   patternDisplay: (p: Pattern) => string,
 ): string => {
+  if (pattern.patterns.length === 0) {
+    return "()";
+  }
   const parts = pattern.patterns.map(patternDisplay);
   return parts.join(", ");
 };

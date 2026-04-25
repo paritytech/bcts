@@ -54,12 +54,26 @@ describe("structure patterns", () => {
       }
     });
 
-    it("empty brace map should match any map", () => {
+    it("empty brace `{}` is rejected (use `map` for any-map)", () => {
+      // Mirrors Rust `parse_bracket_map`
+      // (`bc-dcbor-pattern-rust/src/parse/structure/map_parser.rs:18-55`),
+      // which falls through to `parse_key_value_constraints` and
+      // surfaces `UnexpectedToken` on the immediate `}`. Earlier this
+      // port short-circuited and returned `anyMap()`, accepting
+      // patterns Rust rejects. Use the bare `map` keyword for the
+      // any-map case.
       const result = parse("{}");
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(patternMatches(result.value, cbor({ a: 1 }))).toBe(true);
-        expect(patternMatches(result.value, cbor({}))).toBe(true);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.type).toBe("UnexpectedToken");
+      }
+
+      // Bare `map` keeps working as the any-map sentinel.
+      const anyMapResult = parse("map");
+      expect(anyMapResult.ok).toBe(true);
+      if (anyMapResult.ok) {
+        expect(patternMatches(anyMapResult.value, cbor({ a: 1 }))).toBe(true);
+        expect(patternMatches(anyMapResult.value, cbor({}))).toBe(true);
       }
     });
 

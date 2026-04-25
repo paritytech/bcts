@@ -9,7 +9,7 @@
  */
 
 import type { Cbor, Tag } from "@bcts/dcbor";
-import { isTagged, tagValue, tagContent } from "@bcts/dcbor";
+import { getGlobalTagsStore, isTagged, tagValue, tagContent } from "@bcts/dcbor";
 import type { Path } from "../../format";
 import type { Pattern } from "../index";
 import { matchPattern, getPatternPathsWithCapturesDirect } from "../match-registry";
@@ -68,12 +68,32 @@ export const taggedPatternWithRegex = (regex: RegExp, pattern: Pattern): TaggedP
 });
 
 /**
- * Compare two tag values, handling both number and bigint types.
+ * Compare two tag values for equality.
+ *
+ * Tag values are CBOR `u64` (`number | bigint` in TS). To match Rust
+ * `Tag::value() == other.value()` byte-for-byte across the full
+ * `0..=2^64-1` range, we promote both operands to `BigInt` before
+ * comparing — `Number(...)` would silently lose precision for tag
+ * values above `2^53-1`.
  */
 const tagsEqual = (a: number | bigint | undefined, b: number | bigint): boolean => {
   if (a === undefined) return false;
-  // Convert both to Number for comparison (safe for tag values < 2^53)
-  return Number(a) === Number(b);
+  return BigInt(a) === BigInt(b);
+};
+
+/**
+ * Resolve a CBOR tag value to its registered name via the global
+ * `TagsStore`, mirroring Rust's `Tag::name()` lookup
+ * (`bc-dcbor-pattern-rust/src/pattern/structure/tagged_pattern.rs`).
+ *
+ * Returns `undefined` if the tag is not registered. Earlier this port
+ * stringified the numeric tag (`String(tag)`), which made `Name` and
+ * `Regex` variants effectively never match registered tags.
+ */
+const lookupTagName = (tag: number | bigint): string | undefined => {
+  const found = getGlobalTagsStore().tagForValue(tag);
+  if (found === undefined) return undefined;
+  return found.name;
 };
 
 /**
@@ -87,7 +107,7 @@ export const taggedPatternMatches = (pattern: TaggedPattern, haystack: Cbor): bo
   const tag = tagValue(haystack);
   const content = tagContent(haystack);
 
-  if (content === undefined) {
+  if (content === undefined || tag === undefined) {
     return false;
   }
 
@@ -97,13 +117,14 @@ export const taggedPatternMatches = (pattern: TaggedPattern, haystack: Cbor): bo
     case "Tag":
       return tagsEqual(tag, pattern.tag.value) && matchPattern(pattern.pattern, content);
     case "Name": {
-      // Get tag name from global tags store
-      // For now, compare the tag value as string
-      const tagName = String(tag);
+      // Look up the tag's registered name via the global tags store.
+      const tagName = lookupTagName(tag);
+      if (tagName === undefined) return false;
       return tagName === pattern.name && matchPattern(pattern.pattern, content);
     }
     case "Regex": {
-      const tagName = String(tag);
+      const tagName = lookupTagName(tag);
+      if (tagName === undefined) return false;
       return pattern.regex.test(tagName) && matchPattern(pattern.pattern, content);
     }
   }
@@ -198,6 +219,11 @@ export const taggedPatternDisplay = (
     case "Name":
       return `tagged(${pattern.name}, ${patternDisplay(pattern.pattern)})`;
     case "Regex":
-      return `tagged(/${pattern.regex.source}/, ${patternDisplay(pattern.pattern)})`;
+      // Rust formats `tagged(/regex/,  pattern)` with **two** spaces
+      // after the comma in the regex variant
+      // (`bc-dcbor-pattern-rust/src/pattern/structure/tagged_pattern.rs:239`).
+      // Earlier this port emitted a single space, breaking
+      // `format(p)` parity with Rust.
+      return `tagged(/${pattern.regex.source}/,  ${patternDisplay(pattern.pattern)})`;
   }
 };

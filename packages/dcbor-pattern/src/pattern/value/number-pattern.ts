@@ -166,7 +166,11 @@ export const numberPatternDisplay = (pattern: NumberPattern): string => {
     case "Value":
       return String(pattern.value);
     case "Range":
-      return `${pattern.min}..${pattern.max}`;
+      // Three-dot ellipsis matches Rust `NumberPattern::Range` `Display`
+      // (`bc-dcbor-pattern-rust/src/pattern/value/number_pattern.rs`).
+      // The lexer only accepts `...` (`Token::Ellipsis`); using `..`
+      // here breaks `parse(format(p))` round-trip.
+      return `${pattern.min}...${pattern.max}`;
     case "GreaterThan":
       return `>${pattern.value}`;
     case "GreaterThanOrEqual":

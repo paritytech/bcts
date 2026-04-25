@@ -141,7 +141,7 @@ describe("value patterns", () => {
     });
 
     it("number range should match numbers in range", () => {
-      const result = parse("1..10");
+      const result = parse("1...10");
       expect(result.ok).toBe(true);
       if (result.ok) {
         const num1 = cbor(1);

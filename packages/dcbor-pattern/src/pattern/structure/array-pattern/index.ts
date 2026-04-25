@@ -21,6 +21,7 @@ import {
   extractCaptureWithRepeat,
   isRepeatPattern,
   buildSimpleArrayContextPath,
+  formatArrayElementPattern,
 } from "./helpers";
 import { SequenceAssigner } from "./assigner";
 
@@ -422,39 +423,55 @@ export const arrayPatternPathsWithCaptures = (
     case "Elements": {
       const elemPattern = pattern.pattern;
 
-      // Check for sequence patterns with captures
+      // **TS↔Rust deliberate divergence** (PARITY_AUDIT.md task #13).
+      //
+      // Rust's `ArrayPattern::paths_with_captures` for non-Sequence
+      // element patterns with captures
+      // (`bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/mod.rs:568-637`)
+      // compiles the **entire ArrayPattern** to VM bytecode and runs
+      // it, leveraging the per-pattern `compile` impls that emit
+      // `PushAxis(ArrayElement)` / `Pop` instructions for proper
+      // backtracking through array elements with captures.
+      //
+      // The TS port's `compile` for `Pattern::Structure` always emits
+      // `MatchStructure(self)` (it doesn't yet have the
+      // ArrayPattern-with-captures special case Rust uses on line
+      // 467-501 of array_pattern/mod.rs). Routing this code path
+      // through `compilePattern + vmRun` therefore infinite-loops:
+      // VM `MatchStructure` → `paths_with_captures` → `compilePattern`
+      // → emits `MatchStructure` again → ...
+      //
+      // Until the compile-side `PushAxis(ArrayElement)` lowering is
+      // ported (which is a substantial reorganisation across the
+      // structure-pattern compile dispatchers), we keep the simpler
+      // `arr.filter(matchPattern(...))` element-scan below. For
+      // non-backtracking patterns this matches Rust's output. For
+      // patterns where Rust's backtracking matters
+      // (e.g. `[@a((number)*)]`), the captures may differ — flagged
+      // explicitly in the audit doc.
       if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Sequence") {
         const seqPattern = elemPattern.pattern.pattern;
-
-        // First check if this pattern matches
         if (!arrayPatternMatches(pattern, haystack)) {
           return [[], new Map<string, Path[]>()];
         }
-
         return handleSequenceCaptures(seqPattern, haystack, arr);
       }
 
-      // For capture patterns
       if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Capture") {
         const capturePattern = elemPattern.pattern.pattern;
         const matchingElements = arr.filter((element) => matchPattern(elemPattern, element));
-
         if (matchingElements.length === 0) {
           return [[], new Map<string, Path[]>()];
         }
-
         const captures = new Map<string, Path[]>();
         const paths: Path[] = [];
-
         for (const element of matchingElements) {
           paths.push(buildSimpleArrayContextPath(haystack, element));
         }
-
         captures.set(capturePattern.name, paths);
         return [[[haystack]], captures];
       }
 
-      // Default: no captures
       return [arrayPatternPaths(pattern, haystack), new Map<string, Path[]>()];
     }
   }
@@ -465,19 +482,25 @@ export const arrayPatternPathsWithCaptures = (
  */
 export const arrayPatternDisplay = (
   pattern: ArrayPattern,
-  patternDisplay: (p: Pattern) => string,
+  // The dispatch helper reaches into the pattern via
+  // `formatArrayElementPattern`, which already calls back into the
+  // top-level `patternDisplay` itself; the dispatch parameter is
+  // therefore unused but kept for signature parity with sibling
+  // formatters in the discriminated-union dispatch table.
+  _patternDisplay: (p: Pattern) => string,
 ): string => {
   switch (pattern.variant) {
     case "Any":
       return "array";
     case "Elements": {
-      const elemPattern = pattern.pattern;
-      // For sequence patterns within arrays, format elements with commas
-      if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Sequence") {
-        const parts = elemPattern.pattern.pattern.patterns.map(patternDisplay);
-        return `[${parts.join(", ")}]`;
-      }
-      return `[${patternDisplay(pattern.pattern)}]`;
+      // Use the recursive `formatArrayElementPattern` helper so any
+      // `Sequence` patterns *nested* inside the element pattern (e.g.
+      // `[(a > b)*]` would otherwise emit `[(a > b)*]` with the
+      // `>`-separator inside the `()`) are also re-rendered with
+      // `,`-separators. Mirrors Rust
+      // `format_array_element_pattern` from
+      // `bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/helpers.rs:54-67`.
+      return `[${formatArrayElementPattern(pattern.pattern)}]`;
     }
     case "Length":
       return `[${pattern.length.toString()}]`;

@@ -299,11 +299,12 @@ export class Lexer {
       return Ok({ token: { type: "Ellipsis" }, span: this.spanFrom(start) });
     }
 
-    // Two-dot ellipsis for ranges (check after three-dot)
-    if (this.startsWith("..") && !this.startsWith("...")) {
-      this.bump(2);
-      return Ok({ token: { type: "Ellipsis" }, span: this.spanFrom(start) });
-    }
+    // Note: Rust's lexer **only** matches `...` (three dots) for the
+    // ellipsis token (`bc-dcbor-pattern-rust/src/parse/token.rs`).
+    // Earlier revisions of this port accepted `..` (two dots) too,
+    // which silently allowed `1..10` number ranges that Rust's parser
+    // would reject. Removing the two-dot branch keeps the lexer
+    // byte-identical to Rust.
 
     if (this.startsWith(">=")) {
       this.bump(2);

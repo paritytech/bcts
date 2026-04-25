@@ -98,10 +98,15 @@ describe("parse", () => {
     });
 
     it("should parse number range", () => {
-      const result = parse("1..10");
+      // Rust uses a three-dot ellipsis for number ranges
+      // (`bc-dcbor-pattern-rust/src/pattern/value/number_pattern.rs`).
+      // The lexer only matches `...` (`Token::Ellipsis`); earlier this
+      // port accepted `..` (two dots), which silently built ranges
+      // Rust's parser rejects.
+      const result = parse("1...10");
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(patternDisplay(result.value)).toBe("1..10");
+        expect(patternDisplay(result.value)).toBe("1...10");
       }
     });
   });
@@ -116,7 +121,10 @@ describe("parse", () => {
     });
 
     it("should parse regex pattern", () => {
-      const result = parse("text'/^hello/'");
+      // The `text` keyword no longer consumes a following SingleQuoted
+      // token (matches Rust `parse_text` which is now a no-op).
+      // Single-quoted regex literals are parsed as standalone primaries.
+      const result = parse("/^hello/");
       expect(result.ok).toBe(true);
       // Regex display format may vary
     });
@@ -178,10 +186,15 @@ describe("parse", () => {
 
   describe("error handling", () => {
     it("should fail on empty input", () => {
+      // Rust `parse_partial` delegates straight to `parse_or`, which
+      // surfaces `UnexpectedEndOfInput` (not `EmptyInput`) for
+      // empty / whitespace-only input. Earlier this port short-
+      // circuited with `EmptyInput`, which produced a different error
+      // variant than Rust for the same input.
       const result = parse("");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("EmptyInput");
+        expect(result.error.type).toBe("UnexpectedEndOfInput");
       }
     });
 
@@ -189,7 +202,7 @@ describe("parse", () => {
       const result = parse("   ");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("EmptyInput");
+        expect(result.error.type).toBe("UnexpectedEndOfInput");
       }
     });
   });

@@ -160,7 +160,7 @@ describe("value pattern tests", () => {
     });
 
     it("test_number_pattern_range", () => {
-      const rangePattern = parse("10..20");
+      const rangePattern = parse("10...20");
 
       const inRangeCbor = cbor(15);
       const boundaryLowCbor = cbor(10);
@@ -239,7 +239,7 @@ describe("value pattern tests", () => {
       expect(display(parse("number"))).toBe("number");
       expect(display(parse("42"))).toBe("42");
       expect(display(parse("3.2222"))).toBe("3.2222");
-      expect(display(parse("10..20"))).toBe("10..20");
+      expect(display(parse("10...20"))).toBe("10...20");
       expect(display(parse(">10"))).toBe(">10");
       expect(display(parse(">=10"))).toBe(">=10");
       expect(display(parse("<10"))).toBe("<10");

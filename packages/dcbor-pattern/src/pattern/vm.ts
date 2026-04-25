@@ -11,6 +11,7 @@
  */
 
 import type { Cbor } from "@bcts/dcbor";
+import { cborData, bytesToHex } from "@bcts/dcbor";
 import {
   isArray,
   isMap,
@@ -121,29 +122,60 @@ interface Thread {
 }
 
 /**
- * Compares two CBOR values for equality by their serialized form.
+ * Compares two CBOR values for equality.
+ *
+ * Mirrors Rust `to_cbor_data() == other.to_cbor_data()`: serialize
+ * each value to canonical dCBOR bytes, then compare the byte arrays.
+ * Earlier this port used `JSON.stringify` for equality, which is
+ * unsafe for CBOR — JS `JSON.stringify` mishandles maps with
+ * non-canonical key order, drops `BigInt` (throws), silently equates
+ * `Symbol`s, and chokes on cyclic references / `Uint8Array`. The
+ * canonical-byte comparison is what `repeatPaths`'s loop-prevention
+ * check actually needs.
  */
 const cborEquals = (a: Cbor, b: Cbor): boolean => {
-  // Simple reference equality check first
   if (a === b) return true;
-
-  // Compare by JSON representation (simplified)
+  let ad: Uint8Array;
+  let bd: Uint8Array;
   try {
-    return JSON.stringify(a) === JSON.stringify(b);
+    ad = cborData(a);
+    bd = cborData(b);
   } catch {
+    // Pathological CBOR (e.g. cyclic input) → treat as not equal.
     return false;
   }
+  if (ad.length !== bd.length) return false;
+  for (let i = 0; i < ad.length; i++) {
+    if (ad[i] !== bd[i]) return false;
+  }
+  return true;
 };
 
 /**
  * Hash a path for deduplication.
- * Uses CBOR diagnostic notation for proper serialization.
+ *
+ * Mirrors Rust's `path.iter().map(|c| c.to_cbor_data())` keying:
+ * each element is serialized to canonical dCBOR bytes, hex-encoded,
+ * and joined with `|`. Two paths whose elements have identical CBOR
+ * bytes hash to the same key — even when their JS object identity
+ * differs, even when `toDiagnostic()` collides (or differs) for
+ * pathological inputs. Earlier this port joined `toDiagnostic()`
+ * strings with `|`, which can collide on values with identical
+ * diagnostic notation but different binary CBOR (or vice versa).
  */
 const pathHash = (path: Path): string => {
-  // Use toDiagnostic for proper CBOR serialization
-  return path
-    .map((item) => (typeof item.toDiagnostic === "function" ? item.toDiagnostic() : String(item)))
-    .join("|");
+  const parts: string[] = [];
+  for (const item of path) {
+    try {
+      parts.push(bytesToHex(cborData(item)));
+    } catch {
+      // Fallback for non-CBOR objects: stringify so the hash is at
+      // least stable. This branch should be unreachable for the
+      // pattern-matching paths the VM produces.
+      parts.push(String(item));
+    }
+  }
+  return parts.join("|");
 };
 
 /**
@@ -412,11 +444,34 @@ const runThread = (
         }
 
         case "Search": {
-          // Create a SearchPattern wrapper for the inner pattern
+          // **TS↔Rust deliberate divergence (documented in
+          // PARITY_AUDIT.md §3.5 / task #14)**.
+          //
+          // Rust's `Instr::Search` calls
+          // `prog.literals[pat_idx].paths_with_captures(&th.cbor)`
+          // directly on the inner pattern (the literal stored at
+          // `pat_idx` is the inner pattern, NOT a SearchPattern
+          // wrapper — see Rust `SearchPattern::compile` at
+          // `bc-dcbor-pattern-rust/src/pattern/meta/search_pattern.rs:246-247`).
+          // That call would only match at the *root* of `th.cbor` —
+          // no recursive descent — which means SearchPatterns *nested
+          // inside another pattern that compiles to VM* (e.g.
+          // `or(search(@x(num)), …)`) would silently fail to find
+          // matches deep in the tree. Rust's existing test suite
+          // doesn't exercise that nested case, so the bug is latent.
+          //
+          // The TS port restores the recursive descent here by
+          // wrapping the inner pattern in a fresh `SearchPattern` and
+          // invoking `searchPatternPathsWithCaptures`. That keeps the
+          // 8-test capture-with-search suite green (which would
+          // otherwise regress); the trade-off is that for purely
+          // top-level SearchPatterns (which dispatch through the Meta
+          // path and never hit this VM branch) the behaviour is
+          // identical to Rust either way. Once Rust fixes the latent
+          // VM-search bug, this branch can be aligned to match Rust
+          // exactly.
           const innerPattern = prog.literals[instr.patternIndex];
           const searchPat = createSearchPattern(innerPattern);
-
-          // Use recursive search with captures
           const result = searchPatternPathsWithCaptures(searchPat, th.cbor);
 
           // Reverse the paths before pushing to stack, since stack.pop() is LIFO
