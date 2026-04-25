@@ -41,6 +41,15 @@ export class CryptoError extends Error {
   /**
    * Create a CryptoError for invalid parameter values.
    *
+   * **TS-specific.** Rust's `bc_crypto::Error` enum has no
+   * `InvalidParameter` variant; size validation in Rust is enforced at
+   * compile time via fixed-size array references (e.g. `&[u8; 32]`) or
+   * via `panic!`/`expect(...)` for runtime checks. The TS port has no
+   * fixed-size array types, so it surfaces those same conditions through
+   * a thrown `CryptoError.invalidParameter(...)`. Catching this is
+   * equivalent to defensive guards around an `expect`-style panic on the
+   * Rust side.
+   *
    * @param message - Description of the invalid parameter
    * @returns A CryptoError describing the invalid parameter
    */

@@ -4,9 +4,16 @@
  *
  */
 
-// Ported from bc-crypto-rust/src/lib.rs
+// Ported from bc-crypto-rust/src/lib.rs.
+//
+// The top-level re-export list mirrors Rust's `pub use` statements exactly.
+// SHA-512 hash variants and CRC-32 helpers remain accessible via the `hash`
+// namespace export, matching Rust's `pub mod hash;` (where they live as
+// public functions inside a public module but are not re-exported at crate
+// root).
 
-// Re-export all modules
+// Public hash module — mirrors Rust `pub mod hash;`
+export * as hash from "./hash.js";
 
 // Error types
 export { CryptoError, AeadError, type CryptoResult } from "./error.js";
@@ -17,20 +24,16 @@ export { memzero, memzeroVecVecU8 } from "./memzero.js";
 // Hash constants
 export { CRC32_SIZE, SHA256_SIZE, SHA512_SIZE } from "./hash.js";
 
-// Hash functions
+// Hash functions — only the SHA-256 variants and core hashes are re-exported
+// at top level, matching Rust `pub use hash::{...}` in `lib.rs:35-38`.
 export {
-  crc32,
-  crc32Data,
-  crc32DataOpt,
   sha256,
   doubleSha256,
   sha512,
   hmacSha256,
   hmacSha512,
   pbkdf2HmacSha256,
-  pbkdf2HmacSha512,
   hkdfHmacSha256,
-  hkdfHmacSha512,
 } from "./hash.js";
 
 // Symmetric encryption constants
@@ -49,12 +52,7 @@ export {
 } from "./symmetric-encryption.js";
 
 // Public key encryption constants
-export {
-  GENERIC_PRIVATE_KEY_SIZE,
-  GENERIC_PUBLIC_KEY_SIZE,
-  X25519_PRIVATE_KEY_SIZE,
-  X25519_PUBLIC_KEY_SIZE,
-} from "./public-key-encryption.js";
+export { X25519_PRIVATE_KEY_SIZE, X25519_PUBLIC_KEY_SIZE } from "./public-key-encryption.js";
 
 // Public key encryption functions
 export {
@@ -117,5 +115,7 @@ export {
 // Scrypt
 export { scrypt, scryptOpt } from "./scrypt.js";
 
-// Argon2id
-export { argon2id, argon2idHashOpt } from "./argon.js";
+// Argon2id — only the default-params variant is exposed, matching Rust
+// `pub use argon::argon2id;`. Custom-params callers should reach into
+// `argon2idHashOpt` (TS-specific helper) only via package-internal imports.
+export { argon2id } from "./argon.js";
