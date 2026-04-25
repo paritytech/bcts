@@ -545,18 +545,30 @@ export class SigningPrivateKey
   }
 
   // ============================================================================
-  // Verifier Interface
+  // Verifier Interface (Schnorr-only — matches Rust)
   // ============================================================================
 
   /**
-   * Verifies a signature against a message.
+   * Verifies a signature against a message using the derived public key.
+   *
+   * Mirrors Rust's `Verifier for SigningPrivateKey`: only Schnorr keys
+   * actually verify; every other scheme returns `false`. Callers needing
+   * verification for Ed25519 / ECDSA / Sr25519 / MLDSA should derive the
+   * public key first via `publicKey().verify(...)`.
    *
    * @param signature - The signature to verify
    * @param message - The message that was allegedly signed
-   * @returns `true` if the signature is valid, `false` otherwise
+   * @returns `true` if the signature is a valid Schnorr signature
    */
   verify(signature: Signature, message: Uint8Array): boolean {
-    return this.publicKey().verify(signature, message);
+    if (this._type !== SignatureScheme.Schnorr || this._ecKey === undefined) {
+      return false;
+    }
+    const sigData = signature.toSchnorr();
+    if (sigData === null) {
+      return false;
+    }
+    return this._ecKey.schnorrPublicKey().schnorrVerify(sigData, message);
   }
 
   // ============================================================================

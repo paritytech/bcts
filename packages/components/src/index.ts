@@ -54,7 +54,11 @@ export { Reference, isReferenceProvider } from "./reference.js";
 export type { ReferenceEncodingFormat, ReferenceProvider } from "./reference.js";
 
 // Identifier types (from id/ module)
-export { ARID, UUID, XID, URI } from "./id/index.js";
+export { ARID, UUID, XID, XID_PREFIX, URI, isXIDProvider } from "./id/index.js";
+export type { XIDProvider } from "./id/index.js";
+
+// Top-level keypair helpers (PrivateKeys + PublicKeys bundle).
+export { keypair, keypairUsing, keypairOpt, keypairOptUsing } from "./keypair.js";
 
 // Key agreement - X25519 (from x25519/ module)
 export { X25519PrivateKey, X25519PublicKey } from "./x25519/index.js";

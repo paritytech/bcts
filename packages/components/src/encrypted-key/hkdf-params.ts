@@ -17,8 +17,8 @@
  * Ported from bc-components-rust/src/encrypted_key/hkdf_params.rs
  */
 
-import { type Cbor, cbor, expectArray, expectNumber, expectBytes } from "@bcts/dcbor";
-import { hkdfHmacSha256, hkdfHmacSha512 } from "@bcts/crypto";
+import { type Cbor, cbor, expectArray, expectNumber } from "@bcts/dcbor";
+import { hkdfHmacSha256, hash as cryptoHash } from "@bcts/crypto";
 
 import { Salt } from "../salt.js";
 import { Nonce } from "../nonce.js";
@@ -109,7 +109,7 @@ export class HKDFParams implements KeyDerivation {
       case HashType.SHA256:
         return hkdfHmacSha256(secret, this._salt.asBytes(), 32);
       case HashType.SHA512:
-        return hkdfHmacSha512(secret, this._salt.asBytes(), 32);
+        return cryptoHash.hkdfHmacSha512(secret, this._salt.asBytes(), 32);
       default:
         throw new Error(`Unknown hash type: ${String(this._hashType)}`);
     }
@@ -135,12 +135,12 @@ export class HKDFParams implements KeyDerivation {
 
   /**
    * Convert to CBOR.
-   * Format: [0, Salt, HashType]
+   * Format: [0, Salt, HashType]   (Salt is encoded as a tagged value — `#6.40018(bytes)`)
    */
   toCbor(): Cbor {
     return cbor([
       cbor(HKDFParams.INDEX),
-      this._salt.untaggedCbor(),
+      this._salt.taggedCbor(),
       hashTypeToCbor(this._hashType),
     ]);
   }
@@ -167,8 +167,7 @@ export class HKDFParams implements KeyDerivation {
       throw new Error(`Invalid HKDFParams index: expected ${HKDFParams.INDEX}, got ${index}`);
     }
 
-    const saltData = expectBytes(array[1]);
-    const salt = Salt.fromData(saltData);
+    const salt = Salt.fromTaggedCbor(array[1]);
     const hashType = hashTypeFromCbor(array[2]);
 
     return new HKDFParams(salt, hashType);

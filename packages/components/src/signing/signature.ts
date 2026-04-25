@@ -529,9 +529,12 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
 
   /**
    * Returns the UR representation of the signature.
+   *
+   * The UR type prefix (`ur:signature/...`) carries the CBOR tag, so the
+   * inner CBOR must be untagged — matches Rust's `UREncodable` blanket impl.
    */
   ur(): UR {
-    return UR.new(Signature.UR_TYPE, this.taggedCbor());
+    return UR.new(Signature.UR_TYPE, this.untaggedCbor());
   }
 
   /**
@@ -546,7 +549,8 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    */
   static fromUR(ur: UR): Signature {
     ur.checkType(Signature.UR_TYPE);
-    return Signature.fromTaggedCbor(ur.cbor());
+    const dummy = Signature.schnorrFromData(new Uint8Array(SCHNORR_SIGNATURE_SIZE));
+    return dummy.fromUntaggedCbor(ur.cbor());
   }
 
   /**

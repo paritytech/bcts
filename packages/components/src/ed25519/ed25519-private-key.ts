@@ -12,6 +12,7 @@ import {
   ED25519_PRIVATE_KEY_SIZE,
   ed25519PublicKeyFromPrivateKey,
   ed25519Sign,
+  deriveSigningPrivateKey,
 } from "@bcts/crypto";
 import { CryptoError } from "../error.js";
 import { Ed25519PublicKey } from "./ed25519-public-key.js";
@@ -58,10 +59,29 @@ export class Ed25519PrivateKey {
   }
 
   /**
-   * Get the raw seed bytes (32 bytes)
+   * Derives an Ed25519 private key from the given key material via
+   * HKDF-SHA-256 with salt `"signing"` and empty info (matches Rust
+   * `bc_crypto::derive_signing_private_key`).
    */
-  toData(): Uint8Array {
+  static deriveFromKeyMaterial(keyMaterial: Uint8Array): Ed25519PrivateKey {
+    return new Ed25519PrivateKey(deriveSigningPrivateKey(keyMaterial));
+  }
+
+  /**
+   * Get the raw seed bytes (32 bytes).
+   */
+  data(): Uint8Array {
     return new Uint8Array(this.seed);
+  }
+
+  /** Alias of {@link data}. */
+  asBytes(): Uint8Array {
+    return this.data();
+  }
+
+  /** Backwards-compatible alias of {@link data}. */
+  toData(): Uint8Array {
+    return this.data();
   }
 
   /**

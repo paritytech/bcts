@@ -17,7 +17,7 @@
  * Ported from bc-components-rust/src/encrypted_key/scrypt_params.rs
  */
 
-import { type Cbor, cbor, expectArray, expectNumber, expectBytes } from "@bcts/dcbor";
+import { type Cbor, cbor, expectArray, expectNumber } from "@bcts/dcbor";
 import { scryptOpt } from "@bcts/crypto";
 
 import { Salt } from "../salt.js";
@@ -28,6 +28,10 @@ import { KeyDerivationMethod } from "./key-derivation-method.js";
 import { SALT_LEN } from "./hkdf-params.js";
 import type { KeyDerivation } from "./key-derivation.js";
 
+// Defaults match Rust `ScryptParams::new()` in bc-components-rust v0.34.x
+// (`log_n = 15, r = 8, p = 1`). Distinct from Rust's `bc_crypto::scrypt()`
+// helper, which uses the heavier `scrypt::Params::recommended()` defaults
+// (`log_n = 17`).
 /** Default log_n parameter (2^15 = 32768 iterations) */
 export const DEFAULT_SCRYPT_LOG_N = 15;
 /** Default r parameter (block size) */
@@ -158,12 +162,12 @@ export class ScryptParams implements KeyDerivation {
 
   /**
    * Convert to CBOR.
-   * Format: [2, Salt, log_n, r, p]
+   * Format: [2, Salt, log_n, r, p]   (Salt is encoded as a tagged value — `#6.40018(bytes)`)
    */
   toCbor(): Cbor {
     return cbor([
       cbor(ScryptParams.INDEX),
-      this._salt.untaggedCbor(),
+      this._salt.taggedCbor(),
       cbor(this._logN),
       cbor(this._r),
       cbor(this._p),
@@ -192,8 +196,7 @@ export class ScryptParams implements KeyDerivation {
       throw new Error(`Invalid ScryptParams index: expected ${ScryptParams.INDEX}, got ${index}`);
     }
 
-    const saltData = expectBytes(array[1]);
-    const salt = Salt.fromData(saltData);
+    const salt = Salt.fromTaggedCbor(array[1]);
     const logN = Number(expectNumber(array[2]));
     const r = Number(expectNumber(array[3]));
     const p = Number(expectNumber(array[4]));

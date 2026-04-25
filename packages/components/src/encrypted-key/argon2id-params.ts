@@ -21,7 +21,7 @@
  * Ported from bc-components-rust/src/encrypted_key/argon2id_params.rs
  */
 
-import { type Cbor, cbor, expectArray, expectNumber, expectBytes } from "@bcts/dcbor";
+import { type Cbor, cbor, expectArray, expectNumber } from "@bcts/dcbor";
 import { argon2id } from "@bcts/crypto";
 
 import { Salt } from "../salt.js";
@@ -123,10 +123,10 @@ export class Argon2idParams implements KeyDerivation {
 
   /**
    * Convert to CBOR.
-   * Format: [3, Salt]
+   * Format: [3, Salt]   (Salt is encoded as a tagged value — `#6.40018(bytes)`)
    */
   toCbor(): Cbor {
-    return cbor([cbor(Argon2idParams.INDEX), this._salt.untaggedCbor()]);
+    return cbor([cbor(Argon2idParams.INDEX), this._salt.taggedCbor()]);
   }
 
   /**
@@ -153,8 +153,7 @@ export class Argon2idParams implements KeyDerivation {
       );
     }
 
-    const saltData = expectBytes(array[1]);
-    const salt = Salt.fromData(saltData);
+    const salt = Salt.fromTaggedCbor(array[1]);
 
     return new Argon2idParams(salt);
   }

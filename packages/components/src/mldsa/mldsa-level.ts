@@ -14,6 +14,12 @@
  * - MLDSA87: NIST Level 5 (equivalent to AES-256)
  *
  * Ported from bc-components-rust/src/mldsa/mldsa_level.rs
+ *
+ * Naming note: Rust calls this enum `MLDSA`. TypeScript uses `MLDSALevel`
+ * to avoid colliding with the keypair type names (`MLDSAPrivateKey` /
+ * `MLDSAPublicKey` / `MLDSASignature`). The CBOR discriminator (the
+ * numeric level) is identical in both languages — this is a TS-only
+ * naming choice with no wire-format effect.
  */
 
 import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa.js";

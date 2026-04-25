@@ -307,9 +307,12 @@ export class SymmetricKey implements CborTaggedEncodable, CborTaggedDecodable<Sy
 
   /**
    * Returns the UR representation of the symmetric key.
+   *
+   * The UR type prefix (`ur:crypto-key/...`) carries the CBOR tag, so the
+   * inner CBOR must be untagged — matches Rust's `UREncodable` blanket impl.
    */
   ur(): UR {
-    return UR.new(SymmetricKey.UR_TYPE, this.taggedCbor());
+    return UR.new(SymmetricKey.UR_TYPE, this.untaggedCbor());
   }
 
   /**
@@ -324,7 +327,8 @@ export class SymmetricKey implements CborTaggedEncodable, CborTaggedDecodable<Sy
    */
   static fromUR(ur: UR): SymmetricKey {
     ur.checkType(SymmetricKey.UR_TYPE);
-    return SymmetricKey.fromTaggedCbor(ur.cbor());
+    const dummy = SymmetricKey.fromData(new Uint8Array(SymmetricKey.SYMMETRIC_KEY_SIZE));
+    return dummy.fromUntaggedCbor(ur.cbor());
   }
 
   /**

@@ -14,6 +14,12 @@
  * - MLKEM1024: NIST Level 5 (equivalent to AES-256)
  *
  * Ported from bc-components-rust/src/mlkem/mlkem_level.rs
+ *
+ * Naming note: Rust calls this enum `MLKEM`. TypeScript uses `MLKEMLevel`
+ * to avoid colliding with the keypair type names (`MLKEMPrivateKey` /
+ * `MLKEMPublicKey` / `MLKEMCiphertext`). The CBOR discriminator (the
+ * numeric level) is identical in both languages — this is a TS-only
+ * naming choice with no wire-format effect.
  */
 
 import { ml_kem512, ml_kem768, ml_kem1024 } from "@noble/post-quantum/ml-kem.js";
