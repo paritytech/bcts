@@ -1,0 +1,102 @@
+/** Port of `bc-mur::cmd::frames`. */
+import { UR } from "@bcts/uniform-resources";
+
+import {
+  type AnimateParams,
+  Color,
+  type CorrectionLevel,
+  DEFAULT_MAX_MODULES,
+  Logo,
+  correctionLevelFromString,
+  generateFrames,
+  logoClearShapeFromString,
+  writeFramePngs,
+} from "../index.js";
+import type { Exec } from "./exec.js";
+import { readInput } from "./input.js";
+
+export interface FramesArgs {
+  urString: string;
+  output: string;
+  size: number;
+  fg: string;
+  bg: string;
+  logo?: string;
+  logoFraction: number;
+  logoBorder: number;
+  logoShape: string;
+  correction?: string;
+  quietZone: number;
+  dark: boolean;
+  maxFragmentLen: number;
+  fps: number;
+  cycles: number;
+  frameCount?: number;
+  maxModules: number;
+  noDensityCheck: boolean;
+}
+
+export class FramesCommand implements Exec {
+  constructor(private readonly args: FramesArgs) {}
+
+  async exec(): Promise<string> {
+    const args = this.args;
+    const urString = await readInput(args.urString);
+    const fg = args.dark ? Color.fromHex(args.bg) : Color.fromHex(args.fg);
+    const bg = args.dark ? Color.fromHex(args.fg) : Color.fromHex(args.bg);
+
+    let logo: Logo | null = null;
+    if (args.logo) {
+      const fs = await import("node:fs/promises");
+      const svgData = new Uint8Array(await fs.readFile(args.logo));
+      const shape = logoClearShapeFromString(args.logoShape);
+      logo = await Logo.fromSvg(
+        svgData,
+        args.logoFraction,
+        args.logoBorder,
+        shape,
+      );
+    }
+
+    const correction: CorrectionLevel | null = args.correction
+      ? correctionLevelFromString(args.correction)
+      : null;
+
+    const ur = UR.fromURString(urString);
+
+    const params: AnimateParams = {
+      maxFragmentLen: args.maxFragmentLen,
+      correction,
+      size: args.size,
+      foreground: fg,
+      background: bg,
+      quietZone: args.quietZone,
+      logo,
+      fps: args.fps,
+      cycles: args.cycles,
+      frameCount: args.frameCount ?? null,
+      maxModules: args.noDensityCheck ? null : args.maxModules,
+    };
+
+    const frames = generateFrames(ur, params);
+    await writeFramePngs(frames, args.output);
+
+    return `Wrote ${frames.length} frames to ${args.output}`;
+  }
+}
+
+export const FRAMES_DEFAULTS: Omit<FramesArgs, "urString" | "output"> = {
+  size: 512,
+  fg: "#000000",
+  bg: "#FFFFFF",
+  logoFraction: 0.25,
+  logoBorder: 1,
+  logoShape: "square",
+  quietZone: 1,
+  dark: false,
+  maxFragmentLen: 100,
+  fps: 8,
+  cycles: 3,
+  maxModules: DEFAULT_MAX_MODULES,
+  noDensityCheck: false,
+};
