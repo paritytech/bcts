@@ -8,6 +8,7 @@ import { type Digest, type DigestProvider } from "./digest";
 import { Envelope } from "./envelope";
 import { Assertion } from "./assertion";
 import { EnvelopeError } from "./error";
+import type { SymmetricKey } from "@bcts/components";
 
 /// Types of obscuration that can be applied to envelope elements.
 ///
@@ -230,18 +231,37 @@ Envelope.prototype.unelide = function (this: Envelope, envelope: Envelope): Enve
 };
 
 /// Implementation of nodesMatching
+///
+/// Mirrors Rust `Envelope::nodes_matching`. The TS public signature is
+/// `Set<Digest>` for backward compatibility with callers, but the
+/// underlying dedup is by **hex content** (via a hex-keyed Map) so two
+/// `Digest` instances that represent the same hash bytes count once,
+/// matching Rust's `HashSet<Digest>` semantics.
 Envelope.prototype.nodesMatching = function (
   this: Envelope,
   targetDigests: Set<Digest> | undefined,
   obscureTypes: ObscureType[],
 ): Set<Digest> {
-  const result = new Set<Digest>();
+  const dedup = new Map<string, Digest>();
+  const insert = (d: Digest): void => {
+    const key = d.hex();
+    if (!dedup.has(key)) dedup.set(key, d);
+  };
+
+  // Pre-compute the target digest set as a hex lookup for O(1) membership
+  // checks (replacing the old O(n) `Array.from(...).some(...)` scan).
+  let targetHexes: Set<string> | undefined;
+  if (targetDigests !== undefined) {
+    targetHexes = new Set<string>();
+    for (const d of targetDigests) {
+      targetHexes.add(d.hex());
+    }
+  }
 
   const visitor = (envelope: Envelope): void => {
     // Check if this node matches the target digests
-    const digestMatches =
-      targetDigests === undefined ||
-      Array.from(targetDigests).some((d) => d.equals(envelope.digest()));
+    const ownDigest = envelope.digest();
+    const digestMatches = targetHexes === undefined || targetHexes.has(ownDigest.hex());
 
     if (!digestMatches) {
       return;
@@ -249,7 +269,7 @@ Envelope.prototype.nodesMatching = function (
 
     // If no obscure types specified, include all nodes
     if (obscureTypes.length === 0) {
-      result.add(envelope.digest());
+      insert(ownDigest);
       return;
     }
 
@@ -269,14 +289,14 @@ Envelope.prototype.nodesMatching = function (
     });
 
     if (typeMatches) {
-      result.add(envelope.digest());
+      insert(ownDigest);
     }
   };
 
   // Walk the envelope tree
   walkEnvelope(this, visitor);
 
-  return result;
+  return new Set(dedup.values());
 };
 
 /// Helper to walk envelope tree
@@ -421,8 +441,173 @@ Envelope.prototype.isEquivalentTo = function (this: Envelope, other: Envelope): 
 };
 
 /// Implementation of isIdenticalTo
+///
+/// Mirrors Rust `Envelope::is_identical_to`
+/// (`bc-envelope-rust/src/base/digest.rs:344-349`):
+/// short-circuit on a *semantic* mismatch (different `digest()`), then fall
+/// through to a {@link Envelope.structuralDigest} comparison. Two envelopes
+/// whose digests match but whose structures differ — e.g. an envelope and a
+/// version of it with one assertion elided — are **not** identical.
 Envelope.prototype.isIdenticalTo = function (this: Envelope, other: Envelope): boolean {
-  // Two envelopes are identical if they have the same digest
-  // and the same case type (to handle wrapped vs unwrapped with same content)
-  return this.digest().equals(other.digest()) && this.case().type === other.case().type;
+  if (!this.isEquivalentTo(other)) {
+    return false;
+  }
+  return this.structuralDigest().equals(other.structuralDigest());
+};
+
+// ============================================================================
+// Walk-style decrypt / decompress
+// ============================================================================
+
+/// Implementation of walkDecrypt
+///
+/// Mirrors Rust `Envelope::walk_decrypt`
+/// (`bc-envelope-rust/src/base/elide.rs:963-1019`).
+///
+/// Recursively walks the envelope and decrypts every encrypted node it
+/// can. For an Encrypted node, each provided key is tried in order; the
+/// first one that successfully decrypts wins, and the recursion continues
+/// into the result so chains of nested encryption peel off one layer per
+/// matching key. Nodes whose decryption fails for every key are returned
+/// unchanged — matching Rust's `if let Ok(decrypted) = ...` pattern.
+///
+/// Structural sharing: if a recursion produces an envelope that is
+/// {@link Envelope.isIdenticalTo} the original, the original instance is
+/// reused instead of allocating a new node.
+Envelope.prototype.walkDecrypt = function (
+  this: Envelope,
+  keys: SymmetricKey[],
+): Envelope {
+  const c = this.case();
+
+  switch (c.type) {
+    case "encrypted": {
+      // Try each key until one works.
+      for (const key of keys) {
+        try {
+          // `decryptSubject` works on encrypted envelopes too — when the
+          // subject *is* the encrypted node, it produces the decrypted
+          // envelope.
+          const decrypted = this.decryptSubject(key);
+          return decrypted.walkDecrypt(keys);
+        } catch {
+          // This key didn't work; try the next one.
+        }
+      }
+      // No key worked — leave this node alone.
+      return this;
+    }
+    case "node": {
+      const newSubject = c.subject.walkDecrypt(keys);
+      const newAssertions = c.assertions.map((a) => a.walkDecrypt(keys));
+      if (
+        newSubject.isIdenticalTo(c.subject) &&
+        newAssertions.every((a, i) => a.isIdenticalTo(c.assertions[i]))
+      ) {
+        return this;
+      }
+      return Envelope.newWithUncheckedAssertions(newSubject, newAssertions);
+    }
+    case "wrapped": {
+      const newEnvelope = c.envelope.walkDecrypt(keys);
+      if (newEnvelope.isIdenticalTo(c.envelope)) {
+        return this;
+      }
+      return newEnvelope.wrap();
+    }
+    case "assertion": {
+      const newPredicate = c.assertion.predicate().walkDecrypt(keys);
+      const newObject = c.assertion.object().walkDecrypt(keys);
+      if (
+        newPredicate.isIdenticalTo(c.assertion.predicate()) &&
+        newObject.isIdenticalTo(c.assertion.object())
+      ) {
+        return this;
+      }
+      return Envelope.newAssertion(newPredicate, newObject);
+    }
+    case "leaf":
+    case "knownValue":
+    case "elided":
+    case "compressed":
+      // No-op: these cases have no children to walk and no decrypt
+      // operation applies (Rust's match arm `_ => self.clone()`).
+      return this;
+  }
+};
+
+/// Implementation of walkDecompress
+///
+/// Mirrors Rust `Envelope::walk_decompress`
+/// (`bc-envelope-rust/src/base/elide.rs:1067-1135`).
+///
+/// Recursively walks the envelope and decompresses any compressed node
+/// whose digest is in `targetDigests` (or every compressed node if
+/// `targetDigests` is undefined). Decompression failures are tolerated —
+/// the original node is returned in that case, mirroring Rust's
+/// `if let Ok(decompressed) = ...` pattern.
+Envelope.prototype.walkDecompress = function (
+  this: Envelope,
+  targetDigests?: Set<Digest>,
+): Envelope {
+  const matchesTarget = (envelope: Envelope): boolean => {
+    if (targetDigests === undefined) return true;
+    const ownDigest = envelope.digest();
+    for (const d of targetDigests) {
+      if (d.equals(ownDigest)) return true;
+    }
+    return false;
+  };
+
+  const c = this.case();
+
+  switch (c.type) {
+    case "compressed": {
+      if (matchesTarget(this)) {
+        try {
+          const decompressed = this.decompress();
+          return decompressed.walkDecompress(targetDigests);
+        } catch {
+          // Decompression failed — leave this node alone.
+        }
+      }
+      return this;
+    }
+    case "node": {
+      const newSubject = c.subject.walkDecompress(targetDigests);
+      const newAssertions = c.assertions.map((a) => a.walkDecompress(targetDigests));
+      if (
+        newSubject.isIdenticalTo(c.subject) &&
+        newAssertions.every((a, i) => a.isIdenticalTo(c.assertions[i]))
+      ) {
+        return this;
+      }
+      return Envelope.newWithUncheckedAssertions(newSubject, newAssertions);
+    }
+    case "wrapped": {
+      const newEnvelope = c.envelope.walkDecompress(targetDigests);
+      if (newEnvelope.isIdenticalTo(c.envelope)) {
+        return this;
+      }
+      return newEnvelope.wrap();
+    }
+    case "assertion": {
+      const newPredicate = c.assertion.predicate().walkDecompress(targetDigests);
+      const newObject = c.assertion.object().walkDecompress(targetDigests);
+      if (
+        newPredicate.isIdenticalTo(c.assertion.predicate()) &&
+        newObject.isIdenticalTo(c.assertion.object())
+      ) {
+        return this;
+      }
+      return Envelope.newAssertion(newPredicate, newObject);
+    }
+    case "leaf":
+    case "knownValue":
+    case "elided":
+    case "encrypted":
+      // No-op: these cases have no children to walk and no decompress
+      // operation applies (Rust's match arm `_ => self.clone()`).
+      return this;
+  }
 };

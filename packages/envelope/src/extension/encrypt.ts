@@ -2,11 +2,30 @@
  * Copyright © 2023-2026 Blockchain Commons, LLC
  * Copyright © 2025-2026 Parity Technologies
  *
+ *
+ * Extension for encrypting and decrypting envelopes using symmetric encryption.
+ *
+ * This module extends Gordian Envelope with functions for symmetric encryption
+ * and decryption using the IETF-ChaCha20-Poly1305 construct. It enables
+ * privacy-enhancing operations by allowing envelope elements to be encrypted
+ * without changing the envelope's digest, similar to elision.
+ *
+ * The encryption process preserves the envelope's digest tree structure, which
+ * means signatures, proofs, and other cryptographic artifacts remain valid
+ * even when parts of the envelope are encrypted.
+ *
+ * Cross-impl AAD parity (BCR-2023-004):
+ * the bytes passed to ChaCha20-Poly1305 as Additional Authenticated Data are
+ * `digest.taggedCbor().toData()` — i.e. the **CBOR-encoded tagged Digest** of
+ * the plaintext envelope, not the raw 32-byte digest. The `EncryptedMessage`
+ * stores those AAD bytes verbatim, so the 4th array element of an encrypted
+ * envelope's CBOR is the same CBOR-encoded tagged Digest. This matches Rust
+ * `bc-components/src/symmetric/symmetric_key.rs::encrypt_with_digest`.
  */
 
 import { Envelope } from "../base/envelope";
 import { EnvelopeError } from "../base/error";
-import { type Digest } from "../base/digest";
+import type { Digest } from "../base/digest";
 import { cborData, decodeCbor } from "@bcts/dcbor";
 import {
   aeadChaCha20Poly1305EncryptWithAad,
@@ -14,35 +33,35 @@ import {
   SYMMETRIC_NONCE_SIZE,
 } from "@bcts/crypto";
 import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
-
-/**
- * Re-export SymmetricKey from @bcts/components for type compatibility.
- *
- * The @bcts/components SymmetricKey class is the canonical implementation with:
- * - Full CBOR support (tagged/untagged)
- * - UR support
- * - Complete factory methods
- *
- * This re-export ensures type compatibility between @bcts/envelope
- * and @bcts/components when used together.
- */
-export { SymmetricKey } from "@bcts/components";
+import { EncryptedMessage, Nonce, AuthenticationTag } from "@bcts/components";
 import type { SymmetricKey } from "@bcts/components";
 
-/// Extension for encrypting and decrypting envelopes using symmetric encryption.
-///
-/// This module extends Gordian Envelope with functions for symmetric encryption
-/// and decryption using the IETF-ChaCha20-Poly1305 construct. It enables
-/// privacy-enhancing operations by allowing envelope elements to be encrypted
-/// without changing the envelope's digest, similar to elision.
-///
-/// The encryption process preserves the envelope's digest tree structure, which
-/// means signatures, proofs, and other cryptographic artifacts remain valid
-/// even when parts of the envelope are encrypted.
+/**
+ * Re-export the canonical SymmetricKey and EncryptedMessage from
+ * `@bcts/components` so envelope consumers can keep using
+ * `import { EncryptedMessage } from "@bcts/envelope"`.
+ *
+ * The `@bcts/components` `EncryptedMessage` is the canonical implementation
+ * with full CBOR support, UR support, and complete factory methods. Using it
+ * here removes duplication and guarantees the AAD encoding stays in lockstep
+ * with the rest of the suite.
+ */
+export { SymmetricKey, EncryptedMessage } from "@bcts/components";
 
 /**
- * Encrypts plaintext with a symmetric key using the given digest as AAD.
- * This is an envelope-specific helper function that returns an envelope EncryptedMessage.
+ * Builds the AAD bytes for a digest, mirroring Rust
+ * `bc-components/src/symmetric/symmetric_key.rs::encrypt_with_digest`:
+ * `digest.tagged_cbor().to_cbor_data()`.
+ */
+function digestAadBytes(digest: Digest): Uint8Array {
+  return cborData(digest.taggedCbor());
+}
+
+/**
+ * Encrypts plaintext with a symmetric key using the digest's CBOR-encoded
+ * tagged form as AAD. Returns an {@link EncryptedMessage} whose `aad` field
+ * carries the same bytes — so the on-wire CBOR (`[ciphertext, nonce, auth,
+ * aadBytes]`) matches Rust byte-for-byte.
  */
 function encryptWithDigest(
   key: SymmetricKey,
@@ -50,83 +69,44 @@ function encryptWithDigest(
   digest: Digest,
 ): EncryptedMessage {
   const rng = new SecureRandomNumberGenerator();
-  const nonce = rngRandomData(rng, SYMMETRIC_NONCE_SIZE);
-  const aad = digest.data();
+  const nonceBytes = rngRandomData(rng, SYMMETRIC_NONCE_SIZE);
+  const aad = digestAadBytes(digest);
   const [ciphertext, authTag] = aeadChaCha20Poly1305EncryptWithAad(
     plaintext,
     key.data(),
-    nonce,
+    nonceBytes,
     aad,
   );
-  return new EncryptedMessage(ciphertext, nonce, authTag, digest);
+  return EncryptedMessage.new(
+    ciphertext,
+    aad,
+    Nonce.fromDataRef(nonceBytes),
+    AuthenticationTag.fromData(authTag),
+  );
 }
 
 /**
- * Decrypts an envelope EncryptedMessage with a symmetric key.
- * This is an envelope-specific helper function.
+ * Decrypts an {@link EncryptedMessage} using the AAD bytes the message
+ * already carries. The AAD must parse as a CBOR-encoded tagged
+ * {@link Digest}; the recovered digest is what callers compare against
+ * `Envelope::digest()`.
  */
 function decryptWithDigest(key: SymmetricKey, message: EncryptedMessage): Uint8Array {
   const digest = message.aadDigest();
-  if (digest === undefined) {
+  if (digest === null) {
     throw EnvelopeError.general("Missing digest in encrypted message");
   }
-  const aad = digest.data();
+  const aad = message.aad();
   try {
     return aeadChaCha20Poly1305DecryptWithAad(
       message.ciphertext(),
       key.data(),
-      message.nonce(),
+      message.nonce().data(),
       aad,
-      message.authTag(),
+      message.authenticationTag().data(),
     );
   } catch (_error) {
     throw EnvelopeError.general("Decryption failed: invalid key or corrupted data");
-  }
-}
-
-/// Represents an encrypted message with nonce, auth tag, and optional AAD digest
-/// Matches bc-components-rust/src/symmetric/encrypted_message.rs
-export class EncryptedMessage {
-  private readonly _ciphertext: Uint8Array;
-  private readonly _nonce: Uint8Array;
-  private readonly _authTag: Uint8Array;
-  private readonly _aadDigest?: Digest;
-
-  constructor(ciphertext: Uint8Array, nonce: Uint8Array, authTag: Uint8Array, aadDigest?: Digest) {
-    this._ciphertext = ciphertext;
-    this._nonce = nonce;
-    this._authTag = authTag;
-    if (aadDigest !== undefined) {
-      this._aadDigest = aadDigest;
-    }
-  }
-
-  /// Returns the ciphertext
-  ciphertext(): Uint8Array {
-    return this._ciphertext;
-  }
-
-  /// Returns the nonce
-  nonce(): Uint8Array {
-    return this._nonce;
-  }
-
-  /// Returns the authentication tag
-  authTag(): Uint8Array {
-    return this._authTag;
-  }
-
-  /// Returns the optional AAD digest
-  aadDigest(): Digest | undefined {
-    return this._aadDigest;
-  }
-
-  /// Returns the digest of this encrypted message (the AAD digest)
-  digest(): Digest {
-    if (this._aadDigest === undefined) {
-      throw new Error("Encrypted message missing AAD digest");
-    }
-    return this._aadDigest;
   }
 }
 
@@ -202,7 +182,7 @@ export function registerEncryptExtension(): void {
     const message = subjectCase.message;
     const subjectDigest = message.aadDigest();
 
-    if (subjectDigest === undefined) {
+    if (subjectDigest === null) {
       throw EnvelopeError.general("Missing digest in encrypted message");
     }
 

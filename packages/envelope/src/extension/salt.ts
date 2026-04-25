@@ -128,6 +128,59 @@ if (Envelope?.prototype) {
     return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
   };
 
+  /// Test-determinism overloads for the salt builders, mirroring Rust's
+  /// `*_using` variants (`bc-envelope-rust/src/extension/salt.rs`):
+  /// `add_salt_using`, `add_salt_with_len_using`, `add_salt_in_range_using`.
+  /// They thread a caller-supplied {@link RandomNumberGenerator} through
+  /// the salt-bytes generation so tests can pin the entropy and assert on
+  /// exact share / digest bytes.
+
+  /// Implementation of addSaltUsing()
+  Envelope.prototype.addSaltUsing = function (
+    this: Envelope,
+    rng: RandomNumberGenerator,
+  ): Envelope {
+    const envelopeSize = this.cborBytes().length;
+    const saltSize = calculateProportionalSaltSize(envelopeSize, rng);
+    const saltBytes = generateRandomBytes(saltSize, rng);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
+  };
+
+  /// Implementation of addSaltWithLenUsing()
+  Envelope.prototype.addSaltWithLenUsing = function (
+    this: Envelope,
+    count: number,
+    rng: RandomNumberGenerator,
+  ): Envelope {
+    if (count < MIN_SALT_SIZE) {
+      throw EnvelopeError.general(`Salt must be at least ${MIN_SALT_SIZE} bytes, got ${count}`);
+    }
+    const saltBytes = generateRandomBytes(count, rng);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
+  };
+
+  /// Implementation of addSaltInRangeUsing()
+  Envelope.prototype.addSaltInRangeUsing = function (
+    this: Envelope,
+    min: number,
+    max: number,
+    rng: RandomNumberGenerator,
+  ): Envelope {
+    if (min < MIN_SALT_SIZE) {
+      throw EnvelopeError.general(
+        `Minimum salt size must be at least ${MIN_SALT_SIZE} bytes, got ${min}`,
+      );
+    }
+    if (max < min) {
+      throw EnvelopeError.general(
+        `Maximum salt size must be at least minimum, got min=${min} max=${max}`,
+      );
+    }
+    const saltSize = rngNextInClosedRangeI32(rng, min, max);
+    const saltBytes = generateRandomBytes(saltSize, rng);
+    return this.addAssertion(SALT, SaltComponent.fromData(saltBytes));
+  };
+
   /// Implementation of addAssertionSalted()
   Envelope.prototype.addAssertionSalted = function (
     this: Envelope,

@@ -220,10 +220,28 @@ export class Envelope implements DigestProvider {
     return Envelope.newLeaf(subject);
   }
 
-  /// Creates an envelope with a subject, or null if subject is undefined.
+  /// Creates an envelope with a subject, or a `null` leaf envelope if
+  /// the subject is **absent** (`undefined` *or* JS `null`).
   ///
-  /// @param subject - The optional subject value
-  /// @returns A new envelope or null envelope
+  /// **TS↔Rust note**: Rust `Envelope::new_or_null` only takes
+  /// `Option<impl EnvelopeEncodable>` — the no-subject branch fires only
+  /// on `None`. JavaScript collapses "no value" into two distinct values
+  /// (`undefined` and `null`); we treat both as "absent" because the
+  /// most common JS usage pattern is `value ?? undefined`. If you need
+  /// to construct a leaf envelope whose CBOR value is JS `null`
+  /// (Rust's `CBOR::null()`), use {@link Envelope.null} directly:
+  ///
+  /// ```ts
+  /// // Equivalent to Rust `Envelope::new(CBOR::null())`:
+  /// const nullLeaf = Envelope.null();
+  ///
+  /// // `newOrNull(null)` returns the same null leaf.
+  /// const same = Envelope.newOrNull(null);
+  /// ```
+  ///
+  /// @param subject - The optional subject value (`undefined` *or* `null`
+  ///   triggers the no-subject branch).
+  /// @returns A new envelope or a null leaf envelope
   static newOrNull(subject: EnvelopeEncodableValue | undefined): Envelope {
     if (subject === undefined || subject === null) {
       return Envelope.null();
@@ -231,10 +249,17 @@ export class Envelope implements DigestProvider {
     return Envelope.new(subject);
   }
 
-  /// Creates an envelope with a subject, or undefined if subject is undefined.
+  /// Creates an envelope with a subject, or `undefined` if the subject is
+  /// **absent** (`undefined` *or* JS `null`).
   ///
-  /// @param subject - The optional subject value
-  /// @returns A new envelope or undefined
+  /// **TS↔Rust note**: Rust `Envelope::new_or_none` returns
+  /// `Option<Envelope>` — the `None` branch fires only on `None`. We
+  /// follow the same convention as {@link Envelope.newOrNull} and treat
+  /// JS `null` and `undefined` interchangeably as the absent case.
+  ///
+  /// @param subject - The optional subject value (`undefined` *or* `null`
+  ///   triggers the absent branch).
+  /// @returns A new envelope or `undefined`
   static newOrNone(subject: EnvelopeEncodableValue | undefined): Envelope | undefined {
     if (subject === undefined || subject === null) {
       return undefined;
@@ -358,14 +383,17 @@ export class Envelope implements DigestProvider {
 
   /// Creates an envelope with encrypted content.
   ///
+  /// Mirrors Rust `Envelope::new_with_encrypted`
+  /// (`bc-envelope-rust/src/base/envelope.rs:317-324`), which returns
+  /// `Err(Error::MissingDigest)` when the message has no AAD digest.
+  ///
   /// @param encryptedMessage - The encrypted message
   /// @returns A new encrypted envelope
   /// @throws {EnvelopeError} If the encrypted message doesn't have a digest
   static newWithEncrypted(encryptedMessage: EncryptedMessage): Envelope {
-    // TODO: Validate that encrypted message has digest
-    // if (!encryptedMessage.hasDigest()) {
-    //   throw EnvelopeError.missingDigest();
-    // }
+    if (!encryptedMessage.hasDigest()) {
+      throw EnvelopeError.missingDigest();
+    }
     return new Envelope({
       type: "encrypted",
       message: encryptedMessage,
@@ -374,14 +402,17 @@ export class Envelope implements DigestProvider {
 
   /// Creates an envelope with compressed content.
   ///
+  /// Mirrors Rust `Envelope::new_with_compressed`
+  /// (`bc-envelope-rust/src/base/envelope.rs:326-332`), which returns
+  /// `Err(Error::MissingDigest)` when the compressed value has no digest.
+  ///
   /// @param compressed - The compressed data
   /// @returns A new compressed envelope
   /// @throws {EnvelopeError} If the compressed data doesn't have a digest
   static newWithCompressed(compressed: Compressed): Envelope {
-    // TODO: Validate that compressed has digest
-    // if (!compressed.hasDigest()) {
-    //   throw EnvelopeError.missingDigest();
-    // }
+    if (!compressed.hasDigest()) {
+      throw EnvelopeError.missingDigest();
+    }
     return new Envelope({
       type: "compressed",
       value: compressed,
@@ -448,9 +479,12 @@ export class Envelope implements DigestProvider {
       case "assertion":
         return c.assertion.digest();
       case "encrypted": {
-        // Get digest from encrypted message (AAD)
+        // The AAD parses back to the plaintext envelope's digest
+        // (`@bcts/components::EncryptedMessage::aadDigest()` returns
+        // `null` if the AAD is absent or doesn't decode as a tagged
+        // Digest — both are construction-time errors.).
         const digest = c.message.aadDigest();
-        if (digest === undefined) {
+        if (digest === null) {
           throw new Error("Encrypted envelope missing digest");
         }
         return digest;
@@ -561,24 +595,20 @@ export class Envelope implements DigestProvider {
         // This matches Rust: value.untagged_cbor()
         return c.value.untaggedCbor();
       case "encrypted": {
-        // Encrypted is tagged with TAG_ENCRYPTED (40002)
-        // Contains: [ciphertext, nonce, auth, optional_aad_digest]
-        // Per BCR-2023-004 and BCR-2022-001
-        const message = c.message;
-        const digest = message.aadDigest();
-        const arr =
-          digest !== undefined
-            ? [message.ciphertext(), message.nonce(), message.authTag(), digest.data()]
-            : [message.ciphertext(), message.nonce(), message.authTag()];
-        return toTaggedValue(TAG_ENCRYPTED, Envelope.valueToCbor(arr));
+        // Encrypted envelopes serialize as the canonical
+        // `@bcts/components::EncryptedMessage` tagged CBOR
+        // (tag 40002, array `[ciphertext, nonce, auth, ?aadBytes]`).
+        // The AAD bytes are the **CBOR-encoded tagged Digest** of the
+        // plaintext, matching Rust
+        // `bc-components/src/symmetric/symmetric_key.rs::encrypt_with_digest`.
+        return c.message.taggedCbor();
       }
       case "compressed": {
-        // Compressed is tagged with TAG_COMPRESSED (40003)
-        // and contains an array: [compressed_data, optional_digest]
-        const digest = c.value.digestOpt();
-        const data = c.value.compressedData();
-        const arr = digest !== undefined ? [data, digest.data()] : [data];
-        return toTaggedValue(TAG_COMPRESSED, Envelope.valueToCbor(arr));
+        // Compressed envelopes serialize as the canonical
+        // `@bcts/components::Compressed` tagged CBOR
+        // (tag 40003, array `[checksum, decompressedSize, compressedData, ?digest]`).
+        // Matches Rust `bc-components/src/compressed.rs::CBORTaggedEncodable`.
+        return c.value.taggedCbor();
       }
     }
   }
@@ -612,55 +642,21 @@ export class Envelope implements DigestProvider {
           return Envelope.newWrapped(envelope);
         }
         case TAG_COMPRESSED: {
-          // Compressed envelope: array with [compressed_data, optional_digest]
-          const arr = asCborArray(item);
-          if (arr === undefined || arr.length < 1 || arr.length > 2) {
-            throw EnvelopeError.cbor("compressed envelope must have 1 or 2 elements");
-          }
-          // We've already checked arr.length >= 1 above
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const compressedData = asByteString(arr.get(0)!);
-          if (compressedData === undefined) {
-            throw EnvelopeError.cbor("compressed data must be byte string");
-          }
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const digestBytes = arr.length === 2 ? asByteString(arr.get(1)!) : undefined;
-          if (arr.length === 2 && digestBytes === undefined) {
-            throw EnvelopeError.cbor("digest must be byte string");
-          }
-          const digest = digestBytes !== undefined ? Digest.fromData(digestBytes) : undefined;
-
-          // Import Compressed class at runtime to avoid circular dependency
-
-          const compressed = new Compressed(compressedData, digest);
-          return Envelope.fromCase({ type: "compressed", value: compressed });
+          // Delegate to the canonical `@bcts/components::Compressed`
+          // decoder (`[checksum, decompressedSize, compressedData,
+          // ?digest]`). Matches Rust
+          // `bc-components/src/compressed.rs::from_untagged_cbor`.
+          const compressed = Compressed.fromTaggedCbor(cbor);
+          return Envelope.newWithCompressed(compressed);
         }
         case TAG_ENCRYPTED: {
-          // Encrypted envelope: array with [ciphertext, nonce, auth, optional_aad_digest]
-          // Per BCR-2023-004 and BCR-2022-001
-          const arr = asCborArray(item);
-          if (arr === undefined || arr.length < 3 || arr.length > 4) {
-            throw EnvelopeError.cbor("encrypted envelope must have 3 or 4 elements");
-          }
-          // We've already checked arr.length >= 3 above
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const ciphertext = asByteString(arr.get(0)!);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const nonce = asByteString(arr.get(1)!);
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const authTag = asByteString(arr.get(2)!);
-          if (ciphertext === undefined || nonce === undefined || authTag === undefined) {
-            throw EnvelopeError.cbor("ciphertext, nonce, and auth must be byte strings");
-          }
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          const digestBytes = arr.length === 4 ? asByteString(arr.get(3)!) : undefined;
-          if (arr.length === 4 && digestBytes === undefined) {
-            throw EnvelopeError.cbor("aad digest must be byte string");
-          }
-          const digest = digestBytes !== undefined ? Digest.fromData(digestBytes) : undefined;
-
-          const message = new EncryptedMessage(ciphertext, nonce, authTag, digest);
-          return Envelope.fromCase({ type: "encrypted", message });
+          // Delegate to the canonical `@bcts/components::EncryptedMessage`
+          // decoder (`[ciphertext, nonce, auth, ?aadBytes]` with `aadBytes`
+          // being the CBOR-encoded tagged Digest of the plaintext).
+          // Matches Rust
+          // `bc-components/src/symmetric/encrypted_message.rs::from_untagged_cbor`.
+          const message = EncryptedMessage.fromTaggedCbor(cbor);
+          return Envelope.newWithEncrypted(message);
         }
         default:
           throw EnvelopeError.cbor(`unknown envelope tag: ${tag.value}`);
@@ -804,9 +800,14 @@ export class Envelope implements DigestProvider {
   /// @returns A summary string
   declare summary: (maxLength?: number) => string;
 
-  /// Returns a hex representation of the envelope's CBOR encoding.
+  /// Returns an annotated hex representation of the envelope's CBOR encoding.
   ///
-  /// @returns A hex string
+  /// Default is the rich, multi-line annotated dump (tag names + per-line
+  /// notes), matching Rust `Envelope::hex` /
+  /// `dcbor::HexFormatOpts { annotate: true }`. Pass `false` to
+  /// {@link Envelope.hexOpt} for a plain, flat hex string.
+  ///
+  /// @returns A multi-line annotated hex string
   declare hex: () => string;
 
   /// Returns the CBOR-encoded bytes of the envelope.
@@ -814,10 +815,37 @@ export class Envelope implements DigestProvider {
   /// @returns The CBOR bytes
   declare cborBytes: () => Uint8Array;
 
+  /// Returns a hex representation with explicit annotate flag and optional
+  /// {@link FormatContext} for tag-name resolution.
+  ///
+  /// Mirrors Rust `Envelope::hex_opt(annotate, context)`.
+  ///
+  /// @param annotate - When true, produce the annotated multi-line dump;
+  ///   when false, produce a plain hex string (no spaces, no labels).
+  /// @param context - Optional format context for resolving tag names.
+  ///   Defaults to the global format context.
+  /// @returns A hex string in the requested format
+  declare hexOpt: (annotate: boolean, context?: FormatContext) => string;
+
   /// Returns a CBOR diagnostic notation string for the envelope.
+  ///
+  /// Mirrors Rust `Envelope::diagnostic`, which delegates to
+  /// `dcbor::diagnostic_opt` with annotation on. For tag-name resolution
+  /// from a custom {@link FormatContext}, use
+  /// {@link Envelope.diagnosticAnnotated}.
   ///
   /// @returns A diagnostic string
   declare diagnostic: () => string;
+
+  /// Returns a CBOR diagnostic notation string with explicit tag annotation
+  /// and an optional {@link FormatContext} for tag-name resolution.
+  ///
+  /// Mirrors Rust `Envelope::diagnostic_annotated`.
+  ///
+  /// @param context - Optional format context for resolving tag names.
+  ///   Defaults to the global format context.
+  /// @returns An annotated diagnostic string
+  declare diagnosticAnnotated: (context?: FormatContext) => string;
 
   //
   // Extension methods (implemented via prototype extension in extension modules)
@@ -887,6 +915,8 @@ export class Envelope implements DigestProvider {
   ) => Set<Digest>;
   declare walkUnelide: (envelopes: Envelope[]) => Envelope;
   declare walkReplace: (target: Set<Digest>, replacement: Envelope) => Envelope;
+  declare walkDecrypt: (keys: SymmetricKey[]) => Envelope;
+  declare walkDecompress: (targetDigests?: Set<Digest>) => Envelope;
   declare isEquivalentTo: (other: Envelope) => boolean;
   declare isIdenticalTo: (other: Envelope) => boolean;
 
@@ -980,6 +1010,7 @@ export class Envelope implements DigestProvider {
   declare digests: (levelLimit: number) => Set<Digest>;
   declare shallowDigests: () => Set<Digest>;
   declare deepDigests: () => Set<Digest>;
+  declare structuralDigest: () => Digest;
 
   // Alias methods for Rust API compatibility
   declare object: () => Envelope;
@@ -1066,6 +1097,7 @@ export class Envelope implements DigestProvider {
   // From seal.ts
   declare encryptToRecipient: (recipient: Encrypter) => Envelope;
   declare seal: (sender: Signer, recipient: Encrypter) => Envelope;
+  declare sealOpt: (sender: Signer, recipient: Encrypter, options?: SigningOptions) => Envelope;
   declare unseal: (senderPublicKey: Verifier, recipient: Decrypter) => Envelope;
 
   // From salt.ts
@@ -1074,6 +1106,14 @@ export class Envelope implements DigestProvider {
   declare addSaltWithLen: (count: number) => Envelope;
   declare addSaltBytes: (saltBytes: Uint8Array) => Envelope;
   declare addSaltInRange: (min: number, max: number) => Envelope;
+  // Test-determinism overloads matching Rust's `*_using` variants.
+  declare addSaltUsing: (rng: RandomNumberGenerator) => Envelope;
+  declare addSaltWithLenUsing: (count: number, rng: RandomNumberGenerator) => Envelope;
+  declare addSaltInRangeUsing: (
+    min: number,
+    max: number,
+    rng: RandomNumberGenerator,
+  ) => Envelope;
 
   // From signature.ts — matches bc-envelope-rust/src/extension/signature/signature_impl.rs
   declare addSignature: (signer: Signer) => Envelope;
@@ -1121,6 +1161,7 @@ export class Envelope implements DigestProvider {
   declare getType: () => Envelope;
   declare hasType: (t: EnvelopeEncodableValue) => boolean;
   declare checkType: (t: EnvelopeEncodableValue) => void;
+  declare hasTypeValue: (t: KnownValue) => boolean;
 
   // Static methods from extensions
   declare static newAttachment: (
@@ -1170,5 +1211,5 @@ export class Envelope implements DigestProvider {
   // CBOR methods
   declare toCbor: () => unknown;
   declare expectLeaf: () => unknown;
-  declare checkTypeValue: (type: unknown) => void;
+  declare checkTypeValue: (t: KnownValue) => void;
 }

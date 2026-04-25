@@ -52,12 +52,16 @@ describe("Non-correlation Tests", () => {
       const e1 = Envelope.new("Hello.");
       const e2 = e1.addSalt();
 
-      // The tree format should show the structure with salt
+      // The tree format should show the structure with salt. The salt
+      // assertion's predicate is the well-known KnownValue `'salt'` —
+      // tree format resolves KnownValue names via the format context
+      // (matching Rust `tree_format_opt`), so the rendered tree contains
+      // the literal `'salt'` rather than the placeholder `KNOWN_VALUE`.
       const treeFormat = e2.treeFormat();
       expect(treeFormat).toContain("NODE");
       expect(treeFormat).toContain('"Hello."');
       expect(treeFormat).toContain("ASSERTION");
-      expect(treeFormat).toContain("KNOWN_VALUE");
+      expect(treeFormat).toContain("'salt'");
     });
   });
 

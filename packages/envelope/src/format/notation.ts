@@ -368,8 +368,16 @@ export const formatEnvelope = (
       }
 
       // Sort assertion items
-      typeAssertionItems.sort((a, b) => compareFormatItems(a[0], b[0]));
-      assertionItems.sort((a, b) => compareFormatItems(a[0], b[0]));
+      //
+      // Mirrors Rust `impl Ord for Vec<EnvelopeFormatItem>` —
+      // lexicographic comparison over the **entire** items array,
+      // not just the first element. With `compareFormatItems` returning
+      // bytewise (UTF-8) differences for `item`/`begin`/`end`, two
+      // assertions like `"a" : 0` and `"a" : 1` now sort by the integer
+      // suffix (since the first three items match exactly), matching
+      // Rust output.
+      typeAssertionItems.sort((a, b) => compareFormatItemArrays(a, b));
+      assertionItems.sort((a, b) => compareFormatItemArrays(a, b));
 
       // Add type assertions first
       const allAssertionItems = [...typeAssertionItems, ...assertionItems];
@@ -423,7 +431,23 @@ export const formatEnvelope = (
   }
 };
 
-/// Compare format items for sorting
+/// Compare two strings bytewise (UTF-8 code-unit comparison), matching
+/// Rust `String::cmp` (which compares the UTF-8 byte slices). JavaScript's
+/// default `<`/`>` on strings is also a code-unit comparison, so we use
+/// that directly instead of `localeCompare` (locale-dependent).
+const compareStringsBytewise = (a: string, b: string): number => {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+};
+
+/// Compare format items for sorting.
+///
+/// Mirrors the `Ord` derivation Rust gets on `EnvelopeFormatItem`:
+/// variants are ordered by their declaration order, and `item`/`begin`/
+/// `end` carrying string payloads are compared bytewise. The TS
+/// declaration order is `begin → end → item → separator → list`, which
+/// matches the Rust source order.
 const compareFormatItems = (a: EnvelopeFormatItem, b: EnvelopeFormatItem): number => {
   const getIndex = (item: EnvelopeFormatItem): number => {
     switch (item.type) {
@@ -447,18 +471,37 @@ const compareFormatItems = (a: EnvelopeFormatItem, b: EnvelopeFormatItem): numbe
     return aIndex - bIndex;
   }
 
-  // Same type, compare values
+  // Same type, compare values bytewise (matches Rust `String::cmp`).
   if (a.type === "item" && b.type === "item") {
-    return a.value.localeCompare(b.value);
+    return compareStringsBytewise(a.value, b.value);
   }
   if (a.type === "begin" && b.type === "begin") {
-    return a.value.localeCompare(b.value);
+    return compareStringsBytewise(a.value, b.value);
   }
   if (a.type === "end" && b.type === "end") {
-    return a.value.localeCompare(b.value);
+    return compareStringsBytewise(a.value, b.value);
+  }
+  if (a.type === "list" && b.type === "list") {
+    return compareFormatItemArrays(a.items, b.items);
   }
 
   return 0;
+};
+
+/// Lexicographic comparison over arrays of {@link EnvelopeFormatItem},
+/// matching Rust's `Vec<EnvelopeFormatItem>` `Ord` impl: walk the two
+/// arrays in lockstep, return on the first non-equal element. If one is a
+/// prefix of the other, the shorter array sorts first.
+const compareFormatItemArrays = (
+  a: readonly EnvelopeFormatItem[],
+  b: readonly EnvelopeFormatItem[],
+): number => {
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const cmp = compareFormatItems(a[i], b[i]);
+    if (cmp !== 0) return cmp;
+  }
+  return a.length - b.length;
 };
 
 // ============================================================================

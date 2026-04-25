@@ -717,9 +717,16 @@ describe("Edge Extension", () => {
       const alice = xidLike("Alice");
       const bob = xidLike("Bob");
 
-      // An edge with extra detail assertions beyond isA/source/target
-      // Per BCR-2026-003, this is now INVALID — only the three required
-      // assertions are permitted on the edge subject.
+      // An edge with extra detail assertions beyond isA/source/target.
+      //
+      // Rust `Envelope::validate_edge`
+      // (`bc-envelope-rust/src/extension/edge/edge_impl.rs:20-54`) only
+      // counts the three required predicates and ignores everything
+      // else. The TS port now matches that behaviour — additional
+      // assertions like `"department"` / `"since"` are permitted on the
+      // edge subject. Earlier revisions threw
+      // `EDGE_UNEXPECTED_ASSERTION` here, which broke cross-impl
+      // validation of edges carrying ancillary metadata.
       const edge = Envelope.new("knows-bob")
         .addAssertion(IS_A, "schema:colleague")
         .addAssertion(SOURCE, alice)
@@ -727,12 +734,7 @@ describe("Edge Extension", () => {
         .addAssertion("department", "Engineering")
         .addAssertion("since", "2024-01-15");
 
-      expect(() => edge.validateEdge()).toThrow(EnvelopeError);
-      try {
-        edge.validateEdge();
-      } catch (e) {
-        expect((e as EnvelopeError).code).toBe(ErrorCode.EDGE_UNEXPECTED_ASSERTION);
-      }
+      expect(() => edge.validateEdge()).not.toThrow();
     });
 
     it("test_edge_with_claim_detail_on_target", () => {

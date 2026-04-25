@@ -5,8 +5,7 @@
  */
 
 import { Envelope } from "./envelope";
-import type { Digest } from "./digest";
-import type { EnvelopeEncodableValue } from "./envelope-encodable";
+import { Digest } from "./digest";
 
 /// Functions for traversing and manipulating the envelope hierarchy.
 ///
@@ -227,9 +226,22 @@ function walkTree<State>(
 // ============================================================================
 
 /// Implementation of digests()
+///
 /// Returns the set of digests in the envelope, down to the specified level.
+///
+/// Mirrors Rust `Envelope::digests` (`bc-envelope-rust/src/base/digest.rs:103-119`).
+/// Rust uses `HashSet<Digest>` which dedupes by content; native JS `Set`
+/// dedupes by reference, so we route inserts through a hex-keyed `Map`
+/// before materialising the final `Set`. That keeps the public signature
+/// (`Set<Digest>`) while guaranteeing each *value* appears at most once,
+/// which is what every consumer of these methods actually wants.
 Envelope.prototype.digests = function (this: Envelope, levelLimit: number): Set<Digest> {
-  const result = new Set<Digest>();
+  const dedup = new Map<string, Digest>();
+
+  const insert = (d: Digest): void => {
+    const key = d.hex();
+    if (!dedup.has(key)) dedup.set(key, d);
+  };
 
   const visitor = (
     envelope: Envelope,
@@ -238,14 +250,14 @@ Envelope.prototype.digests = function (this: Envelope, levelLimit: number): Set<
     _state: undefined,
   ): [undefined, boolean] => {
     if (level < levelLimit) {
-      result.add(envelope.digest());
-      result.add(envelope.subject().digest());
+      insert(envelope.digest());
+      insert(envelope.subject().digest());
     }
     return [undefined, false]; // Continue walking
   };
 
   this.walk(false, undefined, visitor);
-  return result;
+  return new Set(dedup.values());
 };
 
 /// Implementation of deepDigests()
@@ -258,6 +270,55 @@ Envelope.prototype.deepDigests = function (this: Envelope): Set<Digest> {
 /// Returns the digests in the envelope down to its second level.
 Envelope.prototype.shallowDigests = function (this: Envelope): Set<Digest> {
   return this.digests(2);
+};
+
+/// Implementation of structuralDigest()
+///
+/// Mirrors Rust `Envelope::structural_digest`
+/// (`bc-envelope-rust/src/base/digest.rs:241-261`). Walks every node in
+/// structure mode, building an image:
+///
+/// - Each obscured case prepends a 1-byte discriminator: `0` for Encrypted,
+///   `1` for Elided, `2` for Compressed (matching the Rust order).
+/// - Every node — obscured or not — appends its 32-byte digest bytes.
+///
+/// The full image is then SHA-256-hashed via {@link Digest.fromImage}.
+///
+/// Unlike {@link Envelope.digest} (which captures *semantic* identity),
+/// `structuralDigest` captures the envelope's structural form too, including
+/// where elision / encryption / compression has been applied. Two
+/// envelopes whose `digest()`s match are semantically equivalent; their
+/// `structuralDigest()`s match only if the structures themselves are
+/// identical.
+Envelope.prototype.structuralDigest = function (this: Envelope): Digest {
+  const chunks: Uint8Array[] = [];
+  let totalLength = 0;
+  this.walk(false, undefined, (envelope, _level, _edge, _state) => {
+    const c = envelope.case();
+    // Discriminator byte for obscured cases — matches Rust line 247-251.
+    if (c.type === "encrypted") {
+      chunks.push(new Uint8Array([0]));
+      totalLength += 1;
+    } else if (c.type === "elided") {
+      chunks.push(new Uint8Array([1]));
+      totalLength += 1;
+    } else if (c.type === "compressed") {
+      chunks.push(new Uint8Array([2]));
+      totalLength += 1;
+    }
+    const digestBytes = envelope.digest().data();
+    chunks.push(digestBytes);
+    totalLength += digestBytes.length;
+    return [undefined, false];
+  });
+
+  const image = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    image.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return Digest.fromImage(image);
 };
 
 // ============================================================================
@@ -288,7 +349,9 @@ Envelope.prototype.expectLeaf = function (this: Envelope): unknown {
   return this.tryLeaf();
 };
 
-/// Implementation of checkTypeValue() - validates the envelope has a specific type
-Envelope.prototype.checkTypeValue = function (this: Envelope, type: unknown): void {
-  this.checkType(type as EnvelopeEncodableValue);
-};
+// `checkTypeValue` is now defined in `extension/types.ts`. The earlier
+// stub in this file delegated to `checkType`, which is *not* equivalent —
+// `checkType` accepts arbitrary `EnvelopeEncodable` values, while
+// `checkTypeValue` is specifically the KnownValue-keyed counterpart. The
+// real implementation lives alongside `hasTypeValue` in
+// `extension/types.ts`.

@@ -71,14 +71,22 @@ describe("format command", () => {
       type: format.FormatType.Tree,
       envelope: ENVELOPE,
     });
-    // Verify tree structure contains key elements
+    // Verify tree structure contains key elements.
+    //
+    // Tree format now resolves KnownValue and tag names through the
+    // global format context (matching Rust `tree_format_opt`), so:
+    //   - KnownValue assertions render as their literal names with
+    //     single quotes, e.g. `'isA'` / `'note'` (not the placeholder
+    //     `KNOWN_VALUE`).
+    //   - Tagged-CBOR leaves like a Signature render through the dCBOR
+    //     diagnostic summarizer (e.g. `Signature`, the tag's
+    //     registered name) instead of the bare `LEAF` placeholder.
     expect(result).toContain("NODE");
     expect(result).toContain("WRAPPED");
     expect(result).toContain("ASSERTION");
     expect(result).toContain("ELIDED");
-    // Tree format renders Signature as LEAF (not type-annotated like Rust)
-    expect(result).toContain("LEAF");
-    expect(result).toContain("KNOWN_VALUE");
+    expect(result).toContain("Signature");
+    expect(result).toContain("'isA'");
   });
 
   it("test_format_ur", () => {
