@@ -402,15 +402,17 @@ const runThread = (
         }
 
         case "PushAxis": {
-          // Push child threads onto the stack in *reverse* order so
-          // that `stack.pop()` (LIFO) returns them in source order.
-          // Without the reverse, captures-with-multiple-matches
-          // collect children in the wrong order — a regression seen
-          // when the DP1 PushAxis lowering first landed.
+          // Push child threads onto the stack in *forward* source order
+          // so that `stack.pop()` (LIFO) processes them in *reverse*
+          // source order — byte-identical to Rust's
+          // `bc-dcbor-pattern-rust/src/pattern/vm.rs::PushAxis` (lines
+          // 336-346), which iterates `axis.children(&th.cbor)` forward
+          // and pushes each thread onto the stack. The resulting capture
+          // order in `format_paths_with_captures` output is reverse
+          // source order (e.g. for `[@item(number)]` against `[1, 2, 3]`
+          // the captures appear as `3`, then `2`, then `1`).
           const children = axisChildren(instr.axis, th.cbor);
-          for (let i = children.length - 1; i >= 0; i--) {
-            const child = children[i];
-            if (child === undefined) continue;
+          for (const child of children) {
             const newThread: Thread = {
               pc: th.pc + 1,
               cbor: child,

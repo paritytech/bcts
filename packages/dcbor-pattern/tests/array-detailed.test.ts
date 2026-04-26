@@ -72,14 +72,16 @@ describe("array detailed tests", () => {
 
     const [paths, captures] = getPathsWithCaptures(pattern, cborData);
 
-    // TypeScript implementation iterates array elements in forward order
+    // **DP1 — Rust parity**: VM PushAxis processes children via
+    // stack-pop (reverse-source) order. Mirrors Rust
+    // `array_detailed_tests.rs::test_array_pattern_with_multiple_elements`.
     const expected = `@item
     [42, 100, 200]
-        42
+        200
     [42, 100, 200]
         100
     [42, 100, 200]
-        200
+        42
 [42, 100, 200]`;
     assertActualExpected(formatPathsWithCapturesStr(paths, captures), expected);
   });
@@ -90,23 +92,21 @@ describe("array detailed tests", () => {
 
     const [paths, captures] = getPathsWithCaptures(pattern, cborData);
 
-    // After DP1 fix: nested `@inner_item` captures are now collected
-    // alongside the outer `@outer_item` captures, mirroring Rust.
-    // The previous TS expected-output was authored for the buggy
-    // single-level-only capture collection — the original fixture
-    // comment explicitly noted "differs from Rust".
+    // **DP1 — Rust parity** (reverse-source order from VM PushAxis).
+    // Mirrors Rust
+    // `array_detailed_tests.rs::test_array_pattern_nested_structure`.
     const expected = `@inner_item
-    [[42], [100]]
-        [42]
-            42
     [[42], [100]]
         [100]
             100
-@outer_item
     [[42], [100]]
         [42]
+            42
+@outer_item
     [[42], [100]]
         [100]
+    [[42], [100]]
+        [42]
 [[42], [100]]`;
     assertActualExpected(formatPathsWithCapturesStr(paths, captures), expected);
   });
@@ -140,17 +140,18 @@ describe("array detailed tests", () => {
 
     const [paths, captures] = getPathsWithCaptures(pattern, cborData);
 
-    // TypeScript implementation iterates array elements in forward order
-    // and formats paths differently for wildcard matches
+    // **DP1 — Rust parity** (reverse-source order from VM PushAxis).
+    // Mirrors Rust
+    // `array_detailed_tests.rs::test_array_pattern_mixed_types`.
     const expected = `@any_item
     [42, "hello", true, [1, 2]]
-        42
-    [42, "hello", true, [1, 2]]
-        "hello"
+        [1, 2]
     [42, "hello", true, [1, 2]]
         true
     [42, "hello", true, [1, 2]]
-        [1, 2]
+        "hello"
+    [42, "hello", true, [1, 2]]
+        42
 [42, "hello", true, [1, 2]]`;
     assertActualExpected(formatPathsWithCapturesStr(paths, captures), expected);
   });
