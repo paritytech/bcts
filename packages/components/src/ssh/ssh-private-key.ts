@@ -135,13 +135,18 @@ export class SSHPrivateKey {
 
   /** Algorithm tag for this key. */
   get algorithm(): SshAlgorithm {
-    switch (this.data.kind) {
+    const data = this.data;
+    switch (data.kind) {
       case "ed25519":
         return { kind: "ed25519" };
       case "dsa":
         return { kind: "dsa" };
       case "ecdsa":
-        return { kind: "ecdsa", curve: this.data.curve };
+        return { kind: "ecdsa", curve: data.curve };
+      default: {
+        const _exhaustive: never = data;
+        throw new Error(`SSHPrivateKey: unreachable kind ${String(_exhaustive)}`);
+      }
     }
   }
 
@@ -151,24 +156,36 @@ export class SSHPrivateKey {
   // --------------------------------------------------------------------------
 
   get publicBytes(): Uint8Array {
-    switch (this.data.kind) {
+    const data = this.data;
+    switch (data.kind) {
       case "ed25519":
-        return this.data.pubBytes;
+        return data.pubBytes;
       case "ecdsa":
-        return this.data.point;
+        return data.point;
       case "dsa":
-        throw new Error("SSHPrivateKey.publicBytes is not defined for DSA — use `data.p/q/g/y` instead");
+        throw new Error(
+          "SSHPrivateKey.publicBytes is not defined for DSA — use `data.p/q/g/y` instead",
+        );
+      default: {
+        const _exhaustive: never = data;
+        throw new Error(`SSHPrivateKey: unreachable kind ${String(_exhaustive)}`);
+      }
     }
   }
 
   get privateBytes(): Uint8Array {
-    switch (this.data.kind) {
+    const data = this.data;
+    switch (data.kind) {
       case "ed25519":
-        return this.data.seed;
+        return data.seed;
       case "ecdsa":
-        return this.data.scalar;
+        return data.scalar;
       case "dsa":
         throw new Error("SSHPrivateKey.privateBytes is not defined for DSA — use `data.x` instead");
+      default: {
+        const _exhaustive: never = data;
+        throw new Error(`SSHPrivateKey: unreachable kind ${String(_exhaustive)}`);
+      }
     }
   }
 
@@ -362,13 +379,7 @@ export class SSHPrivateKey {
       case "ecdsa":
         return SSHPublicKey.ecdsa(this.data.curve, this.data.point, this.comment);
       case "dsa":
-        return SSHPublicKey.dsa(
-          this.data.p,
-          this.data.q,
-          this.data.g,
-          this.data.y,
-          this.comment,
-        );
+        return SSHPublicKey.dsa(this.data.p, this.data.q, this.data.g, this.data.y, this.comment);
     }
   }
 

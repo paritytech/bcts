@@ -37,7 +37,7 @@
  */
 
 import { base64 } from "@scure/base";
-import { sha256, sha512, sha384 } from "@noble/hashes/sha2.js";
+import { sha256, sha512 } from "@noble/hashes/sha2.js";
 import { sha1 } from "@noble/hashes/legacy.js";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { p256, p384 } from "@noble/curves/nist.js";
@@ -78,13 +78,18 @@ export class SSHPublicKey {
 
   /** Algorithm tag for this key. */
   get algorithm(): SshAlgorithm {
-    switch (this.data.kind) {
+    const data = this.data;
+    switch (data.kind) {
       case "ed25519":
         return { kind: "ed25519" };
       case "dsa":
         return { kind: "dsa" };
       case "ecdsa":
-        return { kind: "ecdsa", curve: this.data.curve };
+        return { kind: "ecdsa", curve: data.curve };
+      default: {
+        const _exhaustive: never = data;
+        throw new Error(`SSHPublicKey: unreachable kind ${String(_exhaustive)}`);
+      }
     }
   }
 
@@ -109,11 +114,7 @@ export class SSHPublicKey {
     return SSHPublicKey.ecdsa("nistp384", uncompressedPoint, comment);
   }
 
-  static ecdsa(
-    curve: SshEcdsaCurve,
-    uncompressedPoint: Uint8Array,
-    comment = "",
-  ): SSHPublicKey {
+  static ecdsa(curve: SshEcdsaCurve, uncompressedPoint: Uint8Array, comment = ""): SSHPublicKey {
     const expected = sshEcdsaPointLen(curve);
     if (uncompressedPoint.length !== expected || uncompressedPoint[0] !== 0x04) {
       throw new Error(
@@ -298,13 +299,20 @@ export class SSHPublicKey {
    * access via `data.p/q/g/y`.
    */
   get keyBytes(): Uint8Array {
-    switch (this.data.kind) {
+    const data = this.data;
+    switch (data.kind) {
       case "ed25519":
-        return this.data.pubBytes;
+        return data.pubBytes;
       case "ecdsa":
-        return this.data.point;
+        return data.point;
       case "dsa":
-        throw new Error("SSHPublicKey.keyBytes is not defined for DSA — use `data.p/q/g/y` instead");
+        throw new Error(
+          "SSHPublicKey.keyBytes is not defined for DSA — use `data.p/q/g/y` instead",
+        );
+      default: {
+        const _exhaustive: never = data;
+        throw new Error(`SSHPublicKey: unreachable kind ${String(_exhaustive)}`);
+      }
     }
   }
 
@@ -341,7 +349,7 @@ export class SSHPublicKey {
                 format: "compact",
               });
           }
-          break;
+          return false;
         case "dsa": {
           // SSH-DSA always hashes the signed-data with SHA-1 before signing.
           const innerDigest = sha1(signedData);

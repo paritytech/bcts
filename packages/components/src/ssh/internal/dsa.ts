@@ -32,7 +32,7 @@ function modpow(base: bigint, exp: bigint, mod: bigint): bigint {
   if (b < 0n) b += mod;
   let e = exp;
   while (e > 0n) {
-    if (e & 1n) result = (result * b) % mod;
+    if ((e & 1n) !== 0n) result = (result * b) % mod;
     e >>= 1n;
     b = (b * b) % mod;
   }
@@ -125,11 +125,7 @@ function bits2octets(input: Uint8Array, q: bigint, qlenBits: number, rolen: numb
  * Derive a deterministic per-signature nonce `k` per RFC 6979 §3.2 using
  * HMAC-SHA-1 (the hash paired with DSA-1024/q-160).
  */
-function rfc6979Nonce(
-  q: bigint,
-  x: Uint8Array,
-  hashedMessage: Uint8Array,
-): bigint {
+function rfc6979Nonce(q: bigint, x: Uint8Array, hashedMessage: Uint8Array): bigint {
   const qlenBits = q.toString(2).length;
   const rolen = Math.ceil(qlenBits / 8);
   const hlen = 20; // SHA-1 output length
@@ -152,7 +148,7 @@ function rfc6979Nonce(
 
   // Step g: loop until a valid k is found
   for (let iter = 0; iter < 1024; iter++) {
-    let T = new Uint8Array(0);
+    let T: Uint8Array = new Uint8Array(0);
     while (T.length < rolen) {
       V = hmac(sha1, K, V);
       T = concatBytes(T, V);

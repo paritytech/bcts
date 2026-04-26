@@ -55,8 +55,8 @@ describe("SSHPublicKey — parse/serialize parity with Rust ssh-key 0.6.7", () =
       SSHPublicKey.fromOpenssh("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfoo= bob@example.com"),
     ).toThrow(/Unsupported SSH algorithm 'ssh-rsa'/);
     expect(() =>
-      SSHPublicKey.fromOpenssh("ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQ= bob"),
-    ).toThrow(/Unsupported SSH algorithm 'ecdsa-sha2-nistp384'/);
+      SSHPublicKey.fromOpenssh("ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjE= bob"),
+    ).toThrow(/Unsupported SSH algorithm 'ecdsa-sha2-nistp521'/);
   });
 
   it("rejects mismatched outer/inner algorithm names", () => {

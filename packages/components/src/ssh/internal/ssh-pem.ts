@@ -88,5 +88,5 @@ export function encodePem(label: string, data: Uint8Array, width: number): strin
     lines.push(b64.slice(i, i + width));
   }
   lines.push(`${END}${label}${SUFFIX}`);
-  return `${lines.join("\n")  }\n`;
+  return `${lines.join("\n")}\n`;
 }

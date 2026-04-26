@@ -27,17 +27,26 @@
  *     string  algorithm "ssh-ed25519"
  *     string  raw 64-byte signature
  *
- *   ecdsa-sha2-nistp256 signature blob:
- *     string  algorithm "ecdsa-sha2-nistp256"
+ *   ecdsa-sha2-nistp256 / ecdsa-sha2-nistp384 signature blob:
+ *     string  algorithm "ecdsa-sha2-nistp256" | "ecdsa-sha2-nistp384"
  *     string  inner-blob:
  *         mpint r
  *         mpint s
+ *
+ *   ssh-dss signature blob:
+ *     string  algorithm "ssh-dss"
+ *     string  raw 40-byte signature  (r || s, 20 bytes each, q = 160 bits)
  */
 
 import { sha256 } from "@noble/hashes/sha2.js";
 import { SshBufferReader, SshBufferWriter } from "./internal/ssh-buffer.js";
 import { encodePem, parsePem } from "./internal/ssh-pem.js";
-import { parseSshAlgorithm, sshAlgorithmName, type SshAlgorithm } from "./ssh-algorithm.js";
+import {
+  parseSshAlgorithm,
+  sshAlgorithmName,
+  sshEcdsaScalarLen,
+  type SshAlgorithm,
+} from "./ssh-algorithm.js";
 import { SSHPublicKey } from "./ssh-public-key.js";
 
 const PEM_LABEL = "SSH SIGNATURE";
@@ -47,6 +56,7 @@ const SUPPORTED_VERSION = 1;
 export type SshHashAlgorithm = "sha256" | "sha512";
 
 const ED25519_SIGNATURE_LEN = 64;
+const DSA_SIGNATURE_LEN = 40; // r (20) || s (20), q = 160 bits
 
 export class SSHSignature {
   readonly publicKey: SSHPublicKey;
@@ -191,8 +201,10 @@ function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
 
 /**
  * Strip the algorithm wrapping from a signature blob and return the raw
- * algorithm-specific bytes (concatenation form: `r || s` for ECDSA, raw 64
- * for ed25519).
+ * algorithm-specific bytes (concatenation form):
+ *   ed25519 → 64 bytes raw
+ *   ecdsa   → `r || s`, fixed-width per curve (32 for P-256, 48 for P-384)
+ *   dsa     → 40 bytes raw `r || s` (q = 160 bits)
  */
 function decodeAlgorithmSignature(algorithm: SshAlgorithm, sigBlob: Uint8Array): Uint8Array {
   const r = new SshBufferReader(sigBlob);
@@ -222,15 +234,28 @@ function decodeAlgorithmSignature(algorithm: SshAlgorithm, sigBlob: Uint8Array):
         throw new Error("SSHSignature ecdsa: trailing bytes after inner signature blob");
       }
       const innerR = new SshBufferReader(inner);
-      const rBytes = stripAndPad(innerR.readMpint());
-      const sBytes = stripAndPad(innerR.readMpint());
+      const scalarLen = sshEcdsaScalarLen(algorithm.curve);
+      const rBytes = stripAndPad(innerR.readMpint(), scalarLen, "ecdsa");
+      const sBytes = stripAndPad(innerR.readMpint(), scalarLen, "ecdsa");
       if (!innerR.isAtEnd()) {
         throw new Error("SSHSignature ecdsa: trailing bytes after r,s");
       }
-      const out = new Uint8Array(64);
+      const out = new Uint8Array(scalarLen * 2);
       out.set(rBytes, 0);
-      out.set(sBytes, 32);
+      out.set(sBytes, scalarLen);
       return out;
+    }
+    case "dsa": {
+      const sig = r.readString();
+      if (!r.isAtEnd()) {
+        throw new Error("SSHSignature dsa: trailing bytes after raw signature");
+      }
+      if (sig.length !== DSA_SIGNATURE_LEN) {
+        throw new Error(
+          `SSHSignature dsa: expected ${DSA_SIGNATURE_LEN}-byte signature, got ${sig.length}`,
+        );
+      }
+      return new Uint8Array(sig);
     }
   }
 }
@@ -249,30 +274,41 @@ function encodeAlgorithmSignature(algorithm: SshAlgorithm, signatureBytes: Uint8
       break;
     }
     case "ecdsa": {
-      if (signatureBytes.length !== 64) {
+      const scalarLen = sshEcdsaScalarLen(algorithm.curve);
+      const expectedLen = scalarLen * 2;
+      if (signatureBytes.length !== expectedLen) {
         throw new Error(
-          `SSHSignature ecdsa: signatureBytes length ${signatureBytes.length} != 64 (r||s)`,
+          `SSHSignature ecdsa: signatureBytes length ${signatureBytes.length} != ${expectedLen} (r||s)`,
         );
       }
       const inner = new SshBufferWriter();
-      inner.writeMpintUnsigned(signatureBytes.subarray(0, 32));
-      inner.writeMpintUnsigned(signatureBytes.subarray(32));
+      inner.writeMpintUnsigned(signatureBytes.subarray(0, scalarLen));
+      inner.writeMpintUnsigned(signatureBytes.subarray(scalarLen));
       w.writeString(inner.bytes());
+      break;
+    }
+    case "dsa": {
+      if (signatureBytes.length !== DSA_SIGNATURE_LEN) {
+        throw new Error(
+          `SSHSignature dsa: signatureBytes length ${signatureBytes.length} != ${DSA_SIGNATURE_LEN} (r||s)`,
+        );
+      }
+      w.writeString(signatureBytes);
       break;
     }
   }
   return w.bytes();
 }
 
-function stripAndPad(mpint: Uint8Array): Uint8Array {
-  // EC signature components (r, s) are < curve order, so they fit in 32 bytes.
+function stripAndPad(mpint: Uint8Array, len: number, label: string): Uint8Array {
+  // EC signature components (r, s) are < curve order, so they fit in `len` bytes.
   const stripped = mpint[0] === 0x00 ? mpint.subarray(1) : mpint;
-  if (stripped.length > 32) {
-    throw new Error(`SSHSignature ecdsa: r/s component too large (${stripped.length} bytes)`);
+  if (stripped.length > len) {
+    throw new Error(`SSHSignature ${label}: r/s component too large (${stripped.length} bytes)`);
   }
-  if (stripped.length === 32) return new Uint8Array(stripped);
-  const out = new Uint8Array(32);
-  out.set(stripped, 32 - stripped.length);
+  if (stripped.length === len) return new Uint8Array(stripped);
+  const out = new Uint8Array(len);
+  out.set(stripped, len - stripped.length);
   return out;
 }
 
