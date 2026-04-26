@@ -6,11 +6,10 @@
 
 // Ported from provenance-mark-rust/src/mark_info.rs
 
-import { UR } from "@bcts/uniform-resources";
-import { decodeCbor, cborData } from "@bcts/dcbor";
-import { PROVENANCE_MARK } from "@bcts/tags";
+import type { UR } from "@bcts/uniform-resources";
 
 import { ProvenanceMark } from "./mark.js";
+import { dateToDisplay } from "./date.js";
 
 /**
  * Wrapper for a provenance mark with additional display information.
@@ -38,14 +37,19 @@ export class ProvenanceMarkInfo {
 
   /**
    * Create a new ProvenanceMarkInfo from a mark.
+   *
+   * Mirrors Rust `ProvenanceMarkInfo::new`
+   * (`provenance-mark-rust/src/mark_info.rs`), which calls
+   * `mark.ur()` — i.e. the {@link UREncodable} implementation, whose
+   * payload is the **untagged** CBOR with type `"provenance"`. Earlier
+   * revisions of this port called `decodeCbor(mark.toCborData())` and
+   * wrapped the resulting *tagged* CBOR in `UR.new("provenance", ...)`,
+   * which prepended the CBOR tag to the UR bytewords and broke
+   * cross-impl interop (UR strings produced by Rust would not parse,
+   * and vice versa).
    */
   static new(mark: ProvenanceMark, comment = ""): ProvenanceMarkInfo {
-    const tagName = PROVENANCE_MARK.name;
-    if (tagName === undefined) {
-      throw new Error("PROVENANCE_MARK tag has no name");
-    }
-    const cborValue = decodeCbor(mark.toCborData());
-    const ur = UR.new(tagName, cborValue);
+    const ur = mark.ur();
     const bytewords = mark.idBytewords(4, true);
     const bytemoji = mark.idBytemoji(4, true);
     return new ProvenanceMarkInfo(mark, ur, bytewords, bytemoji, comment);
@@ -73,6 +77,10 @@ export class ProvenanceMarkInfo {
 
   /**
    * Generate a markdown summary of the mark.
+   *
+   * Date rendering uses {@link dateToDisplay} so midnight-UTC dates
+   * appear as `YYYY-MM-DD` (matching Rust `format!("{}",
+   * self.mark.date())`), not as `YYYY-MM-DDT00:00:00Z`.
    */
   markdownSummary(): string {
     const lines: string[] = [];
@@ -80,7 +88,7 @@ export class ProvenanceMarkInfo {
     lines.push("---");
 
     lines.push("");
-    lines.push(this._mark.date().toISOString().replace(".000Z", "Z"));
+    lines.push(dateToDisplay(this._mark.date()));
 
     lines.push("");
     lines.push(`#### ${this._ur.toString()}`);
@@ -118,12 +126,15 @@ export class ProvenanceMarkInfo {
 
   /**
    * Create from JSON object.
+   *
+   * Decodes the UR string through {@link ProvenanceMark.fromURString},
+   * which correctly handles the **untagged** CBOR payload that
+   * `mark.ur()` produces — symmetric with the constructor.
    */
   static fromJSON(json: Record<string, unknown>): ProvenanceMarkInfo {
     const urString = json["ur"] as string;
-    const ur = UR.fromURString(urString);
-    const cborBytes = cborData(ur.cbor());
-    const mark = ProvenanceMark.fromCborData(cborBytes);
+    const mark = ProvenanceMark.fromURString(urString);
+    const ur = mark.ur();
     const bytewords = json["bytewords"] as string;
     const bytemoji = json["bytemoji"] as string;
     const comment = typeof json["comment"] === "string" ? json["comment"] : "";

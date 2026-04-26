@@ -6,6 +6,7 @@
 
 import { Envelope } from "../base/envelope";
 import { type EdgeType, edgeLabel } from "../base/walk";
+import { getGlobalFormatContext, type FormatContext } from "./format-context";
 
 // ============================================================================
 // DigestDisplayFormat - Enum for digest display formatting
@@ -18,7 +19,8 @@ import { type EdgeType, edgeLabel } from "../base/walk";
  */
 export enum DigestDisplayFormat {
   /**
-   * Short format: first 7 hex characters of the digest.
+   * Short format: hex-encoded first 4 bytes of the digest (8 chars),
+   * matching Rust `Digest::short_description`.
    * This is the default format.
    */
   Short = "short",
@@ -54,8 +56,14 @@ export interface TreeFormatOptions {
   hideNodes?: boolean;
   /// Set of digest strings to highlight in the tree
   highlightDigests?: Set<string>;
-  /// Format for displaying digests: "short" (7 hex chars), "full" (64 hex chars), or "ur" (UR string)
+  /// Format for displaying digests: "short" (8 hex chars matching Rust
+  /// `short_description`), "full" (64 hex chars), or "ur" (UR string)
   digestDisplay?: DigestDisplayFormat | "short" | "full" | "ur";
+  /// Optional format context used for tag name resolution and KnownValue
+  /// summarisation. When omitted, the global format context is used —
+  /// matching Rust `tree_format_opt(&self, opts: TreeFormatOpts)` which
+  /// reads names off the global context unless callers override.
+  context?: FormatContext;
 }
 
 /// Represents an element in the tree representation
@@ -91,75 +99,34 @@ Envelope.prototype.shortId = function (
 };
 
 /// Implementation of summary()
+///
+/// Mirrors Rust `Envelope::summary` (`bc-envelope-rust/src/format/
+/// envelope_summary.rs`): defers to `summaryWithContext(maxLength,
+/// global_context)`. KnownValue rendering, tag-name resolution for
+/// arrays/maps/tagged values, and the truncation rules all live in the
+/// context-aware path; the no-arg variant just uses the global context.
 Envelope.prototype.summary = function (this: Envelope, maxLength = 40): string {
-  const c = this.case();
-
-  switch (c.type) {
-    case "node":
-      return "NODE";
-    case "leaf": {
-      // Try to extract a readable value
-      try {
-        const text = this.asText();
-        if (text !== undefined) {
-          const truncated = text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-          return JSON.stringify(truncated);
-        }
-      } catch {
-        // Fall through
-      }
-
-      try {
-        const num = this.extractNumber();
-        return String(num);
-      } catch {
-        // Fall through
-      }
-
-      try {
-        const bool = this.extractBoolean();
-        return String(bool);
-      } catch {
-        // Fall through
-      }
-
-      if (this.isNull()) {
-        return "null";
-      }
-
-      // Fallback: show byte string
-      const bytes = this.asByteString();
-      if (bytes !== undefined && bytes.length <= 16) {
-        const hex = Array.from(bytes)
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
-        return `h'${hex}'`;
-      }
-
-      return "LEAF";
-    }
-    case "wrapped":
-      return "WRAPPED";
-    case "assertion":
-      return "ASSERTION";
-    case "elided":
-      return "ELIDED";
-    case "encrypted":
-      return "ENCRYPTED";
-    case "compressed":
-      return "COMPRESSED";
-    case "knownValue":
-      return "KNOWN_VALUE";
-    default:
-      return "UNKNOWN";
-  }
+  return this.summaryWithContext(maxLength, getGlobalFormatContext());
 };
 
 /// Implementation of treeFormat()
+///
+/// Mirrors Rust `Envelope::tree_format_opt` (`bc-envelope-rust/src/format/
+/// tree.rs`). For each element line we emit:
+///
+///   `[*]<short_id> [edge_label] <summary>`
+///
+/// The summary is rendered through {@link Envelope.summaryWithContext} —
+/// **not** the context-free `summary()` — so KnownValue assertions appear
+/// as their registered names (e.g. `'isA'`, `'note'`) instead of the
+/// placeholder string `KNOWN_VALUE`. The format context defaults to the
+/// global one (via {@link getGlobalFormatContext}); callers can override
+/// per-call via {@link TreeFormatOptions.context}.
 Envelope.prototype.treeFormat = function (this: Envelope, options: TreeFormatOptions = {}): string {
   const hideNodes = options.hideNodes ?? false;
   const highlightDigests = options.highlightDigests ?? new Set<string>();
   const digestDisplay = options.digestDisplay ?? "short";
+  const context = options.context ?? getGlobalFormatContext();
 
   const elements: TreeElement[] = [];
 
@@ -196,7 +163,7 @@ Envelope.prototype.treeFormat = function (this: Envelope, options: TreeFormatOpt
       parts.push(label);
     }
 
-    parts.push(elem.envelope.summary(40));
+    parts.push(elem.envelope.summaryWithContext(40, context));
 
     const line = parts.join(" ");
     const indent = " ".repeat(elem.level * 4);

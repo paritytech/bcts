@@ -115,12 +115,15 @@ export class HybridKv implements KvStore {
   /**
    * Check if an envelope fits in the DHT.
    *
-   * Port of `HybridKv::fits_in_dht()` from hybrid/kv.rs lines 103-106.
+   * Port of `HybridKv::fits_in_dht()` from `hybrid/kv.rs:103-106`. Uses
+   * `taggedCborData()` (a method) to get the actual serialized byte
+   * length; the previous port read it as a property, which yielded the
+   * function reference and `.length === 0`.
    *
    * @internal
    */
   private fitsInDht(envelope: Envelope): boolean {
-    const serialized = envelope.taggedCborData;
+    const serialized = envelope.taggedCborData();
     return serialized.length <= this.dhtSizeLimit;
   }
 
@@ -159,8 +162,10 @@ export class HybridKv implements KvStore {
       }
       await this.ipfs.put(referenceArid, envelope, ttlSeconds, verbose);
 
-      // 2. Create reference envelope
-      const envelopeSize = envelope.taggedCborData.length;
+      // 2. Create reference envelope. `taggedCborData()` is a method
+      //    (returns Uint8Array); the previous port read it as a
+      //    property and recorded `size: 0`.
+      const envelopeSize = envelope.taggedCborData().length;
       const reference = createReferenceEnvelope(referenceArid, envelopeSize);
 
       // 3. Store reference envelope in DHT at original ARID

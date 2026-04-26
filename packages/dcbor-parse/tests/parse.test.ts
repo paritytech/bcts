@@ -285,9 +285,14 @@ describe("parse", () => {
     });
 
     it("should error on invalid base64 string", () => {
-      // Note: The TS atob is more lenient than Rust's base64 decoder
-      // Testing with clearly invalid base64 (invalid characters)
-      checkError("b64'!!!invalid!!!'", "InvalidBase64String");
+      // Mirrors Rust `tests/test_parse.rs`: input `b64'AQIDBAUGBwgJCg'`
+      // (valid base64 alphabet but missing required padding) must be
+      // rejected as `InvalidBase64String`. The TS port previously used
+      // a clearly-malformed input here because the older `atob` path
+      // was lax about padding; the lexer now enforces padding strictly
+      // (matching Rust `base64::engine::general_purpose::STANDARD`),
+      // so the verbatim Rust input is what we test.
+      checkError("b64'AQIDBAUGBwgJCg'", "InvalidBase64String");
     });
 
     it("should error on unknown known value name", () => {
@@ -295,10 +300,14 @@ describe("parse", () => {
     });
 
     it("should error on invalid date format", () => {
-      // Note: JavaScript Date is more lenient with invalid dates (month 13, day 30 in Feb)
-      // Testing with malformed formats that the lexer won't recognize as dates
-      checkError("2023-1-01", "ExtraData"); // Single digit month parsed as number + extra
-      checkError("date-string", "UnrecognizedToken"); // Not a valid token at all
+      // Mirrors Rust `tests/test_parse.rs`: month-13 and Feb 30 are
+      // both syntactically well-formed (regex matches `\d{4}-\d{2}-\d{2}`)
+      // but semantically invalid. Earlier revisions of this port used
+      // looser inputs because the TS `Date` parser was lenient; the
+      // lexer's `isValidDateString` guard now rejects month/day-out-of-
+      // range, so we can use Rust's exact inputs.
+      checkError("2023-13-01", "InvalidDateString");
+      checkError("2023-02-30", "InvalidDateString");
     });
   });
 

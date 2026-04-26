@@ -12,6 +12,7 @@ import type { Cbor } from "@bcts/dcbor";
 import type { Pattern } from "../../index";
 import type { RepeatPattern } from "../../meta/repeat-pattern";
 import type { Quantifier } from "../../../quantifier";
+import { patternDisplay } from "../../index";
 
 /**
  * Check if a pattern is a repeat pattern.
@@ -120,6 +121,44 @@ export const buildExtendedArrayContextPath = (
     arrayPath.push(...capturedPath.slice(1));
   }
   return arrayPath;
+};
+
+/**
+ * Format a pattern for display within array context, swapping
+ * `>`-separator sequences to `,`-separator inside arrays — recursively.
+ *
+ * Mirrors Rust `format_array_element_pattern`
+ * (`bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/helpers.rs:54-67`):
+ *
+ * ```rust
+ * pub fn format_array_element_pattern(pattern: &Pattern) -> String {
+ *     match pattern {
+ *         Pattern::Meta(MetaPattern::Sequence(seq_pattern)) => {
+ *             let patterns_str: Vec<String> = seq_pattern
+ *                 .patterns()
+ *                 .iter()
+ *                 .map(format_array_element_pattern)
+ *                 .collect();
+ *             patterns_str.join(", ")
+ *         }
+ *         _ => pattern.to_string(),
+ *     }
+ * }
+ * ```
+ *
+ * Crucially, the function recurses through nested `Sequence` patterns
+ * (e.g. `[(a > b)*]`) so any `Sequence` *inside* the array uses
+ * commas. Earlier this port only swapped the outermost `Sequence`,
+ * which left nested sequences with `>`-separator that the parser
+ * doesn't accept inside `[ … ]`.
+ */
+export const formatArrayElementPattern = (pattern: Pattern): string => {
+  if (pattern.kind === "Meta" && pattern.pattern.type === "Sequence") {
+    const seq = pattern.pattern.pattern;
+    const parts = seq.patterns.map((p) => formatArrayElementPattern(p));
+    return parts.join(", ");
+  }
+  return patternDisplay(pattern);
 };
 
 /**

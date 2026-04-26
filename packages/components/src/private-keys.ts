@@ -211,12 +211,16 @@ export class PrivateKeys
   }
 
   /**
-   * Get string representation.
-   *
-   * Format matches Rust: `PrivateKeys(<short_reference>)`
+   * Mirror of Rust `Display for PrivateKeys`
+   * (`bc-components-rust/src/private_keys.rs:229-238`):
+   *   `PrivateKeys(<refHexShort>, <signingPrivateKey>, <encapsulationPrivateKey>)`
+   * The previous abbreviated form (`PrivateKeys(<short>)` only) was a
+   * parity drift caught by the E1a summarizer audit.
    */
   toString(): string {
-    return `PrivateKeys(${this.reference().shortReference("hex")})`;
+    return `PrivateKeys(${this.reference().shortReference(
+      "hex",
+    )}, ${this._signingPrivateKey.toString()}, ${this._encapsulationPrivateKey.toString()})`;
   }
 
   // ============================================================================

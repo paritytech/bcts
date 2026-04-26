@@ -33,7 +33,8 @@ import {
 // Helper to convert KnownValue to EnvelopeEncodableValue
 const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 import {
-  Reference,
+  type Reference,
+  URI,
   XID,
   type PublicKeys,
   PrivateKeyBase,
@@ -48,7 +49,8 @@ import {
   ProvenanceMarkGenerator,
   ProvenanceMarkResolution,
 } from "@bcts/provenance-mark";
-import { type Cbor } from "@bcts/dcbor";
+import { type Cbor, asByteString, toByteString } from "@bcts/dcbor";
+import { UR } from "@bcts/uniform-resources";
 
 import { Key, XIDPrivateKeyOptions, type XIDPrivateKeyOptionsValue } from "./key";
 import { Delegate, registerXIDDocumentClass } from "./delegate";
@@ -122,7 +124,7 @@ type ServiceMap = Map<string, Service>;
  */
 export class XIDDocument implements EnvelopeEncodable, Edgeable {
   private readonly _xid: XID;
-  private readonly _resolutionMethods: Set<string>;
+  private readonly _resolutionMethods: Map<string, URI>;
   private readonly _keys: KeyMap;
   private readonly _delegates: DelegateMap;
   private readonly _services: ServiceMap;
@@ -132,7 +134,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
 
   private constructor(
     xid: XID,
-    resolutionMethods = new Set<string>(),
+    resolutionMethods = new Map<string, URI>(),
     keys: KeyMap = new Map(),
     delegates: DelegateMap = new Map(),
     services: ServiceMap = new Map(),
@@ -163,7 +165,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     // XID is the SHA-256 digest of the CBOR encoding of the inception signing public key
     // This matches Rust: XID::new(inception_key.public_keys().signing_public_key())
     const xid = XID.newFromSigningKey(inceptionKey.publicKeys().signingPublicKey());
-    const doc = new XIDDocument(xid, new Set(), new Map(), new Map(), new Map(), provenance);
+    const doc = new XIDDocument(xid, new Map(), new Map(), new Map(), new Map(), provenance);
 
     doc.addKey(inceptionKey);
     return doc;
@@ -220,24 +222,30 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   }
 
   /**
-   * Get the resolution methods.
+   * Get the resolution methods as a Set of typed URI values.
+   *
+   * Mirrors Rust `&HashSet<URI>`. Use `.toString()` on a URI for the
+   * plain-string form.
    */
-  resolutionMethods(): Set<string> {
-    return this._resolutionMethods;
+  resolutionMethods(): Set<URI> {
+    return new Set(this._resolutionMethods.values());
   }
 
   /**
-   * Add a resolution method.
+   * Add a resolution method. Accepts either a typed URI value or a
+   * string (the latter is converted via `URI.from`).
    */
-  addResolutionMethod(method: string): void {
-    this._resolutionMethods.add(method);
+  addResolutionMethod(method: URI | string): void {
+    const uri = method instanceof URI ? method : URI.from(method);
+    this._resolutionMethods.set(uri.toString(), uri);
   }
 
   /**
    * Remove a resolution method.
    */
-  removeResolutionMethod(method: string): boolean {
-    return this._resolutionMethods.delete(method);
+  removeResolutionMethod(method: URI | string): boolean {
+    const key = method instanceof URI ? method.toString() : method;
+    return this._resolutionMethods.delete(key);
   }
 
   /**
@@ -667,28 +675,25 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
    * Check consistency of a single service.
    */
   checkServiceConsistency(service: Service): void {
+    const uriStr = service.uriString();
     if (service.keyReferences().size === 0 && service.delegateReferences().size === 0) {
-      throw XIDError.noReferences(service.uri());
+      throw XIDError.noReferences(uriStr);
     }
 
     for (const keyRef of service.keyReferences()) {
-      // keyRef is already a hex representation of a Reference, don't hash again
-      const ref = Reference.fromHex(keyRef);
-      if (this.findKeyByReference(ref) === undefined) {
-        throw XIDError.unknownKeyReference(keyRef, service.uri());
+      if (this.findKeyByReference(keyRef) === undefined) {
+        throw XIDError.unknownKeyReference(keyRef.toHex(), uriStr);
       }
     }
 
     for (const delegateRef of service.delegateReferences()) {
-      // delegateRef is already a hex representation of a Reference, don't hash again
-      const ref = Reference.fromHex(delegateRef);
-      if (this.findDelegateByReference(ref) === undefined) {
-        throw XIDError.unknownDelegateReference(delegateRef, service.uri());
+      if (this.findDelegateByReference(delegateRef) === undefined) {
+        throw XIDError.unknownDelegateReference(delegateRef.toHex(), uriStr);
       }
     }
 
     if (service.permissions().allow.size === 0) {
-      throw XIDError.noPermissions(service.uri());
+      throw XIDError.noPermissions(uriStr);
     }
   }
 
@@ -698,7 +703,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   servicesReferenceKey(publicKeys: PublicKeys): boolean {
     const keyRef = publicKeys.reference().toHex();
     for (const service of this._services.values()) {
-      if (service.keyReferences().has(keyRef)) {
+      if (service.keyReferencesMut().has(keyRef)) {
         return true;
       }
     }
@@ -707,11 +712,16 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
 
   /**
    * Check if any service references the given delegate.
+   *
+   * Mirrors Rust `services_reference_delegate(xid)` which uses
+   * `xid.reference()` — the XID bytes used directly as the
+   * Reference (no SHA-256 wrap), the same value used by
+   * `Service::add_delegate(...)` on the producer side.
    */
   servicesReferenceDelegate(xid: XID): boolean {
-    const delegateRef = Reference.hash(xid.toData()).toHex();
+    const delegateRef = xid.reference().toHex();
     for (const service of this._services.values()) {
-      if (service.delegateReferences().has(delegateRef)) {
+      if (service.delegateReferencesMut().has(delegateRef)) {
         return true;
       }
     }
@@ -821,11 +831,13 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     generatorOptions: XIDGeneratorOptionsValue = XIDGeneratorOptions.Omit,
     signingOptions: XIDSigningOptions = { type: "none" },
   ): Envelope {
-    // Use tagged CBOR representation, matching Rust's Envelope::new(self.xid)
-    let envelope = Envelope.newLeaf(this._xid.taggedCbor());
+    // Subject: tagged-CBOR XID leaf — mirrors Rust
+    // `Envelope::new(self.xid)` which dispatches via `From<XID> for CBOR`
+    // (tagged value, not a byte string).
+    let envelope = Envelope.new(this._xid);
 
-    // Add resolution methods
-    for (const method of this._resolutionMethods) {
+    // Add resolution methods (each a tagged URI value).
+    for (const method of this._resolutionMethods.values()) {
       envelope = envelope.addAssertion(kv(DEREFERENCE_VIA), method);
     }
 
@@ -896,9 +908,102 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   // EnvelopeEncodable implementation
   intoEnvelope(): Envelope {
     if (this.isEmpty()) {
-      return Envelope.new(this._xid.toData());
+      // Mirrors Rust `From<XIDDocument> for Envelope` empty branch:
+      // `value.xid.to_envelope()` — a tagged-CBOR XID leaf, not a
+      // byte-string envelope.
+      return Envelope.new(this._xid);
     }
     return this.toEnvelope();
+  }
+
+  // ============================================================================
+  // CBOR / UR Serialization (mirrors Rust `CBORTagged for XIDDocument`)
+  // ============================================================================
+  //
+  // Rust source: `bc-xid-rust/src/xid_document.rs:1101-1147`.
+  //
+  // Wire shape (tag = TAG_XID/40024):
+  //   - empty doc:  40024(bytes(32))                — just the XID bytes
+  //   - non-empty:  40024(200(envelope_untagged))   — envelope tagged-CBOR
+  //
+  // The UR type is `xid` and the body bytes are the **untagged** form
+  // (the UR type label carries the outer tag). This is what makes
+  // `ur:xid/...` round-trip byte-identically to Rust.
+
+  /**
+   * Returns the untagged CBOR encoding for this document.
+   *
+   * Mirrors Rust `CBORTaggedEncodable for XIDDocument::untagged_cbor`:
+   * empty docs serialize as the raw 32-byte XID byte string; non-empty
+   * docs serialize as the envelope's tagged CBOR (tag 200).
+   */
+  untaggedCbor(): Cbor {
+    if (this.isEmpty()) {
+      // Mirror Rust `self.xid.untagged_cbor()` which returns
+      // `bytes(32)` (the raw XID data, untagged).
+      return toByteString(this._xid.data());
+    }
+    // Mirror Rust `self.to_envelope(...).to_cbor()`. Envelope's
+    // `taggedCbor()` returns `200(envelope_untagged)`.
+    return this.toEnvelope().taggedCbor();
+  }
+
+  /**
+   * Returns the UR for this document.
+   *
+   * UR type is `xid` (matching `TAG_XID.name` and Rust). Body bytes are
+   * `untaggedCbor()`.
+   */
+  ur(): UR {
+    return UR.new("xid", this.untaggedCbor());
+  }
+
+  /**
+   * Returns the `ur:xid/...` string representation of this document.
+   *
+   * Mirrors Rust `xid_document.ur_string()`. Round-trip with
+   * {@link XIDDocument.fromURString} is byte-identical to Rust.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Decode an XIDDocument from a UR.
+   *
+   * Mirrors Rust `CBORTaggedDecodable::from_untagged_cbor`:
+   *   - if the body is a CBOR byte string (32 bytes), it's an empty
+   *     XIDDocument carrying just the XID;
+   *   - otherwise it's an envelope's tagged CBOR (tag 200), which we
+   *     decode and feed through `fromEnvelope`.
+   */
+  static fromUR(ur: UR): XIDDocument {
+    ur.checkType("xid");
+    return XIDDocument.fromUntaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Decode an XIDDocument from a `ur:xid/...` string.
+   */
+  static fromURString(urString: string): XIDDocument {
+    return XIDDocument.fromUR(UR.fromURString(urString));
+  }
+
+  /**
+   * Decode an XIDDocument from untagged CBOR (the UR-body form).
+   */
+  static fromUntaggedCbor(cbor: Cbor): XIDDocument {
+    const bytes = asByteString(cbor);
+    if (bytes !== undefined) {
+      return XIDDocument.fromXid(XID.fromDataRef(bytes));
+    }
+    // Envelope's tagged-CBOR form (tag 200). Decode as tagged CBOR.
+    const envelope = (
+      Envelope as unknown as {
+        fromTaggedCbor(c: Cbor): Envelope;
+      }
+    ).fromTaggedCbor(cbor);
+    return XIDDocument.fromEnvelope(envelope);
   }
 
   /**
@@ -972,32 +1077,15 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
       assertions(): Envelope[];
     };
 
-    // Extract XID from subject
-    // The envelope may be a node (with assertions) or a leaf
+    // Extract XID from subject. Mirrors Rust's `XID::try_from(env.subject().try_leaf()?)?` —
+    // always a tagged-CBOR leaf, never a bare byte string.
     const envCase = envelope.case();
     const subject = envCase.type === "node" ? envelopeExt.subject() : envelope;
-
-    // Try to extract XID from the subject leaf.
-    // Rust-generated documents store the XID as tagged CBOR (Tag 40015 + byte string).
-    // TS-generated documents may store it as a raw byte string.
     const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
     if (leaf === undefined) {
       throw XIDError.invalidXid();
     }
-    let xid: XID;
-    try {
-      // Try tagged CBOR first (matches Rust's Envelope::new(xid))
-      xid = XID.fromTaggedCbor(leaf);
-    } catch {
-      // Fall back to raw byte string
-      const xidData = (
-        subject as unknown as { asByteString(): Uint8Array | undefined }
-      ).asByteString();
-      if (xidData === undefined) {
-        throw XIDError.invalidXid();
-      }
-      xid = XID.from(xidData);
-    }
+    const xid = XID.fromTaggedCbor(leaf);
     const doc = XIDDocument.fromXid(xid);
 
     // Process assertions
@@ -1018,11 +1106,16 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
 
       switch (predicate) {
         case DEREFERENCE_VIA_RAW: {
-          const method = (object as unknown as { asText(): string | undefined }).asText();
-          if (method === undefined) {
+          // Mirrors Rust `URI::try_from(assertion.try_object()?.subject().try_leaf()?)`:
+          // the value is always a tagged URI, never bare text.
+          const objectExt = object as unknown as { tryLeaf(): Cbor };
+          let uri: URI;
+          try {
+            uri = URI.fromTaggedCbor(objectExt.tryLeaf());
+          } catch {
             throw XIDError.invalidResolutionMethod();
           }
-          doc.addResolutionMethod(method);
+          doc.addResolutionMethod(uri);
           break;
         }
         case KEY_RAW: {
@@ -1084,9 +1177,14 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
 
   /**
    * Get the reference for this document.
+   *
+   * Mirrors Rust `impl ReferenceProvider for XIDDocument` ↔
+   * `XID::reference` which is `Reference::from_data(*self.data())` —
+   * the XID's bytes used directly. The previous TS implementation
+   * SHA-256-hashed the bytes, producing a different reference value.
    */
   reference(): Reference {
-    return Reference.hash(this._xid.toData());
+    return this._xid.reference();
   }
 
   /**
@@ -1096,10 +1194,10 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     // Match Rust's PartialEq which compares all fields
     if (!this._xid.equals(other._xid)) return false;
 
-    // Compare resolution methods
+    // Compare resolution methods (set-equal by URI string).
     if (this._resolutionMethods.size !== other._resolutionMethods.size) return false;
-    for (const m of this._resolutionMethods) {
-      if (!other._resolutionMethods.has(m)) return false;
+    for (const key of this._resolutionMethods.keys()) {
+      if (!other._resolutionMethods.has(key)) return false;
     }
 
     // Compare keys
@@ -1145,7 +1243,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   clone(): XIDDocument {
     const doc = new XIDDocument(
       this._xid,
-      new Set(this._resolutionMethods),
+      new Map(this._resolutionMethods),
       new Map(Array.from(this._keys.entries()).map(([k, v]) => [k, v.clone()])),
       new Map(Array.from(this._delegates.entries()).map(([k, v]) => [k, v.clone()])),
       new Map(Array.from(this._services.entries()).map(([k, v]) => [k, v.clone()])),

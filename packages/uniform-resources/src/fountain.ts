@@ -34,25 +34,84 @@ export interface FountainPart {
 }
 
 /**
- * Splits data into fragments of the specified size.
+ * Calculates the quotient of `a` and `b`, rounded toward positive infinity.
+ *
+ * Mirrors Rust `ur-0.4.1/src/fountain.rs::div_ceil`.
  */
-export function splitMessage(message: Uint8Array, fragmentLen: number): Uint8Array[] {
-  const fragments: Uint8Array[] = [];
-  const fragmentCount = Math.ceil(message.length / fragmentLen);
+function divCeil(a: number, b: number): number {
+  const d = Math.floor(a / b);
+  const r = a % b;
+  return r > 0 ? d + 1 : d;
+}
 
-  for (let i = 0; i < fragmentCount; i++) {
-    const start = i * fragmentLen;
-    const end = Math.min(start + fragmentLen, message.length);
-    const fragment = new Uint8Array(fragmentLen);
+/**
+ * Computes the optimal fragment length for a given message length and
+ * maximum fragment length.
+ *
+ * The algorithm:
+ *   fragment_count  = ceil(data_length / max_fragment_length)
+ *   fragment_length = ceil(data_length / fragment_count)
+ *
+ * This produces fragments that are as balanced as possible while still
+ * respecting `maxFragmentLen` as an upper bound on each fragment. For
+ * example, a 10-byte message with `maxFragmentLen = 6` yields a fragment
+ * length of 5 (so two even 5-byte fragments) rather than 6 (one full
+ * fragment plus a 4-byte tail).
+ *
+ * Mirrors Rust `ur-0.4.1/src/fountain.rs::fragment_length` byte-for-byte.
+ */
+export function fragmentLength(dataLength: number, maxFragmentLength: number): number {
+  const fragmentCount = divCeil(dataLength, maxFragmentLength);
+  return divCeil(dataLength, fragmentCount);
+}
 
-    // Copy data and pad with zeros if needed
-    const sourceSlice = message.slice(start, end);
-    fragment.set(sourceSlice);
-
-    fragments.push(fragment);
+/**
+ * Splits `data` into a list of `fragmentLen`-sized chunks, zero-padding
+ * the last chunk if necessary so that every chunk is exactly
+ * `fragmentLen` bytes long.
+ *
+ * Note: `fragmentLen` is the **already-computed** fragment length (see
+ * {@link fragmentLength}), not the user-facing maximum fragment length.
+ *
+ * Mirrors Rust `ur-0.4.1/src/fountain.rs::partition` byte-for-byte.
+ */
+export function partition(data: Uint8Array, fragmentLen: number): Uint8Array[] {
+  if (fragmentLen < 1) {
+    throw new Error("fragment length must be at least 1");
   }
+  const remainder = data.length % fragmentLen;
+  const padding = remainder === 0 ? 0 : fragmentLen - remainder;
+  const padded = new Uint8Array(data.length + padding);
+  padded.set(data);
+  // Trailing bytes are already zero by Uint8Array's default initialization.
 
+  const fragments: Uint8Array[] = [];
+  for (let start = 0; start < padded.length; start += fragmentLen) {
+    fragments.push(padded.slice(start, start + fragmentLen));
+  }
   return fragments;
+}
+
+/**
+ * Convenience: compute the optimal fragment length for `message` given
+ * `maxFragmentLen` and partition the message into that many fragments.
+ *
+ * Equivalent to:
+ * ```ts
+ * partition(message, fragmentLength(message.length, maxFragmentLen))
+ * ```
+ *
+ * This is what {@link FountainEncoder} does internally when constructing
+ * its fragment table.
+ */
+export function splitMessage(message: Uint8Array, maxFragmentLen: number): Uint8Array[] {
+  if (maxFragmentLen < 1) {
+    throw new Error("max fragment length must be at least 1");
+  }
+  if (message.length === 0) {
+    return [];
+  }
+  return partition(message, fragmentLength(message.length, maxFragmentLen));
 }
 
 /**
@@ -144,15 +203,25 @@ export class FountainEncoder {
    *
    * @param message - The message to encode
    * @param maxFragmentLen - Maximum length of each fragment
+   *
+   * @throws if `message` is empty (mirrors Rust `Error::EmptyMessage`).
+   * @throws if `maxFragmentLen < 1` (mirrors Rust `Error::InvalidFragmentLen`).
    */
   constructor(message: Uint8Array, maxFragmentLen: number) {
+    if (message.length === 0) {
+      throw new Error("expected non-empty message");
+    }
     if (maxFragmentLen < 1) {
-      throw new Error("Fragment length must be at least 1");
+      throw new Error("expected positive maximum fragment length");
     }
 
     this.messageLen = message.length;
     this.checksum = crc32(message);
-    this.fragments = splitMessage(message, maxFragmentLen);
+    // Mirrors Rust `Encoder::new`:
+    //   let fragment_length = fragment_length(message.len(), max_fragment_length);
+    //   let fragments = partition(message.to_vec(), fragment_length);
+    const optimalLen = fragmentLength(message.length, maxFragmentLen);
+    this.fragments = partition(message, optimalLen);
   }
 
   /**
@@ -216,54 +285,86 @@ export class FountainDecoder {
   private seqLen: number | null = null;
   private messageLen: number | null = null;
   private checksum: number | null = null;
+  private fragmentLen: number | null = null;
 
   // Storage for received data
   private readonly pureFragments = new Map<number, Uint8Array>();
   private readonly mixedParts = new Map<number, { indices: number[]; data: Uint8Array }>();
+  // Set of already-received `indices` keys (joined by `,`) — Rust uses
+  // `BTreeSet<Vec<usize>>` so two parts producing the same index set are
+  // deduped even when they have different sequence numbers. Mirrors
+  // `ur-0.4.1/src/fountain.rs::Decoder.received`.
+  private readonly receivedIndexSets = new Set<string>();
 
   /**
    * Receives a fountain part and attempts to decode.
    *
    * @param part - The fountain part to receive
-   * @returns true if the message is now complete
+   * @returns `true` if this part contributed new information,
+   *          `false` if it was an exact duplicate of a part already seen
+   *          (or if the decoder was already complete).
+   *
+   * @throws if the part is empty or inconsistent with previously received
+   *   parts. Mirrors Rust `Error::EmptyPart` and `Error::InconsistentPart`.
    */
   receive(part: FountainPart): boolean {
+    // Mirrors Rust `Decoder::receive`:
+    //   if self.complete() { return Ok(false); }
+    if (this.isComplete()) {
+      return false;
+    }
+
+    // Mirrors Rust's eager EmptyPart check.
+    if (part.seqLen === 0 || part.data.length === 0 || part.messageLen === 0) {
+      throw new Error("expected non-empty part");
+    }
+
     // Initialize on first part
     if (this.seqLen === null) {
       this.seqLen = part.seqLen;
       this.messageLen = part.messageLen;
       this.checksum = part.checksum;
-    }
-
-    // Validate consistency
-    if (
+      this.fragmentLen = part.data.length;
+    } else if (
+      // Mirrors Rust `Decoder::validate` exactly: every metadata field
+      // (sequence_count, message_length, checksum, fragment_length) must
+      // match across all received parts.
       part.seqLen !== this.seqLen ||
       part.messageLen !== this.messageLen ||
-      part.checksum !== this.checksum
+      part.checksum !== this.checksum ||
+      part.data.length !== this.fragmentLen
     ) {
-      throw new Error("Inconsistent part metadata");
+      throw new Error("part is inconsistent with previous ones");
     }
 
-    // Determine which fragments this part contains
-    const indices = chooseFragments(part.seqNum, this.seqLen, this.checksum);
+    // Determine which fragments this part contains.
+    const indices = chooseFragments(part.seqNum, this.seqLen, this.checksum ?? 0);
+    // Rust sorts the indices implicitly via `BTreeSet` membership; we
+    // explicitly sort the key so that two parts whose `chooseFragments`
+    // output is the same multiset (regardless of order) collapse to the
+    // same dedup key. In practice `chooseFragments` already produces a
+    // deterministic shuffle, so this is just defensive.
+    const indexSetKey = [...indices].sort((a, b) => a - b).join(",");
+    if (this.receivedIndexSets.has(indexSetKey)) {
+      return false;
+    }
+    this.receivedIndexSets.add(indexSetKey);
 
     if (indices.length === 1) {
-      // Pure fragment (or degree-1 mixed that acts like pure)
+      // Pure fragment (or degree-1 mixed that acts like pure).
       const index = indices[0];
       if (!this.pureFragments.has(index)) {
         this.pureFragments.set(index, part.data);
       }
     } else {
-      // Mixed fragment - store for later reduction
-      if (!this.mixedParts.has(part.seqNum)) {
-        this.mixedParts.set(part.seqNum, { indices, data: part.data });
-      }
+      // Mixed fragment - store for later reduction.
+      this.mixedParts.set(part.seqNum, { indices, data: part.data });
     }
 
-    // Try to reduce mixed parts
+    // Try to reduce mixed parts.
     this.reduceMixedParts();
 
-    return this.isComplete();
+    return true;
   }
 
   /**
@@ -375,7 +476,9 @@ export class FountainDecoder {
     this.seqLen = null;
     this.messageLen = null;
     this.checksum = null;
+    this.fragmentLen = null;
     this.pureFragments.clear();
     this.mixedParts.clear();
+    this.receivedIndexSets.clear();
   }
 }

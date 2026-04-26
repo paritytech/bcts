@@ -140,3 +140,14 @@ export const createTaggedCbor = (encodable: CborTaggedEncodable): Cbor => {
     value: untagged,
   });
 };
+
+/**
+ * Default `taggedCborData()` implementation — `taggedCbor().toData()`.
+ *
+ * Mirrors Rust's default `tagged_cbor_data()` impl on
+ * `CBORTaggedEncodable`. TypeScript interfaces don't carry method bodies,
+ * so this helper plays the role of the Rust trait default; concrete types
+ * call it from their own `taggedCborData()` if they don't need to override.
+ */
+export const taggedCborData = (encodable: CborTaggedEncodable): Uint8Array =>
+  (encodable.taggedCbor() as { toData(): Uint8Array }).toData();

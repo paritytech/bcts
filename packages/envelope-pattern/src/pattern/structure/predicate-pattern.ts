@@ -12,7 +12,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import { matchPattern, type Matcher } from "../matcher";
+import { dispatchPatternToString, matchPattern, type Matcher } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -126,7 +126,7 @@ export class PredicatePattern implements Matcher {
       case "Any":
         return "pred";
       case "Pattern":
-        return `pred(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
+        return `pred(${dispatchPatternToString(this._pattern.pattern)})`;
     }
   }
 

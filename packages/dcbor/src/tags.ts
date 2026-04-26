@@ -5,6 +5,17 @@
  *
  * Standard CBOR tag definitions from the IANA registry.
  *
+ * **Cross-package note (parity with Rust).** `bc-dcbor-rust/src/tags.rs`
+ * intentionally only defines the three tags dcbor itself needs:
+ * `TAG_DATE` (1), `TAG_POSITIVE_BIGNUM` (2), `TAG_NEGATIVE_BIGNUM` (3).
+ * Every other Blockchain Commons tag — UR types, IANA semantic tags, the
+ * Envelope/XID family — lives in the dedicated `bc-tags-rust` crate
+ * (mirrored as `@bcts/tags` in TypeScript). This file additionally
+ * re-exports many of those constants for ergonomic in-package use; they
+ * are duplicate convenience definitions, not authoritative. Prefer
+ * importing from `@bcts/tags` in new code; treat the extras here as
+ * deprecated aliases that may be relocated in a future release.
+ *
  * @module tags
  * @see https://www.iana.org/assignments/cbor-tags/cbor-tags.xhtml
  */

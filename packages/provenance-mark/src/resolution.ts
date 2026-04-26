@@ -223,8 +223,21 @@ export function deserializeDate(res: ProvenanceMarkResolution, data: Uint8Array)
 
 /**
  * Serialize a sequence number into bytes based on the resolution.
+ *
+ * Mirrors Rust's typed `u32` parameter (`generator.rs::serialize_seq`)
+ * — the input must be a non-negative integer in `[0, 2^32-1]` (a u32).
+ * For Low resolution the upper bound additionally narrows to `2^16-1`
+ * (a u16) per Rust `if seq > 0xFFFF`. Earlier revisions of this port
+ * accepted any JS `number` for the 4-byte branch and would silently
+ * truncate values above `2^32-1`; now we raise `ResolutionError` so
+ * the wire output never deviates from Rust's u32 contract.
  */
 export function serializeSeq(res: ProvenanceMarkResolution, seq: number): Uint8Array {
+  if (!Number.isInteger(seq) || seq < 0) {
+    throw new ProvenanceMarkError(ProvenanceMarkErrorType.ResolutionError, undefined, {
+      details: `sequence number must be a non-negative integer, got ${seq}`,
+    });
+  }
   const len = seqBytesLength(res);
   if (len === 2) {
     if (seq > 0xffff) {
@@ -236,14 +249,18 @@ export function serializeSeq(res: ProvenanceMarkResolution, seq: number): Uint8A
     buf[0] = (seq >> 8) & 0xff;
     buf[1] = seq & 0xff;
     return buf;
-  } else {
-    const buf = new Uint8Array(4);
-    buf[0] = (seq >> 24) & 0xff;
-    buf[1] = (seq >> 16) & 0xff;
-    buf[2] = (seq >> 8) & 0xff;
-    buf[3] = seq & 0xff;
-    return buf;
   }
+  if (seq > 0xffffffff) {
+    throw new ProvenanceMarkError(ProvenanceMarkErrorType.ResolutionError, undefined, {
+      details: `sequence number ${seq} out of range for 4-byte format (max ${0xffffffff})`,
+    });
+  }
+  const buf = new Uint8Array(4);
+  buf[0] = (seq >>> 24) & 0xff;
+  buf[1] = (seq >>> 16) & 0xff;
+  buf[2] = (seq >>> 8) & 0xff;
+  buf[3] = seq & 0xff;
+  return buf;
 }
 
 /**

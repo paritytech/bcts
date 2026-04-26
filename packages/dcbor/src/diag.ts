@@ -20,6 +20,7 @@ import type { CborMap } from "./map";
 import { getGlobalTagsStore, type TagsStore } from "./tags-store";
 import type { Tag } from "./tag";
 import type { WalkElement } from "./walk";
+import { flanked } from "./string-util";
 
 /**
  * Options for diagnostic formatting.
@@ -51,9 +52,14 @@ export interface DiagFormatOpts {
 
   /**
    * Tag store to use for tag name resolution.
-   * - TagsStore instance: Use specific store
-   * - 'global': Use global singleton store
-   * - 'none': Don't use any store (show tag numbers)
+   *
+   * Mirrors Rust's `TagsStoreOpt<'a>` enum (`Custom(&'a dyn TagsStoreTrait)`,
+   * `Global`, `None`). The TS port models the same three-way choice as a
+   * string-literal union — semantically equivalent, just stringly-typed.
+   *
+   * - `TagsStore` instance: use this specific store (Rust `Custom`)
+   * - `'global'`: use global singleton store (Rust `Global`)
+   * - `'none'`: don't resolve names; print bare tag numbers (Rust `None`)
    *
    * @default 'global'
    */
@@ -104,7 +110,9 @@ const DEFAULT_OPTS = {
  */
 export function diagnosticOpt(cbor: Cbor, opts?: DiagFormatOpts): string {
   const options = { ...DEFAULT_OPTS, ...opts };
-  return formatDiagnostic(cbor, options);
+  // `summarize` implies `flat` per Rust `DiagFormatOpts::summarize`.
+  if (options.summarize === true) options.flat = true;
+  return diagFormat(diagItem(cbor, options), options);
 }
 
 /**
@@ -202,210 +210,218 @@ export function summary(cbor: Cbor): string {
   return diagnosticOpt(cbor, { summarize: true, flat: true });
 }
 
+// =====================================================================
+// DiagItem AST
+//
+// Mirrors Rust `DiagItem` enum in `bc-dcbor-rust/src/diag.rs`. Building an
+// AST first lets the formatter use Rust-identical multi-line heuristics
+// (`contains_group || total_strings_len > 20 || greatest_strings_len > 20`)
+// rather than ad-hoc thresholds applied at recursion time.
+// =====================================================================
+
+type DiagItem = DiagItemNode | DiagItemGroup;
+
+interface DiagItemNode {
+  kind: "item";
+  value: string;
+}
+
+interface DiagItemGroup {
+  kind: "group";
+  begin: string;
+  end: string;
+  items: DiagItem[];
+  /** True for maps (`{...}`) — items alternate key, value. */
+  isPairs: boolean;
+  /** Optional comment rendered as `   / comment /` after the line. */
+  comment?: string;
+}
+
+const item = (value: string): DiagItemNode => ({ kind: "item", value });
+
+const group = (
+  begin: string,
+  end: string,
+  items: DiagItem[],
+  isPairs: boolean,
+  comment?: string,
+): DiagItemGroup => {
+  const g: DiagItemGroup = { kind: "group", begin, end, items, isPairs };
+  if (comment !== undefined) g.comment = comment;
+  return g;
+};
+
+const isGroup = (i: DiagItem): boolean => i.kind === "group";
+
+const containsGroup = (i: DiagItem): boolean => i.kind === "group" && i.items.some(isGroup);
+
+const totalStringsLen = (i: DiagItem): number =>
+  i.kind === "item" ? i.value.length : i.items.reduce((acc, c) => acc + totalStringsLen(c), 0);
+
+const greatestStringsLen = (i: DiagItem): number =>
+  i.kind === "item"
+    ? i.value.length
+    : i.items.reduce((acc, c) => Math.max(acc, totalStringsLen(c)), 0);
+
 /**
- * Internal recursive formatter.
- *
- * @internal
+ * Mirrors Rust `DiagItem::joined`: alternates between `pairSeparator`
+ * (after even-indexed items — keys) and `itemSeparator` (after odd-indexed
+ * items — values). Falls back to `itemSeparator` for non-pair groups.
  */
-function formatDiagnostic(cbor: Cbor, opts: DiagFormatOpts): string {
+function joined(elements: string[], itemSeparator: string, pairSeparator?: string): string {
+  const sep = pairSeparator ?? itemSeparator;
+  let result = "";
+  const len = elements.length;
+  for (let i = 0; i < len; i++) {
+    result += elements[i];
+    if (i !== len - 1) {
+      result += (i & 1) !== 0 ? itemSeparator : sep;
+    }
+  }
+  return result;
+}
+
+const diagFormat = (i: DiagItem, opts: DiagFormatOpts): string => diagFormatOpt(i, 0, "", opts);
+
+function diagFormatOpt(
+  i: DiagItem,
+  level: number,
+  separator: string,
+  opts: DiagFormatOpts,
+): string {
+  if (i.kind === "item") {
+    return formatLine(level, opts, i.value, separator, undefined);
+  }
+  if (
+    opts.flat !== true &&
+    (containsGroup(i) || totalStringsLen(i) > 20 || greatestStringsLen(i) > 20)
+  ) {
+    return multilineComposition(i, level, separator, opts);
+  }
+  return singleLineComposition(i, level, separator, opts);
+}
+
+function formatLine(
+  level: number,
+  opts: DiagFormatOpts,
+  string: string,
+  separator: string,
+  comment: string | undefined,
+): string {
+  const indent = opts.flat === true ? "" : " ".repeat(level * 4);
+  const result = `${indent}${string}${separator}`;
+  if (comment !== undefined) {
+    return `${result}   / ${comment} /`;
+  }
+  return result;
+}
+
+function singleLineComposition(
+  i: DiagItem,
+  level: number,
+  separator: string,
+  opts: DiagFormatOpts,
+): string {
+  let str: string;
+  let comment: string | undefined;
+  if (i.kind === "item") {
+    str = i.value;
+    comment = undefined;
+  } else {
+    const components = i.items.map((c) =>
+      c.kind === "item" ? c.value : singleLineComposition(c, level + 1, separator, opts),
+    );
+    const pairSeparator = i.isPairs ? ": " : ", ";
+    str = flanked(joined(components, ", ", pairSeparator), i.begin, i.end);
+    comment = i.comment;
+  }
+  return formatLine(level, opts, str, separator, comment);
+}
+
+function multilineComposition(
+  i: DiagItem,
+  level: number,
+  separator: string,
+  opts: DiagFormatOpts,
+): string {
+  if (i.kind === "item") return i.value;
+  const lines: string[] = [];
+  // Opening line: print `begin` (with comment) at this level, never flat.
+  const openOpts: DiagFormatOpts = { ...opts, flat: false };
+  lines.push(formatLine(level, openOpts, i.begin, "", i.comment));
+  for (let idx = 0; idx < i.items.length; idx++) {
+    const sep = idx === i.items.length - 1 ? "" : i.isPairs && (idx & 1) === 0 ? ":" : ",";
+    lines.push(diagFormatOpt(i.items[idx], level + 1, sep, opts));
+  }
+  // Closing line: print `end` at the parent level, with the outer separator.
+  lines.push(formatLine(level, opts, i.end, separator, undefined));
+  return lines.join("\n");
+}
+
+// =====================================================================
+// AST construction (`diag_item` in Rust)
+// =====================================================================
+
+function diagItem(cbor: Cbor, opts: DiagFormatOpts): DiagItem {
   switch (cbor.type) {
     case MajorType.Unsigned:
-      return formatUnsigned(cbor.value);
-
+      return item(formatUnsigned(cbor.value));
     case MajorType.Negative:
-      return formatNegative(cbor.value);
-
+      return item(formatNegative(cbor.value));
     case MajorType.ByteString:
-      return formatBytes(cbor.value);
-
+      return item(formatBytes(cbor.value));
     case MajorType.Text:
-      return formatText(cbor.value);
-
+      return item(formatText(cbor.value));
     case MajorType.Array:
-      return formatArray(cbor.value, opts);
-
+      return item_array(cbor.value, opts);
     case MajorType.Map:
-      return formatMap(cbor.value, opts);
-
+      return item_map(cbor.value, opts);
     case MajorType.Tagged:
-      return formatTagged(cbor.tag, cbor.value, opts);
-
+      return item_tagged(cbor.tag, cbor.value, opts);
     case MajorType.Simple:
-      return formatSimple(cbor.value);
+      return item(formatSimple(cbor.value));
   }
 }
 
-/**
- * Format unsigned integer.
- */
-function formatUnsigned(value: number | bigint): string {
-  return String(value);
+function item_array(items: readonly Cbor[], opts: DiagFormatOpts): DiagItem {
+  return group(
+    "[",
+    "]",
+    items.map((it) => diagItem(it, opts)),
+    false,
+  );
 }
 
-/**
- * Format negative integer.
- */
-function formatNegative(value: number | bigint): string {
-  // Value is stored as magnitude, convert to actual negative value for display
-  if (typeof value === "bigint") {
-    return String(-value - 1n);
-  } else {
-    return String(-value - 1);
-  }
-}
-
-/**
- * Format byte string.
- */
-function formatBytes(value: Uint8Array): string {
-  return `h'${bytesToHex(value)}'`;
-}
-
-/**
- * Format text string.
- */
-function formatText(value: string): string {
-  // Escape special characters
-  const escaped = value
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t");
-  return `"${escaped}"`;
-}
-
-/**
- * Format array.
- */
-function formatArray(items: readonly Cbor[], opts: DiagFormatOpts): string {
-  if (items.length === 0) {
-    return "[]";
-  }
-
-  // Format items first to check their lengths
-  const formatted = items.map((item) => formatDiagnostic(item, opts));
-
-  // Decide between single-line and multi-line based on complexity
-  const shouldUseMultiLine =
-    opts.flat !== true &&
-    (containsComplexStructure(items) ||
-      formatted.join(", ").length > 20 ||
-      formatted.some((s) => s.length > 20));
-
-  if (shouldUseMultiLine) {
-    // Multi-line formatting
-    const indent = opts.indent ?? 0;
-    const indentStr = (opts.indentString ?? "    ").repeat(indent);
-    const itemIndentStr = (opts.indentString ?? "    ").repeat(indent + 1);
-
-    const formattedWithIndent = items.map((item) => {
-      const childOpts = { ...opts, indent: indent + 1 };
-      const itemStr = formatDiagnostic(item, childOpts);
-      return `${itemIndentStr}${itemStr}`;
-    });
-
-    return `[\n${formattedWithIndent.join(",\n")}\n${indentStr}]`;
-  } else {
-    // Single-line formatting
-    return `[${formatted.join(", ")}]`;
-  }
-}
-
-/**
- * Check if items contain complex structures (arrays or maps).
- */
-function containsComplexStructure(items: readonly Cbor[]): boolean {
-  return items.some((item) => item.type === MajorType.Array || item.type === MajorType.Map);
-}
-
-/**
- * Format map.
- */
-function formatMap(map: CborMap, opts: DiagFormatOpts): string {
-  // Extract entries from CborMap or use empty array
+function item_map(map: CborMap, opts: DiagFormatOpts): DiagItem {
   const entries = map?.entriesArray ?? [];
-
-  if (entries.length === 0) {
-    return "{}";
+  const flatItems: DiagItem[] = [];
+  for (const e of entries) {
+    flatItems.push(diagItem(e.key, opts));
+    flatItems.push(diagItem(e.value, opts));
   }
-
-  interface FormattedPair {
-    key: string;
-    value: string;
-  }
-
-  // Format each key-value pair
-  const formattedPairs: FormattedPair[] = entries.map((entry: { key: Cbor; value: Cbor }) => ({
-    key: formatDiagnostic(entry.key, opts),
-    value: formatDiagnostic(entry.value, opts),
-  }));
-
-  // Decide between single-line and multi-line based on complexity
-  const totalLength = formattedPairs.reduce(
-    (sum: number, pair: FormattedPair) => sum + pair.key.length + pair.value.length + 2,
-    0,
-  ); // +2 for ": "
-
-  const shouldUseMultiLine =
-    opts.flat !== true &&
-    (entries.some(
-      (e: { key: Cbor; value: Cbor }) =>
-        e.key.type === MajorType.Array ||
-        e.key.type === MajorType.Map ||
-        e.value.type === MajorType.Array ||
-        e.value.type === MajorType.Map,
-    ) ||
-      totalLength > 40 ||
-      entries.length > 3);
-
-  if (shouldUseMultiLine) {
-    // Multi-line formatting
-    const indent = opts.indent ?? 0;
-    const indentStr = (opts.indentString ?? "    ").repeat(indent);
-    const itemIndentStr = (opts.indentString ?? "    ").repeat(indent + 1);
-
-    const formattedEntries = formattedPairs.map((pair: FormattedPair) => {
-      return `${itemIndentStr}${pair.key}:\n${itemIndentStr}${pair.value}`;
-    });
-
-    return `{\n${formattedEntries.join(",\n")}\n${indentStr}}`;
-  } else {
-    // Single-line formatting
-    const pairs = formattedPairs.map((pair: FormattedPair) => `${pair.key}: ${pair.value}`);
-    return `{${pairs.join(", ")}}`;
-  }
+  return group("{", "}", flatItems, true);
 }
 
-/**
- * Format tagged value.
- *
- * Matches Rust's diag_item() for Tagged case.
- */
-function formatTagged(tag: number | bigint, content: Cbor, opts: DiagFormatOpts): string {
-  // Check for summarizer first (matches Rust's summarization logic)
+function item_tagged(tag: number | bigint, content: Cbor, opts: DiagFormatOpts): DiagItem {
+  // Summarizer path — matches Rust's summarization branch.
   if (opts.summarize === true) {
     const store = resolveTagsStore(opts.tags);
     const summarizer = store?.summarizer(tag);
     if (summarizer !== undefined) {
-      // Call summarizer and handle Result type (matching Rust's match on Result)
       const result = summarizer(content, opts.flat ?? false);
       if (result.ok) {
-        return result.value;
-      } else {
-        // Match Rust's error format: "<error: {}>"
-        const errorMsg =
-          result.error.type === "Custom"
-            ? result.error.message
-            : result.error.type === "WrongTag"
-              ? `expected CBOR tag ${result.error.expected.value}, but got ${result.error.actual.value}`
-              : result.error.type;
-        return `<error: ${errorMsg}>`;
+        return item(result.value);
       }
+      const errorMsg =
+        result.error.type === "Custom"
+          ? result.error.message
+          : result.error.type === "WrongTag"
+            ? `expected CBOR tag ${result.error.expected.value}, but got ${result.error.actual.value}`
+            : result.error.type;
+      return item(`<error: ${errorMsg}>`);
     }
   }
 
-  // Get tag name as comment if annotation is enabled
   let comment: string | undefined;
   if (opts.annotate === true) {
     const store = resolveTagsStore(opts.tags);
@@ -416,25 +432,34 @@ function formatTagged(tag: number | bigint, content: Cbor, opts: DiagFormatOpts)
     }
   }
 
-  // Always use tag number (not name) in the output
-  const tagStr = String(tag);
-
-  // Format content
-  const contentStr = formatDiagnostic(content, opts);
-
-  // Add comment if present
-  const result = `${tagStr}(${contentStr})`;
-  if (comment !== undefined) {
-    return `${result}   / ${comment} /`;
-  }
-  return result;
+  return group(`${String(tag)}(`, ")", [diagItem(content, opts)], false, comment);
 }
 
-/**
- * Format simple value.
- */
+// Primitive formatters reused by both single- and multi-line paths.
+function formatUnsigned(value: number | bigint): string {
+  return String(value);
+}
+
+function formatNegative(value: number | bigint): string {
+  if (typeof value === "bigint") return String(-value - 1n);
+  return String(-value - 1);
+}
+
+function formatBytes(value: Uint8Array): string {
+  return `h'${bytesToHex(value)}'`;
+}
+
+function formatText(value: string): string {
+  const escaped = value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "\\r")
+    .replace(/\t/g, "\\t");
+  return `"${escaped}"`;
+}
+
 function formatSimple(value: Simple): string {
-  // Handle discriminated union
   switch (value.type) {
     case "True":
       return "true";
@@ -448,33 +473,27 @@ function formatSimple(value: Simple): string {
 }
 
 /**
- * Format float value.
+ * Format a finite CBOR float to match Rust `Simple::format!("{:?}", v)`.
+ *
+ * - `1.0` → `"1.0"` (Rust Debug). JS `String(1.0)` gives `"1"` so we append `.0`.
+ * - `1.5` → `"1.5"`.
+ * - `1e100` → `"1e100"` (Rust uses no `+` sign in the exponent). JS uses `1e+100`.
+ * - Specials (NaN / ±Infinity) produce the exact Rust strings.
  */
 function formatFloat(value: number): string {
-  if (isNaN(value)) {
-    return "NaN";
-  } else if (!isFinite(value)) {
-    return value > 0 ? "Infinity" : "-Infinity";
-  } else {
-    // Show decimal point for clarity, unless already in scientific notation
-    const str = String(value);
-    // Scientific notation (contains 'e') or already has decimal point
-    if (str.includes(".") || str.includes("e")) {
-      return str;
-    }
-    return `${str}.0`;
+  if (Number.isNaN(value)) return "NaN";
+  if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
+  let str = String(value);
+  // Strip the JS-only `+` in scientific exponents to match Rust Debug format.
+  str = str.replace(/e\+/, "e");
+  if (!str.includes(".") && !str.includes("e")) {
+    str = `${str}.0`;
   }
+  return str;
 }
 
-/**
- * Resolve tags store from option.
- */
 function resolveTagsStore(tags?: TagsStore | "global" | "none"): TagsStore | undefined {
-  if (tags === "none") {
-    return undefined;
-  } else if (tags === "global" || tags === undefined) {
-    return getGlobalTagsStore();
-  } else {
-    return tags;
-  }
+  if (tags === "none") return undefined;
+  if (tags === "global" || tags === undefined) return getGlobalTagsStore();
+  return tags;
 }

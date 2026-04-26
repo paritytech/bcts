@@ -260,7 +260,58 @@ const compilePatternToCode = (
       code.push({ type: "MatchPredicate", literalIndex: literals.length - 1 });
       break;
     case "Structure":
-      // Structure patterns use MatchStructure
+      // **DP1 fix** (mirrors Rust
+      // `bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/mod.rs`
+      // `ArrayPattern::compile`, lines ~480-510):
+      //
+      // For `ArrayPattern::Elements` whose inner pattern carries any
+      // captures, the simple `MatchStructure(self)` lowering loses
+      // backtracking — each capture only sees the *first* matching
+      // element instead of all of them. The fix is to emit:
+      //
+      //   1. `MatchStructure(ArrayPattern::Any)` — ensure haystack is an array
+      //   2. `PushAxis(ArrayElement)` — descend into each element
+      //   3. <recursive compile of the inner element pattern>
+      //   4. `Pop` — back up to array level
+      //
+      // The recursive compile picks up the inner pattern's own
+      // `compile` impl, which properly emits capture instructions
+      // for each element separately. Non-Elements variants (Any /
+      // Length) and Elements variants without captures still use
+      // the simple MatchStructure path.
+      if (pattern.pattern.type === "Array" && pattern.pattern.pattern.variant === "Elements") {
+        const innerElement = pattern.pattern.pattern.pattern;
+        const innerCaptures: string[] = [];
+        collectPatternCaptureNames(innerElement, innerCaptures);
+        // Skip the PushAxis lowering for Sequence inner patterns
+        // (e.g. `[@a(num), @b(num)]`) — those need positional
+        // element-wise matching that's handled in the runtime by
+        // `arrayPatternPathsWithCaptures`'s `handleSequenceCaptures`
+        // helper. The PushAxis path would apply the entire Sequence
+        // to *every* array element, breaking positional binding.
+        // Rust's runtime dispatcher in `array_pattern/mod.rs`
+        // `paths_with_captures` (lines 560-566) checks the inner
+        // pattern variant before the compile path runs; TS does the
+        // same dispatching inside `arrayPatternPathsWithCaptures`,
+        // so routing Sequence through `MatchStructure(self)` lets
+        // the runtime path own positional captures.
+        const isSequenceInner =
+          innerElement.kind === "Meta" && innerElement.pattern.type === "Sequence";
+        if (innerCaptures.length > 0 && !isSequenceInner) {
+          // Emit array-check + PushAxis + inner + Pop.
+          const arrayCheckIdx = literals.length;
+          literals.push({
+            kind: "Structure",
+            pattern: { type: "Array", pattern: { variant: "Any" } },
+          });
+          code.push({ type: "MatchStructure", literalIndex: arrayCheckIdx });
+          code.push({ type: "PushAxis", axis: "ArrayElement" });
+          compilePatternToCode(innerElement, code, literals, captureNames);
+          code.push({ type: "Pop" });
+          break;
+        }
+      }
+      // Default: emit MatchStructure(self).
       literals.push(pattern);
       code.push({ type: "MatchStructure", literalIndex: literals.length - 1 });
       break;

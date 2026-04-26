@@ -182,10 +182,19 @@ export class PublicKeys
   /**
    * Get string representation.
    *
-   * Format matches Rust: `PublicKeys(<short_reference>)`
+   * Mirrors Rust `Display for PublicKeys`
+   * (`bc-components-rust/src/public_keys.rs:216-225`):
+   *   `PublicKeys(<short_reference>, <signing_public_key>, <encapsulation_public_key>)`
+   *
+   * The earlier short form (`PublicKeys(<short_reference>)`) was
+   * observable in envelope notation as a missing key fingerprint
+   * trail in the GSTP `'sender': XID(...) [ 'key': PublicKeys(...) ]`
+   * format-pin (G1 in `PARITY_OUTSTANDING.md`).
    */
   toString(): string {
-    return `PublicKeys(${this.reference().shortReference("hex")})`;
+    return `PublicKeys(${this.reference().shortReference(
+      "hex",
+    )}, ${this._signingPublicKey.toString()}, ${this._encapsulationPublicKey.toString()})`;
   }
 
   // ============================================================================

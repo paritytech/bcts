@@ -235,6 +235,54 @@ describe("ProvenanceMark Envelope Support", () => {
     });
   });
 
+  // ===========================================================================
+  // Rust parity: tests/mark.rs::test_envelope
+  //
+  // Locks the byte-level fingerprint of the mark envelope produced by:
+  //   - resolution: High
+  //   - passphrase: "test"
+  //   - date:       "2025-10-26"
+  //   - info:       "Info field content"
+  //
+  // Rust expects the mark envelope's `format()` to be exactly
+  // `ProvenanceMark(59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee)`
+  // and the mark debug string to include `date: 2025-10-26` and
+  // `info: "Info field content"`. Together these vectors lock down
+  // generator → mark → envelope parity at the byte level.
+  // ===========================================================================
+  describe("Rust parity: tests/mark.rs::test_envelope", () => {
+    it("matches the Rust test_envelope mark fingerprint and debug string", async () => {
+      const { ProvenanceSeed, parseDate, registerTags } = await import("../src");
+      registerTags();
+
+      const seed = ProvenanceSeed.newWithPassphrase("test");
+      const date = parseDate("2025-10-26");
+
+      const generator = ProvenanceMarkGenerator.newWithSeed(ProvenanceMarkResolution.High, seed);
+      const mark = generator.next(date, cbor("Info field content"));
+
+      // Mark `idHex()` matches Rust's `Display` payload exactly.
+      expect(mark.idHex()).toBe("59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee");
+      expect(mark.toString()).toBe(
+        "ProvenanceMark(59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee)",
+      );
+
+      // Debug string mirrors Rust `tests/mark.rs:1019` byte-for-byte.
+      // The High-resolution wire format stores 6 date bytes (millisecond
+      // precision); a midnight-UTC date round-trips without time, so
+      // `dateToDisplay` emits just `2025-10-26`.
+      expect(mark.toDebugString()).toBe(
+        'ProvenanceMark(key: b16a7cbd178ee0d41cadb0dcefdbe87d6a41c85b41c551134ae8307f9203babc, hash: 59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee, chainID: b16a7cbd178ee0d41cadb0dcefdbe87d6a41c85b41c551134ae8307f9203babc, seq: 0, date: 2025-10-26, info: "Info field content")',
+      );
+
+      // Envelope round-trip preserves the mark exactly.
+      const envelope = mark.intoEnvelope();
+      const restored = ProvenanceMark.fromEnvelope(envelope);
+      expect(restored.equals(mark)).toBe(true);
+      expect(restored.idHex()).toBe(mark.idHex());
+    });
+  });
+
   describe("Envelope error handling", () => {
     it("should throw on invalid envelope for generator", () => {
       const generator = ProvenanceMarkGenerator.newWithPassphrase(

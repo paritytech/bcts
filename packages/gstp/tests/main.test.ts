@@ -3,9 +3,10 @@
  * Ported from gstp-rust/tests/main_tests.rs
  */
 
-import { ARID, PrivateKeys } from "@bcts/components";
+import { ARID, PrivateKeys, keypairUsing } from "@bcts/components";
 import { Expression, Function, type Envelope } from "@bcts/envelope";
 import { XIDDocument } from "@bcts/xid";
+import { makeFakeRandomNumberGenerator } from "@bcts/rand";
 import { Continuation, SealedRequest, SealedResponse, SealedEvent } from "../src";
 
 // Helper function to create a test request ID
@@ -38,6 +39,22 @@ describe("Continuation", () => {
       const continuation = requestContinuation();
       const envelope = continuation.toEnvelope(undefined);
 
+      // G1: byte-shape format pin — mirrors Rust
+      // `gstp-rust/tests/main_tests.rs::test_request_continuation`.
+      // Any regression to the wrap-then-add-assertion shape, the
+      // validUntil tag-1 encoding, or the ARID short description
+      // would surface here.
+      expect(envelope.format()).toBe(
+        [
+          "{",
+          '    "The state of things."',
+          "} [",
+          "    'id': ARID(c66be27d)",
+          "    'validUntil': 2024-07-04T11:12:11Z",
+          "]",
+        ].join("\n"),
+      );
+
       // Parse back the continuation
       const parsedContinuation = Continuation.tryFromEnvelope(
         envelope,
@@ -64,6 +81,19 @@ describe("Continuation", () => {
       const continuation = responseContinuation();
       const envelope = continuation.toEnvelope(undefined);
 
+      // G1: byte-shape format pin — mirrors Rust
+      // `test_response_continuation`. The response continuation has
+      // no ID assertion (only validUntil).
+      expect(envelope.format()).toBe(
+        [
+          "{",
+          '    "The state of things."',
+          "} [",
+          "    'validUntil': 2024-07-04T12:11:11Z",
+          "]",
+        ].join("\n"),
+      );
+
       // Parse back the continuation
       const parsedContinuation = Continuation.tryFromEnvelope(
         envelope,
@@ -86,6 +116,13 @@ describe("Continuation", () => {
 
       const continuation = requestContinuation();
       const envelope = continuation.toEnvelope(senderPublicKeys);
+
+      // G1: byte-shape format pin — mirrors Rust
+      // `test_encrypted_continuation`. Universal format (no
+      // key-fingerprint in this view).
+      expect(envelope.format()).toBe(
+        ["ENCRYPTED [", "    'hasRecipient': SealedMessage", "]"].join("\n"),
+      );
 
       // The envelope's subject should be encrypted (the outer envelope is a node with hasRecipient assertion)
       expect(envelope.subject().isEncrypted()).toBe(true);
@@ -146,20 +183,27 @@ describe("Continuation", () => {
 
 describe("SealedRequest", () => {
   it("should handle full request/response cycle", () => {
-    // Generate keypairs for the server and client
-    const serverPrivateKeys = PrivateKeys.new();
-    const serverPublicKeys = serverPrivateKeys.publicKeys();
+    // Use deterministic RNG so XID/PublicKeys fingerprints match Rust
+    // `gstp-rust/tests/main_tests.rs::test_sealed_request` exactly.
+    // Server is generated first, then client, mirroring Rust's order.
+    const rng = makeFakeRandomNumberGenerator();
+    const [serverPrivateKeys, serverPublicKeys] = keypairUsing(rng);
     const server = XIDDocument.new(
       { type: "privateKeys", privateKeys: serverPrivateKeys, publicKeys: serverPublicKeys },
       { type: "none" },
     );
 
-    const clientPrivateKeys = PrivateKeys.new();
-    const clientPublicKeys = clientPrivateKeys.publicKeys();
+    const [clientPrivateKeys, clientPublicKeys] = keypairUsing(rng);
     const client = XIDDocument.new(
       { type: "privateKeys", privateKeys: clientPrivateKeys, publicKeys: clientPublicKeys },
       { type: "none" },
     );
+
+    // Sanity-check the deterministic XIDs match Rust's expected
+    // values — if these ever drift, the format() pins below will
+    // also fail and may need to be regenerated.
+    expect(server.xid().toHex().slice(0, 8)).toBe("57a4c9d8");
+    expect(client.xid().toHex().slice(0, 8)).toBe("c017c16f");
 
     const now = requestDate();
 
@@ -185,6 +229,42 @@ describe("SealedRequest", () => {
       .withDate(now)
       .withState("The state of things.")
       .withPeerContinuation(serverContinuationEnvelope);
+
+    // G1: byte-shape format pin — examine the *signed-but-not-encrypted*
+    // envelope (no recipient → the inner shape is visible). Mirrors
+    // Rust `test_sealed_request` lines 231-256.
+    const signedClientRequestEnvelope = clientRequest.toEnvelope(
+      clientContinuationValidUntil,
+      clientPrivateKeys,
+      undefined,
+    );
+    expect(signedClientRequestEnvelope.format()).toBe(
+      [
+        "{",
+        "    request(ARID(c66be27d)) [",
+        "        'body': «\"test\"» [",
+        '            ❰"param1"❱: 42',
+        '            ❰"param2"❱: "hello"',
+        "        ]",
+        "        'date': 2024-07-04T11:11:11Z",
+        "        'note': \"This is a test\"",
+        "        'recipientContinuation': ENCRYPTED [",
+        "            'hasRecipient': SealedMessage",
+        "        ]",
+        "        'sender': XID(c017c16f) [",
+        "            'key': PublicKeys(f0d6b2fc, SigningPublicKey(c017c16f, SchnorrPublicKey(92f53715)), EncapsulationPublicKey(57b57f13, X25519PublicKey(57b57f13))) [",
+        "                'allow': 'All'",
+        "            ]",
+        "        ]",
+        "        'senderContinuation': ENCRYPTED [",
+        "            'hasRecipient': SealedMessage",
+        "        ]",
+        "    ]",
+        "} [",
+        "    'signed': Signature",
+        "]",
+      ].join("\n"),
+    );
 
     // Create sealed envelope (signed by client, encrypted to server)
     const sealedClientRequestEnvelope = clientRequest.toEnvelope(
@@ -223,8 +303,39 @@ describe("SealedRequest", () => {
       .withState(responseState)
       .withPeerContinuation(peerContinuation);
 
-    // Create sealed response envelope
+    // G1: byte-shape format pin — the *signed-but-not-encrypted*
+    // server response. Mirrors Rust `test_sealed_request` lines
+    // 352-371.
     const serverContinuationValidUntilNew = new Date(now.getTime() + 60 * 1000);
+    const signedServerResponseEnvelope = serverResponse.toEnvelope(
+      serverContinuationValidUntilNew,
+      serverPrivateKeys,
+      undefined,
+    );
+    expect(signedServerResponseEnvelope.format()).toBe(
+      [
+        "{",
+        "    response(ARID(c66be27d)) [",
+        "        'recipientContinuation': ENCRYPTED [",
+        "            'hasRecipient': SealedMessage",
+        "        ]",
+        "        'result': \"Records retrieved: 100-199\"",
+        "        'sender': XID(57a4c9d8) [",
+        "            'key': PublicKeys(f53a5f32, SigningPublicKey(57a4c9d8, SchnorrPublicKey(d5edb8ba)), EncapsulationPublicKey(822c6133, X25519PublicKey(822c6133))) [",
+        "                'allow': 'All'",
+        "            ]",
+        "        ]",
+        "        'senderContinuation': ENCRYPTED [",
+        "            'hasRecipient': SealedMessage",
+        "        ]",
+        "    ]",
+        "} [",
+        "    'signed': Signature",
+        "]",
+      ].join("\n"),
+    );
+
+    // Create sealed response envelope (signed and encrypted to client)
     const sealedServerResponseEnvelope = serverResponse.toEnvelope(
       serverContinuationValidUntilNew,
       serverPrivateKeys,
@@ -303,6 +414,18 @@ describe("SealedRequest", () => {
       recipients,
     );
 
+    // G1: byte-shape format pin — mirrors Rust
+    // `test_multi_recipient_request_and_response` (request side).
+    // Two `'hasRecipient'` assertions, one per recipient.
+    expect(sealedClientRequestEnvelope.format()).toBe(
+      [
+        "ENCRYPTED [",
+        "    'hasRecipient': SealedMessage",
+        "    'hasRecipient': SealedMessage",
+        "]",
+      ].join("\n"),
+    );
+
     // Both server and auditor can decrypt
     expect(() => {
       sealedClientRequestEnvelope.decryptToRecipient(serverPrivateKeys);
@@ -340,6 +463,17 @@ describe("SealedRequest", () => {
       responseRecipients,
     );
 
+    // G1: byte-shape format pin — mirrors Rust
+    // `test_multi_recipient_request_and_response` (response side).
+    expect(sealedServerResponseEnvelope.format()).toBe(
+      [
+        "ENCRYPTED [",
+        "    'hasRecipient': SealedMessage",
+        "    'hasRecipient': SealedMessage",
+        "]",
+      ].join("\n"),
+    );
+
     // Client parses the response
     const parsedServerResponseClient = SealedResponse.tryFromEncryptedEnvelope(
       sealedServerResponseEnvelope,
@@ -359,20 +493,23 @@ describe("SealedRequest", () => {
 
 describe("SealedEvent", () => {
   it("should handle events", () => {
-    // Generate keypairs for sender and recipient
-    const senderPrivateKeys = PrivateKeys.new();
-    const senderPublicKeys = senderPrivateKeys.publicKeys();
+    // Use deterministic RNG so XID/PublicKeys fingerprints match Rust
+    // `gstp-rust/tests/main_tests.rs::test_sealed_event` exactly.
+    const rng = makeFakeRandomNumberGenerator();
+    const [senderPrivateKeys, senderPublicKeys] = keypairUsing(rng);
     const sender = XIDDocument.new(
       { type: "privateKeys", privateKeys: senderPrivateKeys, publicKeys: senderPublicKeys },
       { type: "none" },
     );
-
-    const recipientPrivateKeys = PrivateKeys.new();
-    const recipientPublicKeys = recipientPrivateKeys.publicKeys();
+    const [recipientPrivateKeys, recipientPublicKeys] = keypairUsing(rng);
     const recipient = XIDDocument.new(
       { type: "privateKeys", privateKeys: recipientPrivateKeys, publicKeys: recipientPublicKeys },
       { type: "none" },
     );
+
+    // Sanity-check the deterministic XIDs (the sender XID matches
+    // Rust's `XID(57a4c9d8)` because the fake RNG is reset).
+    expect(sender.xid().toHex().slice(0, 8)).toBe("57a4c9d8");
 
     const now = requestDate();
 
@@ -380,6 +517,28 @@ describe("SealedEvent", () => {
     const event = SealedEvent.new("test", requestId(), sender)
       .withNote("This is a test")
       .withDate(now);
+
+    // G1: byte-shape format pin — signed-but-not-encrypted event.
+    // Mirrors Rust `test_sealed_event` lines 639-654.
+    const signedEventEnvelope = event.toEnvelope(undefined, senderPrivateKeys, undefined);
+    expect(signedEventEnvelope.format()).toBe(
+      [
+        "{",
+        "    event(ARID(c66be27d)) [",
+        "        'content': \"test\"",
+        "        'date': 2024-07-04T11:11:11Z",
+        "        'note': \"This is a test\"",
+        "        'sender': XID(57a4c9d8) [",
+        "            'key': PublicKeys(f53a5f32, SigningPublicKey(57a4c9d8, SchnorrPublicKey(d5edb8ba)), EncapsulationPublicKey(822c6133, X25519PublicKey(822c6133))) [",
+        "                'allow': 'All'",
+        "            ]",
+        "        ]",
+        "    ]",
+        "} [",
+        "    'signed': Signature",
+        "]",
+      ].join("\n"),
+    );
 
     // Create sealed envelope (signed by sender, encrypted to recipient)
     const sealedEventEnvelope = event.toEnvelope(undefined, senderPrivateKeys, recipient);
@@ -432,6 +591,17 @@ describe("SealedEvent", () => {
       validUntil,
       senderPrivateKeys,
       recipients,
+    );
+
+    // G1: byte-shape format pin — mirrors Rust
+    // `test_sealed_event_multiple_recipients`.
+    expect(sealedEventEnvelope.format()).toBe(
+      [
+        "ENCRYPTED [",
+        "    'hasRecipient': SealedMessage",
+        "    'hasRecipient': SealedMessage",
+        "]",
+      ].join("\n"),
     );
 
     // Both recipients can parse the event

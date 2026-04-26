@@ -61,10 +61,21 @@ const SYMMETRIC_KEY_SIZE = 32;
  * derives a symmetric key using HKDF-SHA256 with "agreement" as the salt.
  * This matches the Rust bc-crypto implementation for cross-platform compatibility.
  *
+ * **Low-order public key handling.** The underlying `@noble/curves` X25519
+ * implementation rejects low-order public keys (where the u-coordinate is
+ * `0`) by throwing `'invalid private or public key received'`. Rust's
+ * `x25519-dalek` (v2.0-rc.2) instead silently produces the all-zero shared
+ * secret. This means an adversarial low-order public key fed in via TS
+ * surfaces as an exception, while in Rust it would yield an HKDF-derived
+ * key from a zero shared secret. For honest inputs both implementations
+ * produce byte-identical results; the TS port's stricter behaviour is a
+ * security improvement, not a parity bug.
+ *
  * @param x25519Private - 32-byte X25519 private key
  * @param x25519Public - 32-byte X25519 public key from the other party
  * @returns 32-byte derived symmetric key
  * @throws {Error} If private key is not 32 bytes or public key is not 32 bytes
+ * @throws {Error} If the public key is low-order (`@noble/curves`-specific guard)
  */
 export function x25519SharedKey(x25519Private: Uint8Array, x25519Public: Uint8Array): Uint8Array {
   if (x25519Private.length !== X25519_PRIVATE_KEY_SIZE) {

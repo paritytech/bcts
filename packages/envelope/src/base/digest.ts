@@ -64,17 +64,26 @@ export function digestFromNumber(num: number): Digest {
   return Digest.fromImage(new Uint8Array(buffer));
 }
 
-// Extend Digest with short() method for compatibility with bc-envelope-rust
+// Extend Digest with short() method for compatibility with bc-envelope-rust.
+//
+// Mirrors Rust `Digest::short_description`
+// (`bc-components-rust/src/digest.rs:133`):
+//
+//     pub fn short_description(&self) -> String { hex::encode(&self.0[0..4]) }
+//
+// — hex-encoded first **4 bytes**, i.e. **8 hex characters**. Earlier
+// revisions of this port returned 7 hex chars, which broke tree-format
+// fixture parity against Rust output.
 declare module "@bcts/components" {
   interface Digest {
-    /// Returns a short 7-character hex representation of the digest.
-    /// This matches the Rust bc-envelope behavior.
+    /// Returns the hex-encoded first 4 bytes of the digest (8 chars),
+    /// matching Rust `Digest::short_description`.
     short(): string;
   }
 }
 
-// Add short() method to Digest prototype
+// Add short() method to Digest prototype.
 Digest.prototype.short = function (this: Digest): string {
-  // Return first 7 hex characters (matches Rust behavior)
-  return this.hex().slice(0, 7);
+  // First 4 bytes → 8 hex chars; matches Rust `short_description`.
+  return this.shortDescription();
 };

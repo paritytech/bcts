@@ -55,8 +55,8 @@ export { ByteString } from "./byte-string";
 export { CborDate } from "./date";
 
 // Tag handling
-export type { Tag } from "./tag";
-export { createTag } from "./tag";
+export type { Tag, TagValue } from "./tag";
+export { createTag, tagWithValue, tagWithStaticName, tagsEqual } from "./tag";
 export { TagsStore, getGlobalTagsStore, withTags, withTagsMut } from "./tags-store";
 export type { TagsStoreTrait } from "./tags-store";
 export { tagsForValues } from "./tags";
@@ -71,6 +71,9 @@ export type { WalkElement, EdgeTypeVariant, Visitor } from "./walk";
 
 // BigNum support
 export { biguintToCbor, bigintToCbor, cborToBiguint, cborToBigint } from "./bignum";
+
+// CBOR-encoding-based array sorting (Rust `prelude.rs::CBORSortable`).
+export { sortArrayByCborEncoding, arraySortable, setSortable, type CBORSortable } from "./sortable";
 
 // Error handling
 export type { Error, Result } from "./error";

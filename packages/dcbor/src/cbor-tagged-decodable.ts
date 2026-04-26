@@ -19,6 +19,7 @@ import { type Cbor, MajorType } from "./cbor";
 import type { CborTagged } from "./cbor-tagged";
 import type { Tag } from "./tag";
 import { CborError } from "./error";
+import { decodeCbor } from "./decode";
 
 /**
  * Interface for types that can be decoded from CBOR with a specific tag.
@@ -158,15 +159,16 @@ export const validateTag = (cbor: Cbor, expectedTags: Tag[]): Tag => {
     throw new CborError({ type: "WrongType" });
   }
 
-  const expectedValues = expectedTags.map((t) => t.value);
   const tagValue = cbor.tag;
-
   const matchingTag = expectedTags.find((t) => t.value === tagValue);
   if (matchingTag === undefined) {
-    const expectedStr = expectedValues.join(" or ");
+    // Mirror Rust's `Error::WrongTag(expected, actual)` — produce the
+    // structured WrongTag variant rather than a stringly-typed Custom
+    // error so callers can branch on `error.type === "WrongTag"`.
     throw new CborError({
-      type: "Custom",
-      message: `Wrong tag: expected ${expectedStr}, got ${tagValue}`,
+      type: "WrongTag",
+      expected: expectedTags[0],
+      actual: { value: tagValue },
     });
   }
 
@@ -186,3 +188,25 @@ export const extractTaggedContent = (cbor: Cbor): Cbor => {
   }
   return cbor.value;
 };
+
+/**
+ * Default `fromTaggedCborData()` implementation — `decodeCbor(data)` then
+ * delegate to the decodable's `fromTaggedCbor()`.
+ *
+ * Mirrors Rust's default `from_tagged_cbor_data` impl on
+ * `CBORTaggedDecodable`.
+ */
+export function fromTaggedCborData<T>(decodable: CborTaggedDecodable<T>, data: Uint8Array): T {
+  return decodable.fromTaggedCbor(decodeCbor(data));
+}
+
+/**
+ * Default `fromUntaggedCborData()` implementation — `decodeCbor(data)`
+ * then delegate to the decodable's `fromUntaggedCbor()`.
+ *
+ * Mirrors Rust's default `from_untagged_cbor_data` impl on
+ * `CBORTaggedDecodable`.
+ */
+export function fromUntaggedCborData<T>(decodable: CborTaggedDecodable<T>, data: Uint8Array): T {
+  return decodable.fromUntaggedCbor(decodeCbor(data));
+}

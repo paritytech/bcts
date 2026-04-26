@@ -60,6 +60,9 @@ export class Secret {
 
   /**
    * Returns a reference to the secret data.
+   *
+   * Mirrors Rust's `Secret::data(&self) -> &[u8]`
+   * (`bc-sskr-rust/src/secret.rs:43`).
    */
   getData(): Uint8Array {
     return this.data;
@@ -67,6 +70,15 @@ export class Secret {
 
   /**
    * Returns the secret data as a Uint8Array.
+   *
+   * Mirrors Rust's `impl AsRef<[u8]> for Secret`
+   * (`bc-sskr-rust/src/secret.rs:46-49`). In Rust, `as_ref()` is
+   * provided via the `AsRef<[u8]>` trait, which lets the `Secret` flow
+   * naturally through any API expecting `impl AsRef<[u8]>`. TypeScript
+   * has no equivalent of that trait, so we expose the same backing
+   * buffer through both {@link getData} (the field accessor) and
+   * `asRef` (the trait-style accessor) for ergonomic parity. Callers
+   * may pick whichever name reads better at the call site.
    */
   asRef(): Uint8Array {
     return this.data;

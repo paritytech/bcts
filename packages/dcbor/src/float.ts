@@ -132,9 +132,20 @@ export const f64CborData = (value: number): Uint8Array => {
 
 /**
  * Validate canonical encoding for f64.
- * Matches Rust's validate_canonical_f64 function.
  *
- * TODO: Check if this is legacy code
+ * Counterpart to Rust's `validate_canonical_f64`. **NOT used by the
+ * decoder.** JavaScript's `Number` type does not preserve NaN payload
+ * bits — every NaN collapses to a single value — which means the
+ * Rust-style `n.to_bits() != 0x7e00` distinction can't be made on a
+ * post-decoded `number`. The TS decoder uses
+ * {@link checkCanonicalEncoding} (re-encode-and-compare) instead, which
+ * handles every same-failure case including non-canonical NaNs because
+ * the canonicalising encoder always re-emits the canonical bit pattern.
+ *
+ * Kept for API parity with Rust's `pub(crate)` helper, plus as a
+ * documentation anchor; not recommended for callers.
+ *
+ * @internal
  */
 export const validateCanonicalF64 = (n: number): void => {
   const f32Bytes = numberToBinary32(n);
@@ -188,9 +199,11 @@ export const f32CborData = (value: number): Uint8Array => {
 
 /**
  * Validate canonical encoding for f32.
- * Matches Rust's validate_canonical_f32 function.
  *
- * TODO: Check if this is legacy code
+ * @see {@link validateCanonicalF64} — same caveat about JS NaN bit
+ *   preservation. The decoder relies on {@link checkCanonicalEncoding}.
+ *
+ * @internal
  */
 export const validateCanonicalF32 = (n: number): void => {
   const f16Bytes = numberToBinary16(n);
@@ -237,9 +250,11 @@ export const f16CborData = (value: number): Uint8Array => {
 
 /**
  * Validate canonical encoding for f16.
- * Matches Rust's validate_canonical_f16 function.
  *
- * TODO: Check if this is legacy code
+ * @see {@link validateCanonicalF64} — same caveat about JS NaN bit
+ *   preservation. The decoder relies on {@link checkCanonicalEncoding}.
+ *
+ * @internal
  */
 export const validateCanonicalF16 = (value: number): void => {
   const n = value;

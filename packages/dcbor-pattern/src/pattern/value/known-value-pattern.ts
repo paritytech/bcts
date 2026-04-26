@@ -10,8 +10,19 @@
 
 import type { Cbor } from "@bcts/dcbor";
 import { tagValue, isTagged, tagContent, asUnsigned } from "@bcts/dcbor";
-import { KnownValue, KNOWN_VALUE_TAG } from "@bcts/known-values";
+import { KnownValue, KNOWN_VALUE_TAG, KNOWN_VALUES } from "@bcts/known-values";
 import type { Path } from "../../format";
+
+/**
+ * Returns true if the given tag value equals the expected tag.
+ * Handles both number and bigint tag values uniformly.
+ */
+const tagEquals = (actual: number | bigint | undefined, expected: number | bigint): boolean => {
+  if (actual === undefined) return false;
+  const actualBig = typeof actual === "bigint" ? actual : BigInt(actual);
+  const expectedBig = typeof expected === "bigint" ? expected : BigInt(expected);
+  return actualBig === expectedBig;
+};
 
 /**
  * Pattern for matching known values in dCBOR.
@@ -56,13 +67,16 @@ export const knownValuePatternRegex = (pattern: RegExp): KnownValuePattern => ({
 
 /**
  * Extracts a KnownValue from a tagged CBOR value if it's a known value (tag 40000).
+ *
+ * The returned KnownValue carries no assigned name. Callers that need the
+ * registered name must look it up via the global `KNOWN_VALUES` registry.
  */
 const extractKnownValue = (haystack: Cbor): KnownValue | undefined => {
   if (!isTagged(haystack)) {
     return undefined;
   }
   const tag = tagValue(haystack);
-  if (tag !== KNOWN_VALUE_TAG.value) {
+  if (!tagEquals(tag, KNOWN_VALUE_TAG.value)) {
     return undefined;
   }
   const content = tagContent(haystack);
@@ -74,6 +88,18 @@ const extractKnownValue = (haystack: Cbor): KnownValue | undefined => {
     return undefined;
   }
   return new KnownValue(value);
+};
+
+/**
+ * Returns the name of the given KnownValue, looking it up in the global
+ * registry first and falling back to the value's own (numeric) name string.
+ *
+ * Mirrors Rust's `KNOWN_VALUES.get().as_ref().name(value)` lookup in
+ * `bc-dcbor-pattern-rust/src/pattern/value/known_value_pattern.rs`.
+ */
+const resolveKnownValueName = (knownValue: KnownValue): string => {
+  const store = KNOWN_VALUES.get();
+  return store.name(knownValue);
 };
 
 /**
@@ -91,12 +117,16 @@ export const knownValuePatternMatches = (pattern: KnownValuePattern, haystack: C
     case "Value":
       return knownValue.valueBigInt() === pattern.value.valueBigInt();
     case "Named": {
-      // Look up the known value by name and compare
-      // KnownValue has a name method that we can compare
-      return knownValue.name() === pattern.name;
+      // Look up the requested name in the global registry. If the registry
+      // doesn't know this name, no match. Otherwise compare numeric values.
+      // Mirrors Rust's behavior in `KnownValuePattern::Name`.
+      const store = KNOWN_VALUES.get();
+      const expected = store.knownValueNamed(pattern.name);
+      if (expected === undefined) return false;
+      return knownValue.valueBigInt() === expected.valueBigInt();
     }
     case "Regex":
-      return pattern.pattern.test(knownValue.name());
+      return pattern.pattern.test(resolveKnownValueName(knownValue));
   }
 };
 

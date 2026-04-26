@@ -25,7 +25,7 @@
 
 import { ARID } from "@bcts/components";
 import { EVENT as TAG_EVENT } from "@bcts/tags";
-import { toTaggedValue } from "@bcts/dcbor";
+import { toTaggedValue, CborDate } from "@bcts/dcbor";
 import { CONTENT, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
@@ -158,7 +158,11 @@ export class Event<T extends EnvelopeEncodableValue>
    * (if present).
    */
   toEnvelope(): Envelope {
-    const taggedArid = toTaggedValue(TAG_EVENT, this._id.untaggedCbor());
+    // Wrap the **tagged** ARID inside the event tag — mirrors Rust
+    // `CBOR::to_tagged_value(TAG_EVENT, event.id)` which dispatches
+    // via `From<ARID> for CBOR` (the tagged form). See request.ts
+    // for the same fix and rationale.
+    const taggedArid = toTaggedValue(TAG_EVENT, this._id.taggedCbor());
     const contentEnvelope = Envelope.new(this._content);
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(CONTENT, contentEnvelope);
@@ -168,7 +172,10 @@ export class Event<T extends EnvelopeEncodableValue>
     }
 
     if (this._date !== undefined) {
-      envelope = envelope.addAssertion(DATE, this._date.toISOString());
+      // Pass a tagged-CBOR Date (tag 1); mirrors Rust
+      // `Envelope::add_assertion(DATE, self.date)`. The earlier port
+      // emitted an ISO 8601 string here.
+      envelope = envelope.addAssertion(DATE, CborDate.fromDatetime(this._date));
     }
 
     return envelope;
@@ -205,10 +212,10 @@ export class Event<T extends EnvelopeEncodableValue>
       throw EnvelopeError.general("Event envelope has invalid subject");
     }
 
-    // Expect the EVENT tag and extract the ARID
+    // The subject is TAG_EVENT(tag_40012(arid_bytes)) — see
+    // `toEnvelope` above. Extract the inner tagged-ARID and decode.
     const aridCbor = leaf.expectTag(TAG_EVENT);
-    const aridBytes = aridCbor.toByteString();
-    const id = ARID.fromData(aridBytes);
+    const id = ARID.fromTaggedCbor(aridCbor);
 
     // Extract optional note
     let note = "";
@@ -221,14 +228,21 @@ export class Event<T extends EnvelopeEncodableValue>
       // Note is optional
     }
 
-    // Extract optional date
+    // Extract optional date — mirrors Rust
+    // `extract_optional_object_for_predicate::<Date>(DATE)` (tag 1).
     let date: Date | undefined;
     try {
       const dateObj = envelope.objectForPredicate(DATE);
       if (dateObj !== undefined) {
-        const dateStr = dateObj.asText();
-        if (dateStr !== undefined) {
-          date = new Date(dateStr);
+        const leaf = dateObj.asLeaf();
+        if (leaf !== undefined) {
+          date = CborDate.fromTaggedCbor(leaf).datetime();
+        } else {
+          // Back-compat shim for legacy ISO-string producers.
+          const dateStr = dateObj.asText();
+          if (dateStr !== undefined) {
+            date = new Date(dateStr);
+          }
         }
       }
     } catch {

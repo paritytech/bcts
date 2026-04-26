@@ -5,17 +5,29 @@
  *
  * @bcts/envelope-pattern - Array pattern matching
  *
- * This is a 1:1 TypeScript port of bc-envelope-pattern-rust array_pattern.rs
+ * This is a 1:1 TypeScript port of bc-envelope-pattern-rust array_pattern.rs.
+ *
+ * Like the Rust port, this is a thin wrapper around `dcbor_pattern::ArrayPattern`
+ * that delegates all matching to dcbor-pattern. The envelope-pattern's
+ * `ArrayPattern` adds nothing beyond extracting the leaf CBOR from the
+ * envelope subject before delegating.
  *
  * @module envelope-pattern/pattern/leaf/array-pattern
  */
 
-import { Envelope } from "@bcts/envelope";
-import { asCborArray, type Cbor } from "@bcts/dcbor";
+import type { Envelope } from "@bcts/envelope";
 import {
+  type ArrayPattern as DCBORArrayPattern,
   type Pattern as DCBORPattern,
-  Interval,
-  patternPathsWithCaptures as dcborPatternPathsWithCaptures,
+  type Interval,
+  arrayPatternAny,
+  arrayPatternMatches,
+  arrayPatternWithElements,
+  arrayPatternWithLength,
+  arrayPatternWithLengthInterval,
+  arrayPatternWithLengthRange,
+  arrayPatternDisplay,
+  arrayPatternEquals,
   patternDisplay as dcborPatternDisplay,
 } from "@bcts/dcbor-pattern";
 import type { Path } from "../../format";
@@ -32,25 +44,16 @@ export function registerArrayPatternFactory(factory: (pattern: ArrayPattern) => 
 }
 
 /**
- * Pattern for matching array values.
+ * Pattern for matching arrays.
  *
- * Corresponds to the Rust `ArrayPattern` enum in array_pattern.rs
- */
-export type ArrayPatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "Interval"; readonly interval: Interval }
-  | { readonly type: "DCBORPattern"; readonly pattern: DCBORPattern }
-  | { readonly type: "WithPatterns"; readonly patterns: Pattern[] };
-
-/**
- * Pattern for matching array values in envelope leaf nodes.
- *
- * Corresponds to the Rust `ArrayPattern` struct in array_pattern.rs
+ * Mirrors Rust `ArrayPattern(dcbor_pattern::ArrayPattern)` from
+ * `bc-envelope-pattern-rust/src/pattern/leaf/array_pattern.rs`. All
+ * matching, display, and equality is delegated to dcbor-pattern.
  */
 export class ArrayPattern implements Matcher {
-  private readonly _pattern: ArrayPatternType;
+  private readonly _pattern: DCBORArrayPattern;
 
-  private constructor(pattern: ArrayPatternType) {
+  private constructor(pattern: DCBORArrayPattern) {
     this._pattern = pattern;
   }
 
@@ -58,124 +61,65 @@ export class ArrayPattern implements Matcher {
    * Creates a new ArrayPattern that matches any array.
    */
   static any(): ArrayPattern {
-    return new ArrayPattern({ type: "Any" });
+    return new ArrayPattern(arrayPatternAny());
   }
 
   /**
    * Creates a new ArrayPattern that matches arrays with a specific length.
    */
   static count(count: number): ArrayPattern {
-    return new ArrayPattern({
-      type: "Interval",
-      interval: Interval.exactly(count),
-    });
+    return new ArrayPattern(arrayPatternWithLength(count));
   }
 
   /**
    * Creates a new ArrayPattern that matches arrays within a length range.
    */
   static interval(min: number, max?: number): ArrayPattern {
-    const interval = max !== undefined ? Interval.from(min, max) : Interval.atLeast(min);
-    return new ArrayPattern({ type: "Interval", interval });
+    return new ArrayPattern(arrayPatternWithLengthRange(min, max));
   }
 
   /**
-   * Creates a new ArrayPattern from a dcbor-pattern.
+   * Creates a new ArrayPattern from a length Interval.
    */
-  static fromDcborPattern(dcborPattern: DCBORPattern): ArrayPattern {
-    return new ArrayPattern({ type: "DCBORPattern", pattern: dcborPattern });
+  static fromInterval(interval: Interval): ArrayPattern {
+    return new ArrayPattern(arrayPatternWithLengthInterval(interval));
   }
 
   /**
-   * Creates a new ArrayPattern with envelope patterns for element matching.
+   * Creates a new ArrayPattern from a top-level dcbor-pattern.
+   *
+   * Mirrors Rust `ArrayPattern::from_dcbor_pattern`, which constructs an
+   * `ArrayPattern::Elements`-style dcbor array pattern.
    */
-  static withPatterns(patterns: Pattern[]): ArrayPattern {
-    return new ArrayPattern({ type: "WithPatterns", patterns });
+  static fromDcborPattern(pattern: DCBORPattern): ArrayPattern {
+    return new ArrayPattern(arrayPatternWithElements(pattern));
   }
 
   /**
-   * Gets the pattern type.
+   * Creates a new ArrayPattern from an existing dcbor-pattern ArrayPattern.
+   *
+   * Mirrors Rust `ArrayPattern::from_dcbor_array_pattern`.
    */
-  get pattern(): ArrayPatternType {
+  static fromDcborArrayPattern(arrayPattern: DCBORArrayPattern): ArrayPattern {
+    return new ArrayPattern(arrayPattern);
+  }
+
+  /**
+   * Returns the underlying dcbor-pattern ArrayPattern.
+   */
+  inner(): DCBORArrayPattern {
     return this._pattern;
   }
 
   pathsWithCaptures(haystack: Envelope): [Path[], Map<string, Path[]>] {
-    // Try to extract CBOR from the envelope
     const cbor = haystack.subject().asLeaf();
     if (cbor === undefined) {
       return [[], new Map<string, Path[]>()];
     }
-
-    // Check if it's an array
-    const array = asCborArray(cbor);
-    if (array === undefined) {
-      return [[], new Map<string, Path[]>()];
+    if (arrayPatternMatches(this._pattern, cbor)) {
+      return [[[haystack]], new Map<string, Path[]>()];
     }
-
-    switch (this._pattern.type) {
-      case "Any":
-        return [[[haystack]], new Map<string, Path[]>()];
-
-      case "Interval": {
-        const length = array.length;
-        if (this._pattern.interval.contains(length)) {
-          return [[[haystack]], new Map<string, Path[]>()];
-        }
-        return [[], new Map<string, Path[]>()];
-      }
-
-      case "DCBORPattern": {
-        // Delegate to dcbor-pattern for matching
-        const { paths: dcborPaths, captures: dcborCaptures } = dcborPatternPathsWithCaptures(
-          this._pattern.pattern,
-          cbor,
-        );
-
-        if (dcborPaths.length > 0) {
-          // Convert dcbor paths to envelope paths
-          const envelopePaths: Path[] = dcborPaths.map((dcborPath: Cbor[]) => {
-            const envPath: Path = [haystack];
-            // Skip the first element (root) and convert rest to envelopes
-            for (let i = 1; i < dcborPath.length; i++) {
-              const elem = dcborPath[i];
-              if (elem !== undefined) {
-                envPath.push(Envelope.newLeaf(elem));
-              }
-            }
-            return envPath;
-          });
-
-          // Convert dcbor captures to envelope captures
-          const envelopeCaptures = new Map<string, Path[]>();
-          for (const [name, capturePaths] of dcborCaptures) {
-            const envCapturePaths: Path[] = capturePaths.map((dcborPath: Cbor[]) => {
-              const envPath: Path = [haystack];
-              for (let i = 1; i < dcborPath.length; i++) {
-                const elem = dcborPath[i];
-                if (elem !== undefined) {
-                  envPath.push(Envelope.newLeaf(elem));
-                }
-              }
-              return envPath;
-            });
-            envelopeCaptures.set(name, envCapturePaths);
-          }
-
-          return [envelopePaths, envelopeCaptures];
-        }
-
-        return [[], new Map<string, Path[]>()];
-      }
-
-      case "WithPatterns":
-        // For envelope patterns, match if array length equals patterns count
-        // Full element-by-element matching would require additional implementation
-        if (array.length === this._pattern.patterns.length) {
-          return [[[haystack]], new Map<string, Path[]>()];
-        }
-        return [[], new Map<string, Path[]>()];
-    }
+    return [[], new Map<string, Path[]>()];
   }
 
   paths(haystack: Envelope): Path[] {
@@ -198,80 +142,34 @@ export class ArrayPattern implements Matcher {
   }
 
   toString(): string {
-    switch (this._pattern.type) {
-      case "Any":
-        return "[*]";
-      case "Interval":
-        return `[{${this._pattern.interval.toString()}}]`;
-      case "DCBORPattern":
-        return dcborPatternDisplay(this._pattern.pattern);
-      case "WithPatterns":
-        return `[${this._pattern.patterns.map(String).join(", ")}]`;
-    }
+    return arrayPatternDisplay(this._pattern, dcborPatternDisplay);
   }
 
   /**
-   * Equality comparison.
+   * Equality comparison. Delegates to dcbor-pattern's structural equality
+   * with a display-string fallback for pattern-equality (mirrors Rust's
+   * `Hash` impl that hashes the display, since dcbor `ArrayPattern`
+   * itself does not derive `Hash`).
    */
   equals(other: ArrayPattern): boolean {
-    if (this._pattern.type !== other._pattern.type) {
-      return false;
-    }
-    switch (this._pattern.type) {
-      case "Any":
-        return true;
-      case "Interval":
-        return this._pattern.interval.equals(
-          (other._pattern as { type: "Interval"; interval: Interval }).interval,
-        );
-      case "DCBORPattern":
-        // Compare using display representation
-        return (
-          dcborPatternDisplay(this._pattern.pattern) ===
-          dcborPatternDisplay(
-            (other._pattern as { type: "DCBORPattern"; pattern: DCBORPattern }).pattern,
-          )
-        );
-      case "WithPatterns": {
-        const otherPatterns = (other._pattern as { type: "WithPatterns"; patterns: Pattern[] })
-          .patterns;
-        if (this._pattern.patterns.length !== otherPatterns.length) return false;
-        for (let i = 0; i < this._pattern.patterns.length; i++) {
-          if (this._pattern.patterns[i] !== otherPatterns[i]) return false;
-        }
-        return true;
-      }
-    }
+    return arrayPatternEquals(
+      this._pattern,
+      other._pattern,
+      (a, b) => dcborPatternDisplay(a) === dcborPatternDisplay(b),
+    );
   }
 
   /**
-   * Hash code for use in Maps/Sets.
+   * Hash code for use in Maps/Sets. Mirrors Rust's
+   * "hash the string representation" approach.
    */
   hashCode(): number {
-    switch (this._pattern.type) {
-      case "Any":
-        return 0;
-      case "Interval":
-        // Simple hash based on min/max
-        return this._pattern.interval.min() * 31 + (this._pattern.interval.max() ?? 0);
-      case "DCBORPattern":
-        // Simple hash based on display string
-        return simpleStringHash(dcborPatternDisplay(this._pattern.pattern));
-      case "WithPatterns":
-        return this._pattern.patterns.length;
+    let hash = 0;
+    const str = this.toString();
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash = hash & hash;
     }
+    return hash;
   }
-}
-
-/**
- * Simple string hash function for hashCode implementations.
- */
-function simpleStringHash(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return hash;
 }

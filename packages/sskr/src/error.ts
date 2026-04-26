@@ -85,4 +85,12 @@ export class SSKRError extends Error {
   }
 }
 
+/**
+ * Mirrors Rust's `Result<T, Error>` (`bc-sskr-rust/src/error.rs:54`).
+ *
+ * The TypeScript port surfaces failures by throwing {@link SSKRError}
+ * rather than returning a sum type, so this alias is a no-op
+ * (`SSKRResult<T>` ≡ `T`). It is kept so signatures published in
+ * `@bcts/sskr` remain visually parallel to their Rust counterparts.
+ */
 export type SSKRResult<T> = T;

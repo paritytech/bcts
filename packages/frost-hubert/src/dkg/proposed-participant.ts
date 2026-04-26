@@ -95,12 +95,41 @@ export class DkgProposedParticipant {
 
   /**
    * Compare participants by XID for sorting.
+   *
+   * Mirrors Rust `PartialOrd::partial_cmp` which uses
+   * `self.xid().cmp(&other.xid())` — i.e. the underlying 32-byte XID
+   * data is compared lexicographically (`Vec<u8>` ordering). The
+   * earlier port used `xid.toString().localeCompare(...)`, which (a)
+   * compares the UR-encoded base32-ish string, not the bytes, and (b)
+   * is locale-aware. Sorting on UR strings differs from the byte
+   * order whenever the underlying bytes contain values ≥ 0x80, so
+   * Rust and TS would assign different FROST identifiers to the same
+   * participant set — producing different secret shares.
    */
   compareTo(other: DkgProposedParticipant): number {
-    const thisXid = this.xid().toString();
-    const otherXid = other.xid().toString();
-    return thisXid.localeCompare(otherXid);
+    return compareXidBytes(this.xid().toData(), other.xid().toData());
   }
+}
+
+/**
+ * Lexicographic byte compare matching Rust's `Vec<u8>::cmp` /
+ * `XID::cmp`. Exported so the cmd-tree call sites (round1 / finalize)
+ * can use the same comparator when they sort deduplicated XID lists.
+ *
+ * `XID` is exactly 32 bytes so this only ever compares two equal-length
+ * inputs; the length-tiebreak branch mirrors the generic `Ord` impl on
+ * `Vec<u8>` and is included for correctness if ever applied to other
+ * byte sequences.
+ *
+ * @internal
+ */
+export function compareXidBytes(a: Uint8Array, b: Uint8Array): number {
+  const minLen = Math.min(a.length, b.length);
+  for (let i = 0; i < minLen; i++) {
+    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+  }
+  if (a.length !== b.length) return a.length < b.length ? -1 : 1;
+  return 0;
 }
 
 /**

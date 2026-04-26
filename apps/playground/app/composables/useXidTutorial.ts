@@ -101,7 +101,12 @@ export function useXidTutorial() {
   });
   const resolutionMethodList = computed(() => {
     void docVersion.value;
-    return activeDoc.value ? Array.from(activeDoc.value.resolutionMethods()) : [];
+    // `XIDDocument.resolutionMethods()` now returns `Set<URI>` (mirrors
+    // Rust). The composable surfaces a string view for the existing
+    // template bindings.
+    return activeDoc.value
+      ? Array.from(activeDoc.value.resolutionMethods()).map((uri) => uri.toString())
+      : [];
   });
   const attachmentList = computed(() => {
     void docVersion.value;

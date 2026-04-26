@@ -51,13 +51,41 @@ export const notPatternPaths = (pattern: NotPattern, haystack: Cbor): Path[] => 
 /**
  * Check if a pattern is complex for display purposes.
  * Complex patterns need parentheses when inside a NOT pattern.
+ *
+ * Mirrors Rust `Matcher::is_complex` cascading dispatch
+ * (`bc-dcbor-pattern-rust/src/pattern/meta/{and,or,not,sequence,
+ * capture,repeat}_pattern.rs`):
+ *
+ * - **AndPattern / OrPattern / SequencePattern**: complex iff
+ *   `patterns.len() > 1` *or* any inner pattern is itself complex.
+ * - **NotPattern**: always complex.
+ * - **CapturePattern**: delegates to its inner pattern's `is_complex`.
+ * - **AnyPattern / RepeatPattern / value patterns / structure
+ *   patterns**: always non-complex.
+ *
+ * Earlier this port hardcoded `["And", "Or", "Not", "Sequence"]` as
+ * complex, which classified `and(x)` (single-element And) as complex
+ * even though Rust says it's not — observable in `!and(x)` formatting.
  */
 const isComplex = (pattern: Pattern): boolean => {
-  if (pattern.kind === "Meta") {
-    // AND, OR, NOT, Sequence are complex
-    return ["And", "Or", "Not", "Sequence"].includes(pattern.pattern.type);
+  if (pattern.kind !== "Meta") return false;
+  const meta = pattern.pattern; // discriminated union { type, pattern }
+  switch (meta.type) {
+    case "Not":
+      return true;
+    case "And":
+    case "Or":
+    case "Sequence": {
+      const inner = meta.pattern.patterns;
+      return inner.length > 1 || inner.some((p) => isComplex(p));
+    }
+    case "Capture":
+      return isComplex(meta.pattern.pattern);
+    case "Any":
+    case "Repeat":
+    case "Search":
+      return false;
   }
-  return false;
 };
 
 /**

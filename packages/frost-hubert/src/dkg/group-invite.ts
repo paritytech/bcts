@@ -355,7 +355,14 @@ export class DkgInvitation {
       recipientPrivateKeys,
     );
 
-    if (expectedSender !== undefined && sealedRequest.sender().xid() !== expectedSender.xid()) {
+    // Rust `group_invite.rs:275-279` uses `!=` on `XID`, which is the
+    // derived `PartialEq` (byte-wise compare on the 32-byte ARID). TS
+    // `!==` is reference identity — two distinct XID instances with
+    // the same bytes would fail. Compare via hex equality instead.
+    if (
+      expectedSender !== undefined &&
+      !sealedRequest.sender().xid().equals(expectedSender.xid())
+    ) {
       throw new Error("Invite sender does not match expected sender");
     }
 
@@ -391,7 +398,10 @@ export class DkgInvitation {
         XIDVerifySignature.Inception,
       );
 
-      if (xidDocument.xid() !== recipientXid) {
+      // Rust `group_invite.rs` compares via `XID::PartialEq` (byte-wise).
+      // TS reference identity would never match for two distinct
+      // `XID` instances representing the same identity.
+      if (!xidDocument.xid().equals(recipientXid)) {
         continue;
       }
 

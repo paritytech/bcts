@@ -9,11 +9,28 @@
  * eliminating the need for local state storage and enhancing security
  * for devices with limited storage or requiring distributed state management.
  *
- * Ported from gstp-rust/src/continuation.rs
+ * Ported from gstp-rust/src/continuation.rs.
+ *
+ * Wire shape — mirrors Rust:
+ * ```
+ * {
+ *     <state envelope>
+ * } [
+ *     'id': ARID(...)
+ *     'validUntil': Date(...)        ← CBOR tag 1, not ISO 8601 text
+ * ]
+ * ```
+ *
+ * The `state` envelope is **wrapped** before assertions are attached,
+ * matching Rust `self.state.wrap().add_optional_assertion(...)`. The
+ * earlier port attached the assertions directly to the un-wrapped state,
+ * producing a different digest tree.
  */
 
 import { ARID, type Encrypter, type PrivateKeys } from "@bcts/components";
 import { Envelope, type EnvelopeEncodableValue } from "@bcts/envelope";
+import { CborDate } from "@bcts/dcbor";
+import type { Cbor } from "@bcts/dcbor";
 import { ID, VALID_UNTIL } from "@bcts/known-values";
 import { GstpError } from "./error";
 
@@ -132,8 +149,10 @@ export class Continuation {
   /**
    * Checks if the continuation is valid at the given time.
    *
-   * If no valid_until is set, always returns true.
-   * If no time is provided, always returns true.
+   * Mirrors Rust `is_valid_date(now)`: at the exact `valid_until`
+   * instant, the continuation is **expired** (returns `false`). The
+   * earlier port used `<=` here, which differed from Rust by one
+   * millisecond at the boundary.
    *
    * @param now - The time to check against, or undefined to skip time validation
    * @returns true if the continuation is valid at the given time
@@ -145,7 +164,8 @@ export class Continuation {
     if (now === undefined) {
       return true;
     }
-    return now.getTime() <= this._validUntil.getTime();
+    // Strict `<` mirrors Rust `valid_until > now`.
+    return now.getTime() < this._validUntil.getTime();
   }
 
   /**
@@ -181,25 +201,33 @@ export class Continuation {
   /**
    * Converts the continuation to an envelope.
    *
-   * If a recipient is provided, the envelope is encrypted to that recipient.
+   * Mirrors Rust `Continuation::to_envelope`:
+   *
+   * ```rust
+   * self.state.wrap()
+   *     .add_optional_assertion(ID, self.valid_id)
+   *     .add_optional_assertion(VALID_UNTIL, self.valid_until)
+   * ```
+   *
+   * The state is wrapped first; the optional assertions then live on
+   * the wrap node. `valid_until` is encoded as a CBOR-tagged Date
+   * (tag 1) — never as a plain ISO 8601 string.
    *
    * @param recipient - Optional recipient to encrypt the envelope to
    * @returns The continuation as an envelope
    */
   toEnvelope(recipient?: Encrypter): Envelope {
-    let envelope = this._state;
+    let envelope = this._state.wrap();
 
-    // Add ID assertion if set
     if (this._validId !== undefined) {
       envelope = envelope.addAssertion(ID, this._validId);
     }
 
-    // Add valid_until assertion if set
     if (this._validUntil !== undefined) {
-      envelope = envelope.addAssertion(VALID_UNTIL, this._validUntil.toISOString());
+      // Pass a tagged-CBOR Date; mirrors Rust `Date → CBOR` (tag 1).
+      envelope = envelope.addAssertion(VALID_UNTIL, CborDate.fromDatetime(this._validUntil));
     }
 
-    // Encrypt to recipient if provided
     if (recipient !== undefined) {
       envelope = envelope.encryptToRecipients([recipient]);
     }
@@ -209,6 +237,14 @@ export class Continuation {
 
   /**
    * Parses a continuation from an envelope.
+   *
+   * Mirrors Rust `Continuation::try_from_envelope`:
+   *
+   * ```rust
+   * state: envelope.try_unwrap()?,                                     // unwrap
+   * valid_id: envelope.extract_optional_object_for_predicate(ID)?,
+   * valid_until: envelope.extract_optional_object_for_predicate(VALID_UNTIL)?,
+   * ```
    *
    * @param encryptedEnvelope - The envelope to parse
    * @param expectedId - Optional ID to validate against
@@ -223,8 +259,15 @@ export class Continuation {
     now?: Date,
     recipient?: PrivateKeys,
   ): Continuation {
-    // Decrypt if recipient is provided
-    let envelope = encryptedEnvelope;
+    type EnvelopeExt = Envelope & {
+      decryptToRecipient(p: PrivateKeys): Envelope;
+      tryUnwrap(): Envelope;
+      objectForPredicate(p: unknown): Envelope;
+      optionalObjectForPredicate(p: unknown): Envelope | undefined;
+      asLeaf(): Cbor | undefined;
+    };
+
+    let envelope = encryptedEnvelope as EnvelopeExt;
     if (recipient !== undefined) {
       try {
         envelope = encryptedEnvelope.decryptToRecipient(recipient);
@@ -233,47 +276,49 @@ export class Continuation {
       }
     }
 
-    // Extract the state (the subject of the envelope)
-    const state = envelope.subject();
+    // Mirrors Rust `envelope.try_unwrap()?` — peel off the
+    // `state.wrap()` introduced in `to_envelope`.
+    let state: Envelope;
+    try {
+      state = envelope.tryUnwrap();
+    } catch (e) {
+      throw GstpError.envelope(e instanceof Error ? e : new Error(String(e)));
+    }
 
-    // Extract optional ID
     let validId: ARID | undefined;
-    try {
-      const idObj = envelope.objectForPredicate(ID);
-      if (idObj !== undefined) {
-        // The ID is stored as a leaf envelope containing the ARID's tagged CBOR
-        const leafCbor = idObj.asLeaf();
-        if (leafCbor !== undefined) {
-          validId = ARID.fromTaggedCborData(leafCbor.toData());
+    const idObj = envelope.optionalObjectForPredicate(ID) as EnvelopeExt | undefined;
+    if (idObj !== undefined) {
+      const leafCbor = idObj.asLeaf();
+      if (leafCbor !== undefined) {
+        try {
+          validId = ARID.fromTaggedCbor(leafCbor);
+        } catch (e) {
+          throw GstpError.envelope(e instanceof Error ? e : new Error(String(e)));
         }
       }
-    } catch {
-      // ID is optional
     }
 
-    // Extract optional valid_until
     let validUntil: Date | undefined;
-    try {
-      const validUntilObj = envelope.objectForPredicate(VALID_UNTIL);
-      if (validUntilObj !== undefined) {
-        const dateStr = validUntilObj.asText();
-        if (dateStr !== undefined) {
-          validUntil = new Date(dateStr);
+    const validUntilObj = envelope.optionalObjectForPredicate(VALID_UNTIL) as
+      | EnvelopeExt
+      | undefined;
+    if (validUntilObj !== undefined) {
+      const leafCbor = validUntilObj.asLeaf();
+      if (leafCbor !== undefined) {
+        try {
+          validUntil = CborDate.fromTaggedCbor(leafCbor).datetime();
+        } catch (e) {
+          throw GstpError.envelope(e instanceof Error ? e : new Error(String(e)));
         }
       }
-    } catch {
-      // valid_until is optional
     }
 
-    // Create the continuation
     const continuation = new Continuation(state, validId, validUntil);
 
-    // Validate date
     if (!continuation.isValidDate(now)) {
       throw GstpError.continuationExpired();
     }
 
-    // Validate ID
     if (!continuation.isValidId(expectedId)) {
       throw GstpError.continuationIdInvalid();
     }
@@ -290,12 +335,10 @@ export class Continuation {
    * @returns true if the continuations are equal
    */
   equals(other: Continuation): boolean {
-    // Compare state envelopes by their digests
     if (!this._state.digest().equals(other._state.digest())) {
       return false;
     }
 
-    // Compare IDs
     if (this._validId === undefined && other._validId === undefined) {
       // Both undefined, equal
     } else if (this._validId !== undefined && other._validId !== undefined) {
@@ -303,11 +346,9 @@ export class Continuation {
         return false;
       }
     } else {
-      // One is undefined, one is not
       return false;
     }
 
-    // Compare valid_until
     if (this._validUntil === undefined && other._validUntil === undefined) {
       // Both undefined, equal
     } else if (this._validUntil !== undefined && other._validUntil !== undefined) {
@@ -315,7 +356,6 @@ export class Continuation {
         return false;
       }
     } else {
-      // One is undefined, one is not
       return false;
     }
 

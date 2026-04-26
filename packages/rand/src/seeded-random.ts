@@ -89,16 +89,6 @@ export class SeededRandomNumberGenerator implements RandomNumberGenerator {
   }
 
   /**
-   * Creates a new seeded random number generator from a seed array.
-   * Convenience method that accepts numbers and converts to bigints.
-   *
-   * @param seed - Array of 4 64-bit unsigned integers
-   */
-  static fromSeed(seed: [bigint, bigint, bigint, bigint]): SeededRandomNumberGenerator {
-    return new SeededRandomNumberGenerator(seed);
-  }
-
-  /**
    * Returns the next random 64-bit unsigned integer as a bigint.
    */
   nextU64(): bigint {
@@ -148,9 +138,10 @@ export class SeededRandomNumberGenerator implements RandomNumberGenerator {
 }
 
 /**
- * The standard test seed used across all Blockchain Commons implementations.
+ * Standard test seed for `makeFakeRandomNumberGenerator`. Module-private to
+ * mirror Rust where the equivalent constant lives inside `mod tests`.
  */
-export const TEST_SEED: [bigint, bigint, bigint, bigint] = [
+const TEST_SEED: [bigint, bigint, bigint, bigint] = [
   17295166580085024720n,
   422929670265678780n,
   5577237070365765850n,

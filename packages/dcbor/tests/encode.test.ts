@@ -251,6 +251,29 @@ describe("encode tests", () => {
         "1b001fffffffffffff",
       );
     });
+
+    // Boundary tests covering values that don't fit in `Number` safely.
+    test("encode 2^63 (BigInt)", () => {
+      testCborCodable(
+        9223372036854775808n,
+        "unsigned(9223372036854775808)",
+        "9223372036854775808",
+        "1b8000000000000000",
+      );
+    });
+
+    test("encode 2^64 - 1 = u64::MAX (BigInt)", () => {
+      testCborCodable(
+        18446744073709551615n,
+        "unsigned(18446744073709551615)",
+        "18446744073709551615",
+        "1bffffffffffffffff",
+      );
+    });
+
+    test("encode 2^32 boundary", () => {
+      testCborCodable(0xffffffffn, "unsigned(4294967295)", "4294967295", "1affffffff");
+    });
   });
 
   // Test 2: encode_signed
@@ -308,6 +331,25 @@ describe("encode tests", () => {
         "unsigned(9007199254740991)",
         "9007199254740991",
         "1b001fffffffffffff",
+      );
+    });
+
+    // Boundary tests for negative values that don't fit in `number` safely.
+    test("encode -(2^63) - 1 (BigInt, beyond i64::MIN)", () => {
+      testCborCodable(
+        -9223372036854775809n,
+        "negative(-9223372036854775809)",
+        "-9223372036854775809",
+        "3b8000000000000000",
+      );
+    });
+
+    test("encode -(2^64) (BigInt, smallest CBOR negative integer)", () => {
+      testCborCodable(
+        -18446744073709551616n,
+        "negative(-18446744073709551616)",
+        "-18446744073709551616",
+        "3bffffffffffffffff",
       );
     });
   });
@@ -798,5 +840,43 @@ describe("encode tests", () => {
     expect(() => decodeCbor(hexToBytes("fb7ff0000000000000"))).toThrow();
     expect(() => decodeCbor(hexToBytes("faff800000"))).toThrow();
     expect(() => decodeCbor(hexToBytes("fbfff0000000000000"))).toThrow();
+  });
+
+  // Tag 258 (set) decode parity — mirrors Rust `Set::insert_next`
+  // semantics: a tag-258 wire encoding must already be in strict ascending
+  // CBOR-byte order with no duplicates.
+  describe("tag 258 (set) decode", () => {
+    test("decodes a canonically-ordered tag-258 array as a set", async () => {
+      const { CborSet } = await import("../src/set");
+      // d9 01 02      tag(258)
+      //   83          array(3)
+      //     01        unsigned(1)
+      //     02        unsigned(2)
+      //     03        unsigned(3)
+      const data = hexToBytes("d9010283010203");
+      const c = decodeCbor(data);
+      const set = CborSet.fromTaggedCborStatic(c);
+      expect(set.size).toBe(3);
+      expect(set.contains(1)).toBe(true);
+      expect(set.contains(2)).toBe(true);
+      expect(set.contains(3)).toBe(true);
+    });
+
+    test("rejects misordered inner-array elements", async () => {
+      const { CborSet } = await import("../src/set");
+      // tag(258) array(3) [3, 1, 2] — `3` would precede `1`/`2` in canonical
+      // CBOR-byte order, violating Set::insert_next.
+      const data = hexToBytes("d9010283030102");
+      const c = decodeCbor(data);
+      expect(() => CborSet.fromTaggedCborStatic(c)).toThrow();
+    });
+
+    test("rejects duplicate inner-array elements", async () => {
+      const { CborSet } = await import("../src/set");
+      // tag(258) array(3) [1, 1, 2]
+      const data = hexToBytes("d9010283010102");
+      const c = decodeCbor(data);
+      expect(() => CborSet.fromTaggedCborStatic(c)).toThrow();
+    });
   });
 });

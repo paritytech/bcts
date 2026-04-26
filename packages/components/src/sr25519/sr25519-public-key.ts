@@ -15,7 +15,8 @@
 
 import * as sr25519 from "@scure/sr25519";
 import { SR25519_PUBLIC_KEY_SIZE, SR25519_DEFAULT_CONTEXT } from "./sr25519-private-key.js";
-import { bytesToHex } from "../utils.js";
+import { bytesToHex, bytesEqual } from "../utils.js";
+import { CryptoError } from "../error.js";
 
 /**
  * Sr25519PublicKey - Public key for Schnorr signatures over Ristretto25519.
@@ -96,19 +97,24 @@ export class Sr25519PublicKey {
   /**
    * Verify a signature using a custom context.
    *
-   * Note: The @scure/sr25519 library uses a hardcoded "substrate" context.
-   * Custom context is accepted for API compatibility but only signatures created
-   * with "substrate" context will verify correctly.
+   * The underlying `@scure/sr25519` library hard-codes the `"substrate"`
+   * signing context. To avoid silently accepting/rejecting cross-platform
+   * signatures, this method throws when called with any other context —
+   * matching the symmetric guard in `Sr25519PrivateKey.signWithContext`.
    *
    * @param signature - The 64-byte signature
    * @param message - The message that was signed
-   * @param _context - The signing context (only "substrate" is supported)
+   * @param context - The signing context (must equal `SR25519_DEFAULT_CONTEXT`)
    * @returns true if the signature is valid
+   * @throws CryptoError if `context` is not the substrate default
    */
-  verifyWithContext(signature: Uint8Array, message: Uint8Array, _context: Uint8Array): boolean {
+  verifyWithContext(signature: Uint8Array, message: Uint8Array, context: Uint8Array): boolean {
+    if (!bytesEqual(context, SR25519_DEFAULT_CONTEXT)) {
+      throw CryptoError.cryptoOperation(
+        "Sr25519: only the default substrate context is supported by the underlying library",
+      );
+    }
     try {
-      // Note: @scure/sr25519 verify() uses hardcoded "substrate" context
-      // Arguments: verify(message, signature, publicKey)
       return sr25519.verify(message, signature, this._data);
     } catch {
       return false;

@@ -103,17 +103,23 @@ describe("Sr25519PrivateKey", () => {
       expect(isValid).toBe(false);
     });
 
-    it("should sign with custom context", () => {
+    it("should reject non-substrate context (matches Rust until a context-aware sr25519 lib is wired in)", () => {
       const privateKey = Sr25519PrivateKey.random();
       const publicKey = privateKey.publicKey();
       const message = new TextEncoder().encode("Hello, Sr25519!");
       const customContext = new TextEncoder().encode("my-custom-context");
 
-      const signature = privateKey.signWithContext(message, customContext);
-      expect(signature.length).toBe(SR25519_SIGNATURE_SIZE);
+      // Underlying `@scure/sr25519` hard-codes "substrate"; per parity guard
+      // we throw on every other context to avoid silently producing
+      // wrong-context signatures that won't verify cross-platform.
+      expect(() => privateKey.signWithContext(message, customContext)).toThrow();
+      expect(() =>
+        publicKey.verifyWithContext(new Uint8Array(SR25519_SIGNATURE_SIZE), message, customContext),
+      ).toThrow();
 
-      const isValid = publicKey.verifyWithContext(signature, message, customContext);
-      expect(isValid).toBe(true);
+      // The default `sign` / `verify` (substrate context) still work.
+      const signature = privateKey.sign(message);
+      expect(publicKey.verify(signature, message)).toBe(true);
     });
 
     // Note: @scure/sr25519 uses a hardcoded "substrate" context internally.
@@ -209,13 +215,15 @@ describe("SigningPrivateKey with Sr25519", () => {
       expect(isValid).toBe(true);
     });
 
-    it("should verify via private key's verify method", () => {
+    it("should verify via private key's publicKey() (Sr25519 — Rust verify is Schnorr-only)", () => {
       const signingPrivateKey = SigningPrivateKey.randomSr25519();
       const message = new TextEncoder().encode("Test message for Sr25519");
 
       const signature = signingPrivateKey.sign(message);
-      const isValid = signingPrivateKey.verify(signature, message);
-      expect(isValid).toBe(true);
+      // Mirrors Rust: SigningPrivateKey::verify is Schnorr-only and returns
+      // false for Sr25519. Use the derived public key for Sr25519 verification.
+      expect(signingPrivateKey.verify(signature, message)).toBe(false);
+      expect(signingPrivateKey.publicKey().verify(signature, message)).toBe(true);
     });
   });
 

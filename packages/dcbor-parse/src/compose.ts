@@ -11,7 +11,7 @@
  */
 
 import { type Cbor, cbor, CborMap } from "@bcts/dcbor";
-import type { ParseError } from "./error";
+import { type ParseError, errorMessage } from "./error";
 import { parseDcborItem } from "./parse";
 
 /**
@@ -41,6 +41,14 @@ export const composeError = {
 
 /**
  * Gets the error message for a compose error.
+ *
+ * Mirrors Rust `Error::Display` (`bc-dcbor-parse-rust/src/compose.rs`):
+ * the `ParseError` arm uses `#[error("Invalid CBOR item: {0}")]`, which
+ * formats the inner error via its `Display` impl — *not* the variant
+ * name. So `Error::ParseError(Error::EmptyInput)` formats as
+ * `"Invalid CBOR item: Empty input"`, not
+ * `"Invalid CBOR item: EmptyInput"`. We delegate to {@link errorMessage}
+ * to get the same `Display`-style text.
  */
 export function composeErrorMessage(error: ComposeError): string {
   switch (error.type) {
@@ -49,7 +57,7 @@ export function composeErrorMessage(error: ComposeError): string {
     case "DuplicateMapKey":
       return "Duplicate map key";
     case "ParseError":
-      return `Invalid CBOR item: ${error.error.type}`;
+      return `Invalid CBOR item: ${errorMessage(error.error)}`;
   }
 }
 

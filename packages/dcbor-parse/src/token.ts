@@ -17,7 +17,21 @@ import { type Span, span, parseError as PE, type ParseResult, ok, err } from "./
 /**
  * Token types produced by the lexer.
  *
- * Corresponds to the Rust `Token` enum in token.rs
+ * Corresponds to the Rust `Token` enum in token.rs.
+ *
+ * **u64 parity**: `TagValue` and `KnownValueNumber` are widened to
+ * `number | bigint` because Rust accepts the full `u64` range
+ * (`0..=2^64-1`). Values that fit in
+ * {@link Number.MAX_SAFE_INTEGER} (`2^53-1`) come through as plain
+ * `number`s; anything larger arrives as a `bigint` so callers don't
+ * silently lose precision. This matches the way `@bcts/dcbor` already
+ * stores large unsigned integers (`number | bigint`) and lets the
+ * downstream `cbor({ tag, value })` builder serialize correctly.
+ *
+ * **String value field**: the lexer keeps the outer double quotes on
+ * the slice (e.g. `"\"hello\""`); the parser strips them in
+ * `parseString`. Mirrors Rust `Token::String(String)` which holds the
+ * raw `lex.slice()` including quotes (`token.rs:115-119`).
  */
 export type Token =
   | { readonly type: "Bool"; readonly value: boolean }
@@ -38,9 +52,9 @@ export type Token =
   | { readonly type: "DateLiteral"; readonly value: CborDate }
   | { readonly type: "Number"; readonly value: number }
   | { readonly type: "String"; readonly value: string }
-  | { readonly type: "TagValue"; readonly value: number }
+  | { readonly type: "TagValue"; readonly value: number | bigint }
   | { readonly type: "TagName"; readonly value: string }
-  | { readonly type: "KnownValueNumber"; readonly value: number }
+  | { readonly type: "KnownValueNumber"; readonly value: number | bigint }
   | { readonly type: "KnownValueName"; readonly value: string }
   | { readonly type: "Unit" }
   | { readonly type: "UR"; readonly value: UR };
@@ -101,13 +115,13 @@ export const token = {
   string(value: string): Token {
     return { type: "String", value };
   },
-  tagValue(value: number): Token {
+  tagValue(value: number | bigint): Token {
     return { type: "TagValue", value };
   },
   tagName(value: string): Token {
     return { type: "TagName", value };
   },
-  knownValueNumber(value: number): Token {
+  knownValueNumber(value: number | bigint): Token {
     return { type: "KnownValueNumber", value };
   },
   knownValueName(value: string): Token {
@@ -199,20 +213,29 @@ export class Lexer {
         continue;
       }
 
-      // Skip inline comments: /.../ (not preceded by another /)
-      if (
-        ch === "/" &&
-        this._position + 1 < this._source.length &&
-        this._source[this._position + 1] !== "/"
-      ) {
-        this._position++; // Skip opening /
-        while (this._position < this._source.length && this._source[this._position] !== "/") {
-          this._position++;
+      // Skip inline comments: `/[^/]*/` (matches the Rust skip regex
+      // `/[^/]*/`). Note that the Rust regex *does* match `//` (zero
+      // non-slash characters between the two slashes), so an empty
+      // comment is a valid no-op for the lexer. We accept that case too;
+      // earlier revisions of this port required at least one non-slash
+      // body character, which broke parity with Rust on inputs like
+      // `// trailing thought`.
+      if (ch === "/") {
+        // Confirm there is a closing slash somewhere ahead. If not, fall
+        // through and let the punctuation matcher report an
+        // unrecognized token (Rust would equally fail to match the skip
+        // regex and emit an `UnrecognizedToken`).
+        let scan = this._position + 1;
+        while (scan < this._source.length && this._source[scan] !== "/") {
+          scan++;
         }
-        if (this._position < this._source.length) {
-          this._position++; // Skip closing /
+        if (scan < this._source.length) {
+          this._position = scan + 1; // jump past the closing /
+          continue;
         }
-        continue;
+        // No closing /: not a comment — leave _position alone and break
+        // out so the punctuation matcher can flag the unrecognized `/`.
+        break;
       }
 
       // Skip end-of-line comments: #...
@@ -227,27 +250,38 @@ export class Lexer {
     }
   }
 
+  /**
+   * Matches reserved keywords: `true`, `false`, `null`, `NaN`,
+   * `Infinity`, `-Infinity`, `Unit`.
+   *
+   * Mirrors Rust's `Logos` `#[token(...)]` matcher
+   * (`bc-dcbor-parse-rust/src/token.rs:12-50, 164`), which is greedy
+   * and emits the keyword token *as soon as the literal matches* —
+   * subsequent characters become a separate (likely unrecognized) token
+   * stream. So input like `truex` lexes as `Bool(true)` followed by an
+   * unrecognized run on `x`. Earlier revisions of this port enforced an
+   * identifier boundary check (`!_isIdentifierChar(nextChar)`) and
+   * rejected the whole prefix as a single `UnrecognizedToken`, which
+   * broke span/variant parity with Rust.
+   */
   private _tryMatchKeyword(): ParseResult<Token> | undefined {
     const keywords: [string, Token][] = [
+      // Order matters: `-Infinity` must come before any other `-` based
+      // matcher (we lex this before numbers, so the `-` doesn't get
+      // siphoned off as a sign).
+      ["-Infinity", token.negInfinity()],
       ["true", token.bool(true)],
       ["false", token.bool(false)],
       ["null", token.null()],
       ["NaN", token.nan()],
       ["Infinity", token.infinity()],
-      ["-Infinity", token.negInfinity()],
       ["Unit", token.unit()],
     ];
 
     for (const [keyword, tok] of keywords) {
       if (this._matchLiteral(keyword)) {
-        // Make sure it's not part of a longer identifier
-        const nextChar = this._source[this._position];
-        if (nextChar === undefined || !this._isIdentifierChar(nextChar)) {
-          this._tokenEnd = this._position;
-          return ok(tok);
-        }
-        // Reset position if it was a partial match
-        this._position = this._tokenStart;
+        this._tokenEnd = this._position;
+        return ok(tok);
       }
     }
 
@@ -300,18 +334,24 @@ export class Lexer {
         !numStr.includes("E") &&
         !numStr.startsWith("-")
       ) {
-        // It's a tag value
+        // It's a tag value. Mirrors Rust `token.rs:128-136`:
+        // `stripped.parse::<TagValue>()` accepts the full `u64` range
+        // (`0..=2^64-1`). We use `BigInt` to get exact-integer parsing,
+        // then narrow to `number` when the value fits in
+        // `Number.MAX_SAFE_INTEGER` so callers don't pay the bigint
+        // tax for tag numbers in the common range. Anything outside
+        // `[0, 2^64-1]` is reported as `InvalidTagValue` matching Rust.
         this._position += numStr.length + 1; // Include the (
         this._tokenEnd = this._position;
 
-        const tagValue = parseInt(numStr, 10);
-        if (!Number.isSafeInteger(tagValue) || tagValue < 0) {
+        const parsed = parseUsize64(numStr);
+        if (parsed === undefined) {
           return err(
             PE.invalidTagValue(numStr, span(this._tokenStart, this._tokenStart + numStr.length)),
           );
         }
 
-        return ok(token.tagValue(tagValue));
+        return ok(token.tagValue(parsed));
       }
 
       // It's a regular number
@@ -363,20 +403,15 @@ export class Lexer {
       return ok(token.string(fullMatch));
     }
 
-    // Invalid string - try to find where it ends for better error reporting
+    // Invalid string: emit an unrecognized token covering just the
+    // opening `"` and let the next call to `next()` re-lex. Mirrors
+    // Rust's Logos behaviour when the `String` regex fails to match —
+    // the lexer emits `Error::default()` (which `expect_token` upgrades
+    // to `UnrecognizedToken(span)` for the single character) and
+    // recovers at the very next byte. Earlier revisions of this port
+    // consumed through the next `"` or `\n`, which inflated the error
+    // span beyond what Rust reports.
     this._position++;
-    while (this._position < this._source.length) {
-      const ch = this._source[this._position];
-      if (ch === '"' || ch === "\n") {
-        if (ch === '"') this._position++;
-        break;
-      }
-      if (ch === "\\") {
-        this._position += 2;
-      } else {
-        this._position++;
-      }
-    }
     this._tokenEnd = this._position;
     return err(PE.unrecognizedToken(this.span()));
   }
@@ -470,8 +505,11 @@ export class Lexer {
       this._position += fullMatch.length;
       this._tokenEnd = this._position;
 
-      const value = parseInt(numStr, 10);
-      if (!Number.isSafeInteger(value) || value < 0) {
+      // Mirrors Rust `token.rs:146-153`: `stripped.parse::<u64>()`
+      // accepts the full `u64` range. We share the helper used for
+      // `TagValue` to get the same narrow-when-safe-else-bigint path.
+      const value = parseUsize64(numStr);
+      if (value === undefined) {
         return err(PE.invalidKnownValue(numStr, span(this._tokenStart + 1, this._tokenEnd - 1)));
       }
 
@@ -491,14 +529,14 @@ export class Lexer {
       return ok(token.knownValueName(name));
     }
 
-    // Invalid known value
+    // Invalid known value: emit an unrecognized token covering just the
+    // opening `'` and let the next call to `next()` re-lex. Mirrors
+    // Rust's Logos behaviour when neither `KnownValueNumber` nor
+    // `KnownValueName` regex matches — the lexer emits `Error::default()`
+    // (single character span) and recovers at the next byte. Earlier
+    // revisions of this port consumed through the closing `'`, which
+    // inflated the error span beyond what Rust reports.
     this._position++;
-    while (this._position < this._source.length && this._source[this._position] !== "'") {
-      this._position++;
-    }
-    if (this._position < this._source.length) {
-      this._position++;
-    }
     this._tokenEnd = this._position;
     return err(PE.unrecognizedToken(this.span()));
   }
@@ -557,10 +595,45 @@ export class Lexer {
     }
     return false;
   }
+}
 
-  private _isIdentifierChar(ch: string): boolean {
-    return /[a-zA-Z0-9_-]/.test(ch);
+/**
+ * Strictly parses a non-negative integer string in the range
+ * `[0, 2^64 - 1]`, mirroring Rust `<u64 as FromStr>::from_str`.
+ *
+ * - Empty input or non-digit characters → `undefined`.
+ * - Values that fit in `Number.MAX_SAFE_INTEGER` are returned as plain
+ *   `number`s, so callers in the common case (tag values like `40000`,
+ *   known values like `1`) never see a `bigint`.
+ * - Values in `(2^53-1, 2^64-1]` are returned as `bigint`. dCBOR's
+ *   `cbor({ tag, value })` and `KnownValue` constructors both accept
+ *   `bigint` natively, so the bigint flows through to wire encoding
+ *   without precision loss.
+ * - Values strictly greater than `2^64 - 1` (or negative) are rejected
+ *   so this parser never produces a tag/known-value outside the
+ *   `u64` domain — matches Rust which fails `parse::<u64>()` in that
+ *   case.
+ */
+const MAX_U64: bigint = (1n << 64n) - 1n;
+function parseUsize64(s: string): number | bigint | undefined {
+  if (s.length === 0) return undefined;
+  // The regex feeding this helper already rejects sign / leading
+  // zeros / non-digits; this guard is defensive in case the helper is
+  // reused elsewhere.
+  if (!/^\d+$/.test(s)) return undefined;
+  let value: bigint;
+  try {
+    value = BigInt(s);
+  } catch {
+    return undefined;
   }
+  if (value < 0n || value > MAX_U64) return undefined;
+  // Narrow to plain `number` when safe so common-case callers never
+  // see a `bigint`.
+  if (value <= BigInt(Number.MAX_SAFE_INTEGER)) {
+    return Number(value);
+  }
+  return value;
 }
 
 /**

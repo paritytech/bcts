@@ -41,6 +41,7 @@ import {
   resolutionToCbor,
 } from "./resolution.js";
 import { sha256, sha256Prefix, obfuscate } from "./crypto-utils.js";
+import { dateToDisplay } from "./date.js";
 
 /**
  * A cryptographically-secured provenance mark.
@@ -535,10 +536,17 @@ export class ProvenanceMark {
         { validationIssue: issue },
       );
     }
-    // `next` must have an equal or later date
+    // `next` must have an equal or later date.
+    //
+    // Date strings use `dateToDisplay` so the `DateOrdering` issue
+    // payload matches Rust's `Date::Display` exactly: midnight UTC
+    // dates render as `YYYY-MM-DD` (no time suffix), times render
+    // RFC 3339 with second precision. Earlier this port emitted
+    // `2023-06-20T00:00:00Z` for date-only marks, breaking parity with
+    // Rust's `2023-06-20`.
     if (this._date > next._date) {
-      const dateStr = this._date.toISOString().replace(".000Z", "Z");
-      const nextDateStr = next._date.toISOString().replace(".000Z", "Z");
+      const dateStr = dateToDisplay(this._date);
+      const nextDateStr = dateToDisplay(next._date);
       const issue: ValidationIssue = {
         type: "DateOrdering",
         previous: dateStr,
@@ -638,11 +646,23 @@ export class ProvenanceMark {
   }
 
   /**
+   * Returns the {@link UR} representation of this mark (untagged CBOR
+   * with type `"provenance"`).
+   *
+   * Mirrors Rust `UREncodable::ur()` for `ProvenanceMark` — the
+   * blanket impl on `CBORTaggedEncodable` produces a UR whose
+   * payload is the *untagged* CBOR (the type name itself stands in
+   * for the tag). See `bc-ur-rust/src/ur_encodable.rs:8-18`.
+   */
+  ur(): UR {
+    return UR.new("provenance", this.untaggedCbor());
+  }
+
+  /**
    * Get the UR string representation (e.g., "ur:provenance/...").
    */
   urString(): string {
-    const ur = UR.new("provenance", this.untaggedCbor());
-    return ur.string();
+    return this.ur().string();
   }
 
   /**
@@ -762,11 +782,19 @@ export class ProvenanceMark {
 
   /**
    * Detailed debug representation.
-   * Matches Rust format exactly for parity.
+   *
+   * Mirrors Rust `Mark::Debug` exactly: every field is rendered
+   * Rust-style (hex bytes for keys/hashes/IDs, plain integer for
+   * `seq`, `Date::Display` for the date). The Low-resolution test
+   * vector in Rust `tests/mark.rs::test_low_resolution` ends with
+   * `date: 2023-06-20` — i.e. midnight-UTC dates are rendered without
+   * a time suffix. We use {@link dateToDisplay} to mirror that
+   * exactly; earlier revisions of this port stripped just the
+   * `.000Z` fractional component, which left `2023-06-20T00:00:00Z`
+   * and broke the Low-resolution debug-string parity.
    */
   toDebugString(): string {
-    // Format date without milliseconds to match Rust format
-    const dateStr = this._date.toISOString().replace(".000Z", "Z");
+    const dateStr = dateToDisplay(this._date);
     const components = [
       `key: ${bytesToHex(this._key)}`,
       `hash: ${bytesToHex(this._hash)}`,
@@ -833,6 +861,24 @@ export class ProvenanceMark {
     let infoBytes: Uint8Array = new Uint8Array(0);
     if (typeof json["info_bytes"] === "string") {
       infoBytes = fromBase64(json["info_bytes"]);
+      // Mirrors Rust `util::deserialize_cbor` — base64-decoded bytes
+      // must parse as well-formed CBOR before we accept them. Earlier
+      // revisions of this port accepted any base64 payload, deferring
+      // the failure to a later `info()` call. Surface bad CBOR here
+      // so the JSON deserializer reports it eagerly.
+      if (infoBytes.length > 0) {
+        try {
+          decodeCbor(infoBytes);
+        } catch (e) {
+          throw new ProvenanceMarkError(
+            ProvenanceMarkErrorType.CborError,
+            "info_bytes is not valid CBOR",
+            {
+              details: e instanceof Error ? e.message : String(e),
+            },
+          );
+        }
+      }
     }
 
     return new ProvenanceMark(res, key, hash, chainId, seqBytes, dateBytes, infoBytes, seq, date);

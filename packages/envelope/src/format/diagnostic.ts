@@ -2,120 +2,52 @@
  * Copyright © 2023-2026 Blockchain Commons, LLC
  * Copyright © 2025-2026 Parity Technologies
  *
+ *
+ * Diagnostic notation formatting for Gordian Envelopes.
+ *
+ * This module provides methods for converting envelopes to CBOR diagnostic
+ * notation, a human-readable text format defined in
+ * [RFC-8949 §8](https://www.rfc-editor.org/rfc/rfc8949.html#name-diagnostic-notation).
+ *
+ * Mirrors Rust `bc-envelope-rust/src/format/diagnostic.rs`, which delegates
+ * to `dcbor::diagnostic_opt` / `dcbor::diagnostic_annotated`. We do the same
+ * — the {@link diagnostic} and {@link diagnosticAnnotated} methods reuse the
+ * canonical formatters in `@bcts/dcbor` so envelope diagnostic output stays
+ * byte-for-byte compatible with the rest of the suite (and with Rust output
+ * in the parity-test fixtures).
  */
 
 import { Envelope } from "../base/envelope";
-
-// Type for CBOR values that can appear in diagnostic notation
-type CborValue =
-  | string
-  | number
-  | boolean
-  | null
-  | Uint8Array
-  | CborValue[]
-  | Map<CborValue, CborValue>
-  | { tag: number; value: CborValue }
-  | { type: number; value: unknown };
-
-/// Diagnostic notation formatting for Gordian Envelopes.
-///
-/// This module provides methods for converting envelopes to CBOR diagnostic
-/// notation, a human-readable text format defined in RFC 8949 §8.
-///
-/// See [RFC-8949 §8](https://www.rfc-editor.org/rfc/rfc8949.html#name-diagnostic-notation)
-/// for information on CBOR diagnostic notation.
+import { diagnosticOpt, type DiagFormatOpts } from "@bcts/dcbor";
+import { type FormatContext, getGlobalFormatContext } from "./format-context";
 
 // Note: Method declarations are in the base Envelope class.
 // This module provides the prototype implementations.
 
-/// Converts a CBOR value to diagnostic notation
-function cborToDiagnostic(cbor: CborValue, indent = 0): string {
-  // Handle tagged values (CBOR tags)
-  if (typeof cbor === "object" && cbor !== null && "tag" in cbor && "value" in cbor) {
-    return `${cbor.tag}(${cborToDiagnostic(cbor.value, indent)})`;
-  }
-
-  // Handle arrays
-  if (Array.isArray(cbor)) {
-    if (cbor.length === 0) {
-      return "[]";
-    }
-    const items = cbor.map((item) => cborToDiagnostic(item, indent + 2));
-    return `[${items.join(", ")}]`;
-  }
-
-  // Handle Maps
-  if (cbor instanceof Map) {
-    if (cbor.size === 0) {
-      return "{}";
-    }
-    const entries: string[] = [];
-    for (const [key, value] of cbor) {
-      const keyStr = cborToDiagnostic(key, indent + 2);
-      const valueStr = cborToDiagnostic(value, indent + 2);
-      entries.push(`${keyStr}: ${valueStr}`);
-    }
-    return `{${entries.join(", ")}}`;
-  }
-
-  // Handle Uint8Array (byte strings)
-  if (cbor instanceof Uint8Array) {
-    const hex = Array.from(cbor)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return `h'${hex}'`;
-  }
-
-  // Handle strings
-  if (typeof cbor === "string") {
-    return JSON.stringify(cbor);
-  }
-
-  // Handle CBOR objects with type information
-  if (typeof cbor === "object" && cbor !== null && "type" in cbor) {
-    const typed = cbor;
-    switch (typed.type) {
-      case 0: // Unsigned
-        return String(typed.value);
-      case 1: // Negative
-        return String(-1 - Number(typed.value));
-      case 7: {
-        // Simple
-        const simpleValue = typed.value;
-        if (simpleValue !== null && typeof simpleValue === "object" && "type" in simpleValue) {
-          const floatValue = simpleValue as { type: string; value: unknown };
-          if (floatValue.type === "Float") {
-            return String(floatValue.value);
-          }
-        }
-        if (simpleValue === 20) return "false";
-        if (simpleValue === 21) return "true";
-        if (simpleValue === 22) return "null";
-        if (simpleValue === 23) return "undefined";
-        return `simple(${String(simpleValue)})`;
-      }
-    }
-  }
-
-  // Fallback for primitives
-  if (typeof cbor === "boolean") return String(cbor);
-  if (typeof cbor === "number") return String(cbor);
-  if (typeof cbor === "bigint") return String(cbor);
-  if (cbor === null) return "null";
-  if (cbor === undefined) return "undefined";
-
-  // Unknown type - try JSON stringify
-  try {
-    return JSON.stringify(cbor);
-  } catch {
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return String(cbor);
-  }
-}
-
 /// Implementation of diagnostic()
+///
+/// Mirrors Rust `Envelope::diagnostic` (`bc-envelope-rust/src/format/
+/// diagnostic.rs`): the envelope's tagged CBOR is rendered via the dCBOR
+/// pretty-printer (multi-line, tag annotations on by default — matching
+/// Rust which uses `dcbor::diagnostic_opt(self.tagged_cbor(), opts)` with
+/// `annotate = true` by default in the no-arg call site).
 Envelope.prototype.diagnostic = function (this: Envelope): string {
-  const cbor = this.taggedCbor();
-  return cborToDiagnostic(cbor);
+  return diagnosticOpt(this.taggedCbor(), { annotate: true });
+};
+
+/// Implementation of diagnosticAnnotated()
+///
+/// Mirrors Rust `Envelope::diagnostic_annotated` — explicit annotation on,
+/// optionally threading a {@link FormatContext} so consumer-registered tag
+/// names appear in the output. `dcbor` accepts a `TagsStore` directly via
+/// its `tags` option; we read it off the format context's `tags()`
+/// accessor (or the global tag store when no context is provided).
+Envelope.prototype.diagnosticAnnotated = function (
+  this: Envelope,
+  context?: FormatContext,
+): string {
+  const opts: DiagFormatOpts = { annotate: true };
+  const ctx = context ?? getGlobalFormatContext();
+  opts.tags = ctx.tags();
+  return diagnosticOpt(this.taggedCbor(), opts);
 };

@@ -14,12 +14,10 @@
 import { Envelope, type EnvelopeEncodable } from "@bcts/envelope";
 import { ENDPOINT, NICKNAME, PRIVATE_KEY, SALT, type KnownValue } from "@bcts/known-values";
 import type { EnvelopeEncodableValue } from "@bcts/envelope";
-import { type Cbor } from "@bcts/dcbor";
-
-// Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v;
+import type { Cbor } from "@bcts/dcbor";
 import {
   Salt,
+  URI,
   type Reference,
   PublicKeys,
   PrivateKeys,
@@ -35,6 +33,9 @@ import { Permissions, type HasPermissions } from "./permissions";
 import { type Privilege } from "./privilege";
 import { type HasNickname } from "./name";
 import { XIDError } from "./error";
+
+// Helper to convert KnownValue to EnvelopeEncodableValue
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 
 /**
  * Options for handling private keys in envelopes.
@@ -77,19 +78,39 @@ export type PrivateKeyData =
 
 /**
  * Represents a key in an XID document.
+ *
+ * Mirrors `bc-xid-rust/src/key.rs`. The on-the-wire shape:
+ *
+ * ```
+ * PublicKeys [
+ *     {
+ *         'privateKey': PrivateKeys     ← (or encrypted/elided)
+ *     } [
+ *         'salt': Salt
+ *     ]
+ *     'nickname': "..."
+ *     'endpoint': URI(...)
+ *     'allow': '...'
+ * ]
+ * ```
+ *
+ * Notably the private-key assertion is itself a node — the `'salt'`
+ * lives nested under the assertion, not as a sibling on the parent
+ * envelope. This is what `add_salt_instance(salt)` produces in Rust and
+ * what `Envelope.prototype.addSaltInstance` produces in TS.
  */
 export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Verifier {
   private readonly _publicKeys: PublicKeys;
   private readonly _privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;
   private _nickname: string;
-  private readonly _endpoints: Set<string>;
+  private readonly _endpoints: Set<URI>;
   private readonly _permissions: Permissions;
 
   private constructor(
     publicKeys: PublicKeys,
     privateKeyData?: { data: PrivateKeyData; salt: Salt },
     nickname = "",
-    endpoints = new Set<string>(),
+    endpoints = new Set<URI>(),
     permissions = Permissions.new(),
   ) {
     this._publicKeys = publicKeys;
@@ -208,24 +229,28 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
   }
 
   /**
-   * Get the endpoints set.
+   * Get the endpoints set. The set holds typed `URI` values (mirrors
+   * Rust `HashSet<URI>`); use `.toString()` on a URI for a plain
+   * string view.
    */
-  endpoints(): Set<string> {
+  endpoints(): Set<URI> {
     return this._endpoints;
   }
 
   /**
    * Get the endpoints set for mutation.
    */
-  endpointsMut(): Set<string> {
+  endpointsMut(): Set<URI> {
     return this._endpoints;
   }
 
   /**
-   * Add an endpoint.
+   * Add an endpoint. Accepts either a URI value or a string (for
+   * ergonomic test/REPL use). The URI is the canonical form.
    */
-  addEndpoint(endpoint: string): void {
-    this._endpoints.add(endpoint);
+  addEndpoint(endpoint: URI | string): void {
+    const uri = endpoint instanceof URI ? endpoint : URI.from(endpoint);
+    this._endpoints.add(uri);
   }
 
   /**
@@ -254,47 +279,58 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
   }
 
   /**
+   * Build the nested salt-bearing assertion envelope:
+   * ```
+   * { 'privateKey': PrivateKeys } [ 'salt': Salt ]
+   * ```
+   * Mirrors Rust `Key::private_key_assertion_envelope()`.
+   */
+  private privateKeyAssertionEnvelope(): Envelope {
+    if (this._privateKeyData === undefined) {
+      throw new Error("privateKeyAssertionEnvelope called with no private key data");
+    }
+    const { data, salt } = this._privateKeyData;
+    if (data.type === "decrypted") {
+      return Envelope.newAssertion(kv(PRIVATE_KEY), data.privateKeys).addSaltInstance(salt);
+    }
+    return Envelope.newAssertion(kv(PRIVATE_KEY), data.envelope).addSaltInstance(salt);
+  }
+
+  /**
    * Convert to envelope with specified options.
    */
   intoEnvelopeOpt(
     privateKeyOptions: XIDPrivateKeyOptionsValue = XIDPrivateKeyOptions.Omit,
   ): Envelope {
-    // Use tagged CBOR representation of PublicKeys as subject
-    let envelope = Envelope.new(this._publicKeys.taggedCborData());
+    // Subject: tagged CBOR PublicKeys leaf (mirrors Rust
+    // `Envelope::new(self.public_keys().clone())`).
+    let envelope = Envelope.new(this._publicKeys);
 
-    // Handle private keys
     if (this._privateKeyData !== undefined) {
       const { data, salt } = this._privateKeyData;
 
       if (data.type === "encrypted") {
-        // Always preserve encrypted keys
-        envelope = envelope.addAssertion(kv(PRIVATE_KEY), data.envelope);
-        envelope = envelope.addAssertion(kv(SALT), salt.toData());
-      } else if (data.type === "decrypted") {
-        // Handle decrypted keys based on options
+        // Always preserve encrypted keys regardless of options.
+        envelope = envelope.addAssertionEnvelope(this.privateKeyAssertionEnvelope());
+      } else {
         const option =
           typeof privateKeyOptions === "object" ? privateKeyOptions.type : privateKeyOptions;
 
         switch (option) {
           case XIDPrivateKeyOptions.Include: {
-            // Store PrivateKeys as tagged CBOR
-            envelope = envelope.addAssertion(kv(PRIVATE_KEY), data.privateKeys.taggedCborData());
-            envelope = envelope.addAssertion(kv(SALT), salt.toData());
+            envelope = envelope.addAssertionEnvelope(this.privateKeyAssertionEnvelope());
             break;
           }
           case XIDPrivateKeyOptions.Elide: {
-            const baseAssertion = Envelope.newAssertion(
-              kv(PRIVATE_KEY),
-              data.privateKeys.taggedCborData(),
-            );
-            const elidedAssertion = (baseAssertion as unknown as { elide(): Envelope }).elide();
-            envelope = envelope.addAssertionEnvelope(elidedAssertion);
-            envelope = envelope.addAssertion(kv(SALT), salt.toData());
+            const elided = (
+              this.privateKeyAssertionEnvelope() as unknown as { elide(): Envelope }
+            ).elide();
+            envelope = envelope.addAssertionEnvelope(elided);
             break;
           }
           case XIDPrivateKeyOptions.Encrypt: {
             if (typeof privateKeyOptions === "object") {
-              const privateKeysEnvelope = Envelope.new(data.privateKeys.taggedCborData());
+              const privateKeysEnvelope = Envelope.new(data.privateKeys);
               const method: KeyDerivationMethod =
                 privateKeyOptions.method ?? defaultKeyDerivationMethod();
               const encrypted = (
@@ -302,30 +338,29 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
                   lockSubject(m: KeyDerivationMethod, p: Uint8Array): Envelope;
                 }
               ).lockSubject(method, privateKeyOptions.password);
-              envelope = envelope.addAssertion(kv(PRIVATE_KEY), encrypted);
-              envelope = envelope.addAssertion(kv(SALT), salt.toData());
+              const assertion = Envelope.newAssertion(kv(PRIVATE_KEY), encrypted).addSaltInstance(
+                salt,
+              );
+              envelope = envelope.addAssertionEnvelope(assertion);
             }
             break;
           }
           case XIDPrivateKeyOptions.Omit:
           default:
-            // Do nothing - omit private keys
+            // Omit decrypted private keys.
             break;
         }
       }
     }
 
-    // Add nickname if not empty
     if (this._nickname !== "") {
       envelope = envelope.addAssertion(kv(NICKNAME), this._nickname);
     }
 
-    // Add endpoints
     for (const endpoint of this._endpoints) {
       envelope = envelope.addAssertion(kv(ENDPOINT), endpoint);
     }
 
-    // Add permissions
     envelope = this._permissions.addToEnvelope(envelope);
 
     return envelope;
@@ -338,131 +373,98 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
 
   /**
    * Try to extract a Key from an envelope, optionally with password for decryption.
+   *
+   * Mirrors Rust `Key::try_from_envelope` exactly:
+   * - Subject must be a tagged-CBOR PublicKeys leaf.
+   * - Optional private-key assertion follows the
+   *   `{predicate: object} [ 'salt': Salt ]` shape.
+   * - Endpoints are tagged URIs, not bare text.
+   * - Missing salt under a present private-key assertion is an error.
    */
   static tryFromEnvelope(envelope: Envelope, password?: Uint8Array): Key {
     type EnvelopeExt = Envelope & {
       asByteString(): Uint8Array | undefined;
       subject(): Envelope;
+      assertions(): Envelope[];
       assertionsWithPredicate(p: unknown): Envelope[];
+      optionalAssertionWithPredicate(p: unknown): Envelope | undefined;
+      tryObject(): Envelope;
+      tryLeaf(): Cbor;
       unlockSubject(p: Uint8Array): Envelope;
       isLockedWithPassword(): boolean;
     };
     const env = envelope as EnvelopeExt;
 
-    // Extract PublicKeys from subject.
-    // Rust-generated documents store PublicKeys as tagged CBOR directly in the leaf.
-    // TS-generated documents may store the tagged CBOR binary inside a byte string.
-    const envCase = env.case();
-    const subject = envCase.type === "node" ? env.subject() : env;
-    let publicKeys: PublicKeys;
-    const publicKeysData = (subject as EnvelopeExt).asByteString();
-    if (publicKeysData !== undefined) {
-      // TS format: tagged CBOR binary stored as a byte string
-      publicKeys = PublicKeys.fromTaggedCborData(publicKeysData);
-    } else {
-      // Rust format: tagged CBOR stored directly as the leaf CBOR value
-      const leaf = (subject as unknown as { asLeaf(): Cbor | undefined }).asLeaf?.();
-      if (leaf === undefined) {
-        throw XIDError.component(new Error("Could not extract public keys from envelope"));
-      }
-      publicKeys = PublicKeys.fromTaggedCbor(leaf);
-    }
+    // Extract PublicKeys from subject — must be a tagged CBOR leaf.
+    const subjectLeaf = (env.subject() as EnvelopeExt).tryLeaf();
+    const publicKeys = PublicKeys.fromTaggedCbor(subjectLeaf);
 
-    // Extract optional private key
+    // Extract optional private key — mirrors Rust
+    // `extract_optional_private_key_with_password`.
     let privateKeyData: { data: PrivateKeyData; salt: Salt } | undefined;
-
-    // Extract salt from top level (if present)
-    let salt: Salt = Salt.random(32);
-    const saltAssertions = env.assertionsWithPredicate(SALT);
-    if (saltAssertions.length > 0) {
-      const saltAssertion = saltAssertions[0];
-      const saltCase = saltAssertion.case();
-      if (saltCase.type === "assertion") {
-        const saltObj = saltCase.assertion.object() as EnvelopeExt;
-        const saltData = saltObj.asByteString();
-        if (saltData !== undefined) {
-          salt = Salt.from(saltData);
-        }
+    const privateKeyAssertion = env.optionalAssertionWithPredicate(PRIVATE_KEY);
+    if (privateKeyAssertion !== undefined) {
+      const ext = privateKeyAssertion as EnvelopeExt;
+      const privateKeyObject = (ext.subject() as EnvelopeExt).tryObject() as EnvelopeExt;
+      // Salt must live nested on the assertion node (Rust contract).
+      const saltAssertionInner = ext.optionalAssertionWithPredicate(SALT);
+      if (saltAssertionInner === undefined) {
+        throw XIDError.envelopeParsing(new Error("missing 'salt' assertion on private-key node"));
       }
-    }
+      const saltObj = (saltAssertionInner as EnvelopeExt).tryObject() as EnvelopeExt;
+      const salt = Salt.fromTaggedCbor(saltObj.tryLeaf());
 
-    const privateKeyAssertions = env.assertionsWithPredicate(PRIVATE_KEY);
-    if (privateKeyAssertions.length > 0) {
-      const privateKeyAssertion = privateKeyAssertions[0] as EnvelopeExt;
-      const assertionCase = privateKeyAssertion.case();
-
-      if (assertionCase.type === "assertion") {
-        const privateKeyObject = assertionCase.assertion.object() as EnvelopeExt;
-
-        // Check if locked with password (uses hasSecret assertion with EncryptedKey)
-        if (privateKeyObject.isLockedWithPassword()) {
-          if (password !== undefined) {
-            try {
-              const decrypted = privateKeyObject.unlockSubject(password) as EnvelopeExt;
-              const decryptedData = (decrypted.subject() as EnvelopeExt).asByteString();
-              if (decryptedData !== undefined) {
-                // Parse PrivateKeys from tagged CBOR
-                const privateKeys = PrivateKeys.fromTaggedCborData(decryptedData);
-                privateKeyData = {
-                  data: { type: "decrypted", privateKeys },
-                  salt,
-                };
-              }
-            } catch {
-              // Wrong password - store as encrypted
-              privateKeyData = {
-                data: { type: "encrypted", envelope: privateKeyObject },
-                salt,
-              };
-            }
-          } else {
-            // No password - store as encrypted
+      if (privateKeyObject.isLockedWithPassword()) {
+        if (password !== undefined) {
+          try {
+            const decrypted = privateKeyObject.unlockSubject(password) as EnvelopeExt;
+            const decryptedLeaf = (decrypted.subject() as EnvelopeExt).tryLeaf();
+            const privateKeys = PrivateKeys.fromTaggedCbor(decryptedLeaf);
+            privateKeyData = {
+              data: { type: "decrypted", privateKeys },
+              salt,
+            };
+          } catch {
             privateKeyData = {
               data: { type: "encrypted", envelope: privateKeyObject },
               salt,
             };
           }
         } else {
-          // Plain text private key - stored as tagged CBOR
-          const privateKeysBytes = privateKeyObject.asByteString();
-          if (privateKeysBytes !== undefined) {
-            const privateKeys = PrivateKeys.fromTaggedCborData(privateKeysBytes);
-            privateKeyData = {
-              data: { type: "decrypted", privateKeys },
-              salt,
-            };
-          }
+          privateKeyData = {
+            data: { type: "encrypted", envelope: privateKeyObject },
+            salt,
+          };
         }
+      } else {
+        const privateKeys = PrivateKeys.fromTaggedCbor(privateKeyObject.tryLeaf());
+        privateKeyData = {
+          data: { type: "decrypted", privateKeys },
+          salt,
+        };
       }
     }
 
-    // Extract nickname
+    // Nickname (optional, defaults to "").
     let nickname = "";
     try {
       const nicknameObj = (
         env as unknown as { objectForPredicate(p: unknown): EnvelopeExt }
       ).objectForPredicate(NICKNAME);
-      nickname =
-        nicknameObj.asByteString() !== undefined
-          ? ""
-          : ((nicknameObj as unknown as { asText(): string | undefined }).asText() ?? "");
+      nickname = (nicknameObj as unknown as { asText(): string | undefined }).asText() ?? "";
     } catch {
-      // No nickname
+      // No nickname assertion.
     }
 
-    // Extract endpoints
-    const endpoints = new Set<string>();
-    const endpointObjects = (
-      env as unknown as { objectsForPredicate(p: unknown): EnvelopeExt[] }
-    ).objectsForPredicate(ENDPOINT);
-    for (const obj of endpointObjects) {
-      const text = (obj as unknown as { asText(): string | undefined }).asText();
-      if (text !== undefined) {
-        endpoints.add(text);
-      }
+    // Endpoints (each a tagged URI).
+    const endpoints = new Set<URI>();
+    const endpointAssertions = env.assertionsWithPredicate(ENDPOINT);
+    for (const assertion of endpointAssertions) {
+      const obj = (assertion as EnvelopeExt).tryObject() as EnvelopeExt;
+      const uri = URI.fromTaggedCbor(obj.tryLeaf());
+      endpoints.add(uri);
     }
 
-    // Extract permissions
     const permissions = Permissions.tryFromEnvelope(envelope);
 
     return new Key(publicKeys, privateKeyData, nickname, endpoints, permissions);
@@ -471,33 +473,30 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
   /**
    * Get the private key envelope, optionally decrypting it.
    *
-   * Returns:
-   * - undefined if no private keys
-   * - The decrypted private key envelope if unencrypted
-   * - The decrypted envelope if encrypted + correct password
-   * - The encrypted envelope as-is if encrypted + no password
-   * - Throws on wrong password
+   * Mirrors Rust `Key::private_key_envelope(password: Option<&[u8]>)`.
+   * Password is bytes; the legacy `string` form is accepted as a
+   * convenience for callers that have not yet migrated.
    */
-  privateKeyEnvelope(password?: string): Envelope | undefined {
+  privateKeyEnvelope(password?: Uint8Array | string): Envelope | undefined {
     if (this._privateKeyData === undefined) {
       return undefined;
     }
     const { data } = this._privateKeyData;
     if (data.type === "decrypted") {
-      return Envelope.new(data.privateKeys.taggedCborData());
+      return Envelope.new(data.privateKeys);
     }
-    // Encrypted case
     if (password !== undefined) {
+      const passwordBytes =
+        typeof password === "string" ? new TextEncoder().encode(password) : password;
       try {
         const decrypted = (
           data.envelope as unknown as { unlockSubject(p: Uint8Array): Envelope }
-        ).unlockSubject(new TextEncoder().encode(password));
+        ).unlockSubject(passwordBytes);
         return decrypted;
       } catch {
         throw XIDError.invalidPassword();
       }
     }
-    // No password — return encrypted envelope as-is
     return data.envelope;
   }
 

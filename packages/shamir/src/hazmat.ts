@@ -5,9 +5,30 @@
  */
 
 // Ported from bc-shamir-rust/src/hazmat.rs
-// GF(2^8) bitsliced polynomial operations for Shamir secret sharing
+// GF(2^8) bitsliced polynomial operations for Shamir secret sharing.
+//
+// **Defensive arity guards.** Each helper here checks its array-length
+// preconditions (`r.length === 8`, `x.length >= 32`, …) and throws a
+// plain `Error` on violation. These guards mirror Rust's slice-indexing
+// `panic!` semantics — they signal an internal *contract violation*
+// (programmer error), not an end-user input error, and are deliberately
+// **not** elevated to `ShamirError`: that type carries variants for
+// recoverable, user-facing failures of the public `splitSecret` /
+// `recoverSecret` APIs, and has no variant matching "wrong array arity".
+// The public Shamir API never triggers these guards in normal use.
 
 import { memzero } from "@bcts/crypto";
+
+/**
+ * Internal contract guard. Mirrors a Rust `assert!(condition, message)`
+ * panic on the boundary between hazmat helpers — kept as a bare `Error`
+ * so it cannot be confused with a `ShamirError` from the public API.
+ */
+function assertContract(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
 
 /**
  * Convert an array of bytes into a bitsliced representation.
@@ -17,12 +38,8 @@ import { memzero } from "@bcts/crypto";
  * @param x - Input array of at least 32 bytes
  */
 export function bitslice(r: Uint32Array, x: Uint8Array): void {
-  if (x.length < 32) {
-    throw new Error("bitslice: input must be at least 32 bytes");
-  }
-  if (r.length !== 8) {
-    throw new Error("bitslice: output must have 8 elements");
-  }
+  assertContract(x.length >= 32, "bitslice: input must be at least 32 bytes");
+  assertContract(r.length === 8, "bitslice: output must have 8 elements");
 
   memzero(r);
 
@@ -42,12 +59,8 @@ export function bitslice(r: Uint32Array, x: Uint8Array): void {
  * @param x - Input array of 8 u32 values (bitsliced representation)
  */
 export function unbitslice(r: Uint8Array, x: Uint32Array): void {
-  if (r.length < 32) {
-    throw new Error("unbitslice: output must be at least 32 bytes");
-  }
-  if (x.length !== 8) {
-    throw new Error("unbitslice: input must have 8 elements");
-  }
+  assertContract(r.length >= 32, "unbitslice: output must be at least 32 bytes");
+  assertContract(x.length === 8, "unbitslice: input must have 8 elements");
 
   memzero(r.subarray(0, 32));
 
@@ -67,9 +80,7 @@ export function unbitslice(r: Uint8Array, x: Uint32Array): void {
  * @param x - Byte value to set in all positions
  */
 export function bitsliceSetall(r: Uint32Array, x: number): void {
-  if (r.length !== 8) {
-    throw new Error("bitsliceSetall: output must have 8 elements");
-  }
+  assertContract(r.length === 8, "bitsliceSetall: output must have 8 elements");
 
   for (let idx = 0; idx < 8; idx++) {
     // JavaScript needs special handling for the arithmetic right shift
@@ -89,9 +100,7 @@ export function bitsliceSetall(r: Uint32Array, x: number): void {
  * @param x - Second operand
  */
 export function gf256Add(r: Uint32Array, x: Uint32Array): void {
-  if (r.length !== 8 || x.length !== 8) {
-    throw new Error("gf256Add: arrays must have 8 elements");
-  }
+  assertContract(r.length === 8 && x.length === 8, "gf256Add: arrays must have 8 elements");
 
   for (let i = 0; i < 8; i++) {
     r[i] ^= x[i];
@@ -109,9 +118,10 @@ export function gf256Add(r: Uint32Array, x: Uint32Array): void {
  * @param b - Second operand (must NOT overlap with r)
  */
 export function gf256Mul(r: Uint32Array, a: Uint32Array, b: Uint32Array): void {
-  if (r.length !== 8 || a.length !== 8 || b.length !== 8) {
-    throw new Error("gf256Mul: arrays must have 8 elements");
-  }
+  assertContract(
+    r.length === 8 && a.length === 8 && b.length === 8,
+    "gf256Mul: arrays must have 8 elements",
+  );
 
   // Russian Peasant multiplication on two bitsliced polynomials
   const a2 = new Uint32Array(a);
@@ -218,9 +228,7 @@ export function gf256Mul(r: Uint32Array, a: Uint32Array, b: Uint32Array): void {
  * @param x - Value to square
  */
 export function gf256Square(r: Uint32Array, x: Uint32Array): void {
-  if (r.length !== 8 || x.length !== 8) {
-    throw new Error("gf256Square: arrays must have 8 elements");
-  }
+  assertContract(r.length === 8 && x.length === 8, "gf256Square: arrays must have 8 elements");
 
   // Use the Freshman's Dream rule to square the polynomial
   // Assignments are done from 7 downto 0, because this allows
@@ -265,9 +273,7 @@ export function gf256Square(r: Uint32Array, x: Uint32Array): void {
  * @param x - Value to invert (will be modified)
  */
 export function gf256Inv(r: Uint32Array, x: Uint32Array): void {
-  if (r.length !== 8 || x.length !== 8) {
-    throw new Error("gf256Inv: arrays must have 8 elements");
-  }
+  assertContract(r.length === 8 && x.length === 8, "gf256Inv: arrays must have 8 elements");
 
   const y = new Uint32Array(8);
   const z = new Uint32Array(8);

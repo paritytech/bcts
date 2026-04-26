@@ -56,9 +56,12 @@ describe("digest pattern integration", () => {
       }
     });
 
-    // Note: UR string parsing for digests may require additional implementation
-    // This test is marked as skipped pending implementation
-    it.skip("should parse digest with UR string", () => {
+    it("should parse digest with UR string", () => {
+      // `parse_digest_quoted` now mirrors Rust's UR-handling branch
+      // (`bc-dcbor-pattern-rust/src/parse/token.rs:339-348`): a `ur:`
+      // prefix decodes via `Digest::from_ur_string` to a
+      // `DigestPattern.Value` whose Display also emits the same UR
+      // string — so round-trip is exact.
       const digestValue = Digest.fromImage(new TextEncoder().encode("hello world"));
       const urString = digestValue.urString();
       const src = `digest'${urString}'`;
@@ -192,15 +195,20 @@ describe("digest pattern integration", () => {
     });
 
     it("should fail on invalid hex (odd length)", () => {
-      // Odd-length hex strings are invalid
+      // Mirrors Rust `parse_digest_quoted`
+      // (`bc-dcbor-pattern-rust/src/parse/token.rs:317-395`):
+      // odd-length hex emits `InvalidHexString`, **not**
+      // `InvalidDigestPattern`. The TS tests previously asserted the
+      // pre-fix collapsed-error variant.
       const result = parse("digest'abc'");
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error.type).toBe("InvalidDigestPattern");
+        expect(result.error.type).toBe("InvalidHexString");
       }
     });
 
     it("should fail on invalid hex characters", () => {
+      // Non-hex content (and not UR / regex) → InvalidDigestPattern.
       const result = parse("digest'xyzz'");
       expect(result.ok).toBe(false);
       if (!result.ok) {

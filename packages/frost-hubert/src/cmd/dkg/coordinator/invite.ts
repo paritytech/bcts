@@ -25,7 +25,7 @@ import {
 } from "../../../registry/index.js";
 import { putWithIndicator } from "../../busy.js";
 import { type StorageClient } from "../../storage.js";
-import { dkgStateDir, resolveParticipants, resolveSender } from "../common.js";
+import { dkgStateDir, resolveOwnerXidDocument, resolveParticipants } from "../common.js";
 
 /**
  * Options for the DKG invite command.
@@ -101,7 +101,10 @@ function buildInvite(
   }
 
   // Get sender (registry owner)
-  const sender = resolveSender(registry);
+  // The coordinator's invite always identifies the registry owner as
+  // the sender. (Rust reads `registry.owner()` directly here too —
+  // see `cmd/dkg/coordinator/invite.rs:74-77`.)
+  const sender = resolveOwnerXidDocument(registry);
 
   // Calculate dates
   const now = new Date();

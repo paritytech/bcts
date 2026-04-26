@@ -96,8 +96,9 @@ describe("XIDDocument", () => {
       xidDocument.addResolutionMethod("btcr:01234567");
 
       expect(xidDocument.resolutionMethods().size).toBe(2);
-      expect(xidDocument.resolutionMethods().has("https://resolver.example.com")).toBe(true);
-      expect(xidDocument.resolutionMethods().has("btcr:01234567")).toBe(true);
+      const methodStrings = Array.from(xidDocument.resolutionMethods()).map((u) => u.toString());
+      expect(methodStrings).toContain("https://resolver.example.com");
+      expect(methodStrings).toContain("btcr:01234567");
 
       // Round-trip through envelope
       const envelope = xidDocument.intoEnvelope();
@@ -989,7 +990,10 @@ describe("XIDDocument", () => {
         password,
         XIDVerifySignature.None,
       );
-      expect(docWithPassword.resolutionMethods().has("https://resolver.example.com")).toBe(true);
+      const reloadedMethodStrings = Array.from(docWithPassword.resolutionMethods()).map((u) =>
+        u.toString(),
+      );
+      expect(reloadedMethodStrings).toContain("https://resolver.example.com");
       expect(docWithPassword.inceptionKey()?.hasPrivateKeys()).toBe(true);
     });
   });
@@ -1005,11 +1009,11 @@ describe("XIDDocument", () => {
       const envelope = doc.privateKeyEnvelopeForKey(pubkeys);
       expect(envelope).toBeDefined();
 
-      // Should be able to extract bytes from the subject
-      const bytes = (
-        envelope?.subject() as unknown as { asByteString(): Uint8Array | undefined }
-      ).asByteString();
-      expect(bytes).toBeDefined();
+      // PrivateKeys is now stored as a tagged-CBOR leaf (mirrors Rust);
+      // the previous test asserted a byte-string subject which was the
+      // pre-fix shape.
+      const leaf = (envelope?.subject() as unknown as { asLeaf(): unknown }).asLeaf();
+      expect(leaf).toBeDefined();
     });
 
     it("should get encrypted private key envelope", { timeout: 30_000 }, () => {

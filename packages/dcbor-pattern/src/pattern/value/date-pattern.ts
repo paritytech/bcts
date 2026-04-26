@@ -30,7 +30,18 @@ export type DatePattern =
   | { readonly variant: "Regex"; readonly pattern: RegExp };
 
 /** CBOR tag for date (RFC 8943) */
-const DATE_TAG = 1n;
+const DATE_TAG = 1;
+
+/**
+ * Returns true if the given tag value equals the expected number tag.
+ * Handles both number and bigint tag values uniformly.
+ */
+const tagEquals = (actual: number | bigint | undefined, expected: number | bigint): boolean => {
+  if (actual === undefined) return false;
+  const actualBig = typeof actual === "bigint" ? actual : BigInt(actual);
+  const expectedBig = typeof expected === "bigint" ? expected : BigInt(expected);
+  return actualBig === expectedBig;
+};
 
 /**
  * Creates a DatePattern that matches any date.
@@ -94,7 +105,7 @@ const extractDate = (haystack: Cbor): CborDate | undefined => {
     return undefined;
   }
   const tag = tagValue(haystack);
-  if (tag !== DATE_TAG) {
+  if (!tagEquals(tag, DATE_TAG)) {
     return undefined;
   }
   try {

@@ -16,6 +16,15 @@ import type { Token } from "./token";
  * Represents a span (range) in the source string.
  *
  * Corresponds to the Rust `logos::Span` type.
+ *
+ * **Encoding caveat (TS↔Rust)**: Rust spans are *byte* offsets into the
+ * UTF-8 source. JavaScript strings are UTF-16 code-unit indexed, and
+ * the TS lexer reports spans in those native code-unit units. The two
+ * representations agree for ASCII input. For non-BMP / multi-byte
+ * input (e.g. `"🌎"`, emoji, CJK characters) the indices diverge. If
+ * you need byte-exact spans across implementations, transcode the
+ * source to UTF-8 first or apply the equivalent `String.length` ↔
+ * UTF-8 byte length conversion at the boundary.
  */
 export interface Span {
   readonly start: number;
@@ -255,9 +264,18 @@ function formatMessage(message: string, source: string, range: Span): string {
     }
   }
 
-  // Grab the exact line text (or empty if out of bounds)
+  // Grab the exact line text (or empty if out of bounds).
+  //
+  // Rust uses `source.lines()` here, which strips the trailing `\r`
+  // from `\r\n`-terminated lines (cf. `str::lines` docs). JS
+  // `String#split("\n")` retains the `\r`, so on Windows-style input we
+  // would render an extra blank glyph at end-of-line and the caret
+  // would shift. Strip a trailing `\r` to match Rust's `lines()`.
   const lines = source.split("\n");
-  const line = lines[lineNumber - 1] ?? "";
+  let line = lines[lineNumber - 1] ?? "";
+  if (line.endsWith("\r")) {
+    line = line.slice(0, -1);
+  }
 
   // Column is byte-offset into that line
   const column = Math.max(0, start - lineStart);
@@ -370,8 +388,124 @@ export function unwrapErr<T>(result: ParseResult<T>): ParseError {
   throw new Error("Called unwrapErr on an Ok result");
 }
 
-// Helper function to get debug string for a token (forward declaration resolved at runtime)
+/**
+ * Renders a {@link Token} the way Rust's
+ * `#[derive(Debug)]` on the corresponding enum variant would:
+ *
+ * - Variant-only tokens (`BraceOpen`, `Comma`, `Null`, `Unit`, `NaN`,
+ *   …) print as the bare variant name.
+ * - Variant-with-value tokens print as `Variant(value)` where `value`
+ *   uses Rust's `Debug` form for the payload type:
+ *   `Bool(true)`, `Number(3.14)`, `String("foo")` (with the inner
+ *   double quotes preserved — TS keeps them on the slice anyway),
+ *   `TagValue(1234)`, `KnownValueNumber(42)`, `TagName("date")`,
+ *   `KnownValueName("isA")`, `DateLiteral(2023-02-08T15:30:45.000Z)`,
+ *   etc.
+ *
+ * Mirrors Rust's `Error::UnexpectedToken(Box<Token>, Span)` formatter
+ * `#[error("Unexpected token {0:?}")]` so error messages stay
+ * byte-identical to Rust.
+ */
 function tokenDebugString(token: Token): string {
-  // Simple debug representation
-  return JSON.stringify(token);
+  switch (token.type) {
+    case "Bool":
+      return `Bool(${token.value ? "true" : "false"})`;
+    case "BraceOpen":
+      return "BraceOpen";
+    case "BraceClose":
+      return "BraceClose";
+    case "BracketOpen":
+      return "BracketOpen";
+    case "BracketClose":
+      return "BracketClose";
+    case "ParenthesisOpen":
+      return "ParenthesisOpen";
+    case "ParenthesisClose":
+      return "ParenthesisClose";
+    case "Colon":
+      return "Colon";
+    case "Comma":
+      return "Comma";
+    case "Null":
+      return "Null";
+    case "NaN":
+      return "NaN";
+    case "Infinity":
+      return "Infinity";
+    case "NegInfinity":
+      return "NegInfinity";
+    case "Unit":
+      return "Unit";
+    case "ByteStringHex":
+      // Rust `Token::ByteStringHex(Result<Vec<u8>>)` debug-formats the
+      // `Ok(Vec<u8>)` payload as `Ok([0x68, 0x65, ...])`. We render the
+      // bytes in the same `[0xNN, ...]` form so the text matches.
+      return `ByteStringHex(Ok(${formatBytesDebug(token.value)}))`;
+    case "ByteStringBase64":
+      return `ByteStringBase64(Ok(${formatBytesDebug(token.value)}))`;
+    case "DateLiteral":
+      // The Rust `Date` `Debug` impl is opaque; we delegate to the
+      // CborDate's own string rendering, which is the closest TS gets.
+      return `DateLiteral(Ok(${String(token.value)}))`;
+    case "Number":
+      return `Number(${formatNumberDebug(token.value)})`;
+    case "String":
+      // The lexer stores the slice including the outer quotes
+      // (matching Rust `Token::String(String)` which holds the raw
+      // `lex.slice()`). Rust's `Debug` impl on `String` re-quotes the
+      // contents — so a token whose value is `"hello"` prints as
+      // `String("\"hello\"")`. Since the inner already contains the
+      // quotes, we can mirror Rust by `JSON.stringify`-ing.
+      return `String(${JSON.stringify(token.value)})`;
+    case "TagValue":
+      return `TagValue(Ok(${tagOrKnownValueDebug(token.value)}))`;
+    case "TagName":
+      return `TagName(${JSON.stringify(token.value)})`;
+    case "KnownValueNumber":
+      return `KnownValueNumber(Ok(${tagOrKnownValueDebug(token.value)}))`;
+    case "KnownValueName":
+      return `KnownValueName(${JSON.stringify(token.value)})`;
+    case "UR":
+      // Rust `Token::UR(Result<UR>)` → `UR(Ok(<UR debug>))`. We don't
+      // have access to the Rust `UR::Debug` shape, so we emit the UR
+      // string form, which is stable and unambiguous.
+      return `UR(Ok(${token.value.string()}))`;
+  }
+}
+
+/**
+ * Renders a `Vec<u8>` the way Rust's `Debug` does:
+ * `[0x68, 0x65, 0x6c, 0x6c, 0x6f]`.
+ */
+function formatBytesDebug(bytes: Uint8Array): string {
+  const parts: string[] = [];
+  for (const b of bytes) {
+    parts.push(`0x${b.toString(16).padStart(2, "0")}`);
+  }
+  return `[${parts.join(", ")}]`;
+}
+
+/**
+ * Renders a JS `number` the way Rust's `f64::Debug` typically prints
+ * it — using a decimal point even for integral values (e.g. `42.0`),
+ * and `inf` / `-inf` / `NaN` for non-finite numbers. The dCBOR-parse
+ * Rust source rarely produces a `Number` token in error messages
+ * (numbers normally land in tagged-content contexts), but we still
+ * mirror the convention so any error text is consistent with Rust.
+ */
+function formatNumberDebug(n: number): string {
+  if (Number.isNaN(n)) return "NaN";
+  if (!Number.isFinite(n)) return n > 0 ? "inf" : "-inf";
+  if (Number.isInteger(n)) return `${n}.0`;
+  return String(n);
+}
+
+/**
+ * Renders a `u64` payload the way Rust's `Debug` does — a bare digit
+ * sequence without trailing `n` for `bigint` values. Mirrors
+ * `<u64 as Debug>::fmt` and `<TagValue as Debug>::fmt` (TagValue is a
+ * type alias for u64 in `bc-ur` / `dcbor`).
+ */
+function tagOrKnownValueDebug(value: number | bigint): string {
+  return typeof value === "bigint" ? value.toString() : String(value);
 }

@@ -287,11 +287,13 @@ const edgeList = computed(() => {
   return results
 })
 
-// Reactive resolution methods list
+// Reactive resolution methods list (string view of `Set<URI>` mirroring
+// Rust). The underlying typed values are flattened to strings here so
+// the Vue templates can compare and render them as ordinary text.
 const resolutionMethodList = computed(() => {
   void docVersion.value
   if (!xidDocument.value) return [] as string[]
-  return Array.from(xidDocument.value.resolutionMethods())
+  return Array.from(xidDocument.value.resolutionMethods()).map((u) => u.toString())
 })
 
 // ============================================
@@ -674,7 +676,14 @@ function addEndpointToKey(key: Key) {
 }
 
 function removeEndpointFromKey(key: Key, endpoint: string) {
-  key.endpointsMut().delete(endpoint)
+  // `key.endpoints()` now returns `Set<URI>` (mirrors Rust). The
+  // template hands us a string, so iterate to find the matching URI.
+  for (const uri of key.endpointsMut()) {
+    if (uri.toString() === endpoint) {
+      key.endpointsMut().delete(uri)
+      break
+    }
+  }
   saveToHistory()
   refreshDocument()
   toast.add({ title: 'Endpoint removed', color: 'neutral', icon: 'i-heroicons-trash' })
@@ -815,11 +824,19 @@ function openAddServiceModal() {
 
 function openEditServiceModal(service: Service) {
   serviceModalMode.value = 'edit'
-  serviceFormUri.value = service.uri()
+  // `Service.uri()` now returns a typed URI value; the form binds a
+  // string. Likewise `keyReferences()` / `delegateReferences()` are
+  // now `Set<Reference>`, so flatten to hex for the form's
+  // `Set<string>` shape.
+  serviceFormUri.value = service.uri().toString()
   serviceFormName.value = service.name()
   serviceFormCapability.value = service.capability()
-  serviceFormKeyRefs.value = new Set(service.keyReferences())
-  serviceFormDelegateRefs.value = new Set(service.delegateReferences())
+  serviceFormKeyRefs.value = new Set(
+    Array.from(service.keyReferences()).map((r) => r.toHex()),
+  )
+  serviceFormDelegateRefs.value = new Set(
+    Array.from(service.delegateReferences()).map((r) => r.toHex()),
+  )
   serviceFormAllowPrivileges.value = new Set(Array.from(service.permissions().allow).map(String))
   serviceFormDenyPrivileges.value = new Set(Array.from(service.permissions().deny).map(String))
   serviceFormError.value = null
@@ -892,7 +909,7 @@ function saveService() {
 }
 
 function confirmRemoveService(service: Service) {
-  removeServiceTargetUri.value = service.uri()
+  removeServiceTargetUri.value = service.uri().toString()
   showRemoveServiceConfirm.value = true
 }
 
@@ -1812,7 +1829,7 @@ defineShortcuts({
                     <div>
                       <div v-if="Array.from(keyItem.endpoints()).length > 0" class="space-y-1">
                         <span class="text-xs text-gray-500 dark:text-gray-400">Endpoints:</span>
-                        <div v-for="ep in Array.from(keyItem.endpoints())" :key="ep" class="flex items-center gap-1 ml-2">
+                        <div v-for="ep in Array.from(keyItem.endpoints()).map((u) => u.toString())" :key="ep" class="flex items-center gap-1 ml-2">
                           <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ ep }}</code>
                           <UButton icon="i-heroicons-x-mark" size="xs" color="error" variant="ghost" @click="removeEndpointFromKey(keyItem, ep)" />
                         </div>
@@ -1948,8 +1965,8 @@ defineShortcuts({
                     <!-- URI -->
                     <div class="flex items-center gap-2">
                       <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">URI:</span>
-                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ serviceItem.uri() }}</code>
-                      <UButton icon="i-heroicons-clipboard-document" size="xs" color="neutral" variant="ghost" @click="copyToClipboard(serviceItem.uri(), 'Service URI')" />
+                      <code class="flex-1 text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{{ serviceItem.uri().toString() }}</code>
+                      <UButton icon="i-heroicons-clipboard-document" size="xs" color="neutral" variant="ghost" @click="copyToClipboard(serviceItem.uri().toString(), 'Service URI')" />
                     </div>
 
                     <!-- Capability -->
@@ -1961,7 +1978,7 @@ defineShortcuts({
                     <!-- Key References -->
                     <div v-if="serviceItem.keyReferences().size > 0" class="flex items-center gap-1 flex-wrap">
                       <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Keys:</span>
-                      <UBadge v-for="ref in Array.from(serviceItem.keyReferences())" :key="'sk-' + ref" color="neutral" variant="soft" size="xs">
+                      <UBadge v-for="ref in Array.from(serviceItem.keyReferences()).map((r) => r.toHex())" :key="'sk-' + ref" color="neutral" variant="soft" size="xs">
                         {{ getKeyLabelByRef(ref) }}
                       </UBadge>
                     </div>
@@ -1969,7 +1986,7 @@ defineShortcuts({
                     <!-- Delegate References -->
                     <div v-if="serviceItem.delegateReferences().size > 0" class="flex items-center gap-1 flex-wrap">
                       <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Delegates:</span>
-                      <UBadge v-for="ref in Array.from(serviceItem.delegateReferences())" :key="'sdr-' + ref" color="info" variant="soft" size="xs">
+                      <UBadge v-for="ref in Array.from(serviceItem.delegateReferences()).map((r) => r.toHex())" :key="'sdr-' + ref" color="info" variant="soft" size="xs">
                         {{ getDelegateLabelByRef(ref) }}
                       </UBadge>
                     </div>

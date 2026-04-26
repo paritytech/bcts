@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { ARID, JSON as JSONWrapper, XID } from "@bcts/components";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { CborDate } from "@bcts/dcbor";
 import { Envelope, Function as EnvelopeFunction } from "@bcts/envelope";
 import { SealedRequest, SealedResponse } from "@bcts/gstp";
@@ -87,8 +88,12 @@ function loadRound1State(registryPath: string, groupId: ARID): Round1State {
     );
   }
 
+  // Mirrors Rust `frost::keys::dkg::round1::SecretPackage` JSON
+  // (`frost-rust/frost-core/src/keys/dkg.rs:120-139`): no `header`,
+  // snake_case `min_signers` / `max_signers`, identifier and
+  // coefficients as lowercase hex strings, commitment as a flat array
+  // of hex strings.
   const secretJson = JSON.parse(fs.readFileSync(round1SecretPath, "utf-8")) as {
-    header: { version: number; ciphersuite: string };
     identifier: string;
     coefficients: string[];
     commitment: string[];
@@ -209,8 +214,11 @@ function extractRound1Packages(
     sortedXids.push(ownerXid);
   }
 
-  // Sort by XID UR string
-  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used `urString().localeCompare(...)`,
+  // which differs from byte order for any byte ≥ 0x80 and is locale-
+  // aware, producing different FROST identifier assignments than Rust.
+  sortedXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   // Deduplicate
   const deduped: XID[] = [];
@@ -297,8 +305,11 @@ function buildResponseBody(
     sortedXids.push(participantXid);
   }
 
-  // Sort by XID UR string
-  sortedXids.sort((a, b) => a.urString().localeCompare(b.urString()));
+  // Sort by XID byte order — mirrors Rust `XID::cmp` (raw 32-byte
+  // lex compare). The earlier port used `urString().localeCompare(...)`,
+  // which differs from byte order for any byte ≥ 0x80 and is locale-
+  // aware, producing different FROST identifier assignments than Rust.
+  sortedXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
 
   // Deduplicate
   const deduped: XID[] = [];
@@ -348,27 +359,45 @@ function buildResponseBody(
 /**
  * Serialize round 2 secret package to JSON format for persistence.
  *
- * The format matches what finalize.ts expects to deserialize.
+ * Mirrors the on-disk shape produced by Rust
+ * `serde_json::to_vec_pretty(&frost::keys::dkg::round2::SecretPackage)`
+ * (see `frost-rust/frost-core/src/keys/dkg.rs:269-287`):
+ *
+ * ```json
+ * {
+ *   "identifier": "<lowercase hex scalar>",
+ *   "commitment": ["<hex>", "<hex>", ...],
+ *   "secret_share": "<hex>",
+ *   "min_signers": <u16>,
+ *   "max_signers": <u16>
+ * }
+ * ```
+ *
+ * `frost::keys::dkg::round2::SecretPackage` is
+ * `#[serde(deny_unknown_fields)]`. The earlier port emitted
+ * camelCase keys (`secretShare`, `minSigners`, `maxSigners`), a
+ * nested `commitment.coefficients` shape, and a numeric
+ * `identifier` — all of which Rust's standard derive would
+ * reject and which had no chance of round-tripping with Rust.
+ *
+ * `participantIndex` is unused now that the identifier comes
+ * directly from `secret.identifier.serialize()`; we keep it in the
+ * signature for source-level parity with the call sites.
  */
 function serializeRound2SecretPackage(
   secret: DkgRound2SecretPackage,
-  participantIndex: number,
+  _participantIndex: number,
 ): Record<string, unknown> {
-  // Get the commitment coefficients
   const commitment = secret.commitment;
   const commitmentCoefficients = commitment.serialize().map((c: Uint8Array) => bytesToHex(c));
-
-  // Serialize the secret share
   const secretShare = bytesToHex(Ed25519Sha512.serializeScalar(secret.secretShare()));
 
   return {
-    identifier: participantIndex,
-    commitment: {
-      coefficients: commitmentCoefficients,
-    },
-    secretShare,
-    minSigners: secret.minSigners,
-    maxSigners: secret.maxSigners,
+    identifier: bytesToHex(secret.identifier.serialize()),
+    commitment: commitmentCoefficients,
+    secret_share: secretShare,
+    min_signers: secret.minSigners,
+    max_signers: secret.maxSigners,
   };
 }
 
@@ -576,15 +605,20 @@ export async function round2(
     };
   }
 
-  // Calculate participant index for serialization
-  // Sort participants by XID to find our position
-  const sortedXids = groupRecord.participants().map((p) => p.xid().urString());
-  const ownerXidStr = owner.xid().urString();
-  if (!sortedXids.includes(ownerXidStr)) {
-    sortedXids.push(ownerXidStr);
+  // Calculate participant index for serialization. Sort by XID byte
+  // order (mirrors Rust `XID::cmp`) so the 1-indexed position matches
+  // what the coordinator used when assigning FROST identifiers. The
+  // earlier port sorted by UR string via `Array.sort()` (default JS
+  // string compare), which diverges from Rust byte order for any
+  // byte ≥ 0x80.
+  const sortedParticipantXids: XID[] = groupRecord.participants().map((p) => p.xid());
+  const ownerXid = owner.xid();
+  const ownerXidStr = ownerXid.urString();
+  if (!sortedParticipantXids.some((x) => x.urString() === ownerXidStr)) {
+    sortedParticipantXids.push(ownerXid);
   }
-  sortedXids.sort();
-  const participantIndex = sortedXids.indexOf(ownerXidStr) + 1; // 1-indexed
+  sortedParticipantXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
+  const participantIndex = sortedParticipantXids.findIndex((x) => x.urString() === ownerXidStr) + 1; // 1-indexed
 
   // Persist Round 2 secret and collected round1 packages
   const round2SecretPath = persistRound2State(

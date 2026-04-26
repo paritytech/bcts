@@ -23,7 +23,8 @@ import type { RandomNumberGenerator } from "@bcts/rand";
 import { SecureRandomNumberGenerator } from "@bcts/rand";
 import { blake2b } from "@noble/hashes/blake2.js";
 import { Sr25519PublicKey } from "./sr25519-public-key.js";
-import { bytesToHex } from "../utils.js";
+import { bytesToHex, bytesEqual } from "../utils.js";
+import { CryptoError } from "../error.js";
 
 /** Size of SR25519 private key (seed) in bytes */
 export const SR25519_PRIVATE_KEY_SIZE = 32;
@@ -187,18 +188,24 @@ export class Sr25519PrivateKey {
   /**
    * Sign a message using a custom context.
    *
-   * Note: The @scure/sr25519 library uses a hardcoded "substrate" context.
-   * Custom context is accepted for API compatibility but only "substrate" context
-   * will produce signatures verifiable by this library.
+   * The underlying `@scure/sr25519` library hard-codes the `"substrate"`
+   * signing context. Calling with any other context byte-slice would
+   * silently produce a non-cross-platform signature, so we fail loudly
+   * instead — callers must use the substrate default until a
+   * context-aware library is wired in.
    *
    * @param message - The message to sign
-   * @param _context - The signing context (only "substrate" is supported)
+   * @param context - The signing context (must equal `SR25519_DEFAULT_CONTEXT`)
    * @returns 64-byte signature
+   * @throws CryptoError if `context` is not the substrate default
    */
-  signWithContext(message: Uint8Array, _context: Uint8Array): Uint8Array {
+  signWithContext(message: Uint8Array, context: Uint8Array): Uint8Array {
+    if (!bytesEqual(context, SR25519_DEFAULT_CONTEXT)) {
+      throw CryptoError.cryptoOperation(
+        "Sr25519: only the default substrate context is supported by the underlying library",
+      );
+    }
     const secretKey = sr25519.secretFromSeed(this._seed);
-    // Note: @scure/sr25519 sign() uses hardcoded "substrate" context
-    // Arguments: sign(secretKey, message, random?)
     return sr25519.sign(secretKey, message);
   }
 

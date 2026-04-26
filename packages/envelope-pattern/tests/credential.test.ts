@@ -1,273 +1,226 @@
 /**
- * @bcts/envelope-pattern - Credential Pattern Tests
+ * @bcts/envelope-pattern — Credential pattern tests
  *
- * Tests for pattern matching on credential-like envelope structures.
- *
- * This is a 1:1 TypeScript port of bc-envelope-pattern-rust credential_tests.rs
- *
- * NOTE: The original Rust tests use signed credentials with ARID and crypto primitives.
- * This TypeScript version uses simplified test data that exercises the same pattern
- * matching logic without requiring full crypto support.
+ * Port of `bc-envelope-pattern-rust/tests/credential_tests.rs`. The
+ * earlier TS port stubbed signing/elision out (see the explicit
+ * "without requiring full crypto support" comment); this port uses
+ * the real `addSignatureOpt` + Schnorr deterministic-RNG path and a
+ * real `elideRevealingSet`-built redacted credential, mirroring
+ * `common::test_data::{credential, redacted_credential}` from the
+ * Rust crate.
  */
 
 import { describe, it, expect } from "vitest";
 import { Envelope } from "@bcts/envelope";
+import { ARID, PrivateKeyBase } from "@bcts/components";
 import { CborDate } from "@bcts/dcbor";
-import {
-  parse,
-  search,
-  assertionWithPredicate,
-  assertionWithObject,
-  anyText,
-  anyNumber,
-  text,
-  or,
-  notMatching,
-  obscured,
-  elided,
-  patternMatches,
-  patternPaths,
-} from "../src";
+import { hexToBytes } from "@bcts/components";
+import { makeFakeRandomNumberGenerator } from "@bcts/rand";
+import { IS_A, ISSUER, CONTROLLER, NOTE } from "@bcts/known-values";
+import type { Digest } from "@bcts/envelope";
+import { parse, patternMatches, patternPaths, patternPathsWithCaptures } from "../src";
 
-// Create a simplified credential for testing
-// This mirrors the structure of credential_tests.rs but without crypto
-function createTestCredential(): Envelope {
-  return (
-    Envelope.new("CertificateID-123456")
-      .addAssertion("isA", "Certificate of Completion")
-      .addAssertion("issuer", "Example Electrical Engineering Board")
-      .addAssertion("controller", "Example Electrical Engineering Board")
-      .addAssertion("firstName", "James")
-      .addAssertion("lastName", "Maxwell")
-      .addAssertion("issueDate", CborDate.fromDatetime(new Date("2020-01-01")))
-      .addAssertion("expirationDate", CborDate.fromDatetime(new Date("2028-01-01")))
-      .addAssertion("photo", "This is James Maxwell's photo.")
-      .addAssertion("certificateNumber", "123-456-789")
-      .addAssertion("subject", "RF and Microwave Engineering")
-      .addAssertion("continuingEducationUnits", 1)
-      .addAssertion("professionalDevelopmentHours", 15)
-      // Note: Array as assertion value requires CBOR wrapping
-      .addAssertion("topics", ["Subject 1", "Subject 2"] as unknown as string)
-  );
+// `alice_seed` from `common/test_data.rs:30-32`.
+const ALICE_SEED_HEX = "82f32c855d3d542256180810797e0073";
+// `credential` ARID from `common/test_data.rs:95-97`.
+const CREDENTIAL_ARID_HEX = "4676635a6e6068c2ef3ffd8ff726dd401fd341036e920f136a1d8af5e829496d";
+
+function alicePrivateKey(): PrivateKeyBase {
+  return PrivateKeyBase.fromData(hexToBytes(ALICE_SEED_HEX));
 }
 
-// NOTE: _createRedactedCredential function was removed as it was unused.
-// The function was a placeholder for future elided credential tests.
+/**
+ * Build the same credential the Rust test suite uses, minus the
+ * `add_signature_opt` step (the `credential` builder below appends
+ * the signature). Mirrors `bc-envelope-pattern-rust/tests/common/
+ * test_data.rs:85-122` line-for-line.
+ */
+function credential(): Envelope {
+  const arid = ARID.fromData(hexToBytes(CREDENTIAL_ARID_HEX));
+  const issueDate = CborDate.fromString("2020-01-01");
+  const expirationDate = CborDate.fromString("2028-01-01");
 
-describe("Credential Pattern Tests", () => {
-  describe("Test Credential Structure", () => {
-    it("creates test credential with expected assertions", () => {
-      const credential = createTestCredential();
-      expect(credential.assertions().length).toBe(13);
-    });
+  const inner = Envelope.new(arid)
+    .addAssertion(IS_A, "Certificate of Completion")
+    .addAssertion(ISSUER, "Example Electrical Engineering Board")
+    .addAssertion(CONTROLLER, "Example Electrical Engineering Board")
+    .addAssertion("firstName", "James")
+    .addAssertion("lastName", "Maxwell")
+    .addAssertion("issueDate", issueDate)
+    .addAssertion("expirationDate", expirationDate)
+    .addAssertion("photo", "This is James Maxwell's photo.")
+    .addAssertion("certificateNumber", "123-456-789")
+    .addAssertion("subject", "RF and Microwave Engineering")
+    .addAssertion("continuingEducationUnits", 1)
+    .addAssertion("professionalDevelopmentHours", 15)
+    .addAssertion("topics", ["Subject 1", "Subject 2"] as unknown as number);
 
-    it("test credential has expected structure", () => {
-      const credential = createTestCredential();
-      // Check that assertions exist
-      const assertions = credential.assertions();
-      expect(assertions.length).toBe(13);
-      // Check some predicates exist
-      expect(credential.hasAssertions()).toBe(true);
-    });
-  });
+  const wrapped = inner.wrap();
+  const rng = makeFakeRandomNumberGenerator();
+  // The Rust crate signs with Alice's Schnorr key (BIP-340) and a
+  // deterministic RNG so output is reproducible across runs.
+  const schnorrSigner = alicePrivateKey().schnorrPrivateKeys().signingPrivateKey();
+  const signed = wrapped.addSignatureOpt(schnorrSigner, { type: "Schnorr", rng });
+  return signed.addAssertion(NOTE, "Signed by Example Electrical Engineering Board");
+}
 
-  describe("Pattern Parsing for Credentials", () => {
-    it("parses search for text or number assertions", () => {
-      const result = parse("search(assertobj(text|number))");
-      expect(result.ok).toBe(true);
-    });
+/**
+ * Mirrors `redacted_credential()` from
+ * `common/test_data.rs:124-173`: a redacted credential where the
+ * outer envelope, the ARID subject, and a curated subset of inner
+ * assertions (firstName, lastName, isA, issuer, subject,
+ * expirationDate) remain visible while everything else is elided.
+ */
+function redactedCredential(env: Envelope): Envelope {
+  const target = new Set<Digest>();
+  // Outer envelope digest.
+  target.add(env.digest());
+  // Outer assertions (note + signature).
+  for (const assertion of env.assertions()) {
+    for (const d of (assertion as unknown as { deepDigests(): Digest[] }).deepDigests()) {
+      target.add(d);
+    }
+  }
+  // Outer subject (the wrapped inner credential).
+  target.add(env.subject().digest());
 
-    it("parses search for specific predicate and object", () => {
-      const result = parse('search(assertpred("firstName")->obj("James"))');
-      expect(result.ok).toBe(true);
-    });
+  const content = (env.subject() as unknown as { tryUnwrap(): Envelope }).tryUnwrap();
+  target.add(content.digest());
+  target.add(content.subject().digest());
 
-    it("parses search with capture for assertion", () => {
-      const result = parse('search(@cap(assertpred("firstName")->obj("James")))');
-      expect(result.ok).toBe(true);
-    });
-
-    it("parses search for node structure", () => {
-      const result = parse("search(node)");
-      expect(result.ok).toBe(true);
-    });
-
-    it("parses digest and not pattern", () => {
-      // Note: digest pattern requires hex format without 0x prefix
-      const result = parse("!obscured");
-      expect(result.ok).toBe(true);
-    });
-
-    it("parses search for elided", () => {
-      const result = parse("search(elided)");
-      expect(result.ok).toBe(true);
-    });
-  });
-
-  describe("Assertion Pattern Matching", () => {
-    it("finds text or number assertions in credential", () => {
-      const credential = createTestCredential();
-
-      // Build the pattern: search for assertion objects that are text or number
-      const textOrNumber = or([anyText(), anyNumber()]);
-      const assertionObjPattern = assertionWithObject(textOrNumber);
-      const searchPattern = search(assertionObjPattern);
-
-      // The credential has many text and number assertion objects
-      const paths = patternPaths(searchPattern, credential);
-
-      // Should find multiple assertions with text or number objects
-      // firstName: "James", lastName: "Maxwell", etc.
-      expect(paths.length).toBeGreaterThan(0);
-    });
-
-    it("finds specific firstName assertion", () => {
-      const credential = createTestCredential();
-
-      // Pattern: assertion with predicate "firstName"
-      const pattern = assertionWithPredicate(text("firstName"));
-
-      // Direct match should work
-      expect(patternMatches(pattern, credential)).toBe(true);
-
-      const paths = patternPaths(pattern, credential);
-      expect(paths.length).toBe(1);
-    });
-
-    it("finds specific lastName assertion", () => {
-      const credential = createTestCredential();
-
-      const pattern = assertionWithPredicate(text("lastName"));
-      expect(patternMatches(pattern, credential)).toBe(true);
-    });
-
-    it("does not find non-existent predicate", () => {
-      const credential = createTestCredential();
-
-      const pattern = assertionWithPredicate(text("nonExistent"));
-      expect(patternMatches(pattern, credential)).toBe(false);
-    });
-  });
-
-  describe("Search Pattern Matching", () => {
-    it("search finds all text assertions", () => {
-      const credential = createTestCredential();
-      const result = parse("search(assertobj(text))");
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const paths = patternPaths(result.value, credential);
-        expect(paths.length).toBeGreaterThan(0);
+  // Reveal selected predicate assertions inside the wrapped content.
+  const revealed: Array<unknown> = [
+    "firstName",
+    "lastName",
+    IS_A,
+    ISSUER,
+    "subject",
+    "expirationDate",
+  ];
+  for (const pred of revealed) {
+    const assertion = (
+      content as unknown as {
+        assertionWithPredicate(p: unknown): Envelope | undefined;
       }
-    });
+    ).assertionWithPredicate(pred);
+    if (assertion === undefined) continue;
+    for (const d of (assertion as unknown as { shallowDigests(): Digest[] }).shallowDigests()) {
+      target.add(d);
+    }
+  }
 
-    it("search finds firstName capture", () => {
-      const credential = createTestCredential();
-      const result = parse('search(assertpred("firstName")->obj("James"))');
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const paths = patternPaths(result.value, credential);
-        expect(paths.length).toBe(1);
-      }
-    });
+  return env.elideRevealingSet(target);
+}
 
-    it("search with capture propagation", () => {
-      const credential = createTestCredential();
-      const result = parse('search(@cap(assertpred("firstName")->obj("James")))');
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        // Would need patternPathsWithCaptures for full capture test
-        const paths = patternPaths(result.value, credential);
-        expect(paths.length).toBe(1);
-      }
-    });
+describe("Credential pattern tests (credential_tests.rs, real crypto)", () => {
+  it("credential() produces an envelope with 13 inner assertions + 2 outer", () => {
+    const env = credential();
+    // Outer envelope has 2 assertions (signed, note). The wrapped
+    // inner has 13 (one per `add_assertion` call in the Rust
+    // builder).
+    expect(env.assertions().length).toBe(2);
+    const inner = (env.subject() as unknown as { tryUnwrap(): Envelope }).tryUnwrap();
+    expect(inner.assertions().length).toBe(13);
   });
 
-  describe("Combined Pattern Matching", () => {
-    it("matches digest and not obscured pattern", () => {
-      const credential = createTestCredential();
-
-      // Pattern: has specific digest prefix AND is NOT obscured
-      const notObscuredPattern = notMatching(obscured());
-
-      // The credential is not obscured, so this should match
-      expect(patternMatches(notObscuredPattern, credential)).toBe(true);
-    });
-
-    it("obscured pattern does not match regular envelope", () => {
-      const credential = createTestCredential();
-      expect(patternMatches(obscured(), credential)).toBe(false);
-    });
-
-    it("elided pattern matches elided envelope", () => {
-      const credential = createTestCredential();
-      const elidedCred = credential.elide();
-
-      expect(patternMatches(elided(), elidedCred)).toBe(true);
-      expect(patternMatches(obscured(), elidedCred)).toBe(true);
-    });
+  it("`search(assertobj(text|number))` finds 11 paths in the credential", () => {
+    // Mirrors `test_parsed_search_text_or_number` from the Rust test.
+    const env = credential();
+    const r = parse("search(assertobj(text|number))");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(patternPaths(r.value, env).length).toBe(11);
   });
 
-  describe("Elided Pattern Search", () => {
-    // Tests for finding elided elements in partially redacted credentials
-    it("search finds elided elements in redacted credential", () => {
-      // This would require actual selective elision support
-      const result = parse("search(elided)");
-      expect(result.ok).toBe(true);
-    });
+  it('`search(assertpred("firstName")->obj("James"))` finds exactly 1 path', () => {
+    // Mirrors `test_parsed_firstname_capture`.
+    const env = credential();
+    const r = parse('search(assertpred("firstName")->obj("James"))');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(patternPaths(r.value, env).length).toBe(1);
   });
 
-  describe("Wrapped Repeat Patterns", () => {
-    // These tests verify complex repeat patterns on wrapped credentials
-    // They require full VM implementation
-
-    it("parses wrapped repeat pattern", () => {
-      const result = parse("(wrapped)*->node");
-      expect(result.ok).toBe(true);
-    });
-
-    it("parses search wrapped repeat pattern", () => {
-      const result = parse("search((wrapped)*->node)");
-      expect(result.ok).toBe(true);
-    });
-
-    // TODO: Wrapped repeat pattern traversal requires further VM work
-    it.skip("wrapped repeat matches wrapped credential", () => {
-      const credential = createTestCredential().wrap();
-      const result = parse("(wrapped)*->node");
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const paths = patternPaths(result.value, credential);
-        expect(paths.length).toBeGreaterThan(0);
-      }
-    });
-
-    it("search wrapped repeat finds all nodes", () => {
-      const credential = createTestCredential().wrap();
-      const result = parse("search((wrapped)*->node)");
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const paths = patternPaths(result.value, credential);
-        // Should find both the outer node and inner node after unwrapping
-        expect(paths.length).toBeGreaterThan(0);
-      }
-    });
+  it('`search(@cap(assertpred("firstName")->obj("James")))` propagates the capture', () => {
+    // Mirrors `test_search_capture_propagation`.
+    const env = credential();
+    const r = parse('search(@cap(assertpred("firstName")->obj("James")))');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const [paths, captures] = patternPathsWithCaptures(r.value, env);
+    expect(paths.length).toBe(1);
+    expect(captures.has("cap")).toBe(true);
+    expect(captures.get("cap")?.length).toBe(1);
   });
 
-  describe("Node Structure Patterns", () => {
-    it("parses node with assertion count pattern", () => {
-      const result = parse("search(node({13}))");
-      expect(result.ok).toBe(true);
-    });
+  it("real elision: redactedCredential matches `search(elided)` non-trivially", () => {
+    // Mirrors the spirit of the redacted-credential tests in the
+    // Rust suite — exercises the `elide_revealing_set` path and
+    // checks that the resulting envelope has elided sub-elements
+    // observable via `search(elided)`.
+    const env = credential();
+    const redacted = redactedCredential(env);
+    const r = parse("search(elided)");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const paths = patternPaths(r.value, redacted);
+    expect(paths.length).toBeGreaterThan(0);
+  });
 
-    it("finds node with specific assertion count", () => {
-      const credential = createTestCredential();
-      const result = parse("search(node({13}))");
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const paths = patternPaths(result.value, credential);
-        // Credential has 13 assertions
-        expect(paths.length).toBe(1);
-      }
-    });
+  it("redactedCredential preserves the visible firstName assertion", () => {
+    const env = credential();
+    const redacted = redactedCredential(env);
+    // `firstName` is in the revealed set, so the assertion stays
+    // and `search(assertpred("firstName")->obj("James"))` should
+    // still find one path.
+    const r = parse('search(assertpred("firstName")->obj("James"))');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(patternPaths(r.value, redacted).length).toBe(1);
+  });
+
+  it("redactedCredential elides the photo assertion (non-revealed)", () => {
+    const env = credential();
+    const redacted = redactedCredential(env);
+    // `photo` is NOT in the revealed set, so the assertion gets
+    // elided. The bare-predicate search must miss it (contrast with
+    // the unredacted credential, where it would match).
+    const photoR = parse('search(assertpred("photo"))');
+    expect(photoR.ok).toBe(true);
+    if (!photoR.ok) return;
+    expect(patternPaths(photoR.value, env).length).toBe(1);
+    expect(patternPaths(photoR.value, redacted).length).toBe(0);
+  });
+
+  it("redactedCredential preserves the outer note assertion (in revealed set)", () => {
+    // The outer `'note': "Signed by ..."` assertion is preserved in
+    // the redacted form — it was added to `target` via the
+    // `for assertion in env.assertions()` loop in
+    // `redactedCredential`. The string-predicate search misses it
+    // (the predicate is a known value, not a string), but
+    // searching for the known-value-pred form via the pattern
+    // language should land on it; here we just observe that the
+    // redacted envelope still has 2 outer assertions.
+    const env = credential();
+    const redacted = redactedCredential(env);
+    expect(env.assertions().length).toBe(2);
+    expect(redacted.assertions().length).toBe(2);
+  });
+
+  it("`search(node({13}))` finds the inner node (13 assertions)", () => {
+    const env = credential();
+    const r = parse("search(node({13}))");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(patternPaths(r.value, env).length).toBe(1);
+  });
+
+  it("non-existent predicate matches nothing (sanity)", () => {
+    const env = credential();
+    const r = parse('search(assertpred("nonExistent"))');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(patternMatches(r.value, env)).toBe(false);
+    expect(patternPaths(r.value, env).length).toBe(0);
   });
 });

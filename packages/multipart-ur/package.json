@@ -63,7 +63,9 @@
     "fast-png": "^8.0.0",
     "gifenc": "^1.0.3",
     "jpeg-js": "^0.4.4",
-    "qrcode-generator": "^2.0.4"
+    "omggif": "^1.0.10",
+    "qrcode-generator": "^2.0.4",
+    "webp-wasm": "^1.0.6"
   },
   "devDependencies": {
     "@bcts/dcbor": "workspace:*",
@@ -71,6 +73,7 @@
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
+    "@types/omggif": "^1.0.5",
     "@types/qrcode-generator": "^1.0.6",
     "commander": "^14.0.3",
     "eslint": "^10.2.1",

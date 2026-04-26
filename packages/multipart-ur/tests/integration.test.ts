@@ -168,6 +168,67 @@ describe("animated", () => {
     expect(gif.length).toBeGreaterThan(100);
   });
 
+  // M2 — Rust's `gif` crate and TS's `gifenc` are byte-different
+  // encoders, so we don't pin GIF output bytes. We *do* pin the
+  // structural invariants that both impls share, so that a
+  // regression in delay encoding, loop count, or frame count is
+  // surfaced. See `src/animate.ts::encodeAnimatedGif` for the
+  // detailed parity caveat.
+  it("gif structure (M2): GIF89a magic, NETSCAPE2.0, loop=0, frame count", () => {
+    const ur = longUr();
+    const params: AnimateParams = {
+      maxFragmentLen: 50,
+      size: 128,
+      cycles: 2,
+      fps: 4,
+    };
+    const frames = generateFrames(ur, params);
+    expect(frames.length).toBeGreaterThanOrEqual(2);
+    const gif = encodeAnimatedGif(frames, 4);
+
+    // 1) Magic header.
+    expect(new TextDecoder().decode(gif.slice(0, 6))).toBe("GIF89a");
+
+    // 2) Find the NETSCAPE2.0 application extension. The signature
+    //    is: 0x21 0xff 0x0b "NETSCAPE2.0" 0x03 0x01 LOOP_LO LOOP_HI 0x00.
+    const netscapeAscii = new TextEncoder().encode("NETSCAPE2.0");
+    let netscapeOffset = -1;
+    outer: for (let i = 0; i < gif.length - netscapeAscii.length; i++) {
+      for (let j = 0; j < netscapeAscii.length; j++) {
+        if (gif[i + j] !== netscapeAscii[j]) continue outer;
+      }
+      netscapeOffset = i;
+      break;
+    }
+    expect(netscapeOffset).toBeGreaterThan(0);
+    // Preceding 3 bytes must be `0x21 0xff 0x0b`.
+    expect(gif[netscapeOffset - 3]).toBe(0x21);
+    expect(gif[netscapeOffset - 2]).toBe(0xff);
+    expect(gif[netscapeOffset - 1]).toBe(0x0b);
+
+    // 3) After "NETSCAPE2.0" comes:
+    //    0x03 0x01 LOOP_LO LOOP_HI 0x00 (block-terminator).
+    const after = netscapeOffset + netscapeAscii.length;
+    expect(gif[after]).toBe(0x03);
+    expect(gif[after + 1]).toBe(0x01);
+    const loopCount = gif[after + 2] | (gif[after + 3] << 8);
+    expect(loopCount).toBe(0); // 0 = repeat forever
+    expect(gif[after + 4]).toBe(0x00);
+
+    // 4) Image-separator byte (0x2c) appears once per frame.
+    let imageSeparators = 0;
+    for (const b of gif) if (b === 0x2c) imageSeparators++;
+    // gifenc may emit one `0x2c` per frame plus none extra; lower
+    // bound is the frame count. (Upper bound is loose because
+    // 0x2c can appear inside palette/data bytes, but for QR
+    // images with a small palette this is rare; we just enforce
+    // a lower bound here.)
+    expect(imageSeparators).toBeGreaterThanOrEqual(frames.length);
+
+    // 5) GIF trailer.
+    expect(gif[gif.length - 1]).toBe(0x3b);
+  });
+
   it("gif with logo", async () => {
     const ur = longUr();
     const logo = await Logo.fromSvg(TEST_SVG, 0.2, 1, LogoClearShape.Square);

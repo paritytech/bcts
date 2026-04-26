@@ -42,6 +42,7 @@ import {
 } from "@bcts/dcbor";
 import { UR, type UREncodable } from "@bcts/uniform-resources";
 import { X25519_PUBLIC_KEY as TAG_X25519_PUBLIC_KEY } from "@bcts/tags";
+import { Digest } from "../digest.js";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
@@ -147,9 +148,15 @@ export class X25519PublicKey
 
   /**
    * Get string representation.
+   *
+   * Mirrors Rust `Display for X25519PublicKey`
+   * (`bc-components-rust/src/x25519/x25519_public_key.rs:166-168`):
+   *   `X25519PublicKey(<ref_hex_short>)` where the reference is
+   *   computed from the **tagged-CBOR** form of the key.
    */
   toString(): string {
-    return `X25519PublicKey(${this.toHex().substring(0, 16)}...)`;
+    const digest = Digest.fromImage(this.taggedCborData());
+    return `X25519PublicKey(${digest.shortDescription()})`;
   }
 
   // ============================================================================

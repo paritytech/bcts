@@ -13,7 +13,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { ARID, JSON as JSONWrapper, XID } from "@bcts/components";
+import { ARID, JSON as JSONWrapper, type XID } from "@bcts/components";
+import { compareXidBytes } from "../../../dkg/proposed-participant.js";
 import { Envelope } from "@bcts/envelope";
 import { SealedResponse } from "@bcts/gstp";
 import type { XIDDocument } from "@bcts/xid";
@@ -32,6 +33,7 @@ import {
   groupParticipantFromRegistry,
   parseAridUr,
   parseEnvelopeUr,
+  resolveSender,
 } from "../common.js";
 import {
   dkgPart1,
@@ -154,7 +156,27 @@ function buildResponseBody(
  * so we manually serialize it here.
  */
 function serializeRound1SecretPackage(secret: DkgRound1SecretPackage): Record<string, unknown> {
-  // Access the coefficients and serialize them
+  // Mirrors the on-disk shape produced by Rust
+  // `serde_json::to_vec_pretty(&frost::keys::dkg::round1::SecretPackage)`
+  // (see `frost-rust/frost-core/src/keys/dkg.rs:120-139`):
+  //
+  //   {
+  //     "identifier": "<lowercase hex scalar>",
+  //     "coefficients": ["<hex>", "<hex>", ...],
+  //     "commitment": ["<hex>", "<hex>", ...],
+  //     "min_signers": <u16>,
+  //     "max_signers": <u16>
+  //   }
+  //
+  // `frost::keys::dkg::round1::SecretPackage` is `#[serde(deny_unknown_fields)]`
+  // and has no `header` field (the secret package is private to the
+  // participant). The earlier port emitted a top-level `header` which
+  // would fail `deny_unknown_fields` validation if Rust ever loaded
+  // the file.
+  //
+  // `Identifier`/`SerializableScalar` serialize via
+  // `serdect::array::serialize_hex_lower_or_bin` → lowercase hex for
+  // JSON, which `bytesToHex` produces.
   const coefficients = secret.coefficients();
   const serializedCoefficients = coefficients.map((c: unknown) =>
     bytesToHex(
@@ -162,12 +184,10 @@ function serializeRound1SecretPackage(secret: DkgRound1SecretPackage): Record<st
     ),
   );
 
-  // Get the commitment coefficients
   const commitment = secret.commitment;
   const commitmentCoefficients = commitment.serialize().map((c: Uint8Array) => bytesToHex(c));
 
   return {
-    header: serde.DEFAULT_HEADER,
     identifier: bytesToHex(secret.identifier.serialize()),
     coefficients: serializedCoefficients,
     commitment: commitmentCoefficients,
@@ -237,10 +257,13 @@ export async function round1(
     throw new Error("Registry owner with private keys is required");
   }
 
-  // Resolve expected sender if provided
+  // Resolve expected sender if provided. Uses the shared helper from
+  // `cmd/dkg/common.ts` (mirrors Rust `resolve_sender`); the
+  // duplicated inline implementation that this previously called has
+  // been removed.
   let expectedSender: XIDDocument | undefined;
   if (options.sender !== undefined) {
-    expectedSender = resolveSenderXidDocument(registry, options.sender);
+    expectedSender = resolveSender(registry, options.sender);
   }
 
   const nextResponseArid =
@@ -263,9 +286,14 @@ export async function round1(
     expectedSender,
   );
 
-  // Sort participants by XID and find our position
+  // Sort participants by XID byte order (mirrors Rust `XID::cmp` —
+  // raw 32-byte lex compare). The earlier port used
+  // `xid.urString().localeCompare(...)`, which differs from byte
+  // order when bytes ≥ 0x80 are present and is locale-aware,
+  // producing different FROST identifier assignments and therefore
+  // different secret shares than Rust.
   const sortedParticipants = [...details.participants].sort((a, b) =>
-    a.xid().urString().localeCompare(b.xid().urString()),
+    compareXidBytes(a.xid().toData(), b.xid().toData()),
   );
 
   const ownerIndex = sortedParticipants.findIndex(
@@ -436,33 +464,6 @@ export async function round1(
   }
 }
 
-/**
- * Resolve a sender XID document from the registry by UR or pet name.
- */
-function resolveSenderXidDocument(registry: Registry, raw: string): XIDDocument {
-  // Try parsing as XID UR first
-  try {
-    const xid = XID.fromURString(raw.trim());
-    const record = registry.participant(xid);
-    if (record) {
-      return record.xidDocument();
-    }
-    const owner = registry.owner();
-    if (owner?.xid().urString() === xid.urString()) {
-      return owner.xidDocument();
-    }
-    throw new Error(`Sender with XID ${xid.urString()} not found in registry`);
-  } catch {
-    // Try looking up by pet name
-    const result = registry.participantByPetName(raw.trim());
-    if (result) {
-      const [, record] = result;
-      return record.xidDocument();
-    }
-    const owner = registry.owner();
-    if (owner?.petName() === raw.trim()) {
-      return owner.xidDocument();
-    }
-    throw new Error(`Sender '${raw}' not found in registry`);
-  }
-}
+// `resolveSenderXidDocument` removed — it was an inline duplicate of
+// Rust `resolve_sender(registry, input)`. The shared helper now lives
+// in `cmd/dkg/common.ts` and is imported above.

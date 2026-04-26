@@ -27,7 +27,19 @@ export class RenderedImage {
     this.height = height;
   }
 
-  /** Encode as PNG. */
+  /**
+   * Encode as PNG.
+   *
+   * **PNG parity with Rust** (`bc-mur::render::RenderedImage::to_png`):
+   * PNG is lossless, so the *decoded pixel buffer* of the output is
+   * byte-identical to `this.pixels`. The encoded byte stream may
+   * differ from Rust's `image` crate output because PNG encoders
+   * choose different filter strategies (Sub/Up/Average/Paeth) per
+   * scanline and may apply different deflate compression levels —
+   * both produce valid PNG files that decode back to identical
+   * RGBA8 buffers. A decoded-pixel parity test pins this contract
+   * in `tests/render-parity.test.ts > "PNG round-trip"`.
+   */
   toPng(): Uint8Array {
     try {
       return encodePng({
@@ -42,7 +54,28 @@ export class RenderedImage {
     }
   }
 
-  /** Encode as JPEG at the given quality (1–100). */
+  /**
+   * Encode as JPEG at the given quality (1–100).
+   *
+   * **JPEG parity with Rust** (`bc-mur::render::RenderedImage::to_jpeg`):
+   * the byte output is **byte-different** from Rust's `image` crate
+   * even at the same quality, because:
+   *   - Rust's `image` encodes RGBA → RGB by dropping alpha *before*
+   *     it reaches the encoder; `jpeg-js` accepts RGBA directly and
+   *     drops alpha internally.
+   *   - The two encoders use different DCT quantization tables,
+   *     entropy-coding heuristics, and chroma subsampling defaults.
+   *
+   * The output is **visually equivalent** — both decode to RGBA
+   * buffers within JPEG's natural quantization noise (≈ ±15 channel
+   * values at quality=90, the typical default). A decoded-pixel
+   * parity test pins this contract with an epsilon in
+   * `tests/render-parity.test.ts > "JPEG decoded-pixel parity"`.
+   *
+   * If you need byte-identical Rust↔TS JPEG output, you must run the
+   * same JPEG encoder on both sides; this is intentionally **out of
+   * scope** for the cross-language port.
+   */
   toJpeg(quality: number): Uint8Array {
     try {
       const result = jpeg.encode(

@@ -46,20 +46,72 @@
  * @module dcbor-parse
  */
 
+// =============================================================================
+// Public surface that mirrors Rust `bc-dcbor-parse-rust/src/lib.rs:59-72`.
+//
+// Rust re-exports:
+//   - `parse_dcbor_item`, `parse_dcbor_item_partial`
+//   - `Token`
+//   - `Error as ParseError`, `Result as ParseResult`
+//   - `Error as ComposeError`, `Result as ComposeResult`,
+//     `compose_dcbor_array`, `compose_dcbor_map`
+// =============================================================================
+
 // Parse functions
 export { parseDcborItem, parseDcborItemPartial } from "./parse";
 
-// Token types
-export { type Token, token, Lexer } from "./token";
+// Token types — Rust exposes only the `Token` enum publicly.
+export { type Token } from "./token";
 
-// Error types
+// Error types — Rust exposes only `ParseError` (the error enum) and
+// `ParseResult` (the result type alias).
+export { type ParseError, type ParseResult } from "./error";
+
+// Compose types and functions — Rust exposes `ComposeError`,
+// `ComposeResult`, and the two `compose_*` functions.
+export {
+  type ComposeError,
+  type ComposeResult,
+  composeDcborArray,
+  composeDcborMap,
+} from "./compose";
+
+// =============================================================================
+// TypeScript-only conveniences.
+//
+// Rust models its `Result<T, E>` natively via the `Result<T, E>` enum
+// and `?` operator; the Logos lexer is a private implementation detail.
+// In TypeScript we model `ParseResult<T>` as a discriminated union, so
+// helper constructors and discriminators (`ok`, `err`, `isOk`, `isErr`,
+// `unwrap`, `unwrapErr`, `parseError`, `composeError`, `composeOk`,
+// `composeErr`, `Span`, …) are mandatory ergonomics. They are exported
+// here as TS-only helpers and are **not** part of the Rust↔TS parity
+// surface — Rust callers don't see them, and TS callers writing
+// strictly-portable code shouldn't depend on them.
+//
+// `Lexer` and the `token` constructor namespace are likewise TS-only;
+// in Rust the lexer is created via `Token::lexer(src)` internally and
+// consumers never instantiate it directly. These re-exports stay so
+// existing test code keeps working, but production callers should
+// prefer `parseDcborItem` / `parseDcborItemPartial`.
+// =============================================================================
+
+// Token — TS-only convenience namespace for constructing tokens from
+// userland (rare; mostly used in tests). The `Lexer` class is also
+// TS-only — Rust treats `Token::lexer(...)` as an internal API.
+export { token, Lexer } from "./token";
+
+// Error helpers — `Span`/`span`/`defaultSpan` are TS-only because Rust
+// uses the `logos::Span` type alias directly. The `ok`/`err`/`isOk`/
+// `isErr`/`unwrap`/`unwrapErr` helpers are TS-only `Result`-modeling
+// utilities. `parseError`, `isDefaultError`, `errorMessage`,
+// `errorSpan`, `fullErrorMessage`, and `defaultParseError` are
+// likewise convenience helpers around the discriminated union.
 export {
   type Span,
   span,
   defaultSpan,
-  type ParseError,
   parseError,
-  type ParseResult,
   ok,
   err,
   isOk,
@@ -73,14 +125,7 @@ export {
   defaultParseError,
 } from "./error";
 
-// Compose functions
-export {
-  type ComposeError,
-  composeError,
-  type ComposeResult,
-  composeOk,
-  composeErr,
-  composeErrorMessage,
-  composeDcborArray,
-  composeDcborMap,
-} from "./compose";
+// Compose helpers — `composeError`/`composeOk`/`composeErr`/
+// `composeErrorMessage` are the TS-only counterparts of the
+// `ComposeError`/`ComposeResult` discriminated union ergonomics.
+export { composeError, composeOk, composeErr, composeErrorMessage } from "./compose";

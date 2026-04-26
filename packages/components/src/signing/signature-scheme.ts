@@ -11,7 +11,7 @@
  * Ported from bc-components-rust/src/signing/signature_scheme.rs
  */
 
-import { type SecureRandomNumberGenerator, type RandomNumberGenerator } from "@bcts/rand";
+import type { RandomNumberGenerator } from "@bcts/rand";
 import { Ed25519PrivateKey } from "../ed25519/ed25519-private-key.js";
 import { Sr25519PrivateKey } from "../sr25519/sr25519-private-key.js";
 import { ECPrivateKey } from "../ec-key/ec-private-key.js";
@@ -36,6 +36,13 @@ import { CryptoError } from "../error.js";
  * - SshDsa: DSA via SSH agent
  * - SshEcdsaP256: ECDSA P-256 via SSH agent
  * - SshEcdsaP384: ECDSA P-384 via SSH agent
+ *
+ * Wire format note: Rust models `SignatureScheme` as a unit-only enum;
+ * TypeScript uses string-typed values for ergonomic `switch`/`equals`
+ * checks. The CBOR/UR wire format never includes the scheme name —
+ * only the scheme's integer/byte-string discriminator on `Signature`,
+ * `SigningPrivateKey`, `SigningPublicKey` — so this is a stylistic
+ * difference, not a parity gap.
  */
 export enum SignatureScheme {
   /**
@@ -232,7 +239,7 @@ export function createKeypair(scheme: SignatureScheme): [SigningPrivateKey, Sign
  */
 export function createKeypairUsing(
   scheme: SignatureScheme,
-  rng: SecureRandomNumberGenerator,
+  rng: RandomNumberGenerator,
 ): [SigningPrivateKey, SigningPublicKey] {
   switch (scheme) {
     case SignatureScheme.Schnorr: {

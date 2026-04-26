@@ -220,3 +220,39 @@ export function dateToDateString(date: Date): string {
   const day = date.getUTCDate().toString().padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Renders a `Date` the way Rust's `dcbor::Date::Display` does
+ * (`bc-dcbor-rust/src/date.rs:485-492`):
+ *
+ * - When the UTC time is exactly `00:00:00` (subsecond precision is
+ *   ignored — Rust's check is `hour == 0 && minute == 0 && second == 0`,
+ *   matching `chrono::SecondsFormat::Secs`), emit just `YYYY-MM-DD`.
+ * - Otherwise emit RFC 3339 with second precision (no fractional
+ *   seconds), e.g. `2023-02-08T15:30:45Z`.
+ *
+ * This is the canonical "Rust string" for dates across the
+ * provenance-mark public surface — `mark.toDebugString`,
+ * `mark.precedesOpt` `DateOrdering` issue, `markdownSummary`, and the
+ * validation report's `DateOrdering` payload all use it. Centralising
+ * here keeps every call site in lockstep with the Rust output.
+ *
+ * @example
+ * ```typescript
+ * dateToDisplay(new Date("2023-06-20T00:00:00Z"));   // "2023-06-20"
+ * dateToDisplay(new Date("2023-06-20T15:30:45Z"));   // "2023-06-20T15:30:45Z"
+ * dateToDisplay(new Date("2023-06-20T15:30:45.123Z")); // "2023-06-20T15:30:45Z"
+ * ```
+ */
+export function dateToDisplay(date: Date): string {
+  const hasTime =
+    date.getUTCHours() !== 0 || date.getUTCMinutes() !== 0 || date.getUTCSeconds() !== 0;
+  if (!hasTime) {
+    // Midnight (subsecond precision ignored) — show only the date.
+    return dateToDateString(date);
+  }
+  // Full RFC 3339, second precision. JS `toISOString()` always emits
+  // millisecond precision (`.NNNZ`); strip the fractional component to
+  // match Rust's `SecondsFormat::Secs`.
+  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+}

@@ -135,17 +135,49 @@ function convertStructurePatternToEnvelopePattern(
 ): Result<Pattern> {
   switch (structurePattern.type) {
     case "Array": {
-      // Wrap the full dcbor pattern for array matching
-      const arrayPattern = ArrayPattern.fromDcborPattern({
-        kind: "Structure",
-        pattern: structurePattern,
-      });
+      // Mirror Rust `convert_structure_pattern_to_envelope_pattern`'s
+      // `Array` arm: dispatch on the dcbor `ArrayPattern` variant so
+      // that `array` (Any) round-trips to `array`, `[{n,m}]` (Length)
+      // round-trips to `[{n,m}]`, and only Elements variants stay
+      // wrapped. Using `fromDcborPattern` for the Any variant produces
+      // an `Elements`-wrapped pattern that prints as `[array]`,
+      // breaking parser parity.
+      const inner = structurePattern.pattern;
+      let arrayPattern: ArrayPattern;
+      switch (inner.variant) {
+        case "Any":
+          arrayPattern = ArrayPattern.any();
+          break;
+        case "Length":
+          arrayPattern = ArrayPattern.fromInterval(inner.length);
+          break;
+        case "Elements":
+          arrayPattern = ArrayPattern.fromDcborArrayPattern(inner);
+          break;
+      }
       return ok({ type: "Leaf", pattern: leafArray(arrayPattern) });
     }
     case "Map": {
-      // MapPattern only supports interval-based matching currently
-      // Use any() for general map patterns from dcbor
-      const mapPattern = MapPattern.any();
+      // Mirror Rust's variant dispatch — preserve `{{n,m}}` length
+      // info instead of collapsing every map pattern to `Any` (which
+      // breaks parser parity for `{{3}}`, `{{2,4}}`, `{{2,}}`).
+      const inner = structurePattern.pattern;
+      let mapPattern: MapPattern;
+      switch (inner.variant) {
+        case "Any":
+          mapPattern = MapPattern.any();
+          break;
+        case "Length":
+          mapPattern = MapPattern.fromInterval(inner.length);
+          break;
+        case "Constraints":
+          // The envelope-pattern `MapPattern` doesn't yet model dcbor
+          // map constraints. Falling back to `Any` is conservative —
+          // round-trip parity here is broken until envelope-pattern
+          // grows a constraints variant.
+          mapPattern = MapPattern.any();
+          break;
+      }
       return ok({ type: "Leaf", pattern: leafMap(mapPattern) });
     }
     case "Tagged": {

@@ -209,59 +209,67 @@ Envelope.prototype.edges = function (this: Envelope): Envelope[] {
  * Validates an edge envelope's structure per BCR-2026-003.
  *
  * An edge may be wrapped (signed) or unwrapped. The inner envelope
- * must have exactly three assertion predicates: `'isA'`, `'source'`,
- * and `'target'`. No other assertions are permitted on the edge subject.
+ * must declare exactly one each of `'isA'`, `'source'`, and `'target'`
+ * assertions. Any additional assertions are **ignored** — Rust
+ * `Envelope::validate_edge` (`bc-envelope-rust/src/extension/edge/
+ * edge_impl.rs:20-54`) only counts the three required predicates and
+ * does not reject extras. Earlier revisions of this port threw
+ * `edgeUnexpectedAssertion` for any non-edge predicate, which broke
+ * cross-impl validation of edges carrying ancillary metadata
+ * (signatures, attachments, etc.).
  *
- * Equivalent to Rust's `Envelope::validate_edge()`.
- *
- * @throws {EnvelopeError} If the edge structure is invalid
+ * @throws {EnvelopeError} If a required predicate is missing or
+ *   duplicated.
  */
 Envelope.prototype.validateEdge = function (this: Envelope): void {
   const inner = this.subject().isWrapped() ? this.subject().tryUnwrap() : this;
 
-  let seenIsA = false;
-  let seenSource = false;
-  let seenTarget = false;
+  let isACount = 0;
+  let sourceCount = 0;
+  let targetCount = 0;
 
   for (const assertion of inner.assertions()) {
     const predicateEnv = assertion.tryPredicate();
     const kv = predicateEnv.asKnownValue();
     if (kv === undefined) {
-      throw EnvelopeError.edgeUnexpectedAssertion();
+      // Non-KnownValue predicate — Rust ignores it, so we do too.
+      continue;
     }
     const raw = kv.valueBigInt();
     switch (raw) {
       case IS_A_RAW:
-        if (seenIsA) {
-          throw EnvelopeError.edgeDuplicateIsA();
-        }
-        seenIsA = true;
+        isACount += 1;
         break;
       case SOURCE_RAW:
-        if (seenSource) {
-          throw EnvelopeError.edgeDuplicateSource();
-        }
-        seenSource = true;
+        sourceCount += 1;
         break;
       case TARGET_RAW:
-        if (seenTarget) {
-          throw EnvelopeError.edgeDuplicateTarget();
-        }
-        seenTarget = true;
+        targetCount += 1;
         break;
       default:
-        throw EnvelopeError.edgeUnexpectedAssertion();
+        // Other KnownValue predicates are allowed; Rust's
+        // `validate_edge` only checks the three required predicates.
+        break;
     }
   }
 
-  if (!seenIsA) {
+  if (isACount === 0) {
     throw EnvelopeError.edgeMissingIsA();
   }
-  if (!seenSource) {
+  if (sourceCount === 0) {
     throw EnvelopeError.edgeMissingSource();
   }
-  if (!seenTarget) {
+  if (targetCount === 0) {
     throw EnvelopeError.edgeMissingTarget();
+  }
+  if (isACount > 1) {
+    throw EnvelopeError.edgeDuplicateIsA();
+  }
+  if (sourceCount > 1) {
+    throw EnvelopeError.edgeDuplicateSource();
+  }
+  if (targetCount > 1) {
+    throw EnvelopeError.edgeDuplicateTarget();
   }
 };
 

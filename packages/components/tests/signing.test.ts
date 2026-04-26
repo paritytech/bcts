@@ -159,22 +159,31 @@ describe("SigningPrivateKey", () => {
     });
   });
 
-  describe("verification via private key", () => {
-    it("should verify own signatures", () => {
+  describe("verification via private key (Schnorr-only — matches Rust Verifier impl)", () => {
+    it("should verify own Ed25519 signatures via publicKey()", () => {
       const ed25519Key = Ed25519PrivateKey.fromHex(TEST_PRIVATE_KEY_HEX);
       const privateKey = SigningPrivateKey.newEd25519(ed25519Key);
 
       const signature = privateKey.sign(TEST_MESSAGE);
-      expect(privateKey.verify(signature, TEST_MESSAGE)).toBe(true);
+      // Rust restricts SigningPrivateKey::verify to Schnorr; for other
+      // schemes derive the public key first.
+      expect(privateKey.verify(signature, TEST_MESSAGE)).toBe(false);
+      expect(privateKey.publicKey().verify(signature, TEST_MESSAGE)).toBe(true);
     });
 
-    it("should reject tampered messages", () => {
+    it("should reject tampered messages via publicKey()", () => {
       const ed25519Key = Ed25519PrivateKey.fromHex(TEST_PRIVATE_KEY_HEX);
       const privateKey = SigningPrivateKey.newEd25519(ed25519Key);
 
       const signature = privateKey.sign(TEST_MESSAGE);
       const tamperedMessage = new TextEncoder().encode("Wolf Mcnally"); // lowercase 'n'
-      expect(privateKey.verify(signature, tamperedMessage)).toBe(false);
+      expect(privateKey.publicKey().verify(signature, tamperedMessage)).toBe(false);
+    });
+
+    it("should verify own Schnorr signatures directly", () => {
+      const privateKey = SigningPrivateKey.randomSchnorr();
+      const signature = privateKey.sign(TEST_MESSAGE);
+      expect(privateKey.verify(signature, TEST_MESSAGE)).toBe(true);
     });
   });
 

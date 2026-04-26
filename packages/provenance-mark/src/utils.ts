@@ -76,3 +76,57 @@ export function fromBase64(base64: string): Uint8Array {
   }
   return bytes;
 }
+
+/**
+ * Parse a base64-encoded provenance seed.
+ *
+ * Mirrors Rust's `parse_seed` user helper
+ * (`provenance-mark-rust/src/util.rs:34-38`), which round-trips the
+ * input through serde JSON / `deserialize_block` and so requires the
+ * decoded bytes to be exactly {@link PROVENANCE_SEED_LENGTH} (32) long.
+ * The TS equivalent decodes the base64 directly and delegates to
+ * {@link ProvenanceSeed.fromBytes} for the length check.
+ *
+ * @param s - Base64-encoded 32-byte seed string.
+ * @returns The decoded {@link ProvenanceSeed}.
+ * @throws {ProvenanceMarkError} If the input is not valid base64 or the
+ *   decoded length is not exactly 32 bytes.
+ */
+export function parseSeed(s: string): ProvenanceSeed {
+  let bytes: Uint8Array;
+  try {
+    bytes = fromBase64(s);
+  } catch (e) {
+    throw new ProvenanceMarkError(
+      ProvenanceMarkErrorType.Base64Error,
+      "invalid base64 encoding for provenance seed",
+      { details: e instanceof Error ? e.message : String(e) },
+    );
+  }
+  return ProvenanceSeed.fromBytes(bytes);
+}
+
+/**
+ * Parse a date string (`YYYY-MM-DD` or full RFC 3339) into a `Date`.
+ *
+ * Mirrors Rust's `parse_date` user helper
+ * (`provenance-mark-rust/src/util.rs:40-42`), which delegates to
+ * `Date::from_string` (the same parser the JSON deserializer uses).
+ * Accepts the same shapes the Rust parser does:
+ *
+ * - `YYYY-MM-DD` (interpreted as UTC midnight, matching JS spec).
+ * - Full RFC 3339, e.g. `2023-06-20T15:30:45Z` or
+ *   `2023-06-20T15:30:45.123Z`.
+ *
+ * @throws {ProvenanceMarkError} If the input fails to parse.
+ */
+export function parseDate(s: string): Date {
+  const date = new Date(s);
+  if (Number.isNaN(date.getTime())) {
+    throw new ProvenanceMarkError(ProvenanceMarkErrorType.InvalidDate, `cannot parse date: ${s}`);
+  }
+  return date;
+}
+
+import { ProvenanceSeed } from "./seed.js";
+import { ProvenanceMarkError, ProvenanceMarkErrorType } from "./error.js";

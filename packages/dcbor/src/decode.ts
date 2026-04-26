@@ -207,6 +207,13 @@ function decodeCborInternal(data: DataView): { cbor: Cbor; len: number } {
       switch (varIntLen) {
         case 3: {
           const f = binary16ToNumber(new Uint8Array(data.buffer, data.byteOffset + 1, 2));
+          // dCBOR canonical-encoding check via re-encode-and-compare. JS's
+          // `Number` type does not preserve NaN payload bits — every NaN
+          // collapses to the same value — so we cannot port Rust's
+          // `validate_canonical_f16(n)`'s bit-level check directly.
+          // Re-encoding round-trips through the canonicalising encoder,
+          // catching every non-canonical NaN, ±Infinity, and
+          // integer-reducible float. See float.ts for the encoder rules.
           checkCanonicalEncoding(f, new Uint8Array(data.buffer, data.byteOffset, varIntLen));
           const cborObj = {
             isCbor: true,

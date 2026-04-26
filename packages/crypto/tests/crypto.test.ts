@@ -1,10 +1,10 @@
 // Tests ported from bc-crypto-rust
 
 import {
-  // Hash functions
-  crc32,
-  crc32Data,
-  crc32DataOpt,
+  // Hash module — SHA-512 + CRC-32 helpers live behind the `hash` namespace,
+  // matching Rust `bc_crypto::hash::*`.
+  hash,
+  // Top-level hashes
   sha256,
   sha512,
   hmacSha256,
@@ -31,6 +31,8 @@ import {
   ecdsaVerify,
   schnorrPublicKeyFromPrivateKey,
   // Schnorr
+  schnorrSign,
+  schnorrSignUsing,
   schnorrSignWithAuxRand,
   schnorrVerify,
   // Ed25519
@@ -41,11 +43,17 @@ import {
   // KDF
   scrypt,
   scryptOpt,
-  argon2idHashOpt,
+  argon2id,
   // Memzero
   memzero,
 } from "../src/index.js";
-import { SecureRandomNumberGenerator, makeFakeRandomNumberGenerator } from "@bcts/rand";
+import {
+  SecureRandomNumberGenerator,
+  makeFakeRandomNumberGenerator,
+  fakeRandomData,
+} from "@bcts/rand";
+
+const { crc32, crc32Data, crc32DataOpt } = hash;
 
 // Helper to convert hex string to Uint8Array
 function hexToBytes(hex: string): Uint8Array {
@@ -330,20 +338,38 @@ describe("ECDSA", () => {
 });
 
 describe("Schnorr", () => {
-  test("test_schnorr_sign", () => {
-    const rng = new SecureRandomNumberGenerator();
+  // Mirrors Rust `schnorr_signing::tests::test_schnorr_sign` (line 64)
+  // exactly — uses `make_fake_random_number_generator()` for both the
+  // private-key derivation and the auxiliary randomness, then asserts
+  // the byte-identical signature.
+  test("test_schnorr_sign (deterministic, matches Rust)", () => {
+    const rng = makeFakeRandomNumberGenerator();
     const privateKey = ecdsaNewPrivateKeyUsing(rng);
+    expect(bytesToHex(privateKey)).toBe(
+      "7eb559bbbf6cce2632cf9f194aeb50943de7e1cbad54dcfab27a42759f5e2fed",
+    );
+
+    const message = new TextEncoder().encode("Hello World");
+    const signature = schnorrSignUsing(privateKey, message, rng);
+    expect(signature.length).toBe(64);
+    expect(bytesToHex(signature)).toBe(
+      "8f6ec4edbe1a6d96edfc5f15e18e06a6e2559a3426c52d2c38fec17fe7e0cafc95177206d018662a279f2b571224cf07006939fc25d0cae7a7e7b44a4b25f543",
+    );
+
+    const schnorrPublicKey = schnorrPublicKeyFromPrivateKey(privateKey);
+    expect(schnorrVerify(schnorrPublicKey, signature, message)).toBe(true);
+  });
+
+  test("schnorrSign roundtrips with secure RNG", () => {
+    const privateKey = ecdsaNewPrivateKeyUsing(new SecureRandomNumberGenerator());
     const publicKey = schnorrPublicKeyFromPrivateKey(privateKey);
     expect(publicKey.length).toBe(32);
 
     const message = new TextEncoder().encode("Hello, World!");
-    const auxRand = rng.randomData(32);
-
-    const signature = schnorrSignWithAuxRand(privateKey, message, auxRand);
+    const signature = schnorrSign(privateKey, message);
     expect(signature.length).toBe(64);
 
-    const isValid = schnorrVerify(publicKey, signature, message);
-    expect(isValid).toBe(true);
+    expect(schnorrVerify(publicKey, signature, message)).toBe(true);
   });
 
   // BIP-340 Test Vector 0
@@ -683,7 +709,34 @@ describe("Schnorr", () => {
 });
 
 describe("Ed25519", () => {
-  test("test_ed25519_signing", () => {
+  // Mirrors Rust `ed25519_signing::tests::test_ed25519_signing` (line 51)
+  // exactly — fake_random_data(32) for the private key, then asserts both
+  // the public key and the signature byte-identically.
+  test("test_ed25519_signing (deterministic, matches Rust)", () => {
+    const MESSAGE = new TextEncoder().encode(
+      "Ladies and Gentlemen of the class of '99: If I could offer you only " +
+        "one tip for the future, sunscreen would be it.",
+    );
+
+    const privateKey = fakeRandomData(32);
+    expect(bytesToHex(privateKey)).toBe(
+      "7eb559bbbf6cce2632cf9f194aeb50943de7e1cbad54dcfab27a42759f5e2fed",
+    );
+
+    const publicKey = ed25519PublicKeyFromPrivateKey(privateKey);
+    expect(bytesToHex(publicKey)).toBe(
+      "76f863e1024d8ff6cd8ad56c434e01dbbf2999cfc2f132fc7f41ca19fed7a97c",
+    );
+
+    const signature = ed25519Sign(privateKey, MESSAGE);
+    expect(bytesToHex(signature)).toBe(
+      "647cc65243e8a61dc273242b13008994e4658a7e0bcbb1fd621b01dad2ddf7577901c4c4d4ea484ae5ca3172c4b8a75877bd7d5349a7055acdc023b04fcd0406",
+    );
+
+    expect(ed25519Verify(publicKey, MESSAGE, signature)).toBe(true);
+  });
+
+  test("ed25519 roundtrips with secure RNG", () => {
     const rng = new SecureRandomNumberGenerator();
     const privateKey = ed25519NewPrivateKeyUsing(rng);
     expect(privateKey.length).toBe(32);
@@ -695,13 +748,11 @@ describe("Ed25519", () => {
     const signature = ed25519Sign(privateKey, message);
     expect(signature.length).toBe(64);
 
-    const isValid = ed25519Verify(publicKey, message, signature);
-    expect(isValid).toBe(true);
+    expect(ed25519Verify(publicKey, message, signature)).toBe(true);
 
     // Verify with wrong message fails
     const wrongMessage = new TextEncoder().encode("Wrong message");
-    const isInvalid = ed25519Verify(publicKey, wrongMessage, signature);
-    expect(isInvalid).toBe(false);
+    expect(ed25519Verify(publicKey, wrongMessage, signature)).toBe(false);
   });
 
   // RFC 8032 Test Vector 1
@@ -811,6 +862,17 @@ describe("Scrypt", () => {
     expect(bytesToHex(key1)).toBe(bytesToHex(key2)); // Deterministic
   });
 
+  // Cross-platform parity vector — pins the byte output of `scrypt()` with
+  // the recommended params (logN=17, r=8, p=1) that match Rust
+  // `bc_crypto::scrypt`. Drift here means cross-impl interop is broken.
+  test("scrypt cross-platform vector (matches Rust defaults)", { timeout: 10_000 }, () => {
+    const password = new TextEncoder().encode("password");
+    const salt = new TextEncoder().encode("salt");
+    expect(bytesToHex(scrypt(password, salt, 32))).toBe(
+      "621b282083cea28c49ab3673360283cff9afe85b3e6a409bebc800563cc08c85",
+    );
+  });
+
   test("test_scrypt_different_salt", { timeout: 10_000 }, () => {
     const password = new TextEncoder().encode("password");
     const salt1 = new TextEncoder().encode("salt1");
@@ -844,40 +906,41 @@ describe("Scrypt", () => {
 });
 
 describe("Argon2id", () => {
+  // Mirrors Rust `argon::tests::test_argon2id_basic` — same `b"example salt"` input.
   test("test_argon2id_basic", () => {
     const password = new TextEncoder().encode("password");
-    const salt = new TextEncoder().encode("saltsalt"); // At least 8 bytes
+    const salt = new TextEncoder().encode("example salt");
 
-    // Use lower memory for faster tests (1024 KiB instead of 65536 KiB)
-    const key1 = argon2idHashOpt(password, salt, 32, 1, 1024, 1);
-    const key2 = argon2idHashOpt(password, salt, 32, 1, 1024, 1);
+    const key1 = argon2id(password, salt, 32);
+    const key2 = argon2id(password, salt, 32);
 
     expect(key1.length).toBe(32);
     expect(bytesToHex(key1)).toBe(bytesToHex(key2)); // Deterministic
-  });
+  }, 30_000);
 
+  // Cross-platform parity vector — pins the byte output of `argon2id()` with
+  // the `Argon2::default()` params (t=2, m=19456, p=1) that Rust
+  // `bc_crypto::argon2id` uses. Drift here means cross-impl interop is broken.
+  test("argon2id cross-platform vector (matches Rust defaults)", () => {
+    const password = new TextEncoder().encode("password");
+    const salt = new TextEncoder().encode("example salt");
+    expect(bytesToHex(argon2id(password, salt, 32))).toBe(
+      "a4057eab535f8df96dcad517cf66948e23b52d1d7a5e025c5976e69d26f614f0",
+    );
+  }, 30_000);
+
+  // Mirrors Rust `argon::tests::test_argon2id_different_salt` —
+  // `b"example salt"` vs `b"example salt2"`.
   test("test_argon2id_different_salt", () => {
     const password = new TextEncoder().encode("password");
-    const salt1 = new TextEncoder().encode("saltsalt1");
-    const salt2 = new TextEncoder().encode("saltsalt2");
+    const salt1 = new TextEncoder().encode("example salt");
+    const salt2 = new TextEncoder().encode("example salt2");
 
-    // Use lower memory for faster tests (1024 KiB instead of 65536 KiB)
-    const key1 = argon2idHashOpt(password, salt1, 32, 1, 1024, 1);
-    const key2 = argon2idHashOpt(password, salt2, 32, 1, 1024, 1);
+    const key1 = argon2id(password, salt1, 32);
+    const key2 = argon2id(password, salt2, 32);
 
     expect(bytesToHex(key1)).not.toBe(bytesToHex(key2));
-  });
-
-  test("test_argon2id_default_params", () => {
-    // Test that the default function signature works (uses high memory params)
-    // Just verify it compiles and runs without errors
-    const password = new TextEncoder().encode("test");
-    const salt = new TextEncoder().encode("testsalt");
-
-    // Use argon2idHashOpt with similar default params but lower memory
-    const key = argon2idHashOpt(password, salt, 32, 3, 1024, 4);
-    expect(key.length).toBe(32);
-  });
+  }, 30_000);
 });
 
 describe("Memzero", () => {

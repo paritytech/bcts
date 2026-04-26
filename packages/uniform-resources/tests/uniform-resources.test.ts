@@ -10,6 +10,7 @@ import {
   InvalidTypeError,
   UnexpectedTypeError,
   NotSinglePartError,
+  BytewordsError,
   BYTEWORDS,
   BYTEMOJIS,
   isUREncodable,
@@ -22,8 +23,11 @@ import {
   decodeBytewords,
   encodeBytewordsIdentifier,
   encodeBytemojisIdentifier,
+  bytewords,
+  urFromEncodable,
+  urStringFromEncodable,
 } from "../src";
-import { cbor } from "@bcts/dcbor";
+import { cbor, createTag, createTaggedCbor, type CborTaggedEncodable } from "@bcts/dcbor";
 
 // Import internal utilities for testing internal functionality
 // These are NOT part of the public API but needed for internal tests
@@ -64,8 +68,13 @@ describe("URType", () => {
     expect(() => new URType("Bytes")).toThrow(InvalidTypeError);
   });
 
-  it("throws error for empty string", () => {
-    expect(() => new URType("")).toThrow(InvalidTypeError);
+  // Rust's `URType::new("")` succeeds (vacuously-true `chars().all(...)`);
+  // we mirror that for cross-port parity. The empty string round-trips
+  // through encode() but later fails in the decode pipeline at the
+  // bytewords/CBOR stage, just as it would in Rust.
+  it("accepts the empty string (Rust parity — fails later at decode)", () => {
+    const urType = new URType("");
+    expect(urType.string()).toBe("");
   });
 
   it("throws error for special characters", () => {
@@ -84,6 +93,38 @@ describe("URType", () => {
   it("returns string representation", () => {
     const urType = new URType("bytes");
     expect(urType.toString()).toBe("bytes");
+  });
+
+  describe("URType.tryFrom (typed Result, UR1)", () => {
+    // Pinned regression for UR1 — `URType.tryFrom` returns a
+    // discriminated `{ ok: true | false }` union mirroring Rust's
+    // `Result<URType, Error>` from `impl TryFrom<&str> for URType`.
+
+    it("returns { ok: true, value } for a valid type", () => {
+      const result = URType.tryFrom("bytes");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBeInstanceOf(URType);
+        expect(result.value.string()).toBe("bytes");
+      }
+    });
+
+    it("returns { ok: false, error } for an invalid type", () => {
+      const result = URType.tryFrom("Bytes");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(InvalidTypeError);
+      }
+    });
+
+    it("narrows correctly without instanceof checks", () => {
+      // The whole point of UR1: callers branch on `ok`, not type
+      // discrimination via `instanceof`. This test would fail to
+      // typecheck under the old `URType | InvalidTypeError` shape.
+      const r = URType.tryFrom("my-type-1");
+      const out = r.ok ? r.value.string() : r.error.message;
+      expect(out).toBe("my-type-1");
+    });
   });
 });
 
@@ -107,7 +148,9 @@ describe("Internal Utility Functions", () => {
     expect(isValidURType("my-type")).toBe(true);
     expect(isValidURType("type123")).toBe(true);
 
-    expect(isValidURType("")).toBe(false);
+    // Empty string is accepted (Rust parity — `chars().all(...)` is
+    // vacuously true on the empty string).
+    expect(isValidURType("")).toBe(true);
     expect(isValidURType("Bytes")).toBe(false);
     expect(isValidURType("my@type")).toBe(false);
   });
@@ -115,7 +158,8 @@ describe("Internal Utility Functions", () => {
   it("validates URType or throws error", () => {
     expect(() => validateURType("bytes")).not.toThrow();
     expect(() => validateURType("Bytes")).toThrow(InvalidTypeError);
-    expect(() => validateURType("")).toThrow(InvalidTypeError);
+    // Empty string is accepted (Rust parity).
+    expect(() => validateURType("")).not.toThrow();
   });
 
   it("contains bytewords array with 256 entries", () => {
@@ -180,8 +224,11 @@ describe("UR", () => {
     expect(() => UR.fromURString("invalid:bytes/...")).toThrow(InvalidSchemeError);
   });
 
-  it("throws error for unspecified type", () => {
-    expect(() => UR.fromURString("ur:/...")).toThrow(TypeUnspecifiedError);
+  // Rust raises `TypeUnspecified` only when the `/` separator is missing
+  // from the input (`ur.rs:30`). `ur:bytes` (no `/`) hits this path; an
+  // input with `/` but no body lands in the bytewords decoder.
+  it("throws TypeUnspecifiedError when there is no `/` separator", () => {
+    expect(() => UR.fromURString("ur:bytes")).toThrow(TypeUnspecifiedError);
   });
 
   it("provides QR string representation", () => {
@@ -468,12 +515,14 @@ describe("Rust ur.rs test equivalents", () => {
     expect(ur.qrString()).toBe("UR:TEST/LSADAOAXJYGONESW");
   });
 
-  it("returns QR data as bytes", () => {
+  it("returns QR data as UTF-8 bytes (matches Rust `as_bytes()`)", () => {
     const cborData = cbor([1, 2, 3]);
     const ur = UR.new("test", cborData);
     const qrData = ur.qrData();
     expect(qrData).toBeInstanceOf(Uint8Array);
-    const qrString = String.fromCharCode(...qrData);
+    // Decode as UTF-8 to verify the round-trip — matches Rust's
+    // `qr_string().as_bytes().to_vec()` (`bc-ur-rust/src/ur.rs:52`).
+    const qrString = new TextDecoder().decode(qrData);
     expect(qrString).toBe("UR:TEST/LSADAOAXJYGONESW");
   });
 
@@ -548,13 +597,43 @@ describe("Bytewords encoding tests", () => {
   it("detects checksum mismatch", () => {
     const data = new Uint8Array([1, 2, 3]);
     const encoded = encodeBytewords(data, BytewordsStyle.Minimal);
-    // Corrupt the last character
-    const corrupted = encoded.slice(0, -1) + "x";
-    expect(() => decodeBytewords(corrupted, BytewordsStyle.Minimal)).toThrow();
+    // Replace one valid minimal token with another valid-but-different
+    // token so the bytewords decode succeeds and the failure surfaces as
+    // a checksum mismatch rather than `invalid word`.
+    const lastTokenStart = encoded.length - 2;
+    const lastToken = encoded.slice(lastTokenStart);
+    const replacement = lastToken === "ae" ? "ad" : "ae"; // any other valid pair
+    const corrupted = encoded.slice(0, lastTokenStart) + replacement;
+    try {
+      decodeBytewords(corrupted, BytewordsStyle.Minimal);
+      throw new Error("expected throw");
+    } catch (e) {
+      // BytewordsError is the parity-correct class (Rust
+      // `Error::Bytewords(InvalidChecksum)`).
+      expect((e as Error).name).toBe("BytewordsError");
+      expect((e as Error).message).toContain("invalid checksum");
+    }
   });
 
-  it("throws on invalid minimal byteword", () => {
-    expect(() => decodeBytewords("xx", BytewordsStyle.Minimal)).toThrow("Invalid minimal byteword");
+  it("throws BytewordsError on invalid minimal byteword", () => {
+    expect(() => decodeBytewords("xx", BytewordsStyle.Minimal)).toThrow(BytewordsError);
+    expect(() => decodeBytewords("xx", BytewordsStyle.Minimal)).toThrow("invalid word");
+  });
+
+  it("throws BytewordsError on non-ASCII input (Rust NonAscii)", () => {
+    // Rust upstream `bytewords::decode` rejects this with `Error::NonAscii`
+    // (`ur-0.4.1/src/bytewords.rs:105-107` — see also the `₿` test cases
+    // at lines 257-259). TS must surface the same class.
+    expect(() => decodeBytewords("₿", BytewordsStyle.Minimal)).toThrow(BytewordsError);
+    expect(() => decodeBytewords("₿", BytewordsStyle.Standard)).toThrow(BytewordsError);
+    expect(() => decodeBytewords("₿", BytewordsStyle.Uri)).toThrow(BytewordsError);
+  });
+
+  it("throws BytewordsError on minimal odd length", () => {
+    // Rust `bytewords.rs:248-254` covers this case; class must be the
+    // BytewordsError (mapped from `Error::InvalidLength`).
+    expect(() => decodeBytewords("aea", BytewordsStyle.Minimal)).toThrow(BytewordsError);
+    expect(() => decodeBytewords("aea", BytewordsStyle.Minimal)).toThrow("invalid length");
   });
 });
 
@@ -616,6 +695,102 @@ describe("Bytemoji identifier tests", () => {
     expect(BYTEMOJIS.length).toBe(256);
     const unique = new Set(BYTEMOJIS);
     expect(unique.size).toBe(256);
+  });
+});
+
+// =============================================================================
+// RUST PARITY: ur_codable.rs::test_ur_codable
+// Source: bc-ur-rust/src/ur_codable.rs:58-66
+// Round-trip vector: ur:leaf/iejyihjkjygupyltla
+// =============================================================================
+describe("Rust ur_codable.rs::test_ur_codable", () => {
+  it("encodes a tagged leaf string to ur:leaf/iejyihjkjygupyltla", () => {
+    const tag = createTag(24, "leaf");
+    // The leaf type wraps a string under tag 24. The UR carries the
+    // *untagged* CBOR (the inner string), with the type name coming from
+    // the tag's name attribute. This mirrors Rust's `Test::ur()` which
+    // calls `UR::new(tag.name(), self.untagged_cbor())`.
+    const ur = UR.new(tag.name as string, cbor("test"));
+    expect(ur.string()).toBe("ur:leaf/iejyihjkjygupyltla");
+
+    const ur2 = UR.fromURString("ur:leaf/iejyihjkjygupyltla");
+    expect(ur2.urTypeStr()).toBe("leaf");
+  });
+
+  it("uses the helper auto-derivation `urFromEncodable` like Rust's blanket impl", () => {
+    // A minimal CborTaggedEncodable for "leaf" (tag 24) wrapping a string.
+    const leaf: CborTaggedEncodable = {
+      cborTags: () => [createTag(24, "leaf")],
+      untaggedCbor: () => cbor("test"),
+      taggedCbor() {
+        return createTaggedCbor(this);
+      },
+    };
+
+    expect(urFromEncodable(leaf).urTypeStr()).toBe("leaf");
+    expect(urStringFromEncodable(leaf)).toBe("ur:leaf/iejyihjkjygupyltla");
+  });
+});
+
+// =============================================================================
+// RUST PARITY: bytewords namespace re-export
+// Source: bc-ur-rust/src/bytewords.rs (the entire `pub mod bytewords`)
+// =============================================================================
+describe("bytewords namespace (Rust `bc_ur::bytewords`)", () => {
+  it("exposes encode/decode/Style and round-trips identically to the flat exports", () => {
+    expect(bytewords.Style.Minimal).toBe(BytewordsStyle.Minimal);
+
+    const data = new Uint8Array([1, 2, 3, 4, 5]);
+    const encoded = bytewords.encode(data, bytewords.Style.Minimal);
+    expect(encoded).toBe(encodeBytewords(data, BytewordsStyle.Minimal));
+
+    const decoded = bytewords.decode(encoded, bytewords.Style.Minimal);
+    expect(decoded).toEqual(data);
+  });
+
+  it("exposes identifier / bytemojiIdentifier / canonicalizeByteword", () => {
+    const idData = new Uint8Array([0, 1, 2, 3]);
+    expect(bytewords.identifier(idData)).toBe("able acid also apex");
+    expect(bytewords.canonicalizeByteword("ae")).toBe("able");
+    expect(bytewords.isValidBytemoji(BYTEMOJIS[0])).toBe(true);
+
+    const bm = bytewords.bytemojiIdentifier(idData);
+    expect(bm.split(" ")).toHaveLength(4);
+  });
+});
+
+// =============================================================================
+// RUST PARITY: NotSinglePartError on multipart input to from_ur_string
+// Source: bc-ur-rust/src/ur.rs:33-35
+// =============================================================================
+describe("Rust ur.rs NotSinglePart parity", () => {
+  it("UR.fromURString throws NotSinglePartError for a multipart UR", () => {
+    // A minimal valid multipart UR: type/seqNum-seqLen/payload. The
+    // payload doesn't have to be valid bytewords because the multipart
+    // detection happens before the bytewords decode.
+    expect(() => UR.fromURString("ur:bytes/1-9/lpadbbcsiecyvdidatkpfeghihjtcxiabdfevlms")).toThrow(
+      NotSinglePartError,
+    );
+  });
+
+  it("UR.fromURString rejects malformed indices with URDecodeError", () => {
+    // Rust upstream returns `Error::InvalidIndices`
+    // (`ur-0.4.1/src/ur.rs:447-449`). We surface that as URDecodeError.
+    expect(() => UR.fromURString("ur:bytes/1-1a/aeadaolazmjendeoti")).toThrow(URDecodeError);
+  });
+});
+
+// =============================================================================
+// RUST PARITY: type validation runs *before* bytewords decode
+// Source: bc-ur-rust/src/ur.rs:31
+// =============================================================================
+describe("Rust ur.rs validation order", () => {
+  it("InvalidTypeError fires before bytewords on bad type with valid payload", () => {
+    // The bytewords payload is valid here (`lsadaoaxjygonesw` decodes to
+    // the CBOR for [1, 2, 3]). The type contains `@` which is not a
+    // valid UR-type char, so we should see InvalidTypeError immediately,
+    // not a downstream bytewords/CBOR error.
+    expect(() => UR.fromURString("ur:bad@type/lsadaoaxjygonesw")).toThrow(InvalidTypeError);
   });
 });
 
@@ -761,16 +936,19 @@ describe("splitMessage (internal)", () => {
   });
 
   it("handles message shorter than fragment size", () => {
+    // Mirrors Rust `fragment_length(2, 10) === 2`: a 2-byte message
+    // with `max_fragment_length = 10` produces ONE fragment of length
+    // 2 (no padding) — *not* one 10-byte fragment with 8 bytes of
+    // padding, as a naive `splitMessage` would.
     const message = new Uint8Array([1, 2]);
     const fragments = splitMessage(message, 10);
 
     expect(fragments.length).toBe(1);
     const fragment = fragments[0];
     expect(fragment).toBeDefined();
-    expect(fragment?.length).toBe(10);
+    expect(fragment?.length).toBe(2);
     expect(fragment?.[0]).toBe(1);
     expect(fragment?.[1]).toBe(2);
-    expect(fragment?.[2]).toBe(0); // Padded
   });
 
   it("handles message exactly divisible by fragment size", () => {

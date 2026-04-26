@@ -50,13 +50,20 @@ describe("Core Nesting Tests", () => {
 ]`;
       expect(aliceKnowsBob.format()).toBe(expectedAliceKnowsBob);
 
-      // Alice with both assertions
-      // Note: assertion order is determined by digest sorting in the data structure,
-      // then re-sorted by format items. The actual order may differ from Rust.
+      // Alice with both assertions.
+      //
+      // Format-output sort key: full lexicographic comparison over the
+      // assertion's `EnvelopeFormatItem[]` (Rust `Vec<EnvelopeFormatItem>`
+      // `Ord` impl). Both assertions start with a list item; the first
+      // string in each list is the predicate's CBOR-summary form
+      // (`"\"A\""` vs `"\"knows\""`). Both start with `"`, then `A` (0x41)
+      // < `k` (0x6B), so `"A": "B"` sorts before `"knows": "Bob"` —
+      // matching Rust's expected output in
+      // `bc-envelope-rust/tests/core_nesting_tests.rs:94-99`.
       const aliceAbKnowsBob = aliceKnowsBob.addAssertionEnvelope(ab);
       const expectedAliceAbKnowsBob = `"Alice" [
-    "knows": "Bob"
     "A": "B"
+    "knows": "Bob"
 ]`;
       expect(aliceAbKnowsBob.format()).toBe(expectedAliceAbKnowsBob);
 
@@ -97,21 +104,25 @@ describe("Core Nesting Tests", () => {
 ]`;
       expect(aliceKnowsAbBobAb.format()).toBe(expectedAliceKnowsAbBobAb);
 
-      // Alice with "A":"B" assertion and assertion where both predicate and object have assertions
-      // Note: assertion order depends on digest/format sorting
+      // Alice with "A":"B" assertion and assertion where both predicate and object have assertions.
+      //
+      // Order matches Rust `bc-envelope-rust/tests/core_nesting_tests.rs:171-181`:
+      // the `"A": "B"` line sorts first because the lexicographic
+      // comparison over the assertion's `EnvelopeFormatItem[]` finds the
+      // `"A"` < `"knows"` difference at the first item.
       const aliceAbKnowsAbBobAb = alice
         .addAssertionEnvelope(ab)
         .addAssertionEnvelope(
           Envelope.newAssertion(knows.addAssertionEnvelope(ab), bob.addAssertionEnvelope(ab)),
         );
       const expectedAliceAbKnowsAbBobAb = `"Alice" [
+    "A": "B"
     "knows" [
         "A": "B"
     ]
     : "Bob" [
         "A": "B"
     ]
-    "A": "B"
 ]`;
       expect(aliceAbKnowsAbBobAb.format()).toBe(expectedAliceAbKnowsAbBobAb);
 

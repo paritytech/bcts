@@ -19,8 +19,26 @@ import type { Pattern } from "../index";
 // Forward declaration for Pattern factory (used for late binding)
 export let createStructureSubjectPattern: ((pattern: SubjectPattern) => Pattern) | undefined;
 
+// Forward declaration for top-level pattern compile/toString dispatch.
+// Mirrors Rust `pat.compile(code, lits, caps)` on the top-level `Pattern`
+// enum — the TS port can't call methods on the tagged-union value, so we
+// register the compile dispatcher (which lives in `pattern/index.ts`)
+// during module initialisation.
+let dispatchPatternCompile:
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
+let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
+
 export function registerSubjectPatternFactory(factory: (pattern: SubjectPattern) => Pattern): void {
   createStructureSubjectPattern = factory;
+}
+
+export function registerSubjectPatternDispatch(dispatch: {
+  compile: (pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void;
+  toString: (pattern: Pattern) => string;
+}): void {
+  dispatchPatternCompile = dispatch.compile;
+  dispatchPatternToString = dispatch.toString;
 }
 
 /**
@@ -106,14 +124,20 @@ export class SubjectPattern implements Matcher {
       case "Any":
         code.push({ type: "NavigateSubject" });
         break;
-      case "Pattern":
+      case "Pattern": {
+        if (dispatchPatternCompile === undefined) {
+          throw new Error(
+            "SubjectPattern.compile requires the top-level Pattern compile dispatch; not registered",
+          );
+        }
         // Navigate to the subject first
         code.push({ type: "NavigateSubject" });
         // Save the path and run the inner pattern relative to the subject
         code.push({ type: "ExtendTraversal" });
-        (this._pattern.pattern as unknown as Matcher).compile(code, literals, captures);
+        dispatchPatternCompile(this._pattern.pattern, code, literals, captures);
         code.push({ type: "CombineTraversal" });
         break;
+      }
     }
   }
 
@@ -125,8 +149,11 @@ export class SubjectPattern implements Matcher {
     switch (this._pattern.type) {
       case "Any":
         return "subj";
-      case "Pattern":
-        return `subj(${(this._pattern.pattern as unknown as { toString(): string }).toString()})`;
+      case "Pattern": {
+        const fmt = dispatchPatternToString;
+        const inner = fmt !== undefined ? fmt(this._pattern.pattern) : "?";
+        return `subj(${inner})`;
+      }
     }
   }
 

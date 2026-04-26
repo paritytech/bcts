@@ -135,6 +135,26 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
   }
 
   /**
+   * Insert an element into the set, requiring it to be strictly greater
+   * (in canonical CBOR-encoded byte order) than every previously-inserted
+   * element. Used by the decoder to reject misordered or duplicate
+   * elements in tag-258 set encodings.
+   *
+   * Mirrors Rust `Set::insert_next` (`pub(crate)`); exposed here because
+   * TypeScript doesn't have a crate-private visibility level.
+   *
+   * @throws CborError of type `MisorderedMap` if `value` would not preserve
+   *   strict ascending CBOR-byte order, or `DuplicateMapKey` for an exact
+   *   repeat.
+   */
+  insertNext(value: CborInput): void {
+    const cborValue = encodeCborValue(value);
+    // Set is `Map<key=value, value>` in Rust. `Map::insert_next` enforces
+    // strict ascending order on the encoded key bytes.
+    this._map.setNext(cborValue, cborValue);
+  }
+
+  /**
    * Check if set contains an element.
    *
    * @param value - Value to check
@@ -380,8 +400,11 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
     }
 
     this.clear();
+    // Mirrors Rust `Set::try_from_vec` which calls `insert_next` per item:
+    // a tag-258 wire encoding must already be in strict ascending CBOR-byte
+    // order with no duplicates.
     for (const value of c.value) {
-      this.insert(extractCbor(value) as CborInput);
+      this.insertNext(extractCbor(value) as CborInput);
     }
 
     return this;

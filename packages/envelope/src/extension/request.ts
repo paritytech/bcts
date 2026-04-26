@@ -24,7 +24,7 @@
 
 import { ARID } from "@bcts/components";
 import { REQUEST as TAG_REQUEST } from "@bcts/tags";
-import { toTaggedValue } from "@bcts/dcbor";
+import { toTaggedValue, CborDate } from "@bcts/dcbor";
 import { BODY, NOTE, DATE } from "@bcts/known-values";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
@@ -201,7 +201,13 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
    */
   toEnvelope(): Envelope {
     // Create the tagged ARID as the subject
-    const taggedArid = toTaggedValue(TAG_REQUEST, this._id.untaggedCbor());
+    // Wrap the **tagged** ARID inside the request tag — mirrors Rust
+    // `CBOR::to_tagged_value(TAG_REQUEST, request.id)`, which goes
+    // through the `From<ARID> for CBOR` impl that returns the tagged
+    // form. Earlier the TS port stored an untagged ARID byte string,
+    // so format() rendered the request subject as `Bytes(32)` instead
+    // of `ARID(<short>)` — observable in the GSTP byte-shape pins.
+    const taggedArid = toTaggedValue(TAG_REQUEST, this._id.taggedCbor());
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(BODY, this._body.envelope());
 
@@ -210,7 +216,11 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
     }
 
     if (this._date !== undefined) {
-      envelope = envelope.addAssertion(DATE, this._date.toISOString());
+      // Pass a tagged-CBOR Date (tag 1); mirrors Rust
+      // `Envelope::add_assertion(DATE, self.date)` which dispatches via
+      // `Date → CBOR` (tag 1). The earlier port stored the ISO 8601
+      // string here, producing a different CBOR object and digest.
+      envelope = envelope.addAssertion(DATE, CborDate.fromDatetime(this._date));
     }
 
     return envelope;
@@ -248,11 +258,10 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
       throw EnvelopeError.general("Request envelope has invalid subject");
     }
 
-    // The subject is TAG_REQUEST(ARID_bytes)
-    // First expect the REQUEST tag, then extract the ARID from the content
+    // The subject is TAG_REQUEST(tag_40012(arid_bytes)) — see
+    // `toEnvelope` above. Extract the inner tagged-ARID, then decode.
     const aridCbor = leaf.expectTag(TAG_REQUEST);
-    const aridBytes = aridCbor.toByteString();
-    const id = ARID.fromData(aridBytes);
+    const id = ARID.fromTaggedCbor(aridCbor);
 
     // Extract optional note
     let note = "";
@@ -265,14 +274,23 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
       // Note is optional
     }
 
-    // Extract optional date
+    // Extract optional date — mirrors Rust
+    // `extract_optional_object_for_predicate::<Date>(DATE)` (tag 1).
     let date: Date | undefined;
     try {
       const dateObj = envelope.objectForPredicate(DATE);
       if (dateObj !== undefined) {
-        const dateStr = dateObj.asText();
-        if (dateStr !== undefined) {
-          date = new Date(dateStr);
+        const leaf = dateObj.asLeaf();
+        if (leaf !== undefined) {
+          date = CborDate.fromTaggedCbor(leaf).datetime();
+        } else {
+          // Back-compat shim: if a legacy producer wrote a plain ISO
+          // 8601 string, accept it. New encoders emit tag 1 so this
+          // branch is unreachable for round-trip cases.
+          const dateStr = dateObj.asText();
+          if (dateStr !== undefined) {
+            date = new Date(dateStr);
+          }
         }
       }
     } catch {

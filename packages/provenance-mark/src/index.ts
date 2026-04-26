@@ -50,7 +50,12 @@ export {
   dateToIso8601,
   dateFromIso8601,
   dateToDateString,
+  dateToDisplay,
 } from "./date.js";
+
+// User-facing parsers (mirroring Rust `util::parse_seed` /
+// `util::parse_date`).
+export { parseSeed, parseDate } from "./utils.js";
 
 // Crypto utilities
 export {

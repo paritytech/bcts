@@ -54,7 +54,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_creates_registry_and_is_idempotent", () => {
+  it("participant_add_creates_registry_and_is_idempotent", () => {
     const alice = fixture("alice_signed_xid.txt");
 
     // First add
@@ -74,7 +74,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_supports_custom_registry_filename_in_cwd", () => {
+  it("participant_add_supports_custom_registry_filename_in_cwd", () => {
     const alice = fixture("alice_signed_xid.txt");
     const registryName = "alice_registry.json";
 
@@ -93,7 +93,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_supports_directory_registry_path", () => {
+  it("participant_add_supports_directory_registry_path", () => {
     const alice = fixture("alice_signed_xid.txt");
 
     participantAdd(
@@ -111,7 +111,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_supports_path_with_custom_filename", () => {
+  it("participant_add_supports_path_with_custom_filename", () => {
     const alice = fixture("alice_signed_xid.txt");
     const arg = "registries/alice_registry.json";
 
@@ -130,7 +130,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_conflicting_pet_name_fails", () => {
+  it("participant_add_conflicting_pet_name_fails", () => {
     const alice = fixture("alice_signed_xid.txt");
     const bob = fixture("bob_signed_xid.txt");
 
@@ -149,7 +149,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_records_multiple_participants", () => {
+  it("participant_add_records_multiple_participants", () => {
     const alice = fixture("alice_signed_xid.txt");
     const bob = fixture("bob_signed_xid.txt");
 
@@ -163,7 +163,7 @@ describe("participant add", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("participant_add_requires_signed_document", () => {
+  it("participant_add_requires_signed_document", () => {
     const unsigned = fixture("bob_unsigned_xid.txt");
 
     expect(() => {

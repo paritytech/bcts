@@ -8,18 +8,34 @@
  * Represents a service endpoint in an XID document, containing URI, key references,
  * delegate references, permissions, capability, and name.
  *
- * Ported from bc-xid-rust/src/service.rs
+ * Ported from bc-xid-rust/src/service.rs.
+ *
+ * Wire shape — mirrors Rust:
+ * ```
+ * URI("…") [
+ *     'key': Reference(...)
+ *     'delegate': Reference(...)
+ *     'capability': "..."
+ *     'name': "..."
+ *     'allow': '...'
+ * ]
+ * ```
+ *
+ * The subject is a tagged URI (`tag(TAG_URI, text)`), each `key` /
+ * `delegate` object is a tagged Reference (`tag(TAG_REFERENCE,
+ * byte_string(32))`).
  */
 
 import { Envelope, type EnvelopeEncodable, type EnvelopeEncodableValue } from "@bcts/envelope";
 import { KEY, DELEGATE, NAME, CAPABILITY, ALLOW, type KnownValue } from "@bcts/known-values";
-
-// Helper to convert KnownValue to EnvelopeEncodableValue
-const kv = (v: KnownValue): EnvelopeEncodableValue => v;
-import { Reference, type PublicKeys, type XID } from "@bcts/components";
+import { Reference, URI, type PublicKeys, type XID } from "@bcts/components";
+import type { Cbor } from "@bcts/dcbor";
 import { Permissions, type HasPermissions } from "./permissions";
 import { privilegeFromEnvelope } from "./privilege";
 import { XIDError } from "./error";
+
+// Helper to convert KnownValue to EnvelopeEncodableValue
+const kv = (v: KnownValue): EnvelopeEncodableValue => v;
 
 // Raw values for predicate matching
 const KEY_RAW = KEY.value();
@@ -29,20 +45,26 @@ const CAPABILITY_RAW = CAPABILITY.value();
 const ALLOW_RAW = ALLOW.value();
 
 /**
+ * Map a `Reference` to a stable string key, used to back the internal
+ * `Map` so the typed value compares structurally.
+ */
+const referenceKey = (reference: Reference): string => reference.toHex();
+
+/**
  * Represents a service endpoint in an XID document.
  */
 export class Service implements HasPermissions, EnvelopeEncodable {
-  private readonly _uri: string;
-  private _keyReferences: Set<string>; // Store as hex strings for easier comparison
-  private _delegateReferences: Set<string>;
+  private readonly _uri: URI;
+  private _keyReferences: Map<string, Reference>;
+  private _delegateReferences: Map<string, Reference>;
   private _permissions: Permissions;
   private _capability: string;
   private _name: string;
 
-  constructor(uri: string) {
-    this._uri = uri;
-    this._keyReferences = new Set();
-    this._delegateReferences = new Set();
+  constructor(uri: URI | string) {
+    this._uri = uri instanceof URI ? uri : URI.from(uri);
+    this._keyReferences = new Map();
+    this._delegateReferences = new Map();
     this._permissions = Permissions.new();
     this._capability = "";
     this._name = "";
@@ -51,15 +73,22 @@ export class Service implements HasPermissions, EnvelopeEncodable {
   /**
    * Create a new Service with the given URI.
    */
-  static new(uri: string): Service {
+  static new(uri: URI | string): Service {
     return new Service(uri);
   }
 
   /**
-   * Get the service URI.
+   * Get the service URI as a typed value.
    */
-  uri(): string {
+  uri(): URI {
     return this._uri;
+  }
+
+  /**
+   * Get the service URI as a plain string.
+   */
+  uriString(): string {
+    return this._uri.toString();
   }
 
   /**
@@ -90,65 +119,67 @@ export class Service implements HasPermissions, EnvelopeEncodable {
   }
 
   /**
-   * Get the key references set.
+   * Get the key references as a Set of typed Reference values.
    */
-  keyReferences(): Set<string> {
+  keyReferences(): Set<Reference> {
+    return new Set(this._keyReferences.values());
+  }
+
+  /**
+   * Get the underlying key-references Map for direct mutation.
+   */
+  keyReferencesMut(): Map<string, Reference> {
     return this._keyReferences;
   }
 
   /**
-   * Get the key references set for mutation.
-   */
-  keyReferencesMut(): Set<string> {
-    return this._keyReferences;
-  }
-
-  /**
-   * Add a key reference by hex string.
+   * Add a key reference by hex string (back-compat alias).
    */
   addKeyReferenceHex(keyReferenceHex: string): void {
-    if (this._keyReferences.has(keyReferenceHex)) {
-      throw XIDError.duplicate("key reference");
-    }
-    this._keyReferences.add(keyReferenceHex);
+    this.addKeyReference(Reference.fromHex(keyReferenceHex));
   }
 
   /**
    * Add a key reference.
    */
   addKeyReference(keyReference: Reference): void {
-    this.addKeyReferenceHex(keyReference.toHex());
+    const key = referenceKey(keyReference);
+    if (this._keyReferences.has(key)) {
+      throw XIDError.duplicate("key reference");
+    }
+    this._keyReferences.set(key, keyReference);
   }
 
   /**
-   * Get the delegate references set.
+   * Get the delegate references as a Set of typed Reference values.
    */
-  delegateReferences(): Set<string> {
+  delegateReferences(): Set<Reference> {
+    return new Set(this._delegateReferences.values());
+  }
+
+  /**
+   * Get the underlying delegate-references Map for direct mutation.
+   */
+  delegateReferencesMut(): Map<string, Reference> {
     return this._delegateReferences;
   }
 
   /**
-   * Get the delegate references set for mutation.
-   */
-  delegateReferencesMut(): Set<string> {
-    return this._delegateReferences;
-  }
-
-  /**
-   * Add a delegate reference by hex string.
+   * Add a delegate reference by hex string (back-compat alias).
    */
   addDelegateReferenceHex(delegateReferenceHex: string): void {
-    if (this._delegateReferences.has(delegateReferenceHex)) {
-      throw XIDError.duplicate("delegate reference");
-    }
-    this._delegateReferences.add(delegateReferenceHex);
+    this.addDelegateReference(Reference.fromHex(delegateReferenceHex));
   }
 
   /**
    * Add a delegate reference.
    */
   addDelegateReference(delegateReference: Reference): void {
-    this.addDelegateReferenceHex(delegateReference.toHex());
+    const key = referenceKey(delegateReference);
+    if (this._delegateReferences.has(key)) {
+      throw XIDError.duplicate("delegate reference");
+    }
+    this._delegateReferences.set(key, delegateReference);
   }
 
   /**
@@ -161,10 +192,15 @@ export class Service implements HasPermissions, EnvelopeEncodable {
 
   /**
    * Add a delegate by its XID provider (convenience method).
-   * Matches Rust's `add_delegate(&mut self, delegate: &dyn XIDProvider)`.
+   *
+   * Mirrors Rust's `add_delegate(&mut self, delegate: &dyn XIDProvider)`,
+   * which delegates to `xid.reference()` — i.e. the XID's 32 bytes used
+   * directly as the Reference. The earlier port hashed the bytes with
+   * SHA-256, producing a different reference that didn't round-trip
+   * across implementations.
    */
   addDelegate(xidProvider: { xid(): XID }): void {
-    this.addDelegateReference(Reference.hash(xidProvider.xid().toData()));
+    this.addDelegateReference(xidProvider.xid().reference());
   }
 
   /**
@@ -202,29 +238,22 @@ export class Service implements HasPermissions, EnvelopeEncodable {
   intoEnvelope(): Envelope {
     let envelope = Envelope.new(this._uri);
 
-    // Add key references
-    for (const keyRef of this._keyReferences) {
-      const refBytes = hexToBytes(keyRef);
-      envelope = envelope.addAssertion(kv(KEY), refBytes);
+    for (const reference of this._keyReferences.values()) {
+      envelope = envelope.addAssertion(kv(KEY), reference);
     }
 
-    // Add delegate references
-    for (const delegateRef of this._delegateReferences) {
-      const refBytes = hexToBytes(delegateRef);
-      envelope = envelope.addAssertion(kv(DELEGATE), refBytes);
+    for (const reference of this._delegateReferences.values()) {
+      envelope = envelope.addAssertion(kv(DELEGATE), reference);
     }
 
-    // Add capability if not empty
     if (this._capability !== "") {
       envelope = envelope.addAssertion(kv(CAPABILITY), this._capability);
     }
 
-    // Add name if not empty
     if (this._name !== "") {
       envelope = envelope.addAssertion(kv(NAME), this._name);
     }
 
-    // Add permissions
     envelope = this._permissions.addToEnvelope(envelope);
 
     return envelope;
@@ -232,78 +261,65 @@ export class Service implements HasPermissions, EnvelopeEncodable {
 
   /**
    * Try to extract a Service from an envelope.
+   *
+   * Mirrors Rust `Service::try_from`:
+   * - Subject must be a tagged-CBOR URI leaf.
+   * - Each `'key'`/`'delegate'` object is a tagged Reference leaf.
+   * - Nested assertions on any object are rejected.
+   * - Unknown predicates are rejected.
    */
   static tryFromEnvelope(envelope: Envelope): Service {
-    // Extract URI from subject
-    // The envelope may be a node (with assertions) or a leaf
-    const envExt = envelope as unknown as {
+    type EnvelopeExt = Envelope & {
       subject(): Envelope;
+      tryLeaf(): Cbor;
+      tryPredicate(): Envelope;
+      tryObject(): Envelope;
+      tryKnownValue(): KnownValue;
+      assertions(): Envelope[];
+      hasAssertions(): boolean;
       asText(): string | undefined;
-      case(): { type: string };
     };
-    const envCase = envExt.case();
-    const subject = envCase.type === "node" ? envExt.subject() : envelope;
-    const uri = (subject as unknown as { asText(): string | undefined }).asText();
-    if (uri === undefined) {
-      throw XIDError.component(new Error("Could not extract URI from envelope"));
-    }
+
+    const env = envelope as EnvelopeExt;
+    const subjectLeaf = (env.subject() as EnvelopeExt).tryLeaf();
+    const uri = URI.fromTaggedCbor(subjectLeaf);
 
     const service = new Service(uri);
 
-    // Process assertions
-    const assertions = (envelope as unknown as { assertions(): Envelope[] }).assertions();
-    for (const assertion of assertions) {
-      const assertionCase = assertion.case();
-      if (assertionCase.type !== "assertion") {
-        continue;
-      }
-
-      const predicateEnv = assertionCase.assertion.predicate();
-      const predicateCase = predicateEnv.case();
-      if (predicateCase.type !== "knownValue") {
-        continue;
-      }
-
-      const predicate = predicateCase.value.value();
-      const object = assertionCase.assertion.object();
-
-      // Check for nested assertions
-      const objectAssertions = (object as unknown as { assertions(): Envelope[] }).assertions();
-      if (objectAssertions.length > 0) {
+    for (const assertion of env.assertions()) {
+      const predicateEnv = (assertion as EnvelopeExt).tryPredicate() as EnvelopeExt;
+      const knownValue = predicateEnv.tryKnownValue();
+      const object = (assertion as EnvelopeExt).tryObject() as EnvelopeExt;
+      if (object.hasAssertions()) {
         throw XIDError.unexpectedNestedAssertions();
       }
+      const predicate = knownValue.value();
 
       switch (predicate) {
         case KEY_RAW: {
-          const keyData = (
-            object as unknown as { asByteString(): Uint8Array | undefined }
-          ).asByteString();
-          if (keyData !== undefined) {
-            service.addKeyReferenceHex(bytesToHex(keyData));
-          }
+          const reference = Reference.fromTaggedCbor(object.tryLeaf());
+          service.addKeyReference(reference);
           break;
         }
         case DELEGATE_RAW: {
-          const delegateData = (
-            object as unknown as { asByteString(): Uint8Array | undefined }
-          ).asByteString();
-          if (delegateData !== undefined) {
-            service.addDelegateReferenceHex(bytesToHex(delegateData));
-          }
+          const reference = Reference.fromTaggedCbor(object.tryLeaf());
+          service.addDelegateReference(reference);
           break;
         }
         case CAPABILITY_RAW: {
-          const capability = (object as unknown as { asText(): string | undefined }).asText();
-          if (capability !== undefined) {
-            service.addCapability(capability);
+          const capability = object.asText();
+          if (capability === undefined) {
+            throw XIDError.envelopeParsing(new Error("capability is not text"));
           }
+          service.addCapability(capability);
           break;
         }
         case NAME_RAW: {
-          const name = (object as unknown as { asText(): string | undefined }).asText();
-          if (name !== undefined) {
-            service.setName(name);
+          const name = object.asText();
+          if (name === undefined) {
+            throw XIDError.envelopeParsing(new Error("name is not text"));
           }
+          service.setName(name);
           break;
         }
         case ALLOW_RAW: {
@@ -323,14 +339,14 @@ export class Service implements HasPermissions, EnvelopeEncodable {
    * Check equality with another Service (based on URI).
    */
   equals(other: Service): boolean {
-    return this._uri === other._uri;
+    return this._uri.toString() === other._uri.toString();
   }
 
   /**
    * Get a hash key for use in Sets/Maps.
    */
   hashKey(): string {
-    return this._uri;
+    return this._uri.toString();
   }
 
   /**
@@ -338,26 +354,11 @@ export class Service implements HasPermissions, EnvelopeEncodable {
    */
   clone(): Service {
     const clone = new Service(this._uri);
-    clone._keyReferences = new Set(this._keyReferences);
-    clone._delegateReferences = new Set(this._delegateReferences);
+    clone._keyReferences = new Map(this._keyReferences);
+    clone._delegateReferences = new Map(this._delegateReferences);
     clone._permissions = this._permissions.clone();
     clone._capability = this._capability;
     clone._name = this._name;
     return clone;
   }
-}
-
-// Helper functions
-function hexToBytes(hex: string): Uint8Array {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
-  }
-  return bytes;
-}
-
-function bytesToHex(bytes: Uint8Array): string {
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }

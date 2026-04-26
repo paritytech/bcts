@@ -28,7 +28,7 @@ describe("owner set", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("owner_set_with_participant_add_persists_both", () => {
+  it("owner_set_with_participant_add_persists_both", () => {
     const aliceParticipant = fixture("alice_signed_xid.txt");
     const ownerUr = makeOwnerXidUr();
 
@@ -65,7 +65,7 @@ describe("owner set", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("owner_set_requires_private_keys", () => {
+  it("owner_set_requires_private_keys", () => {
     const unsignedOwner = fixture("alice_signed_xid.txt"); // lacks private keys
 
     expect(() => {

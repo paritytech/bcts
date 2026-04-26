@@ -31,7 +31,7 @@ export class MethodAtCommand implements Exec {
     if (this.args.index >= methods.length) {
       throw new Error("Index out of bounds");
     }
-    return methods[this.args.index];
+    return methods[this.args.index].toString();
   }
 }
 

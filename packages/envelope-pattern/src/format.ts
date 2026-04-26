@@ -151,6 +151,14 @@ export function formatPathsOpts(): FormatPathsOptsBuilder {
 /**
  * Gets a summary of an envelope for display.
  *
+ * Mirrors Rust `envelope_summary` in `format.rs`: defers to
+ * `Envelope::format_flat()` for nodes / wrapped / assertions and to
+ * `cbor.envelope_summary(usize::MAX, ...)` for raw CBOR leaves. The
+ * obscured cases (`elided` / `encrypted` / `compressed`) emit just the
+ * keyword. KnownValue envelopes look up the canonical name via
+ * `KnownValue.name()`, matching the Rust call to
+ * `KnownValuesStore::known_value_for_raw_value(value, …)`.
+ *
  * @param env - The envelope to summarize
  * @returns A string summary of the envelope
  */
@@ -160,37 +168,18 @@ export function envelopeSummary(env: Envelope): string {
 
   let summary: string;
   switch (c.type) {
-    case "node": {
-      const subjectSummary = env.subject().summary(Number.MAX_SAFE_INTEGER);
-      const assertions = env.assertions();
-      if (assertions.length > 0) {
-        const assertionSummaries = assertions.map((a) => {
-          const ac = a.case();
-          if (ac.type === "assertion") {
-            const pred = ac.assertion.predicate().summary(Number.MAX_SAFE_INTEGER);
-            const obj = ac.assertion.object().summary(Number.MAX_SAFE_INTEGER);
-            return `${pred}: ${obj}`;
-          }
-          return a.summary(Number.MAX_SAFE_INTEGER);
-        });
-        summary = `NODE ${subjectSummary} [ ${assertionSummaries.join(", ")} ]`;
-      } else {
-        summary = `NODE ${subjectSummary}`;
-      }
+    case "node":
+      summary = `NODE ${env.formatFlat()}`;
       break;
-    }
     case "leaf":
       summary = `LEAF ${env.summary(Number.MAX_SAFE_INTEGER)}`;
       break;
     case "wrapped":
-      summary = `WRAPPED ${env.summary(Number.MAX_SAFE_INTEGER)}`;
+      summary = `WRAPPED ${env.formatFlat()}`;
       break;
-    case "assertion": {
-      const pred = c.assertion.predicate().summary(Number.MAX_SAFE_INTEGER);
-      const obj = c.assertion.object().summary(Number.MAX_SAFE_INTEGER);
-      summary = `ASSERTION ${pred}: ${obj}`;
+    case "assertion":
+      summary = `ASSERTION ${env.formatFlat()}`;
       break;
-    }
     case "elided":
       summary = "ELIDED";
       break;
@@ -254,10 +243,9 @@ export function formatPathOpt(
         return truncateWithEllipsis(summary, opts.elementFormat.maxLength);
       }
       case "EnvelopeUR":
-        // TODO: Implement proper UR string format when available
-        return element.digest().toString();
+        return element.urString();
       case "DigestUR":
-        return element.digest().toString();
+        return element.digest().urString();
     }
   }
 
@@ -277,11 +265,11 @@ export function formatPathOpt(
       return lines.join("\n");
     }
     case "EnvelopeUR":
-      // TODO: Implement proper UR string format when available
-      return path.map((element) => element.digest().toString()).join(" ");
+      // Single-line, space-separated envelope URs (mirrors Rust).
+      return path.map((element) => element.urString()).join(" ");
     case "DigestUR":
-      // Single-line, space-separated digest strings
-      return path.map((element) => element.digest().toString()).join(" ");
+      // Single-line, space-separated digest URs (mirrors Rust).
+      return path.map((element) => element.digest().urString()).join(" ");
   }
 }
 

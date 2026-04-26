@@ -40,8 +40,8 @@
  * ```
  */
 
-import { deflate, inflate } from "pako";
-import { crc32 } from "@bcts/crypto";
+import { deflateRaw, inflateRaw } from "pako";
+import { hash as cryptoHash } from "@bcts/crypto";
 import {
   type Cbor,
   type Tag,
@@ -140,9 +140,10 @@ export class Compressed
    * @returns A new `Compressed` object containing the compressed (or original) data
    */
   static fromDecompressedData(decompressedData: Uint8Array, digest?: Digest): Compressed {
-    // Use raw DEFLATE compression (level 6 is default)
-    const compressedData = deflate(decompressedData, { level: 6 });
-    const checksum = crc32(decompressedData);
+    // Raw DEFLATE (RFC 1951, no zlib header/trailer) at level 6 — matches
+    // Rust `miniz_oxide::deflate::compress_to_vec(data, 6)`.
+    const compressedData = deflateRaw(decompressedData, { level: 6 });
+    const checksum = cryptoHash.crc32(decompressedData);
     const decompressedSize = decompressedData.length;
     const compressedSize = compressedData.length;
 
@@ -177,10 +178,10 @@ export class Compressed
     }
 
     try {
-      const decompressedData = inflate(this._compressedData);
+      const decompressedData = inflateRaw(this._compressedData);
 
       // Verify checksum
-      if (crc32(decompressedData) !== this._checksum) {
+      if (cryptoHash.crc32(decompressedData) !== this._checksum) {
         throw CryptoError.cryptoOperation("compressed data checksum mismatch");
       }
 

@@ -114,13 +114,24 @@ export class Xoshiro256 {
 
   /**
    * Generates a random byte [0, 255].
+   *
+   * Mirrors Rust `Xoshiro256::next_byte` (`ur-0.4.1/src/xoshiro.rs:91`):
+   *   `self.next_int(0, 255) as u8`
+   * This goes through `next_double() * 256.0`, which effectively uses
+   * the top 8 bits of the f64-converted u64 — NOT the low 8 bits
+   * of the raw `next()` output. Earlier the TS port used `next() & 0xff`,
+   * which produced a completely different byte sequence than Rust for
+   * the same seeded RNG.
    */
   nextByte(): number {
-    return Number(this.next() & 0xffn);
+    return this.nextInt(0, 255);
   }
 
   /**
    * Generates an array of random bytes.
+   *
+   * Mirrors Rust `Xoshiro256::next_bytes` (`ur-0.4.1/src/xoshiro.rs:95-97`):
+   *   `(0..n).map(|_| self.next_byte()).collect()`
    */
   nextData(count: number): Uint8Array {
     const result = new Uint8Array(count);
@@ -175,14 +186,17 @@ class WeightedSampler {
 
   constructor(weights: number[]) {
     const n = weights.length;
-    if (n === 0) {
-      throw new Error("Weights array cannot be empty");
-    }
 
-    // Normalize weights
+    // Mirrors Rust `Weighted::new` (`ur-0.4.1/src/sampler.rs:13-19`):
+    //   assert!(!weights.iter().any(|&p| p < 0.0), "negative probability encountered");
+    //   let summed = weights.iter().sum::<f64>();
+    //   assert!(summed > 0.0, "probabilities don't sum to a positive value");
+    if (weights.some((w) => w < 0.0)) {
+      throw new Error("negative probability encountered");
+    }
     const sum = weights.reduce((a, b) => a + b, 0);
-    if (sum <= 0) {
-      throw new Error("Weights must sum to a positive value");
+    if (!(sum > 0.0)) {
+      throw new Error("probabilities don't sum to a positive value");
     }
 
     const normalized = weights.map((w) => (w * n) / sum);

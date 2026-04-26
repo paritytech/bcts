@@ -187,7 +187,7 @@ describe("introductions", () => {
   });
 
   // Skip until UR parsing is fully working in @bcts/uniform-resources
-  it.skip("introductions_create_four_registries", () => {
+  it("introductions_create_four_registries", () => {
     const users = loadUsers();
 
     const registries: Map<string, [Record<string, unknown>, Record<string, unknown>]> = new Map();
@@ -211,11 +211,36 @@ describe("introductions", () => {
       registries.set(user.name, [content, expectedRegistryText(user.name)]);
     }
 
-    // Verify all registries
+    // Verify all registries.
+    //
+    // Mirrors Rust `tests/introductions.rs:53-54`:
+    //   let actual_pretty: Value = serde_json::from_str(&actual).unwrap();
+    //   let actual_text = serde_json::to_string_pretty(&actual_pretty).unwrap();
+    // This re-parse-then-pretty round-trip normalizes key order through
+    // `serde_json::Map`'s default `BTreeMap` backing, i.e. it
+    // alphabetizes keys recursively. JS `JSON.parse`/`JSON.stringify`
+    // preserve insertion order, so we replicate the alphabetization
+    // explicitly via `sortJsonKeys` below before comparing.
     for (const [_name, [actual, expected]] of registries) {
-      const actualPretty = JSON.stringify(actual, null, 2);
-      const expectedPretty = JSON.stringify(expected, null, 2);
+      const actualPretty = JSON.stringify(sortJsonKeys(actual), null, 2);
+      const expectedPretty = JSON.stringify(sortJsonKeys(expected), null, 2);
       expect(actualPretty).toBe(expectedPretty);
     }
   });
 });
+
+/**
+ * Recursively re-emit a JSON value with object keys in alphabetical
+ * order. Mirrors Rust `serde_json::Value` round-trip, which normalizes
+ * key order through `Map<String, Value>`'s default `BTreeMap` backing.
+ */
+function sortJsonKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortJsonKeys);
+  if (value === null || typeof value !== "object") return value;
+  const obj = value as Record<string, unknown>;
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = sortJsonKeys(obj[key]);
+  }
+  return sorted;
+}

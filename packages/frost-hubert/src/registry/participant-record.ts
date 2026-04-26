@@ -141,8 +141,21 @@ export class ParticipantRecord {
 
   /**
    * Deserialize from JSON object.
+   *
+   * Mirrors Rust's `#[serde(deny_unknown_fields)]` derive on
+   * `ParticipantRecord` (`participant_record.rs:12-17`) — Rust's
+   * `serde_json::from_str` errors with `unknown field` for any
+   * field outside `{xid_document, pet_name}`. We mirror that
+   * behaviour so a registry file produced by a future Rust
+   * version with extra fields is rejected explicitly rather than
+   * silently lossy.
    */
   static fromJSON(json: Record<string, unknown>): ParticipantRecord {
+    for (const key of Object.keys(json)) {
+      if (key !== "xid_document" && key !== "pet_name") {
+        throw new Error(`unknown field \`${key}\`, expected \`xid_document\` or \`pet_name\``);
+      }
+    }
     const xidDocumentUr = json["xid_document"] as string;
     const petName = json["pet_name"] as string | undefined;
     return ParticipantRecord.recreateFromSerialized(xidDocumentUr, petName);
@@ -167,10 +180,30 @@ function parseSignedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
   try {
     envelope = Envelope.fromTaggedCbor(envelopeCbor);
   } catch {
-    envelope = Envelope.fromUntaggedCbor(envelopeCbor);
+    try {
+      envelope = Envelope.fromUntaggedCbor(envelopeCbor);
+    } catch (e) {
+      throw new Error(
+        `Unable to decode XID document envelope: ${(e as Error).message ?? String(e)}`,
+        {
+          cause: e,
+        },
+      );
+    }
   }
 
-  const document = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.Inception);
+  // Mirror Rust `participant_record.rs:198-203`'s `.context(...)` wrap:
+  // any failure from `XIDDocument::from_envelope(..., XIDVerifySignature::Inception)`
+  // is surfaced as "XID document must be signed by its inception key: <cause>".
+  let document: XIDDocument;
+  try {
+    document = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.Inception);
+  } catch (e) {
+    throw new Error(
+      `XID document must be signed by its inception key: ${(e as Error).message ?? String(e)}`,
+      { cause: e },
+    );
+  }
 
   return [sanitized, document];
 }

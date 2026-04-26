@@ -12,7 +12,7 @@
 
 import type { Envelope } from "@bcts/envelope";
 import type { Path } from "../../format";
-import type { Matcher } from "../matcher";
+import { dispatchPatternToString, type Matcher } from "../matcher";
 import type { Instr } from "../vm";
 import type { Pattern } from "../index";
 
@@ -144,7 +144,7 @@ export class TraversePattern implements Matcher {
 
   toString(): string {
     return this.patterns()
-      .map((p) => (p as unknown as { toString(): string }).toString())
+      .map((p) => dispatchPatternToString(p))
       .join(" -> ");
   }
 

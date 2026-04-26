@@ -13,7 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { type ARID, type XID } from "@bcts/components";
+import { type ARID, type PublicKeys, type XID } from "@bcts/components";
 
 import { GroupRecord } from "./group-record.js";
 import { OwnerRecord } from "./owner-record.js";
@@ -140,20 +140,57 @@ export class Registry {
   /**
    * Add a participant.
    *
-   * Returns the outcome indicating whether the participant was already present or newly inserted.
+   * Mirrors Rust `Registry::add_participant`
+   * (`registry_impl.rs:83-124`):
+   *
+   * 1. If `record.pet_name()` is already used by some other XID,
+   *    bail with `"Pet name '{name}' already used by another
+   *    participant"`.
+   * 2. If `record.pet_name()` matches an existing record under the
+   *    *same* XID and the public keys also match, return
+   *    `AlreadyPresent`.
+   * 3. If the pet name matches the same XID but public keys don't,
+   *    bail with `"Participant already exists with a different pet
+   *    name"`.
+   * 4. Otherwise look up by XID. If present and public-keys + pet-name
+   *    both match, return `AlreadyPresent`; if XID is present but
+   *    anything differs, bail. If XID is new, insert and return
+   *    `Inserted`.
+   *
+   * The earlier port short-circuited on `participants.has(xidUr)` and
+   * always returned `AlreadyPresent` — silently allowing re-adds with
+   * a different pet name or different public keys, which Rust
+   * correctly forbids.
    */
   addParticipant(xid: XID, record: ParticipantRecord): AddOutcome {
     const xidUr = xid.urString();
+    const petName = record.petName();
 
-    // Check if already present
-    if (this._participants.has(xidUr)) {
-      return AddOutcome.AlreadyPresent;
+    // Steps 1–3: pet-name conflict resolution.
+    if (petName !== undefined) {
+      for (const [existingXidUr, existingRecord] of this._participants) {
+        if (existingRecord.petName() === petName) {
+          if (existingXidUr !== xidUr) {
+            throw new Error(`Pet name '${petName}' already used by another participant`);
+          }
+          if (publicKeysEqual(existingRecord.publicKeys(), record.publicKeys())) {
+            return AddOutcome.AlreadyPresent;
+          }
+          throw new Error("Participant already exists with a different pet name");
+        }
+      }
     }
 
-    // Check for conflicting pet name
-    const petName = record.petName();
-    if (petName !== undefined && this.petNameExists(petName)) {
-      throw new Error(`Pet name "${petName}" is already used by another participant`);
+    // Step 4: XID lookup.
+    const existing = this._participants.get(xidUr);
+    if (existing !== undefined) {
+      if (
+        publicKeysEqual(existing.publicKeys(), record.publicKeys()) &&
+        existing.petName() === record.petName()
+      ) {
+        return AddOutcome.AlreadyPresent;
+      }
+      throw new Error("Participant already exists with a different pet name");
     }
 
     this._participants.set(xidUr, record);
@@ -287,26 +324,34 @@ export class Registry {
 
   /**
    * Serialize to JSON object.
+   *
+   * Mirrors Rust `Registry`'s field declaration order
+   * (`registry_impl.rs:8-14` — `owner, participants, groups`). JSON
+   * object member order is not semantically significant, but
+   * `serde_json::to_string_pretty` emits keys in declaration order,
+   * so for byte-equal `registry.json` (used by the integration tests
+   * as a string assertion) the TS port must match Rust's order.
+   * Empty `owner` is omitted via `Option::None` skip in Rust; we
+   * reproduce that by only setting the key when the owner exists.
    */
   toJSON(): Record<string, unknown> {
+    const obj: Record<string, unknown> = {};
+
+    if (this._owner !== undefined) {
+      obj["owner"] = this._owner.toJSON();
+    }
+
     const participants: Record<string, unknown> = {};
     for (const [xidUr, record] of this._participants) {
       participants[xidUr] = record.toJSON();
     }
+    obj["participants"] = participants;
 
     const groups: Record<string, unknown> = {};
     for (const [aridHex, record] of this._groups) {
       groups[aridHex] = record.toJSON();
     }
-
-    const obj: Record<string, unknown> = {
-      groups,
-      participants,
-    };
-
-    if (this._owner !== undefined) {
-      obj["owner"] = this._owner.toJSON();
-    }
+    obj["groups"] = groups;
 
     return obj;
   }
@@ -365,4 +410,15 @@ export function resolveRegistryPath(registryArg: string | undefined, cwd: string
 
   // Otherwise, treat as relative path
   return path.resolve(cwd, registryArg);
+}
+
+/**
+ * Structural equality on `PublicKeys`, mirroring Rust's
+ * `PartialEq::eq` derive (per-component comparison of the signing
+ * and encapsulation public keys).
+ *
+ * @internal
+ */
+function publicKeysEqual(a: PublicKeys, b: PublicKeys): boolean {
+  return a.equals(b);
 }

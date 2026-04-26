@@ -74,6 +74,7 @@
     "@bcts/dcbor": "workspace:*",
     "@bcts/envelope": "workspace:*",
     "@bcts/known-values": "workspace:*",
-    "@bcts/provenance-mark": "workspace:*"
+    "@bcts/provenance-mark": "workspace:*",
+    "@bcts/uniform-resources": "workspace:*"
   }
 }

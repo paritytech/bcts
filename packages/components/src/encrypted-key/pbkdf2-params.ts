@@ -16,8 +16,8 @@
  * Ported from bc-components-rust/src/encrypted_key/pbkdf2_params.rs
  */
 
-import { type Cbor, cbor, expectArray, expectNumber, expectBytes } from "@bcts/dcbor";
-import { pbkdf2HmacSha256, pbkdf2HmacSha512 } from "@bcts/crypto";
+import { type Cbor, cbor, expectArray, expectNumber } from "@bcts/dcbor";
+import { pbkdf2HmacSha256, hash as cryptoHash } from "@bcts/crypto";
 
 import { Salt } from "../salt.js";
 import { Nonce } from "../nonce.js";
@@ -117,7 +117,7 @@ export class PBKDF2Params implements KeyDerivation {
       case HashType.SHA256:
         return pbkdf2HmacSha256(secret, this._salt.asBytes(), this._iterations, 32);
       case HashType.SHA512:
-        return pbkdf2HmacSha512(secret, this._salt.asBytes(), this._iterations, 32);
+        return cryptoHash.pbkdf2HmacSha512(secret, this._salt.asBytes(), this._iterations, 32);
       default:
         throw new Error(`Unknown hash type: ${String(this._hashType)}`);
     }
@@ -147,12 +147,12 @@ export class PBKDF2Params implements KeyDerivation {
 
   /**
    * Convert to CBOR.
-   * Format: [1, Salt, iterations, HashType]
+   * Format: [1, Salt, iterations, HashType]   (Salt is encoded as a tagged value — `#6.40018(bytes)`)
    */
   toCbor(): Cbor {
     return cbor([
       cbor(PBKDF2Params.INDEX),
-      this._salt.untaggedCbor(),
+      this._salt.taggedCbor(),
       cbor(this._iterations),
       hashTypeToCbor(this._hashType),
     ]);
@@ -180,8 +180,7 @@ export class PBKDF2Params implements KeyDerivation {
       throw new Error(`Invalid PBKDF2Params index: expected ${PBKDF2Params.INDEX}, got ${index}`);
     }
 
-    const saltData = expectBytes(array[1]);
-    const salt = Salt.fromData(saltData);
+    const salt = Salt.fromTaggedCbor(array[1]);
     const iterations = Number(expectNumber(array[2]));
     const hashType = hashTypeFromCbor(array[3]);
 

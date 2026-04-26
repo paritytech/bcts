@@ -57,14 +57,54 @@ import {
 import { CryptoError } from "../error.js";
 import { bytesToHex, toBase64 } from "../utils.js";
 import { Digest } from "../digest.js";
+import { Reference, type ReferenceProvider } from "../reference.js";
 import type { SigningPublicKey } from "../signing/signing-public-key.js";
+import type { SigningPrivateKey } from "../signing/signing-private-key.js";
+import type { PublicKeys } from "../public-keys.js";
+import type { PrivateKeyBase } from "../private-key-base.js";
 
-/** XID prefix for bytewords/bytemoji identifiers */
-const XID_PREFIX = "🅧";
+/**
+ * XID prefix glyph for the upper-case bytewords/bytemoji identifier.
+ *
+ * Exported as the single source of truth so dependent packages (`@bcts/xid`,
+ * `@bcts/envelope`, etc.) don't redefine the literal `"🅧"`.
+ */
+export const XID_PREFIX = "🅧";
 
 const XID_SIZE = 32;
 
-export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREncodable {
+/**
+ * Trait-style interface for objects that can produce a XID.
+ *
+ * Mirrors Rust's `XIDProvider` trait. `XID` itself implements this; any
+ * other type that maps cleanly to a single XID (e.g. `SigningPublicKey`,
+ * `PublicKeys`) may also implement it.
+ */
+export interface XIDProvider {
+  /** Returns the XID for this object. */
+  xid(): XID;
+}
+
+/**
+ * Type guard for {@link XIDProvider}.
+ */
+export function isXIDProvider(obj: unknown): obj is XIDProvider {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "xid" in obj &&
+    typeof (obj as XIDProvider).xid === "function"
+  );
+}
+
+export class XID
+  implements
+    CborTaggedEncodable,
+    CborTaggedDecodable<XID>,
+    UREncodable,
+    XIDProvider,
+    ReferenceProvider
+{
   static readonly XID_SIZE = XID_SIZE;
 
   private readonly _data: Uint8Array;
@@ -152,6 +192,38 @@ export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREnc
     return XID.fromData(digest.toData());
   }
 
+  /**
+   * Mirror of Rust's `From<&SigningPublicKey> for XID`.
+   * Equivalent to {@link newFromSigningKey}; provided for API parity.
+   */
+  static fromSigningPublicKey(signingPublicKey: SigningPublicKey): XID {
+    return XID.newFromSigningKey(signingPublicKey);
+  }
+
+  /**
+   * Mirror of Rust's `From<&PublicKeys> for XID`.
+   * The XID is derived from the bundle's signing public key.
+   */
+  static fromPublicKeys(publicKeys: PublicKeys): XID {
+    return XID.newFromSigningKey(publicKeys.signingPublicKey());
+  }
+
+  /**
+   * Mirror of Rust's `From<&PrivateKeyBase> for XID` (secp256k1 feature).
+   * The XID is derived from the schnorr signing public key.
+   */
+  static fromPrivateKeyBase(base: PrivateKeyBase): XID {
+    return XID.newFromSigningKey(base.schnorrSigningPrivateKey().publicKey());
+  }
+
+  /**
+   * Mirror of Rust's `TryFrom<&SigningPrivateKey> for XID`.
+   * The XID is derived from the corresponding public key.
+   */
+  static tryFromSigningPrivateKey(signingPrivateKey: SigningPrivateKey): XID {
+    return XID.newFromSigningKey(signingPrivateKey.publicKey());
+  }
+
   // ============================================================================
   // Instance Methods
   // ============================================================================
@@ -237,6 +309,27 @@ export class XID implements CborTaggedEncodable, CborTaggedDecodable<XID>, UREnc
   bytemojisIdentifier(prefix = false): string {
     const emojis = encodeBytemojisIdentifier(this._data.slice(0, 4));
     return prefix ? `${XID_PREFIX} ${emojis}` : emojis;
+  }
+
+  /**
+   * XIDProvider impl — returns this XID.
+   *
+   * Mirrors Rust's blanket `impl XIDProvider for XID`.
+   */
+  xid(): XID {
+    return this;
+  }
+
+  /**
+   * ReferenceProvider impl — produces a Reference whose 32 bytes are the
+   * raw XID data.
+   *
+   * Mirrors Rust's `impl ReferenceProvider for XID { fn reference(&self) ->
+   * Reference { Reference::from_data(*self.data()) } }` — note this is a
+   * direct wrap, not a SHA-256 hash of the XID.
+   */
+  reference(): Reference {
+    return Reference.fromData(this._data);
   }
 
   /**

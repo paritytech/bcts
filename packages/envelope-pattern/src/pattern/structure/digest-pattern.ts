@@ -39,10 +39,11 @@ function bytesToLatin1(bytes: Uint8Array): string {
 /**
  * Pattern type for digest pattern matching.
  *
- * Corresponds to the Rust `DigestPattern` enum in digest_pattern.rs
+ * Corresponds to the Rust `DigestPattern` enum in digest_pattern.rs.
+ * Rust has only `Digest`, `Prefix`, and `BinaryRegex` variants — there is
+ * no `Any` here. To match "any digest", use the meta `any()` pattern.
  */
 export type DigestPatternType =
-  | { readonly type: "Any" }
   | { readonly type: "Digest"; readonly digest: Digest }
   | { readonly type: "Prefix"; readonly prefix: Uint8Array }
   | { readonly type: "BinaryRegex"; readonly regex: RegExp };
@@ -57,13 +58,6 @@ export class DigestPattern implements Matcher {
 
   private constructor(pattern: DigestPatternType) {
     this._pattern = pattern;
-  }
-
-  /**
-   * Creates a new DigestPattern that matches any digest.
-   */
-  static any(): DigestPattern {
-    return new DigestPattern({ type: "Any" });
   }
 
   /**
@@ -100,10 +94,6 @@ export class DigestPattern implements Matcher {
     let isHit = false;
 
     switch (this._pattern.type) {
-      case "Any":
-        // Any digest matches - every envelope has a digest
-        isHit = true;
-        break;
       case "Digest":
         isHit = digest.equals(this._pattern.digest);
         break;
@@ -152,8 +142,6 @@ export class DigestPattern implements Matcher {
 
   toString(): string {
     switch (this._pattern.type) {
-      case "Any":
-        return "digest";
       case "Digest":
         return `digest(${this._pattern.digest.hex()})`;
       case "Prefix":
@@ -165,14 +153,17 @@ export class DigestPattern implements Matcher {
 
   /**
    * Equality comparison.
+   *
+   * `Prefix` comparison is case-insensitive on the *hex representation* to
+   * mirror Rust's `eq_ignore_ascii_case` (which compares the underlying
+   * `Vec<u8>` of hex bytes byte-for-byte modulo ASCII case). For raw byte
+   * prefixes that happen to be ASCII, this is an ordinary byte compare.
    */
   equals(other: DigestPattern): boolean {
     if (this._pattern.type !== other._pattern.type) {
       return false;
     }
     switch (this._pattern.type) {
-      case "Any":
-        return true;
       case "Digest":
         return this._pattern.digest.equals(
           (other._pattern as { type: "Digest"; digest: Digest }).digest,
@@ -182,7 +173,13 @@ export class DigestPattern implements Matcher {
         const otherPrefix = (other._pattern as { type: "Prefix"; prefix: Uint8Array }).prefix;
         if (thisPrefix.length !== otherPrefix.length) return false;
         for (let i = 0; i < thisPrefix.length; i++) {
-          if (thisPrefix[i] !== otherPrefix[i]) return false;
+          const a = thisPrefix[i];
+          const b = otherPrefix[i];
+          if (a === b) continue;
+          // ASCII case-insensitive compare ('A'..='Z' ↔ 'a'..='z')
+          const aLower = a >= 0x41 && a <= 0x5a ? a + 0x20 : a;
+          const bLower = b >= 0x41 && b <= 0x5a ? b + 0x20 : b;
+          if (aLower !== bLower) return false;
         }
         return true;
       }
@@ -199,10 +196,7 @@ export class DigestPattern implements Matcher {
    */
   hashCode(): number {
     switch (this._pattern.type) {
-      case "Any":
-        return 0;
       case "Digest": {
-        // Hash based on first few bytes of digest
         const data = this._pattern.digest.data().slice(0, 8);
         let hash = 0;
         for (const byte of data) {
@@ -213,7 +207,9 @@ export class DigestPattern implements Matcher {
       case "Prefix": {
         let hash = 0;
         for (const byte of this._pattern.prefix) {
-          hash = (hash * 31 + byte) | 0;
+          // Fold ASCII case to match equality semantics.
+          const folded = byte >= 0x41 && byte <= 0x5a ? byte + 0x20 : byte;
+          hash = (hash * 31 + folded) | 0;
         }
         return hash;
       }

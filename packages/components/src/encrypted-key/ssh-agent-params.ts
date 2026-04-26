@@ -16,7 +16,7 @@
  * Ported from bc-components-rust/src/encrypted_key/ssh_agent_params.rs
  */
 
-import { type Cbor, cbor, expectArray, expectNumber, expectBytes, expectText } from "@bcts/dcbor";
+import { type Cbor, cbor, expectArray, expectNumber, expectText } from "@bcts/dcbor";
 
 import { Salt } from "../salt.js";
 import type { SymmetricKey } from "../symmetric/symmetric-key.js";
@@ -38,6 +38,14 @@ export const SALT_LEN = 16;
  * **Note:** SSH agent communication requires platform-specific support and
  * may not be available in all JavaScript environments. The lock/unlock
  * methods will throw an error if SSH agent support is not available.
+ *
+ * **Parity / portability note:** Rust gates SSH-agent support behind the
+ * `ssh-agent` feature flag and links to OS-native libraries
+ * (`ssh-agent-client-rs`). The TS port deliberately stubs the lock/unlock
+ * paths because no portable browser-friendly SSH-agent transport exists.
+ * The CBOR encoding of `SSHAgentParams` is still byte-identical, so a
+ * payload produced in Rust can be inspected and parsed in TS — only the
+ * actual key-derivation operation is unavailable.
  */
 export class SSHAgentParams implements KeyDerivation {
   static readonly INDEX = KeyDerivationMethod.SSHAgent;
@@ -136,10 +144,10 @@ export class SSHAgentParams implements KeyDerivation {
 
   /**
    * Convert to CBOR.
-   * Format: [4, Salt, id: tstr]
+   * Format: [4, Salt, id: tstr]   (Salt is encoded as a tagged value — `#6.40018(bytes)`)
    */
   toCbor(): Cbor {
-    return cbor([cbor(SSHAgentParams.INDEX), this._salt.untaggedCbor(), cbor(this._id)]);
+    return cbor([cbor(SSHAgentParams.INDEX), this._salt.taggedCbor(), cbor(this._id)]);
   }
 
   /**
@@ -166,8 +174,7 @@ export class SSHAgentParams implements KeyDerivation {
       );
     }
 
-    const saltData = expectBytes(array[1]);
-    const salt = Salt.fromData(saltData);
+    const salt = Salt.fromTaggedCbor(array[1]);
     const id = expectText(array[2]);
 
     return new SSHAgentParams(salt, id);

@@ -35,13 +35,9 @@ describe("HKDFRng", () => {
       expect(bytesToHex(rng.randomData(16))).toBe("5d937a42cb5fb090fe1a1ec88f56e32b");
     });
 
-    it("should produce deterministic nextU32", () => {
+    it("should produce deterministic nextU32 (unsigned, matches Rust)", () => {
       const rng = HKDFRng.new(KEY_MATERIAL, SALT);
-      const num = rng.nextU32();
-      // JavaScript bitwise ops use signed 32-bit integers
-      // 2410426896 as signed 32-bit is -1884540400
-      // We use >>> 0 to convert to unsigned for comparison
-      expect(num >>> 0).toBe(2410426896);
+      expect(rng.nextU32()).toBe(2410426896);
     });
 
     it("should produce deterministic nextU64", () => {

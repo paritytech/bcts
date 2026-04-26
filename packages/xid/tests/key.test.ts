@@ -3,8 +3,15 @@
  * Ported from bc-xid-rust/tests/key.rs
  */
 
-import { PrivateKeyBase, KeyDerivationMethod } from "@bcts/components";
+import { PrivateKeyBase, KeyDerivationMethod, type URI } from "@bcts/components";
 import { Key, Privilege, XIDPrivateKeyOptions } from "../src";
+
+const hasUri = (set: Set<URI>, value: string): boolean => {
+  for (const uri of set) {
+    if (uri.toString() === value) return true;
+  }
+  return false;
+};
 
 describe("Key", () => {
   describe("Basic key operations", () => {
@@ -30,8 +37,8 @@ describe("Key", () => {
       key.addPermission(Privilege.All);
       key.setNickname("Alice's key");
 
-      expect(key.endpoints().has(resolver1)).toBe(true);
-      expect(key.endpoints().has(resolver2)).toBe(true);
+      expect(hasUri(key.endpoints(), resolver1)).toBe(true);
+      expect(hasUri(key.endpoints(), resolver2)).toBe(true);
       expect(key.nickname()).toBe("Alice's key");
       expect(key.permissions().allow.has(Privilege.All)).toBe(true);
 
@@ -195,7 +202,7 @@ describe("Key", () => {
       const cloned = key.clone();
       expect(cloned.equals(key)).toBe(true);
       expect(cloned.nickname()).toBe(key.nickname());
-      expect(cloned.endpoints().has("https://example.com")).toBe(true);
+      expect(hasUri(cloned.endpoints(), "https://example.com")).toBe(true);
     });
   });
 
@@ -256,9 +263,11 @@ describe("Key", () => {
       const envelope = key.privateKeyEnvelope();
       expect(envelope).toBeDefined();
 
-      // Should be able to extract PrivateKeys from the subject
-      const bytes = envelope?.subject().asByteString();
-      expect(bytes).toBeDefined();
+      // Should be a tagged-CBOR PrivateKeys leaf (mirrors Rust). The
+      // earlier port emitted a byte-string leaf, which is what the
+      // previous test asserted.
+      const leaf = envelope?.subject().asLeaf();
+      expect(leaf).toBeDefined();
     });
 
     it("should return encrypted envelope when no password provided", { timeout: 60_000 }, () => {
@@ -301,9 +310,10 @@ describe("Key", () => {
       const decryptedEnvelope = keyEncrypted.privateKeyEnvelope(password);
       expect(decryptedEnvelope).toBeDefined();
 
-      // Should be able to extract PrivateKeys from the subject
-      const bytes = decryptedEnvelope?.subject().asByteString();
-      expect(bytes).toBeDefined();
+      // Decrypted PrivateKeys are now stored as a tagged-CBOR leaf
+      // (mirrors Rust); the previous byte-string assertion is gone.
+      const leaf = decryptedEnvelope?.subject().asLeaf();
+      expect(leaf).toBeDefined();
     });
 
     it("should throw on wrong password", { timeout: 30_000 }, () => {

@@ -162,9 +162,24 @@ export class ProvenanceMarkGenerator {
 
   /**
    * String representation.
+   *
+   * Mirrors Rust `Display for ProvenanceMarkGenerator`
+   * (`provenance-mark-rust/src/generator.rs:135-147`):
+   *
+   * ```rust
+   * write!(f, "ProvenanceMarkGenerator(chainID: {}, res: {}, seed: {}, nextSeq: {}, rngState: {:?})",
+   *     hex::encode(&self.chain_id), self.res, self.seed.hex(), self.next_seq, self.rng_state)
+   * ```
+   *
+   * The `rngState` field uses Rust's `{:?}` (Debug) format, which on a
+   * `RngState([u8; 32])` tuple struct produces `RngState([n0, n1, ...])`
+   * with each byte rendered as a decimal integer. Earlier revisions of
+   * this port omitted `rngState` entirely from `toString()`, so the
+   * output diverged from Rust's `Display`.
    */
   toString(): string {
-    return `ProvenanceMarkGenerator(chainID: ${bytesToHex(this._chainId)}, res: ${this._res}, seed: ${this._seed.hex()}, nextSeq: ${this._nextSeq})`;
+    const rngBytes = Array.from(this._rngState.toBytes()).join(", ");
+    return `ProvenanceMarkGenerator(chainID: ${bytesToHex(this._chainId)}, res: ${this._res}, seed: ${this._seed.hex()}, nextSeq: ${this._nextSeq}, rngState: RngState([${rngBytes}]))`;
   }
 
   /**

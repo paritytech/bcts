@@ -5,32 +5,20 @@
  *
  * Reference envelope utilities for hybrid storage.
  *
- * Port of hybrid/reference.rs from hubert-rust.
+ * Port of `hybrid/reference.rs` from `hubert-rust`.
  *
  * @module
  */
 
 import { ARID } from "@bcts/components";
 import { Envelope } from "@bcts/envelope";
-import { KnownValue } from "@bcts/known-values";
+import { DEREFERENCE_VIA, ID, DEREFERENCE_VIA_RAW, ID_RAW } from "@bcts/known-values";
 
 import {
   InvalidReferenceAridError,
   NoIdAssertionError,
   NotReferenceEnvelopeError,
 } from "./error.js";
-
-/**
- * Known value for dereferenceVia predicate.
- * @internal
- */
-const DEREFERENCE_VIA = new KnownValue(8);
-
-/**
- * Known value for id predicate.
- * @internal
- */
-const ID = new KnownValue(2);
 
 /**
  * Creates a reference envelope that points to content stored in IPFS.
@@ -40,7 +28,8 @@ const ID = new KnownValue(2);
  * storage layer to transparently handle large envelopes that exceed the
  * DHT size limit.
  *
- * Port of `create_reference_envelope()` from hybrid/reference.rs lines 31-39.
+ * Port of `create_reference_envelope()` from
+ * `hubert-rust/src/hybrid/reference.rs:31-39`.
  *
  * # Format
  *
@@ -68,9 +57,18 @@ export function createReferenceEnvelope(referenceArid: ARID, actualSize: number)
 /**
  * Checks if an envelope is a reference envelope.
  *
- * A reference envelope contains `dereferenceVia: "ipfs"` and an `id` assertion.
+ * A reference envelope contains `dereferenceVia: "ipfs"` and an `id`
+ * assertion on a unit subject.
  *
- * Port of `is_reference_envelope()` from hybrid/reference.rs lines 53-91.
+ * Mirrors Rust `is_reference_envelope`
+ * (`hubert-rust/src/hybrid/reference.rs:53-91`):
+ *
+ * - Subject must be the unit value (`isSubjectUnit()` — invoked).
+ * - At least one `'dereferenceVia': "ipfs"` assertion (predicate is a
+ *   `KnownValue` matching `DEREFERENCE_VIA_RAW`, object's leaf is the
+ *   text `"ipfs"`).
+ * - At least one `'id': …` assertion (predicate is a `KnownValue`
+ *   matching `ID_RAW`).
  *
  * @param envelope - The envelope to check
  * @returns `true` if this is a reference envelope, `false` otherwise
@@ -78,53 +76,48 @@ export function createReferenceEnvelope(referenceArid: ARID, actualSize: number)
  * @category Hybrid
  */
 export function isReferenceEnvelope(envelope: Envelope): boolean {
-  // Check if subject is the unit value
-  if (!envelope.isSubjectUnit) {
+  if (!envelope.isSubjectUnit()) {
     return false;
   }
 
   const assertions = envelope.assertions();
 
-  // Check for dereferenceVia: "ipfs" assertion
   let hasDereferenceVia = false;
-  let hasId = false;
-
   for (const assertion of assertions) {
-    try {
-      const predicate = assertion.predicate();
-
-      // Check if predicate is a known value
-      const predicateSubject = predicate.subject();
-      if (predicateSubject instanceof KnownValue) {
-        const kv = predicateSubject;
-
-        // Check for dereferenceVia
-        if (kv.value === DEREFERENCE_VIA.value) {
-          const object = assertion.object();
-          const objectSubject = object.subject();
-          if (typeof objectSubject === "string" && objectSubject === "ipfs") {
-            hasDereferenceVia = true;
-          }
-        }
-
-        // Check for id
-        if (kv.value === ID.value) {
-          hasId = true;
-        }
-      }
-    } catch {
-      // Skip assertions that can't be parsed
-      continue;
+    const predicate = assertion.asPredicate?.();
+    if (predicate === undefined) continue;
+    const kv = predicate.asKnownValue();
+    if (kv === undefined) continue;
+    if (kv.valueBigInt() !== DEREFERENCE_VIA_RAW) continue;
+    const object = assertion.asObject?.();
+    if (object === undefined) continue;
+    const text = object.asText();
+    if (text === "ipfs") {
+      hasDereferenceVia = true;
+      break;
     }
   }
 
-  return hasDereferenceVia && hasId;
+  if (!hasDereferenceVia) return false;
+
+  for (const assertion of assertions) {
+    const predicate = assertion.asPredicate?.();
+    if (predicate === undefined) continue;
+    const kv = predicate.asKnownValue();
+    if (kv === undefined) continue;
+    if (kv.valueBigInt() === ID_RAW) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
  * Extracts the reference ARID from a reference envelope.
  *
- * Port of `extract_reference_arid()` from hybrid/reference.rs lines 104-129.
+ * Mirrors Rust `extract_reference_arid`
+ * (`hubert-rust/src/hybrid/reference.rs:104-129`).
  *
  * @param envelope - The reference envelope
  * @returns The reference ARID
@@ -139,40 +132,21 @@ export function extractReferenceArid(envelope: Envelope): ARID {
     throw new NotReferenceEnvelopeError();
   }
 
-  const assertions = envelope.assertions();
+  for (const assertion of envelope.assertions()) {
+    const predicate = assertion.asPredicate?.();
+    if (predicate === undefined) continue;
+    const kv = predicate.asKnownValue();
+    if (kv === undefined) continue;
+    if (kv.valueBigInt() !== ID_RAW) continue;
 
-  // Find the id assertion and extract the ARID
-  for (const assertion of assertions) {
+    const object = assertion.asObject?.();
+    if (object === undefined) continue;
+    const cbor = object.subject().asLeaf();
+    if (cbor === undefined) continue;
     try {
-      const predicate = assertion.predicate();
-      const predicateSubject = predicate.subject();
-
-      if (predicateSubject instanceof KnownValue) {
-        const kv = predicateSubject;
-
-        // Check for id
-        if (kv.value === ID.value) {
-          const object = assertion.object();
-          const objectSubject = object.subject();
-
-          if (objectSubject instanceof ARID) {
-            return objectSubject;
-          }
-
-          // Try to extract ARID from CBOR
-          throw new InvalidReferenceAridError();
-        }
-      }
-    } catch (error) {
-      if (
-        error instanceof NotReferenceEnvelopeError ||
-        error instanceof InvalidReferenceAridError ||
-        error instanceof NoIdAssertionError
-      ) {
-        throw error;
-      }
-      // Continue searching
-      continue;
+      return ARID.fromTaggedCbor(cbor);
+    } catch {
+      throw new InvalidReferenceAridError();
     }
   }
 

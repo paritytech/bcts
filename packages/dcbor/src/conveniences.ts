@@ -742,17 +742,26 @@ export const getTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor | undef
 /**
  * Extract content if has specific tag, throwing if not.
  *
+ * Mirrors Rust `try_into_expected_tagged_value`. Throws `{ type: "WrongType" }`
+ * if `cbor` is not tagged at all, otherwise `{ type: "WrongTag", expected,
+ * actual }` if the tag doesn't match.
+ *
  * @param cbor - CBOR value
  * @param tag - Expected tag value
  * @returns Tagged content
- * @throws {CborError} With type 'WrongType' if cbor is not tagged with the expected tag
  */
 export const expectTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor => {
-  const content = getTaggedContent(cbor, tag);
-  if (content === undefined) {
+  if (cbor.type !== MajorType.Tagged) {
     throw new CborError({ type: "WrongType" });
   }
-  return content;
+  if (cbor.tag !== tag) {
+    throw new CborError({
+      type: "WrongTag",
+      expected: { value: tag },
+      actual: { value: cbor.tag },
+    });
+  }
+  return cbor.value;
 };
 
 // ============================================================================
@@ -761,6 +770,7 @@ export const expectTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor => {
 // ============================================================================
 
 import type { Tag } from "./tag";
+import { getGlobalTagsStore } from "./tags-store";
 
 /**
  * Extract tagged value as tuple [Tag, Cbor] if CBOR is tagged.
@@ -773,7 +783,11 @@ export const asTaggedValue = (cbor: Cbor): [Tag, Cbor] | undefined => {
   if (cbor.type !== MajorType.Tagged) {
     return undefined;
   }
-  const tag: Tag = { value: cbor.tag, name: `tag-${cbor.tag}` };
+  // Mirrors Rust `try_into_tagged_value` which returns the stored `Tag`.
+  // Resolve the canonical name (if any) via the global tags store rather
+  // than synthesizing a `tag-${value}` placeholder.
+  const resolved = getGlobalTagsStore().tagForValue(cbor.tag);
+  const tag: Tag = resolved ?? { value: cbor.tag };
   return [tag, cbor.value];
 };
 

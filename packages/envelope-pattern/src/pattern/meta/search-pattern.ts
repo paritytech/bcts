@@ -94,50 +94,25 @@ export class SearchPattern implements Matcher {
   }
 
   /**
-   * Walk the envelope tree recursively.
+   * Walk the envelope tree using the canonical `Envelope.walk` traversal.
+   *
+   * Mirrors Rust `bc_envelope::Envelope::walk(false, vec![], visitor)`
+   * which is what `SearchPattern::paths_with_captures` uses. The earlier
+   * port hand-rolled a recursion that double-recursed assertions and
+   * stepped through wrapped subjects manually, producing a different
+   * path order (and extra duplicates that the digest-set deduplication
+   * would partially mask).
    */
   private _walkEnvelope(
     envelope: Envelope,
     pathToCurrent: Envelope[],
     visitor: (envelope: Envelope, path: Envelope[]) => void,
   ): void {
-    // Visit this node
-    visitor(envelope, pathToCurrent);
-
-    // Get the subject
-    const subject = envelope.subject();
-    const newPath = [...pathToCurrent, envelope];
-
-    // Walk subject if it's different from this envelope
-    if (!subject.digest().equals(envelope.digest())) {
-      this._walkEnvelope(subject, newPath, visitor);
-    }
-
-    // Walk assertions
-    for (const assertion of envelope.assertions()) {
-      this._walkEnvelope(assertion, newPath, visitor);
-
-      // Walk predicate and object if available
-      const predicate = assertion.asPredicate?.();
-      if (predicate !== undefined) {
-        const assertionPath = [...newPath, assertion];
-        this._walkEnvelope(predicate, assertionPath, visitor);
-      }
-
-      const object = assertion.asObject?.();
-      if (object !== undefined) {
-        const assertionPath = [...newPath, assertion];
-        this._walkEnvelope(object, assertionPath, visitor);
-      }
-    }
-
-    // Walk wrapped content if present
-    if (subject.isWrapped()) {
-      const unwrapped = subject.tryUnwrap?.();
-      if (unwrapped !== undefined) {
-        this._walkEnvelope(unwrapped, newPath, visitor);
-      }
-    }
+    envelope.walk<Envelope[]>(false, pathToCurrent, (current, _level, _edge, state) => {
+      visitor(current, state);
+      // Children inherit a path that includes the current node.
+      return [[...state, current], false];
+    });
   }
 
   paths(haystack: Envelope): Path[] {

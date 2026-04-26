@@ -10,7 +10,10 @@ import { scrypt as nobleScrypt } from "@noble/hashes/scrypt.js";
 
 /**
  * Derive a key using Scrypt with recommended parameters.
- * Uses N=2^15 (32768), r=8, p=1 as recommended defaults.
+ *
+ * Mirrors Rust `bc_crypto::scrypt` which calls `scrypt::Params::recommended()`.
+ * The recommended parameters per the upstream `scrypt` crate are
+ * `log_n = 17` (N = 2^17 = 131072), `r = 8`, `p = 1`.
  *
  * @param password - Password or passphrase
  * @param salt - Salt value
@@ -18,7 +21,7 @@ import { scrypt as nobleScrypt } from "@noble/hashes/scrypt.js";
  * @returns Derived key
  */
 export function scrypt(password: Uint8Array, salt: Uint8Array, outputLen: number): Uint8Array {
-  return scryptOpt(password, salt, outputLen, 15, 8, 1);
+  return scryptOpt(password, salt, outputLen, 17, 8, 1);
 }
 
 /**

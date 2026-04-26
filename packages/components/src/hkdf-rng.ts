@@ -182,8 +182,9 @@ export class HKDFRng implements RandomNumberGenerator {
    */
   nextU32(): number {
     const bytes = this.nextBytes(4);
-    // Little-endian byte order
-    return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+    // Little-endian byte order. The `>>> 0` coerces JS's signed 32-bit
+    // bitwise OR result back into an unsigned u32, matching Rust.
+    return (bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)) >>> 0;
   }
 
   /**

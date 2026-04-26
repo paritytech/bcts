@@ -12,7 +12,6 @@ import type { Lexer } from "../token";
 import type { Pattern } from "../../pattern";
 import type { Result } from "../../error";
 import { Ok, Err } from "../../error";
-import { anyMap } from "../../pattern";
 import {
   mapPatternWithLengthInterval,
   mapPatternWithConstraints,
@@ -21,6 +20,20 @@ import { parseOrFromRegistry } from "../parse-registry";
 
 /**
  * Parse a bracket map pattern: {pattern: pattern} or {{n}} etc.
+ *
+ * Mirrors Rust `parse_bracket_map`
+ * (`bc-dcbor-pattern-rust/src/parse/structure/map_parser.rs:18-55`):
+ *
+ * - `{{n}}` / `{{n,m}}` / `{{n,}}` — length constraint via the `Range`
+ *   token.
+ * - `{pattern: pattern, ...}` — key/value constraints.
+ *
+ * `{}` (immediate close brace) is **not** accepted — Rust falls through
+ * to `parse_key_value_constraints`, which calls `parse_or` on `}` and
+ * surfaces `UnexpectedToken`. Earlier revisions of this port short-
+ * circuited on `BraceClose` and returned `anyMap()`, which silently
+ * accepted patterns Rust rejects. Use the `map` keyword for
+ * "any map".
  */
 export const parseBracketMap = (lexer: Lexer): Result<Pattern> => {
   // Opening brace was already consumed
@@ -35,12 +48,6 @@ export const parseBracketMap = (lexer: Lexer): Result<Pattern> => {
   }
 
   const token = peeked.value;
-
-  // Check for closing brace (empty map - which means "any map")
-  if (token.type === "BraceClose") {
-    lexer.next(); // consume the closing brace
-    return Ok(anyMap());
-  }
 
   // Check for Range token (map length constraint)
   if (token.type === "Range") {

@@ -252,7 +252,7 @@ function parseUr(ur: UR, tokenSpan: Span): ParseResult<Cbor> {
   );
 }
 
-function parseNumberTag(tagValue: number, lexer: Lexer): ParseResult<Cbor> {
+function parseNumberTag(tagValue: number | bigint, lexer: Lexer): ParseResult<Cbor> {
   const itemResult = parseItem(lexer);
   if (!itemResult.ok) {
     return itemResult;
@@ -267,6 +267,10 @@ function parseNumberTag(tagValue: number, lexer: Lexer): ParseResult<Cbor> {
   }
 
   if (closeResult.value.type === "ParenthesisClose") {
+    // Pass the tag value through as-is: when it's a `bigint` (i.e. a
+    // u64 outside the safe-integer range), dCBOR's `cbor({ tag, value })`
+    // builder serialises it as a `bigint` tag — matching Rust which
+    // accepts the full `0..=2^64-1` range natively.
     return ok(cbor({ tag: tagValue, value: itemResult.value }));
   }
 
@@ -386,23 +390,37 @@ function parseMap(lexer: Lexer): ParseResult<Cbor> {
       return err(PE.duplicateMapKey(keySpan));
     }
 
-    // Expect colon
+    // Expect colon.
+    //
+    // Mirrors Rust `parse.rs:382-395`:
+    // ```
+    //   if let Ok(Token::Colon) = expect_token(lexer) { … }
+    //   else { return Err(Error::ExpectedColon(lexer.span())); }
+    // ```
+    // Rust's pattern collapses *every* non-Colon outcome — including
+    // `UnexpectedEndOfInput`, `UnrecognizedToken`, and any other error
+    // — into `ExpectedColon`. Earlier revisions of this port forwarded
+    // the inner error verbatim, so `{1` reported `UnexpectedEndOfInput`
+    // instead of `ExpectedColon`.
     const colonResult = expectToken(lexer);
-    if (!colonResult.ok) {
-      return colonResult;
-    }
-
-    if (colonResult.value.type !== "Colon") {
+    if (!colonResult.ok || colonResult.value.type !== "Colon") {
       return err(PE.expectedColon(lexer.span()));
     }
 
-    // Parse the value
+    // Parse the value.
+    //
+    // Rust `parse.rs:383-389` uses the inner `UnexpectedToken`'s **own**
+    // span when it converts to `ExpectedMapKey`. Earlier revisions of
+    // this port called `lexer.span()` here, which can drift if the
+    // lexer has stepped past the offending `}`. We now use the
+    // captured span from `valueResult.error` to preserve Rust's exact
+    // span semantics.
     const valueResult = parseItem(lexer);
     if (!valueResult.ok) {
       if (valueResult.error.type === "UnexpectedToken") {
-        const unexpectedToken = (valueResult.error as { token: Token }).token;
-        if (unexpectedToken.type === "BraceClose") {
-          return err(PE.expectedMapKey(lexer.span()));
+        const unexpected = valueResult.error;
+        if (unexpected.token.type === "BraceClose") {
+          return err(PE.expectedMapKey(unexpected.span));
         }
       }
       return valueResult;

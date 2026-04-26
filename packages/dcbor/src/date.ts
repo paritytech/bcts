@@ -71,7 +71,20 @@ import { CborError } from "./error";
  * ```
  */
 export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDecodable<CborDate> {
-  private _datetime: Date;
+  /**
+   * Canonical timestamp in seconds since the Unix epoch as a JS `number`
+   * (`f64`). dCBOR encodes Date (tag 1) as a numeric value in seconds, so
+   * keeping `_seconds` as the source of truth avoids the millisecond-only
+   * round-trip precision loss that going through a JS `Date` instance
+   * introduced in earlier versions of this port.
+   *
+   * f64 still bounds the achievable precision (~16 decimal digits, so
+   * roughly microseconds for current epoch values); Rust's
+   * `chrono::DateTime<Utc>` retains nanoseconds in memory but encodes
+   * to the same f64 over the wire, so the *encode/decode round-trip* is
+   * byte-identical.
+   */
+  private _seconds: number;
 
   /**
    * Creates a new `CborDate` from the given JavaScript `Date`.
@@ -91,7 +104,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    */
   static fromDatetime(dateTime: Date): CborDate {
     const instance = new CborDate();
-    instance._datetime = new Date(dateTime);
+    instance._seconds = dateTime.getTime() / 1000;
     return instance;
   }
 
@@ -178,10 +191,9 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   static fromTimestamp(secondsSinceUnixEpoch: number): CborDate {
-    const wholeSecondsSinceUnixEpoch = Math.trunc(secondsSinceUnixEpoch);
-    const fractionalSeconds = secondsSinceUnixEpoch - wholeSecondsSinceUnixEpoch;
-    const milliseconds = wholeSecondsSinceUnixEpoch * 1000 + fractionalSeconds * 1000;
-    return CborDate.fromDatetime(new Date(milliseconds));
+    const instance = new CborDate();
+    instance._seconds = secondsSinceUnixEpoch;
+    return instance;
   }
 
   /**
@@ -269,7 +281,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   datetime(): Date {
-    return new Date(this._datetime);
+    return new Date(this._seconds * 1000);
   }
 
   /**
@@ -289,9 +301,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   timestamp(): number {
-    const wholeSecondsSinceUnixEpoch = Math.trunc(this._datetime.getTime() / 1000);
-    const msecs = this._datetime.getTime() % 1000;
-    return wholeSecondsSinceUnixEpoch + msecs / 1000.0;
+    return this._seconds;
   }
 
   /**
@@ -419,22 +429,17 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
         if (cbor.value.type === "Float") {
           timestamp = cbor.value.value;
         } else {
-          throw new CborError({
-            type: "Custom",
-            message: "Invalid date CBOR: expected numeric value",
-          });
+          // Mirrors Rust `f64::try_from(CBOR)` returning `Error::WrongType`
+          // for non-numeric / non-Float Simple values.
+          throw new CborError({ type: "WrongType" });
         }
         break;
 
       default:
-        throw new CborError({
-          type: "Custom",
-          message: "Invalid date CBOR: expected numeric value",
-        });
+        throw new CborError({ type: "WrongType" });
     }
 
-    const date = CborDate.fromTimestamp(timestamp);
-    this._datetime = date._datetime;
+    this._seconds = timestamp;
     return this;
   }
 
@@ -499,7 +504,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   toString(): string {
-    const dt = this._datetime;
+    const dt = new Date(this._seconds * 1000);
     // Check only hours, minutes, and seconds (not milliseconds) to match Rust behavior
     const hasTime = dt.getUTCHours() !== 0 || dt.getUTCMinutes() !== 0 || dt.getUTCSeconds() !== 0;
 
@@ -525,7 +530,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * @returns true if dates represent the same moment in time
    */
   equals(other: CborDate): boolean {
-    return this._datetime.getTime() === other._datetime.getTime();
+    return this._seconds === other._seconds;
   }
 
   /**
@@ -535,10 +540,8 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * @returns -1 if this < other, 0 if equal, 1 if this > other
    */
   compare(other: CborDate): number {
-    const thisTime = this._datetime.getTime();
-    const otherTime = other._datetime.getTime();
-    if (thisTime < otherTime) return -1;
-    if (thisTime > otherTime) return 1;
+    if (this._seconds < other._seconds) return -1;
+    if (this._seconds > other._seconds) return 1;
     return 0;
   }
 
@@ -552,6 +555,6 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
   }
 
   private constructor() {
-    this._datetime = new Date();
+    this._seconds = Date.now() / 1000;
   }
 }

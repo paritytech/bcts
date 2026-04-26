@@ -86,10 +86,10 @@ export function axisChildren(axis: Axis, env: Envelope): [Envelope, EdgeType][] 
       if (envCase.type === "node") {
         const subject = envCase.subject;
         if (subject.isWrapped()) {
-          const unwrapped = subject.unwrap();
-          if (unwrapped !== undefined) {
-            return [[unwrapped, "Content"]];
-          }
+          // Mirror Rust `subject.try_unwrap().unwrap()`: the "is wrapped"
+          // check above already guarantees `tryUnwrap` won't throw.
+          const unwrapped = subject.tryUnwrap();
+          return [[unwrapped, "Content"]];
         }
       } else if (envCase.type === "wrapped") {
         return [[envCase.envelope, "Content"]];

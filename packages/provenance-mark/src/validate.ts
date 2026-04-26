@@ -413,8 +413,23 @@ export function validate(marks: ProvenanceMark[]): ValidationReport {
     });
   }
 
-  // Sort chains by chain ID for consistent output
-  chains.sort((a, b) => hexEncode(a.chainId).localeCompare(hexEncode(b.chainId)));
+  // Sort chains by chain ID for consistent output.
+  //
+  // Mirrors Rust `chains.sort_by_key(|c| c.chain_id.clone())` which
+  // uses `Vec<u8>::cmp` (lexicographic byte comparison). We compare
+  // hex-encoded chain IDs with raw `<`/`>` rather than `localeCompare`,
+  // because hex-digit ordering is locale-independent under JS `<`/`>`
+  // (UTF-16 code-unit compare) but `localeCompare` is locale-aware and
+  // could in principle drift on a non-default locale. Using a pure
+  // bytewise compare here keeps the chain order byte-identical to Rust
+  // regardless of locale.
+  chains.sort((a, b) => {
+    const aHex = hexEncode(a.chainId);
+    const bHex = hexEncode(b.chainId);
+    if (aHex < bHex) return -1;
+    if (aHex > bHex) return 1;
+    return 0;
+  });
 
   return { marks: deduplicatedMarks, chains };
 }
