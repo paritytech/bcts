@@ -1,43 +1,63 @@
 /**
- * Build and organize documentation for all packages and tools
+ * Build and organize documentation for all packages and tools.
  *
- * This script:
- * 1. Runs typedoc for all packages and tools (via turbo)
- * 2. Copies all generated docs into a single docs-site directory
+ * 1. Runs typedoc for all packages and tools (via turbo).
+ * 2. Copies all generated docs into the target directory.
+ * 3. Emits a landing index.html that lists every aggregated package.
  *
  * Output structure:
- * docs-site/
- *   api/
- *     dcbor/
- *     envelope/
- *     dcbor-cli/
- *     envelope-cli/
- *     ...
+ *   <target>/
+ *     index.html                         landing page (generated)
+ *     api/
+ *       dcbor/                           per-package typedoc output
+ *       envelope/
+ *       dcbor-cli/                       per-tool typedoc output
+ *       envelope-cli/
+ *       ...
+ *
+ * Usage:
+ *   bun run scripts/build-docs.ts                           # → docs-site/
+ *   bun run scripts/build-docs.ts --target=path/to/dir      # → path/to/dir/
  */
 
 import { execSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 
 const ROOT_DIR = join(import.meta.dirname, "..");
 const PACKAGES_DIR = join(ROOT_DIR, "packages");
 const TOOLS_DIR = join(ROOT_DIR, "tools");
-const OUTPUT_DIR = join(ROOT_DIR, "docs-site");
+
+function parseTargetArg(argv: string[]): string {
+  for (const arg of argv) {
+    if (arg.startsWith("--target=")) {
+      const raw = arg.slice("--target=".length);
+      if (!raw) throw new Error("--target= was provided with an empty value");
+      return isAbsolute(raw) ? raw : resolve(ROOT_DIR, raw);
+    }
+  }
+  return join(ROOT_DIR, "docs-site");
+}
+
+const OUTPUT_DIR = parseTargetArg(process.argv.slice(2));
 const API_DIR = join(OUTPUT_DIR, "api");
 
-// Clean output directory
 if (existsSync(OUTPUT_DIR)) {
   rmSync(OUTPUT_DIR, { recursive: true });
 }
 mkdirSync(API_DIR, { recursive: true });
 
-// Generate docs for all packages and tools
+console.log(`Building documentation into: ${OUTPUT_DIR}\n`);
 console.log("Generating documentation for all packages and tools...\n");
 execSync(`bunx turbo run docs`, { cwd: ROOT_DIR, stdio: "inherit" });
 
-// Helper function to copy docs from a directory
-function copyDocsFrom(sourceDir: string, label: string): number {
-  let count = 0;
+interface DocEntry {
+  name: string;
+  label: "package" | "tool";
+}
+
+function copyDocsFrom(sourceDir: string, label: DocEntry["label"]): DocEntry[] {
+  const found: DocEntry[] = [];
   const items = readdirSync(sourceDir, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name);
@@ -48,18 +68,88 @@ function copyDocsFrom(sourceDir: string, label: string): number {
       const destDir = join(API_DIR, item);
       cpSync(docsDir, destDir, { recursive: true });
       console.log(`  ✓ ${item} (${label})`);
-      count++;
+      found.push({ name: item, label });
     }
   }
-  return count;
+  return found;
 }
 
-// Copy docs from packages and tools
 console.log("\nOrganizing documentation...");
-const packagesCount = copyDocsFrom(PACKAGES_DIR, "package");
-const toolsCount = copyDocsFrom(TOOLS_DIR, "tool");
+const packageEntries = copyDocsFrom(PACKAGES_DIR, "package");
+const toolEntries = copyDocsFrom(TOOLS_DIR, "tool");
+const allEntries = [...packageEntries, ...toolEntries].sort((a, b) => a.name.localeCompare(b.name));
+
+writeFileSync(join(OUTPUT_DIR, "index.html"), renderLandingPage(allEntries));
+console.log(`  ✓ index.html (landing page, ${allEntries.length} entries)`);
 
 console.log(`\nDocumentation built to: ${OUTPUT_DIR}`);
 console.log(
-  `Total: ${packagesCount + toolsCount} (${packagesCount} packages, ${toolsCount} tools)`,
+  `Total: ${allEntries.length} (${packageEntries.length} packages, ${toolEntries.length} tools)`,
 );
+
+function renderLandingPage(entries: DocEntry[]): string {
+  const packages = entries.filter((e) => e.label === "package");
+  const tools = entries.filter((e) => e.label === "tool");
+  const list = (xs: DocEntry[]): string =>
+    xs.length === 0
+      ? "<li><em>none</em></li>"
+      : xs.map((x) => `<li><a href="api/${x.name}/">${x.name}</a></li>`).join("\n      ");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BCTS API Reference</title>
+  <meta name="description" content="API reference documentation for the Blockchain Commons TypeScript packages and CLI tools." />
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      max-width: 60rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+      line-height: 1.55;
+    }
+    h1 { margin-top: 0; }
+    h2 { margin-top: 2rem; }
+    ul { padding-left: 1.25rem; }
+    li { margin: 0.15rem 0; }
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    @media (max-width: 40rem) { .columns { grid-template-columns: 1fr; } }
+    footer { margin-top: 3rem; font-size: 0.9rem; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <h1>BCTS API Reference</h1>
+  <p>
+    API reference for the
+    <a href="https://bcts.dev">Blockchain Commons TypeScript</a>
+    packages and CLI tools, generated by <code>typedoc</code>.
+  </p>
+  <div class="columns">
+    <section>
+      <h2>Packages</h2>
+      <ul>
+      ${list(packages)}
+      </ul>
+    </section>
+    <section>
+      <h2>CLI tools</h2>
+      <ul>
+      ${list(tools)}
+      </ul>
+    </section>
+  </div>
+  <footer>
+    <p>
+      <a href="https://bcts.dev">← back to playground</a>
+    </p>
+  </footer>
+</body>
+</html>
+`;
+}

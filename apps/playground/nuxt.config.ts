@@ -40,6 +40,9 @@ export default defineNuxtConfig({
       "Interactive playground for exploring dCBOR encoding, Uniform Resources, and Gordian Envelope visualization. Parse, encode, and convert between formats with live examples.",
     defaultLocale: "en",
   },
+  ogImage: {
+    zeroRuntime: true,
+  },
   sitemap: {
     urls: [
       // Package documentation

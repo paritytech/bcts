@@ -2,19 +2,19 @@
   "$schema": "https://json.schemastore.org/wrangler",
   "name": "bcts",
   "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat", "no_nodejs_compat_v2"],
   "workers_dev": false,
   "preview_urls": false,
-  "main": ".output/server/index.mjs",
+  "main": "worker.ts",
   "routes": [
-    {
-      "pattern": "bcts.dev",
-      "zone_name": "bcts.dev",
-      "custom_domain": true
-    }
+    { "pattern": "bcts.dev", "zone_name": "bcts.dev", "custom_domain": true },
+    { "pattern": "docs.bcts.dev", "zone_name": "bcts.dev", "custom_domain": true }
   ],
   "assets": {
     "directory": ".output/public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "not_found_handling": "none"
   },
   "kv_namespaces": [
     {
