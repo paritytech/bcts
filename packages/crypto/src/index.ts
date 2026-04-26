@@ -19,7 +19,7 @@ export * as hash from "./hash.js";
 export { CryptoError, AeadError, type CryptoResult } from "./error.js";
 
 // Memory zeroing
-export { memzero, memzeroVecVecU8 } from "./memzero.js";
+export { memzero, memzeroVecVecU8, type NumericTypedArray } from "./memzero.js";
 
 // Hash constants
 export { CRC32_SIZE, SHA256_SIZE, SHA512_SIZE } from "./hash.js";

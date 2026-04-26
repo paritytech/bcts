@@ -10,11 +10,13 @@ export default defineConfig({
   sourcemap: true,
   minify: false,
   outDir: "dist",
-  external: [
-    "@bcts/components",
-    "@bcts/dcbor",
-    "@bcts/dcbor-parse",
-    "@bcts/dcbor-pattern",
-    "commander",
-  ],
+  deps: {
+    neverBundle: [
+      "@bcts/components",
+      "@bcts/dcbor",
+      "@bcts/dcbor-parse",
+      "@bcts/dcbor-pattern",
+      "commander",
+    ],
+  },
 });

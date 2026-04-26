@@ -48,5 +48,6 @@
   "searchInComments": true,
   "cleanOutputDir": true,
   "gitRevision": "main",
-  "plugin": []
+  "plugin": [],
+  "highlightLanguages": ["typescript", "javascript", "json", "rust", "bash", "shell", "tsx", "jsx"]
 }

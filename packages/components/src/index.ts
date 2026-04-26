@@ -218,7 +218,13 @@ export {
   SSH_ALGO_ECDSA_NISTP256,
   SSH_CURVE_NISTP256,
 } from "./ssh/index.js";
-export type { SshAlgorithm, SshEcdsaCurve, SshHashAlgorithm } from "./ssh/index.js";
+export type {
+  SshAlgorithm,
+  SshEcdsaCurve,
+  SshHashAlgorithm,
+  SshPrivateKeyData,
+  SshPublicKeyData,
+} from "./ssh/index.js";
 
 // Post-quantum cryptography - ML-KEM (from mlkem/ module)
 export {

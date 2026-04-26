@@ -12,7 +12,9 @@ export default defineConfig({
   outDir: "dist",
   // Keep @noble/* as external - don't bundle them
   // This allows the consuming app (playground) to use proper browser resolution
-  external: [/@noble\/.*/],
+  deps: {
+    neverBundle: [/@noble\/.*/],
+  },
   globalName: "bctsCrypto",
   outputOptions: {
     globals: {

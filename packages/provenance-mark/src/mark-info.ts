@@ -40,7 +40,7 @@ export class ProvenanceMarkInfo {
    *
    * Mirrors Rust `ProvenanceMarkInfo::new`
    * (`provenance-mark-rust/src/mark_info.rs`), which calls
-   * `mark.ur()` — i.e. the {@link UREncodable} implementation, whose
+   * `mark.ur()` — i.e. the `UREncodable` implementation, whose
    * payload is the **untagged** CBOR with type `"provenance"`. Earlier
    * revisions of this port called `decodeCbor(mark.toCborData())` and
    * wrapped the resulting *tagged* CBOR in `UR.new("provenance", ...)`,
