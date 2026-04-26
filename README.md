@@ -1,6 +1,6 @@
 # BCTS - Blockchain Commons for TypeScript
 
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha.23-green)](https://github.com/paritytech/bcts/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0--beta.0-green)](https://github.com/paritytech/bcts/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
@@ -12,7 +12,7 @@
 
 ## Overview
 
-This repository includes 19 packages covering deterministic CBOR encoding (dCBOR), Gordian Envelope for privacy-preserving data containers, Uniform Resources (URs) for QR code transport, cryptographic primitives (ChaCha20-Poly1305, BLAKE3, HKDF), secret sharing (Shamir/SSKR), decentralized identity (XID), provenance verification, visual hashing (LifeHash), and distributed infrastructure for threshold signatures (FROST/Hubert). The suite also provides 5 CLI tools and an interactive web IDE. All implementations follow the Rust reference implementations as the source of truth.
+This repository includes 20 packages covering deterministic CBOR encoding (dCBOR), Gordian Envelope for privacy-preserving data containers, Uniform Resources (URs) and Multipart URs for QR code transport, cryptographic primitives, secret sharing (Shamir/SSKR), decentralized identity (XID), provenance verification, visual hashing (LifeHash), and distributed infrastructure for threshold signatures (FROST/Hubert). The suite also provides 5 CLI tools and an interactive web IDE. All implementations follow the Rust reference implementations as the source of truth.
 
 ## 📚 Resources
 
@@ -61,6 +61,7 @@ bun playground
 | [**hubert**](packages/hubert) | Hubert - Distributed infrastructure for secure multiparty transactions using Gordian Envelope. Supports IPFS, Mainline DHT, server, and hybrid storage modes. [📖 Docs](https://docs.bcts.dev/api/hubert) \| [🦀 Rust](https://github.com/BlockchainCommons/hubert-rust) |
 | [**known-values**](packages/known-values) | Known Values - compact, deterministic identifiers for ontological concepts. More efficient than URIs for representing predicates and relationships. [📖 Docs](https://docs.bcts.dev/api/known-values) \| [🦀 Rust](https://github.com/BlockchainCommons/known-values-rust) |
 | [**lifehash**](packages/lifehash) | LifeHash - visual hash algorithm that generates beautiful, deterministic icons from data using cellular automata. Useful for visual verification of cryptographic hashes and identities. [📖 Docs](https://docs.bcts.dev/api/lifehash) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-lifehash) |
+| [**multipart-ur**](packages/multipart-ur) | Multipart Uniform Resources - render Uniform Resources as animated QR-code sequences (PNG/JPEG/SVG/Mermaid) with optional embedded logos. Wraps `uniform-resources` fountain encoding for visual transport of arbitrary-sized payloads. [📖 Docs](https://docs.bcts.dev/api/multipart-ur) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-mur-rust) |
 | [**provenance-mark**](packages/provenance-mark) | Provenance Marks - cryptographically-secured system for establishing authenticity and provenance of digital works. Generates verifiable mark chains with configurable resolution levels. [📖 Docs](https://docs.bcts.dev/api/provenance-mark) \| [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-rust) |
 | [**rand**](packages/rand) | Cryptographically secure random number generation utilities. Provides a consistent interface for random operations across all packages. [📖 Docs](https://docs.bcts.dev/api/rand) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-rand-rust) |
 | [**shamir**](packages/shamir) | Shamir's Secret Sharing - split secrets into shares where any threshold can reconstruct the original. Implements GF(256) arithmetic for secure secret splitting. [📖 Docs](https://docs.bcts.dev/api/shamir) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-shamir-rust) |
@@ -68,14 +69,6 @@ bun playground
 | [**tags**](packages/tags) | CBOR tag registry for Blockchain Commons specifications. Provides type-safe tag definitions for use across all packages. [📖 Docs](https://docs.bcts.dev/api/tags) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-tags-rust) |
 | [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 Docs](https://docs.bcts.dev/api/uniform-resources) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-ur-rust) |
 | [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 Docs](https://docs.bcts.dev/api/xid) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-xid-rust) |
-
-## 📡 Signal Protocol
-
-| Package | Description |
-|---------|-------------|
-| [**double-ratchet**](packages/double-ratchet) | Signal Protocol Double Ratchet implementation — X3DH key agreement, session management, group messaging (Sender Keys), sealed sender, and incremental MAC. [📖 Docs](https://docs.bcts.dev/api/double-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
-| [**spqr**](packages/spqr) | Signal's Sparse Post-Quantum Ratchet (SPQR) — ML-KEM based post-quantum key encapsulation with erasure coding for ratchet upgrades. [📖 Docs](https://docs.bcts.dev/api/spqr) \| [🦀 Rust](https://github.com/signalapp/SparsePostQuantumRatchet) |
-| [**triple-ratchet**](packages/triple-ratchet) | Triple Ratchet protocol — extends the Double Ratchet with SPQR post-quantum ratchet steps for quantum-resistant end-to-end encryption. [📖 Docs](https://docs.bcts.dev/api/triple-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
 
 ## 💻 CLI Tools
 
@@ -103,7 +96,4 @@ Found a vulnerability? We'd really appreciate you letting us know privately at *
 
 ## 📄 License
 
-This project is dual-licensed:
-
-- **Signal Protocol packages** are licensed under the [AGPL-3.0 License](./packages/double-ratchet/LICENSE).
-- **All other packages** are licensed under the [BSD-2-Clause-Patent License](./LICENSE).
+This project is licensed under the [BSD-2-Clause-Patent License](./LICENSE).
