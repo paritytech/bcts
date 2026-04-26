@@ -46,6 +46,10 @@ import {
   SIGNING_PRIVATE_KEY as TAG_SIGNING_PRIVATE_KEY,
   SIGNING_PUBLIC_KEY as TAG_SIGNING_PUBLIC_KEY,
   SSKR_SHARE as TAG_SSKR_SHARE,
+  SSH_TEXT_PRIVATE_KEY as TAG_SSH_TEXT_PRIVATE_KEY,
+  SSH_TEXT_PUBLIC_KEY as TAG_SSH_TEXT_PUBLIC_KEY,
+  SSH_TEXT_SIGNATURE as TAG_SSH_TEXT_SIGNATURE,
+  SSH_TEXT_CERTIFICATE as TAG_SSH_TEXT_CERTIFICATE,
   XID as TAG_XID,
   FUNCTION as TAG_FUNCTION,
   PARAMETER as TAG_PARAMETER,
@@ -73,6 +77,9 @@ import {
   PublicKeys,
   SigningPrivateKey,
   SigningPublicKey,
+  SSHPrivateKey,
+  SSHPublicKey,
+  SSHSignature,
   SSKRShareCbor,
   XID,
   JSON as JSONTagged,
@@ -490,6 +497,55 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       const tagged = toTaggedValue(TAG_SSKR_SHARE.value, cbor);
       SSKRShareCbor.fromTaggedCbor(tagged);
       return { ok: true, value: "SSKRShare" };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  // SSH summarizers — mirror Rust
+  // `bc-components-rust/src/tags_registry.rs:196-238`. The CBOR shape for
+  // all four is `tag(N, text:openssh_text)`; the summarizer parses the
+  // text and returns either `<Type>(refHexShort)` (private/public key) or
+  // a fixed string (signature/certificate, exactly as Rust does).
+  tags.setSummarizer(TAG_SSH_TEXT_PRIVATE_KEY.value, (cbor, _flat) => {
+    try {
+      const text = cbor.toText();
+      const key = SSHPrivateKey.fromOpenssh(text);
+      return { ok: true, value: `SSHPrivateKey(${key.refHexShort()})` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  tags.setSummarizer(TAG_SSH_TEXT_PUBLIC_KEY.value, (cbor, _flat) => {
+    try {
+      const text = cbor.toText();
+      const key = SSHPublicKey.fromOpenssh(text);
+      return { ok: true, value: `SSHPublicKey(${key.refHexShort()})` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  tags.setSummarizer(TAG_SSH_TEXT_SIGNATURE.value, (cbor, _flat) => {
+    try {
+      const text = cbor.toText();
+      // Validate by parsing — Rust does the same — but discard the
+      // parsed value, returning the fixed summarizer string.
+      SSHSignature.fromPem(text);
+      return { ok: true, value: "SSHSignature" };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  tags.setSummarizer(TAG_SSH_TEXT_CERTIFICATE.value, (cbor, _flat) => {
+    try {
+      // Rust's SSHCertificate summarizer is fixed-string with no
+      // validation (`// todo: validation`). We do the same: simply
+      // assert the payload is text-shaped and emit the fixed label.
+      cbor.toText();
+      return { ok: true, value: "SSHCertificate" };
     } catch (e) {
       return summarizerError(e);
     }
