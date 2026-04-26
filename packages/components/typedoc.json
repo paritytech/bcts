@@ -48,5 +48,11 @@
   "searchInComments": true,
   "cleanOutputDir": true,
   "gitRevision": "main",
-  "plugin": []
+  "plugin": [],
+  "externalSymbolLinkMappings": {
+    "@bcts/sskr": {
+      "SSKRErrorType": "https://docs.bcts.dev/api/sskr/enums/SSKRErrorType.html",
+      "SSKRErrorType.GroupSpecInvalid": "https://docs.bcts.dev/api/sskr/enums/SSKRErrorType.html#GroupSpecInvalid"
+    }
+  }
 }

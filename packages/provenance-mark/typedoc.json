@@ -48,5 +48,12 @@
   "searchInComments": true,
   "cleanOutputDir": true,
   "gitRevision": "main",
-  "plugin": []
+  "plugin": [],
+  "highlightLanguages": ["typescript", "javascript", "json", "rust", "bash", "shell", "tsx", "jsx"],
+  "externalSymbolLinkMappings": {
+    "@bcts/uniform-resources": {
+      "UR": "https://docs.bcts.dev/api/uniform-resources/classes/UR.html",
+      "UREncodable": "https://docs.bcts.dev/api/uniform-resources/interfaces/UREncodable.html"
+    }
+  }
 }

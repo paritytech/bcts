@@ -5,8 +5,8 @@
  * Mirrors the SSH support in Rust `bc-components-rust` feature `ssh`.
  */
 
-export { SSHPublicKey } from "./ssh-public-key.js";
-export { SSHPrivateKey } from "./ssh-private-key.js";
+export { SSHPublicKey, type SshPublicKeyData } from "./ssh-public-key.js";
+export { SSHPrivateKey, type SshPrivateKeyData } from "./ssh-private-key.js";
 export { SSHSignature, type SshHashAlgorithm } from "./ssh-signature.js";
 export { SSHCertificate } from "./ssh-certificate.js";
 export {

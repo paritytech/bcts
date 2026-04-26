@@ -9,9 +9,11 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "bctsDcbor",
-  noExternal: ["byte-data", "collections/sorted-map"],
-  // Intentionally bundling these dependencies for browser/IIFE builds
-  inlineOnly: false,
+  deps: {
+    // Intentionally bundling these dependencies for browser/IIFE builds
+    alwaysBundle: ["byte-data", "collections/sorted-map"],
+    onlyBundle: false,
+  },
   outputOptions: {
     globals: {
       "byte-data": "byteData",

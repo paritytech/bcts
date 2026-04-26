@@ -3,7 +3,7 @@
  * Copyright © 2025-2026 Parity Technologies
  *
  *
- * Namespace-style re-export of the bytewords helpers in {@link ./utils}.
+ * Namespace-style re-export of the bytewords helpers in `./utils`.
  *
  * Mirrors Rust's `bc_ur::bytewords` module (`bc-ur-rust/src/bytewords.rs`)
  * so that callers can write

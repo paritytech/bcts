@@ -9,7 +9,9 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "bctsProvenanceMark",
-  external: [/@noble\/.*/],
+  deps: {
+    neverBundle: [/@noble\/.*/],
+  },
   outputOptions: {
     globals: {
       "@bcts/dcbor": "bctsDcbor",

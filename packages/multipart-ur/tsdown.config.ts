@@ -10,9 +10,24 @@ export default defineConfig([
     clean: true,
     target: "es2022",
     globalName: "bctsMultipartUr",
+    inputOptions: {
+      // Node-only `import.meta.url` in svg.ts:loadWasmFromNode is gated by
+      // an `isNode` runtime check, so the empty-object replacement in IIFE
+      // is harmless dead code.
+      onwarn(warning, defaultHandler) {
+        if (warning.code === "EMPTY_IMPORT_META") return;
+        defaultHandler(warning);
+      },
+    },
     outputOptions: {
       globals: {
         "@bcts/uniform-resources": "bctsUniformResources",
+        "@resvg/resvg-wasm": "resvgWasm",
+        "fast-png": "fastPng",
+        gifenc: "gifenc",
+        "jpeg-js": "jpegJs",
+        omggif: "omggif",
+        "qrcode-generator": "qrcodeGenerator",
       },
     },
   },
@@ -25,5 +40,9 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     shims: true,
+    // CLI is self-contained: bundle every dep (including commander, a devDep).
+    deps: {
+      onlyBundle: false,
+    },
   },
 ]);

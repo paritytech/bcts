@@ -10,13 +10,15 @@ export default defineConfig({
   sourcemap: true,
   minify: false,
   outDir: "dist",
-  external: [
-    "@bcts/components",
-    "@bcts/dcbor",
-    "@bcts/envelope",
-    "@bcts/known-values",
-    "@bcts/provenance-mark",
-    "@bcts/uniform-resources",
-    "commander",
-  ],
+  deps: {
+    neverBundle: [
+      "@bcts/components",
+      "@bcts/dcbor",
+      "@bcts/envelope",
+      "@bcts/known-values",
+      "@bcts/provenance-mark",
+      "@bcts/uniform-resources",
+      "commander",
+    ],
+  },
 });
