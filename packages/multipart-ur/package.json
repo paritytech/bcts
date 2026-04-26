@@ -1,6 +1,6 @@
 {
   "name": "@bcts/multipart-ur",
-  "version": "1.0.0-alpha.24",
+  "version": "1.0.0-beta.0",
   "type": "module",
   "description": "Multipart UR QR code generator - single-frame and animated fountain-coded QR sequences with optional logo overlay.",
   "license": "BSD-2-Clause-Patent",
