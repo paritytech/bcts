@@ -1,6 +1,6 @@
 # BCTS - Blockchain Commons for TypeScript
 
-[![Version](https://img.shields.io/badge/version-1.0.0--alpha.23-green)](https://github.com/paritytech/bcts/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0--beta.0-green)](https://github.com/paritytech/bcts/releases)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
@@ -12,7 +12,7 @@
 
 ## Overview
 
-This repository includes 19 packages covering deterministic CBOR encoding (dCBOR), Gordian Envelope for privacy-preserving data containers, Uniform Resources (URs) for QR code transport, cryptographic primitives (ChaCha20-Poly1305, BLAKE3, HKDF), secret sharing (Shamir/SSKR), decentralized identity (XID), provenance verification, visual hashing (LifeHash), and distributed infrastructure for threshold signatures (FROST/Hubert). The suite also provides 5 CLI tools and an interactive web IDE. All implementations follow the Rust reference implementations as the source of truth.
+This repository includes 19 packages covering deterministic CBOR encoding (dCBOR), Gordian Envelope for privacy-preserving data containers, Uniform Resources (URs) for QR code transport, cryptographic primitives, secret sharing (Shamir/SSKR), decentralized identity (XID), provenance verification, visual hashing (LifeHash), and distributed infrastructure for threshold signatures (FROST/Hubert). The suite also provides 5 CLI tools and an interactive web IDE. All implementations follow the Rust reference implementations as the source of truth.
 
 ## 📚 Resources
 
@@ -69,14 +69,6 @@ bun playground
 | [**uniform-resources**](packages/uniform-resources) | Uniform Resources (UR) - a method for encoding binary data as URIs for transport in QR codes and other text-based channels. Includes Bytewords encoding and fountain codes for multi-part transmission. [📖 Docs](https://docs.bcts.dev/api/uniform-resources) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-ur-rust) |
 | [**xid**](packages/xid) | Extensible Identifiers (XID) - decentralized digital identity documents supporting keys, delegates, services, and provenance. Enables self-sovereign identity management with cryptographic verification. [📖 Docs](https://docs.bcts.dev/api/xid) \| [🦀 Rust](https://github.com/BlockchainCommons/bc-xid-rust) |
 
-## 📡 Signal Protocol
-
-| Package | Description |
-|---------|-------------|
-| [**double-ratchet**](packages/double-ratchet) | Signal Protocol Double Ratchet implementation — X3DH key agreement, session management, group messaging (Sender Keys), sealed sender, and incremental MAC. [📖 Docs](https://docs.bcts.dev/api/double-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
-| [**spqr**](packages/spqr) | Signal's Sparse Post-Quantum Ratchet (SPQR) — ML-KEM based post-quantum key encapsulation with erasure coding for ratchet upgrades. [📖 Docs](https://docs.bcts.dev/api/spqr) \| [🦀 Rust](https://github.com/signalapp/SparsePostQuantumRatchet) |
-| [**triple-ratchet**](packages/triple-ratchet) | Triple Ratchet protocol — extends the Double Ratchet with SPQR post-quantum ratchet steps for quantum-resistant end-to-end encryption. [📖 Docs](https://docs.bcts.dev/api/triple-ratchet) \| [🦀 Rust](https://github.com/signalapp/libsignal/tree/main/rust) |
-
 ## 💻 CLI Tools
 
 | CLI                                                  | Description |
@@ -103,7 +95,4 @@ Found a vulnerability? We'd really appreciate you letting us know privately at *
 
 ## 📄 License
 
-This project is dual-licensed:
-
-- **Signal Protocol packages** are licensed under the [AGPL-3.0 License](./packages/double-ratchet/LICENSE).
-- **All other packages** are licensed under the [BSD-2-Clause-Patent License](./LICENSE).
+This project is licensed under the [BSD-2-Clause-Patent License](./LICENSE).
