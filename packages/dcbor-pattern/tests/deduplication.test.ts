@@ -20,15 +20,16 @@ describe("deduplication tests", () => {
     const [paths, captures] = getPathsWithCaptures(pattern, cborData);
 
     const actual = formatPathsWithCapturesStr(paths, captures);
-    // Note: TS implementation iterates forward (42, 100, 200)
-    // while Rust iterates in reverse (200, 100, 42)
+    // **DP1 — Rust parity**: VM PushAxis processes children via
+    // stack-pop (reverse-source) order. Mirrors Rust
+    // `deduplication_tests.rs::test_no_duplicate_paths_simple_array`.
     const expected = `@item
     [42, 100, 200]
-        42
+        200
     [42, 100, 200]
         100
     [42, 100, 200]
-        200
+        42
 [42, 100, 200]`;
     assertActualExpected(actual, expected);
   });
@@ -40,22 +41,21 @@ describe("deduplication tests", () => {
     const [nestedPaths, nestedCaptures] = getPathsWithCaptures(nestedPattern, nestedCbor);
 
     const actual = formatPathsWithCapturesStr(nestedPaths, nestedCaptures);
-    // After DP1 fix: nested @inner_item captures are now collected
-    // alongside @outer_item, matching Rust. (Pre-fix output was
-    // outer-only — the original fixture comment explicitly noted
-    // "differs from Rust".)
+    // **DP1 — Rust parity** (reverse-source order from VM PushAxis).
+    // Mirrors Rust
+    // `deduplication_tests.rs::test_no_duplicate_paths_nested_array`.
     const expected = `@inner_item
-    [[42], [100]]
-        [42]
-            42
     [[42], [100]]
         [100]
             100
-@outer_item
     [[42], [100]]
         [42]
+            42
+@outer_item
     [[42], [100]]
         [100]
+    [[42], [100]]
+        [42]
 [[42], [100]]`;
     assertActualExpected(actual, expected);
   });

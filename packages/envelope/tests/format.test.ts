@@ -426,3 +426,66 @@ describe("E1a — format-context summarizer parity with Rust", () => {
     expect(formatted).not.toContain("MLDSA-44");
   });
 });
+
+describe("E1f — SSH summarizer parity with Rust tags_registry.rs:196-238", () => {
+  // Pinned regression tests for the four `TAG_SSH_TEXT_*` summarizers,
+  // matching `bc-components-rust/src/tags_registry.rs:196-238`. CBOR shape
+  // for all four is `tag(N, text:openssh_text)` and the summarizer outputs
+  // either `<Type>(refHexShort)` (private/public key) or a fixed string
+  // (signature/certificate). Inputs are the verbatim Rust fixture strings
+  // from `bc-components-rust/src/lib.rs:361,473` (Ed25519 + ECDSA-P256
+  // generated from seed 59f2293a5bce7d4de59e71b4207ac5d2).
+
+  it("renders TAG_SSH_TEXT_PRIVATE_KEY as SSHPrivateKey(refHexShort) (E1f-1)", async () => {
+    const { cbor, toTaggedValue } = await import("@bcts/dcbor");
+    const { SSH_TEXT_PRIVATE_KEY } = await import("@bcts/tags");
+    const text = `-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACBUe4FDGyGIgHf75yVdE4hYl9guj02FdsIadgLC04zObQAAAJA+TyZiPk8m
+YgAAAAtzc2gtZWQyNTUxOQAAACBUe4FDGyGIgHf75yVdE4hYl9guj02FdsIadgLC04zObQ
+AAAECsX3CKi3hm5VrrU26ffa2FB2YrFogg45ucOVbIz4FQo1R7gUMbIYiAd/vnJV0TiFiX
+2C6PTYV2whp2AsLTjM5tAAAADEtleSBjb21tZW50LgE=
+-----END OPENSSH PRIVATE KEY-----
+`;
+    const tagged = toTaggedValue(SSH_TEXT_PRIVATE_KEY.value, cbor(text));
+    const envelope = Envelope.newLeaf(tagged);
+    expect(envelope.format()).toMatch(/^SSHPrivateKey\([0-9a-f]{8}\)$/);
+  });
+
+  it("renders TAG_SSH_TEXT_PUBLIC_KEY as SSHPublicKey(refHexShort) (E1f-2)", async () => {
+    const { cbor, toTaggedValue } = await import("@bcts/dcbor");
+    const { SSH_TEXT_PUBLIC_KEY } = await import("@bcts/tags");
+    const text =
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFR7gUMbIYiAd/vnJV0TiFiX2C6PTYV2whp2AsLTjM5t Key comment.";
+    const tagged = toTaggedValue(SSH_TEXT_PUBLIC_KEY.value, cbor(text));
+    const envelope = Envelope.newLeaf(tagged);
+    expect(envelope.format()).toMatch(/^SSHPublicKey\([0-9a-f]{8}\)$/);
+  });
+
+  it("renders TAG_SSH_TEXT_SIGNATURE as fixed 'SSHSignature' (E1f-3)", async () => {
+    const { cbor, toTaggedValue } = await import("@bcts/dcbor");
+    const { SSH_TEXT_SIGNATURE } = await import("@bcts/tags");
+    const { SSHPublicKey, SSHSignature } = await import("@bcts/components");
+    const pub = SSHPublicKey.fromOpenssh(
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFR7gUMbIYiAd/vnJV0TiFiX2C6PTYV2whp2AsLTjM5t Key comment.",
+    );
+    const sigBytes = new Uint8Array(64);
+    for (let i = 0; i < 64; i++) sigBytes[i] = i + 1;
+    const sig = SSHSignature.fromParts(pub, "test", "sha256", sigBytes);
+    const tagged = toTaggedValue(SSH_TEXT_SIGNATURE.value, cbor(sig.toPem()));
+    const envelope = Envelope.newLeaf(tagged);
+    expect(envelope.format()).toBe("SSHSignature");
+  });
+
+  it("renders TAG_SSH_TEXT_CERTIFICATE as fixed 'SSHCertificate' (E1f-4)", async () => {
+    const { cbor, toTaggedValue } = await import("@bcts/dcbor");
+    const { SSH_TEXT_CERTIFICATE } = await import("@bcts/tags");
+    // Rust placeholder summarizer doesn't validate — any text payload works.
+    const tagged = toTaggedValue(
+      SSH_TEXT_CERTIFICATE.value,
+      cbor("ssh-ed25519-cert-v01@openssh.com AAAA= user@host"),
+    );
+    const envelope = Envelope.newLeaf(tagged);
+    expect(envelope.format()).toBe("SSHCertificate");
+  });
+});

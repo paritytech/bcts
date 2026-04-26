@@ -205,6 +205,21 @@ export {
 } from "./mldsa/index.js";
 export type { MLDSAKeypairData } from "./mldsa/index.js";
 
+// SSH key/signature/certificate types — Ed25519 + ECDSA P-256 v1
+// (mirrors `bc-components-rust` feature `ssh`).
+export {
+  SSHPublicKey,
+  SSHPrivateKey,
+  SSHSignature,
+  SSHCertificate,
+  parseSshAlgorithm,
+  sshAlgorithmName,
+  SSH_ALGO_ED25519,
+  SSH_ALGO_ECDSA_NISTP256,
+  SSH_CURVE_NISTP256,
+} from "./ssh/index.js";
+export type { SshAlgorithm, SshEcdsaCurve, SshHashAlgorithm } from "./ssh/index.js";
+
 // Post-quantum cryptography - ML-KEM (from mlkem/ module)
 export {
   MLKEMLevel,

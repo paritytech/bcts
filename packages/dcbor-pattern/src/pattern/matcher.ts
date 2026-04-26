@@ -159,8 +159,13 @@ export const compilePattern = (pattern: Pattern): Program => {
 
 /**
  * Recursively collects capture names from a pattern.
+ *
+ * Mirrors Rust `collect_capture_names` impl on each pattern variant in
+ * `bc-dcbor-pattern-rust/src/pattern/**`. Used by both the VM compile
+ * path and the runtime `arrayPatternPathsWithCaptures` fast-path check
+ * (DP1 — see `array_pattern/mod.rs::paths_with_captures` lines ~530-540).
  */
-const collectPatternCaptureNames = (pattern: Pattern, names: string[]): void => {
+export const collectPatternCaptureNames = (pattern: Pattern, names: string[]): void => {
   switch (pattern.kind) {
     case "Value":
       // Value patterns don't have captures

@@ -15,7 +15,8 @@ import type { Pattern } from "../../index";
 import type { SequencePattern } from "../../meta/sequence-pattern";
 import type { RepeatPattern } from "../../meta/repeat-pattern";
 import { Interval } from "../../../interval";
-import { matchPattern } from "../../match-registry";
+import { matchPattern, getPatternPathsWithCaptures } from "../../match-registry";
+import { collectPatternCaptureNames } from "../../matcher";
 import {
   hasRepeatPatternsInSlice,
   extractCaptureWithRepeat,
@@ -423,43 +424,61 @@ export const arrayPatternPathsWithCaptures = (
     case "Elements": {
       const elemPattern = pattern.pattern;
 
-      // **DP1 resolved 2026-04-26** — the compile-side `PushAxis(
-      // ArrayElement)` lowering was ported in
-      // `pattern/matcher.ts::compilePatternToCode`, mirroring Rust
-      // `array_pattern/mod.rs::ArrayPattern::compile` lines 480-510.
-      // For Sequence inner patterns (e.g. `[@a, @b]` positional
-      // matching) the runtime still routes through
-      // `handleSequenceCaptures` — the compile path skips the
-      // PushAxis emission for Sequence to keep positional binding
-      // intact. For Capture inner patterns (`[@a(num)]`) and the
-      // generic non-Sequence case, Rust uses the VM compile path;
-      // TS's runtime keeps the special-cased simple paths here for
-      // performance and to preserve existing capture-collection
-      // semantics. Both paths produce equivalent results.
+      // **DP1 — mirror Rust
+      // `bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/mod.rs::
+      // ArrayPattern::paths_with_captures` (lines 520-650).**
+      //
+      // Rust dispatches:
+      //   1. If inner has no captures → fast path (paths + empty map).
+      //   2. If inner is `Sequence` with captures → `handle_sequence_captures`.
+      //   3. If inner is `Capture` or any other non-Sequence with captures
+      //      → wrap the ArrayPattern as `Pattern::Structure` and compile +
+      //      run via the VM. The compile path emits
+      //      `MatchStructure(Array::Any) + PushAxis(ArrayElement) +
+      //      <inner.compile> + Pop`, which gives proper backtracking and
+      //      capture collection (e.g. `[@a((number)*)]`,
+      //      `[@a(num) | @b(text)]`).
+      //
+      // The previous TS implementation used `arr.filter(matchPattern(...))`
+      // for the Capture case and dropped captures entirely for the
+      // non-Sequence/non-Capture fall-through, which produced different
+      // results from Rust for backtracking and Or/And-with-capture
+      // patterns. This routes through the VM exactly like Rust.
+
+      const innerCaptureNames: string[] = [];
+      collectPatternCaptureNames(elemPattern, innerCaptureNames);
+
+      if (innerCaptureNames.length === 0) {
+        // Fast path — no captures in the element pattern. Mirrors Rust
+        // `paths_with_captures` lines ~530-540.
+        return [arrayPatternPaths(pattern, haystack), new Map<string, Path[]>()];
+      }
+
+      // Verify the array pattern matches at all before doing the more
+      // expensive capture work. Mirrors Rust `paths_with_captures`
+      // line ~550 (`if self.paths(cbor).is_empty() { return empty; }`).
+      const matchPaths = arrayPatternPaths(pattern, haystack);
+      if (matchPaths.length === 0) {
+        return [[], new Map<string, Path[]>()];
+      }
+
+      // Sequence inner — positional element-wise matching. Mirrors Rust
+      // `paths_with_captures` lines 557-567.
       if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Sequence") {
         const seqPattern = elemPattern.pattern.pattern;
-        if (!arrayPatternMatches(pattern, haystack)) {
-          return [[], new Map<string, Path[]>()];
-        }
         return handleSequenceCaptures(seqPattern, haystack, arr);
       }
 
-      if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Capture") {
-        const capturePattern = elemPattern.pattern.pattern;
-        const matchingElements = arr.filter((element) => matchPattern(elemPattern, element));
-        if (matchingElements.length === 0) {
-          return [[], new Map<string, Path[]>()];
-        }
-        const captures = new Map<string, Path[]>();
-        const paths: Path[] = [];
-        for (const element of matchingElements) {
-          paths.push(buildSimpleArrayContextPath(haystack, element));
-        }
-        captures.set(capturePattern.name, paths);
-        return [[[haystack]], captures];
-      }
-
-      return [arrayPatternPaths(pattern, haystack), new Map<string, Path[]>()];
+      // Capture or other non-Sequence with captures — route through the
+      // VM. Mirrors Rust `paths_with_captures` lines 568-637 (both
+      // the `MetaPattern::Capture` arm and the `_ => ...` arm wrap the
+      // ArrayPattern as `Pattern::Structure(Array)` and compile + run).
+      const wrappedPattern: Pattern = {
+        kind: "Structure",
+        pattern: { type: "Array", pattern },
+      };
+      const result = getPatternPathsWithCaptures(wrappedPattern, haystack);
+      return [result.paths, result.captures];
     }
   }
 };

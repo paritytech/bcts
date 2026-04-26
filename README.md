@@ -1,7 +1,7 @@
 # BCTS - Blockchain Commons for TypeScript
 
 [![Version](https://img.shields.io/badge/version-1.0.0--beta.0-green)](https://github.com/paritytech/bcts/releases)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue)](https://www.typescriptlang.org/)
 [![Monorepo](https://img.shields.io/badge/Monorepo-Turborepo-blueviolet)](https://turbo.build/)
 [![Package Manager](https://img.shields.io/badge/Package%20Manager-Bun-FFD700)](https://bun.sh/)
 [![Status](https://img.shields.io/badge/Status-Early%20Development-orange)](#-disclaimer)

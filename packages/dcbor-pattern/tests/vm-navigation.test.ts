@@ -202,15 +202,14 @@ describe("vm navigation tests", () => {
 
     const [vmPaths, vmCaptures] = runVm(program, cborData);
 
-    // After DP1 fix: PushAxis pushes children onto the LIFO stack
-    // in *reverse* so that pop() returns them in source order.
-    // Pre-fix the order was [100, 42]; post-fix it's [42, 100],
-    // matching Rust's `prog.literals[…].paths` which iterates the
-    // CBOR array in source order.
+    // **DP1 — Rust parity**: PushAxis iterates children forward and
+    // pushes onto the LIFO stack in source order, so pop returns them
+    // in reverse-source order. Mirrors
+    // `bc-dcbor-pattern-rust/src/pattern/vm.rs::PushAxis` lines 336-346.
     const expectedPaths = `[42, 100]
-    42
+    100
 [42, 100]
-    100`;
+    42`;
     assertActualExpected(formatPaths(vmPaths), expectedPaths);
 
     // Note: VM captures may contain multiple entries for the same name
