@@ -8,7 +8,8 @@
   "main": "worker.ts",
   "routes": [
     { "pattern": "bcts.dev", "zone_name": "bcts.dev", "custom_domain": true },
-    { "pattern": "docs.bcts.dev", "zone_name": "bcts.dev", "custom_domain": true }
+    { "pattern": "docs.bcts.dev", "zone_name": "bcts.dev", "custom_domain": true },
+    { "pattern": "mcp.bcts.dev", "zone_name": "bcts.dev", "custom_domain": true }
   ],
   "assets": {
     "directory": ".output/public",
