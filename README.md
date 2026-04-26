@@ -22,6 +22,7 @@ This repository includes 20 packages covering deterministic CBOR encoding (dCBOR
 - [JSON vs CBOR](https://hackmd.io/@leonardocustodio/json-vs-cbor) - Comparison of JSON and CBOR formats
 - [Deterministic Data: Intro to dCBOR](https://hackmd.io/@leonardocustodio/deterministic-data-intro-to-dcbor) - Introduction to deterministic CBOR
 - [dCBOR Deep Dive](https://hackmd.io/@leonardocustodio/deep-dive-dcbor) - Why "almost" deterministic isn't enough
+- [AI-Assisted development](#-ai-assisted-development) - Check this out if you're using an AI tool
 
 ## 🎮 Applications
 
@@ -79,6 +80,64 @@ bun playground
 | [**lifehash-cli**](tools/lifehash-cli)               | Command-line tool for generating LifeHash visual hash images as PNG files. Create deterministic icons from any input data. [📖 Docs](https://docs.bcts.dev/api/lifehash-cli) \| [🦀 Rust](https://github.com/BlockchainCommons/lifehash-cli) |
 | [**provenance-mark-cli**](tools/provenance-mark-cli) | Command-line tool for generating and verifying Provenance Marks. Create mark chains for establishing authenticity of digital works. [📖 Docs](https://docs.bcts.dev/api/provenance-mark-cli) \| [🦀 Rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) |
 | [**seedtool-cli**](tools/seedtool-cli)               | Command-line tool for generating and managing cryptographic seeds. Supports multiple output formats including hex, Bytewords, SSKR shares, and Gordian Envelope. [📖 Docs](https://docs.bcts.dev/api/seedtool-cli) \| [🦀 Rust](https://github.com/BlockchainCommons/seedtool-cli-rust) |
+
+## 🤖 AI-Assisted Development
+
+BCTS ships a hosted **Model Context Protocol (MCP)** server, so any MCP-aware AI tool (Claude Code, Cursor, Claude Desktop, Windsurf, etc.) can navigate the API surface of every package without you installing anything per-project.
+
+**Endpoint:** `https://mcp.bcts.dev/mcp` (Streamable HTTP, stateless JSON-RPC 2.0)
+
+**Tools exposed:**
+
+| Tool | Purpose |
+|------|---------|
+| `list_packages` | Enumerate all BCTS packages with descriptions and symbol counts |
+| `search_symbols` | Search exported symbols (functions, classes, types) globally or scoped to one package |
+| `get_symbol` | Fetch full details (kind, doc comment, members, source link) for a specific symbol |
+| `get_guide` | Read the README / hand-written guide for a package |
+| `find_examples` | Find code examples whose doc comments match a query |
+
+### Add it to your client
+
+**Claude Code** — one command:
+
+```bash
+claude mcp add --transport http bcts https://mcp.bcts.dev/mcp
+```
+
+**Cursor / Windsurf** — add to `.cursor/mcp.json` (or the equivalent project config):
+
+```json
+{
+  "mcpServers": {
+    "bcts": {
+      "url": "https://mcp.bcts.dev/mcp"
+    }
+  }
+}
+```
+
+**Claude Desktop** — `claude_desktop_config.json` (uses `mcp-remote` to bridge HTTP into stdio):
+
+```json
+{
+  "mcpServers": {
+    "bcts": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.bcts.dev/mcp"]
+    }
+  }
+}
+```
+
+### Lightweight alternative: `llms.txt`
+
+If your tool doesn't speak MCP, every package also publishes a flat Markdown reference following the [llms.txt](https://llmstxt.org) convention:
+
+- Top-level index: https://docs.bcts.dev/llms.txt
+- Per-package full reference: `https://docs.bcts.dev/api/<package>/llms-full.txt`
+
+Drop those URLs into your AI tool's context to give it the full API surface for one or more packages without any tool wiring.
 
 ## 👥 Credits
 
