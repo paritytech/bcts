@@ -299,10 +299,18 @@ describe("PrivateKeys", () => {
       expect(pk1.reference().equals(pk2.reference())).toBe(false);
     });
 
-    it("should include reference in toString", () => {
+    it("should include reference + inner keys in toString (Rust parity)", () => {
+      // Mirrors Rust `Display for PrivateKeys`:
+      //   `PrivateKeys(<refHexShort>, <signingPrivateKey>, <encapsulationPrivateKey>)`
+      // The inner displays follow the same `KeyType(refOrInner)` shape as
+      // their public counterparts. The previous abbreviated form was an
+      // E1a parity drift from the audit pass.
       const pk = PrivateKeys.new();
       const str = pk.toString();
-      expect(str).toMatch(/^PrivateKeys\([a-f0-9]{8}\)$/);
+      expect(str).toMatch(/^PrivateKeys\([a-f0-9]{8}, /);
+      expect(str).toContain(", SigningPrivateKey(");
+      expect(str).toContain(", EncapsulationPrivateKey(");
+      expect(str.endsWith("))")).toBe(true);
     });
   });
 
@@ -449,10 +457,17 @@ describe("PublicKeys", () => {
     });
 
     it("should include reference in toString", () => {
+      // Mirrors Rust `Display for PublicKeys`: full form with the
+      // signing-public-key and encapsulation-public-key inner displays
+      // (G1 fix). The earlier short form `PublicKeys(<short>)` was
+      // observable in envelope notation as a missing fingerprint
+      // trail.
       const pk = PrivateKeys.new();
       const pubKeys = pk.publicKeys();
       const str = pubKeys.toString();
-      expect(str).toMatch(/^PublicKeys\([a-f0-9]{8}\)$/);
+      expect(str).toMatch(
+        /^PublicKeys\([a-f0-9]{8}, SigningPublicKey\([a-f0-9]{8}, \w+\([a-f0-9]{8}\)\), EncapsulationPublicKey\([a-f0-9]{8}, \w+\([a-f0-9]{8}\)\)\)$/,
+      );
     });
   });
 

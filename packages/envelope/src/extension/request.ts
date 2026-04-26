@@ -201,7 +201,13 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
    */
   toEnvelope(): Envelope {
     // Create the tagged ARID as the subject
-    const taggedArid = toTaggedValue(TAG_REQUEST, this._id.untaggedCbor());
+    // Wrap the **tagged** ARID inside the request tag — mirrors Rust
+    // `CBOR::to_tagged_value(TAG_REQUEST, request.id)`, which goes
+    // through the `From<ARID> for CBOR` impl that returns the tagged
+    // form. Earlier the TS port stored an untagged ARID byte string,
+    // so format() rendered the request subject as `Bytes(32)` instead
+    // of `ARID(<short>)` — observable in the GSTP byte-shape pins.
+    const taggedArid = toTaggedValue(TAG_REQUEST, this._id.taggedCbor());
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(BODY, this._body.envelope());
 
@@ -252,11 +258,10 @@ export class Request implements RequestBehavior, EnvelopeEncodable {
       throw EnvelopeError.general("Request envelope has invalid subject");
     }
 
-    // The subject is TAG_REQUEST(ARID_bytes)
-    // First expect the REQUEST tag, then extract the ARID from the content
+    // The subject is TAG_REQUEST(tag_40012(arid_bytes)) — see
+    // `toEnvelope` above. Extract the inner tagged-ARID, then decode.
     const aridCbor = leaf.expectTag(TAG_REQUEST);
-    const aridBytes = aridCbor.toByteString();
-    const id = ARID.fromData(aridBytes);
+    const id = ARID.fromTaggedCbor(aridCbor);
 
     // Extract optional note
     let note = "";

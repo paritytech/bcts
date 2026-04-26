@@ -68,7 +68,7 @@ export class MemoryKv implements KvStore {
    * @internal
    */
   private checkExists(arid: ARID): boolean {
-    const key = arid.urString();
+    const key = arid.toHex();
     const entry = this.storage.get(key);
 
     if (entry) {
@@ -94,7 +94,7 @@ export class MemoryKv implements KvStore {
     ttlSeconds?: number,
     verbose?: boolean,
   ): Promise<string> {
-    const key = arid.urString();
+    const key = arid.toHex();
 
     // Check if already exists
     if (this.storage.has(key)) {
@@ -130,7 +130,7 @@ export class MemoryKv implements KvStore {
     const timeout = timeoutSeconds ?? 30;
     const start = Date.now();
     let firstAttempt = true;
-    const key = arid.urString();
+    const key = arid.toHex();
 
     // Dynamic import to avoid circular dependencies
     const { EnvelopeDecoder } = await import("@bcts/envelope");

@@ -180,10 +180,27 @@ function parseSignedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
   try {
     envelope = Envelope.fromTaggedCbor(envelopeCbor);
   } catch {
-    envelope = Envelope.fromUntaggedCbor(envelopeCbor);
+    try {
+      envelope = Envelope.fromUntaggedCbor(envelopeCbor);
+    } catch (e) {
+      throw new Error(`Unable to decode XID document envelope: ${(e as Error).message ?? String(e)}`, {
+        cause: e,
+      });
+    }
   }
 
-  const document = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.Inception);
+  // Mirror Rust `participant_record.rs:198-203`'s `.context(...)` wrap:
+  // any failure from `XIDDocument::from_envelope(..., XIDVerifySignature::Inception)`
+  // is surfaced as "XID document must be signed by its inception key: <cause>".
+  let document: XIDDocument;
+  try {
+    document = XIDDocument.fromEnvelope(envelope, undefined, XIDVerifySignature.Inception);
+  } catch (e) {
+    throw new Error(
+      `XID document must be signed by its inception key: ${(e as Error).message ?? String(e)}`,
+      { cause: e },
+    );
+  }
 
   return [sanitized, document];
 }

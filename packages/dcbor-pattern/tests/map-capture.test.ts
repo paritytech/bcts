@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import { compilePattern } from "../src";
 import {
   cbor,
   parse,
@@ -59,6 +60,40 @@ describe("map capture tests", () => {
     expect(paths.length).toBeGreaterThan(0);
     expect(captures.size).toBe(1);
     expect(captures.has("inner")).toBe(true);
+  });
+
+  it("test_map_capture_multiple_entries", () => {
+    const pattern = parse(
+      `{@name_key("name"): @name_val(text), @age_key("age"): @age_val(number)}`,
+    );
+    const cborData = cbor({ name: "Bob", age: 30 });
+
+    const [paths, captures] = getPathsWithCaptures(pattern, cborData);
+
+    // We should have paths and four named captures
+    expect(paths.length).toBeGreaterThan(0);
+    expect(captures.size).toBe(4);
+    expect(captures.has("name_key")).toBe(true);
+    expect(captures.has("name_val")).toBe(true);
+    expect(captures.has("age_key")).toBe(true);
+    expect(captures.has("age_val")).toBe(true);
+  });
+
+  it("test_map_capture_collect_names", () => {
+    const pattern = parse(
+      `{@key1(text): @val1(number), @key2(text): @val2(text)}`,
+    );
+
+    // Compile and read out the captureNames the compiler discovered.
+    // Mirrors Rust `pattern.collect_capture_names`.
+    const program = compilePattern(pattern);
+    const captureNames = program.captureNames;
+
+    expect(captureNames.length).toBe(4);
+    expect(captureNames).toContain("key1");
+    expect(captureNames).toContain("val1");
+    expect(captureNames).toContain("key2");
+    expect(captureNames).toContain("val2");
   });
 
   it("test_map_capture_non_matching", () => {

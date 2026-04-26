@@ -202,11 +202,15 @@ describe("vm navigation tests", () => {
 
     const [vmPaths, vmCaptures] = runVm(program, cborData);
 
-    // Should capture both elements
+    // After DP1 fix: PushAxis pushes children onto the LIFO stack
+    // in *reverse* so that pop() returns them in source order.
+    // Pre-fix the order was [100, 42]; post-fix it's [42, 100],
+    // matching Rust's `prog.literals[…].paths` which iterates the
+    // CBOR array in source order.
     const expectedPaths = `[42, 100]
-    100
+    42
 [42, 100]
-    42`;
+    100`;
     assertActualExpected(formatPaths(vmPaths), expectedPaths);
 
     // Note: VM captures may contain multiple entries for the same name

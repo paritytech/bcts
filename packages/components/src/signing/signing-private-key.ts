@@ -435,10 +435,47 @@ export class SigningPrivateKey
   }
 
   /**
-   * Get string representation.
+   * Mirror of Rust `Display for SigningPrivateKey`
+   * (`bc-components-rust/src/signing/signing_private_key.rs:1048-1095`):
+   *   `SigningPrivateKey(<refHexShort>, <inner>)`
+   * where `<inner>` is:
+   *   - `SchnorrPrivateKey(<refHexShort>)` / `ECDSAPrivateKey(<refHexShort>)`
+   *     for the secp256k1 variants (Rust formats them inline by tag rather
+   *     than delegating to the inner key's Display)
+   *   - the inner key's Display for Ed25519 and MLDSA
+   *   - `SSHPrivateKey(<refHexShort>)` for SSH
+   * The previous abbreviated form (`SigningPrivateKey(<type>)` only) was
+   * a parity drift caught by the E1a summarizer audit.
    */
   toString(): string {
-    return `SigningPrivateKey(${this._type})`;
+    const refShort = this.reference().shortReference("hex");
+    let innerDisplay: string;
+    switch (this._type) {
+      case SignatureScheme.Schnorr:
+        innerDisplay = `SchnorrPrivateKey(${refShort})`;
+        break;
+      case SignatureScheme.Ecdsa:
+        innerDisplay = `ECDSAPrivateKey(${refShort})`;
+        break;
+      case SignatureScheme.Ed25519:
+        innerDisplay = this._ed25519Key?.toString() ?? String(this._type);
+        break;
+      case SignatureScheme.Sr25519:
+        innerDisplay = this._sr25519Key?.toString() ?? String(this._type);
+        break;
+      case SignatureScheme.MLDSA44:
+      case SignatureScheme.MLDSA65:
+      case SignatureScheme.MLDSA87:
+        innerDisplay = this._mldsaKey?.toString() ?? String(this._type);
+        break;
+      case SignatureScheme.SshEd25519:
+      case SignatureScheme.SshDsa:
+      case SignatureScheme.SshEcdsaP256:
+      case SignatureScheme.SshEcdsaP384:
+        innerDisplay = `SSHPrivateKey(${refShort})`;
+        break;
+    }
+    return `SigningPrivateKey(${refShort}, ${innerDisplay})`;
   }
 
   // ============================================================================

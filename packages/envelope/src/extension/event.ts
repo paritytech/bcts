@@ -158,7 +158,11 @@ export class Event<T extends EnvelopeEncodableValue>
    * (if present).
    */
   toEnvelope(): Envelope {
-    const taggedArid = toTaggedValue(TAG_EVENT, this._id.untaggedCbor());
+    // Wrap the **tagged** ARID inside the event tag — mirrors Rust
+    // `CBOR::to_tagged_value(TAG_EVENT, event.id)` which dispatches
+    // via `From<ARID> for CBOR` (the tagged form). See request.ts
+    // for the same fix and rationale.
+    const taggedArid = toTaggedValue(TAG_EVENT, this._id.taggedCbor());
     const contentEnvelope = Envelope.new(this._content);
 
     let envelope = Envelope.newLeaf(taggedArid).addAssertion(CONTENT, contentEnvelope);
@@ -208,10 +212,10 @@ export class Event<T extends EnvelopeEncodableValue>
       throw EnvelopeError.general("Event envelope has invalid subject");
     }
 
-    // Expect the EVENT tag and extract the ARID
+    // The subject is TAG_EVENT(tag_40012(arid_bytes)) — see
+    // `toEnvelope` above. Extract the inner tagged-ARID and decode.
     const aridCbor = leaf.expectTag(TAG_EVENT);
-    const aridBytes = aridCbor.toByteString();
-    const id = ARID.fromData(aridBytes);
+    const id = ARID.fromTaggedCbor(aridCbor);
 
     // Extract optional note
     let note = "";

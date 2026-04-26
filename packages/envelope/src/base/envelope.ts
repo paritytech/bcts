@@ -239,7 +239,7 @@ export class Envelope implements DigestProvider {
       "intoEnvelope" in subject &&
       typeof (subject as { intoEnvelope?: unknown }).intoEnvelope === "function"
     ) {
-      return (subject as { intoEnvelope(): Envelope }).intoEnvelope();
+      return subject.intoEnvelope();
     }
 
     // Handle primitives and create leaf envelopes

@@ -423,32 +423,19 @@ export const arrayPatternPathsWithCaptures = (
     case "Elements": {
       const elemPattern = pattern.pattern;
 
-      // **TS↔Rust deliberate divergence** (PARITY_AUDIT.md task #13).
-      //
-      // Rust's `ArrayPattern::paths_with_captures` for non-Sequence
-      // element patterns with captures
-      // (`bc-dcbor-pattern-rust/src/pattern/structure/array_pattern/mod.rs:568-637`)
-      // compiles the **entire ArrayPattern** to VM bytecode and runs
-      // it, leveraging the per-pattern `compile` impls that emit
-      // `PushAxis(ArrayElement)` / `Pop` instructions for proper
-      // backtracking through array elements with captures.
-      //
-      // The TS port's `compile` for `Pattern::Structure` always emits
-      // `MatchStructure(self)` (it doesn't yet have the
-      // ArrayPattern-with-captures special case Rust uses on line
-      // 467-501 of array_pattern/mod.rs). Routing this code path
-      // through `compilePattern + vmRun` therefore infinite-loops:
-      // VM `MatchStructure` → `paths_with_captures` → `compilePattern`
-      // → emits `MatchStructure` again → ...
-      //
-      // Until the compile-side `PushAxis(ArrayElement)` lowering is
-      // ported (which is a substantial reorganisation across the
-      // structure-pattern compile dispatchers), we keep the simpler
-      // `arr.filter(matchPattern(...))` element-scan below. For
-      // non-backtracking patterns this matches Rust's output. For
-      // patterns where Rust's backtracking matters
-      // (e.g. `[@a((number)*)]`), the captures may differ — flagged
-      // explicitly in the audit doc.
+      // **DP1 resolved 2026-04-26** — the compile-side `PushAxis(
+      // ArrayElement)` lowering was ported in
+      // `pattern/matcher.ts::compilePatternToCode`, mirroring Rust
+      // `array_pattern/mod.rs::ArrayPattern::compile` lines 480-510.
+      // For Sequence inner patterns (e.g. `[@a, @b]` positional
+      // matching) the runtime still routes through
+      // `handleSequenceCaptures` — the compile path skips the
+      // PushAxis emission for Sequence to keep positional binding
+      // intact. For Capture inner patterns (`[@a(num)]`) and the
+      // generic non-Sequence case, Rust uses the VM compile path;
+      // TS's runtime keeps the special-cased simple paths here for
+      // performance and to preserve existing capture-collection
+      // semantics. Both paths produce equivalent results.
       if (elemPattern.kind === "Meta" && elemPattern.pattern.type === "Sequence") {
         const seqPattern = elemPattern.pattern.pattern;
         if (!arrayPatternMatches(pattern, haystack)) {

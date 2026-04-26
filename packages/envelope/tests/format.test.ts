@@ -90,6 +90,131 @@ describe("Mermaid Formatting", () => {
       expect(opts.orientation).toBe(MermaidOrientation.LeftToRight);
     });
   });
+
+  // E1b — pin TS Mermaid output byte-for-byte against Rust fixtures
+  // from `bc-envelope-rust/tests/format_tests.rs`. Same bug-class as
+  // the G1 / X1 format-string pins for GSTP / XID — round-trip checks
+  // never noticed encoder-path drift in the format-context summarizers
+  // until those pins were added; Mermaid was the last big-format
+  // surface lacking byte-shape pins.
+  describe("E1b — Mermaid byte-shape parity with Rust", () => {
+    it("matches Rust encrypted-subject Mermaid (E1b-1)", async () => {
+      // Source: `bc-envelope-rust/tests/format_tests.rs:152-202`
+      //   let envelope = Envelope::new("Alice")
+      //       .add_assertion("knows", "Bob")
+      //       .encrypt_subject(&SymmetricKey::new())
+      //       .unwrap();
+      //
+      // The encryption key is fresh every call, but the ENCRYPTED
+      // leaf's digest is the digest of the plaintext envelope it
+      // covers, so the rendered Mermaid is byte-stable across runs.
+      const { SymmetricKey } = await import("@bcts/components");
+      const env = Envelope.new("Alice")
+        .addAssertion("knows", "Bob")
+        .encryptSubject(SymmetricKey.new());
+
+      const expected = [
+        "%%{ init: { 'theme': 'default', 'flowchart': { 'curve': 'basis' } } }%%",
+        "graph LR",
+        '0(("NODE<br>8955db5e"))',
+        '    0 -- subj --> 1>"ENCRYPTED<br>13941b48"]',
+        '    0 --> 2(["ASSERTION<br>78d666eb"])',
+        '        2 -- pred --> 3["&quot;knows&quot;<br>db7dd21c"]',
+        '        2 -- obj --> 4["&quot;Bob&quot;<br>13b74194"]',
+        "style 0 stroke:red,stroke-width:4px",
+        "style 1 stroke:coral,stroke-width:4px",
+        "style 2 stroke:green,stroke-width:4px",
+        "style 3 stroke:teal,stroke-width:4px",
+        "style 4 stroke:teal,stroke-width:4px",
+        "linkStyle 0 stroke:red,stroke-width:2px",
+        "linkStyle 1 stroke-width:2px",
+        "linkStyle 2 stroke:cyan,stroke-width:2px",
+        "linkStyle 3 stroke:magenta,stroke-width:2px",
+      ].join("\n");
+      expect(env.mermaidFormat()).toBe(expected);
+    });
+
+    it("matches Rust plaintext envelope Mermaid (E1b-2)", () => {
+      // The unencrypted version of the same envelope. The Rust suite
+      // doesn't have an explicit Mermaid fixture for this case, but
+      // the rendered output structurally mirrors the encrypted variant
+      // (the "Alice" leaf replaces the ENCRYPTED leaf, with the same
+      // digest). This pin therefore catches encoder-path regressions
+      // for the plain-leaf code path that the encrypted pin doesn't
+      // exercise (different leaf shape / style class).
+      const env = Envelope.new("Alice").addAssertion("knows", "Bob");
+
+      const expected = [
+        "%%{ init: { 'theme': 'default', 'flowchart': { 'curve': 'basis' } } }%%",
+        "graph LR",
+        '0(("NODE<br>8955db5e"))',
+        '    0 -- subj --> 1["&quot;Alice&quot;<br>13941b48"]',
+        '    0 --> 2(["ASSERTION<br>78d666eb"])',
+        '        2 -- pred --> 3["&quot;knows&quot;<br>db7dd21c"]',
+        '        2 -- obj --> 4["&quot;Bob&quot;<br>13b74194"]',
+        "style 0 stroke:red,stroke-width:4px",
+        "style 1 stroke:teal,stroke-width:4px",
+        "style 2 stroke:green,stroke-width:4px",
+        "style 3 stroke:teal,stroke-width:4px",
+        "style 4 stroke:teal,stroke-width:4px",
+        "linkStyle 0 stroke:red,stroke-width:2px",
+        "linkStyle 1 stroke-width:2px",
+        "linkStyle 2 stroke:cyan,stroke-width:2px",
+        "linkStyle 3 stroke:magenta,stroke-width:2px",
+      ].join("\n");
+      expect(env.mermaidFormat()).toBe(expected);
+    });
+
+    it("propagates non-default theme + orientation (E1b-3)", () => {
+      // Pins that the `MermaidFormatOpts` flags reach the rendered
+      // header verbatim — same byte-shape contract Rust's
+      // `MermaidFormatOpts::default().theme(MermaidTheme::Dark)`
+      // produces in `format_tests.rs:1125-1132`.
+      const env = Envelope.new("Alice").addAssertion("knows", "Bob");
+
+      const dark = env.mermaidFormatOpt({
+        theme: MermaidTheme.Dark,
+        orientation: MermaidOrientation.TopToBottom,
+      });
+      expect(dark.startsWith(
+        "%%{ init: { 'theme': 'dark', 'flowchart': { 'curve': 'basis' } } }%%\ngraph TB\n",
+      )).toBe(true);
+
+      const forest = env.mermaidFormatOpt({
+        theme: MermaidTheme.Forest,
+        orientation: MermaidOrientation.LeftToRight,
+      });
+      expect(forest.startsWith(
+        "%%{ init: { 'theme': 'forest', 'flowchart': { 'curve': 'basis' } } }%%\ngraph LR\n",
+      )).toBe(true);
+    });
+
+    it("hides NODE elements (and their digests) under hideNodes (E1b-4)", () => {
+      // Mirrors the warranty fixture pattern from
+      // `bc-envelope-rust/tests/format_tests.rs:1288+` — when
+      // `hide_nodes(true)` is set, NODE elements are *omitted
+      // entirely* (not just their digests), the subject becomes the
+      // root element, and ids re-index from 0. Every visible label
+      // also drops the `<br><digest>` suffix.
+      const env = Envelope.new("Alice").addAssertion("knows", "Bob");
+      const expected = [
+        "%%{ init: { 'theme': 'default', 'flowchart': { 'curve': 'basis' } } }%%",
+        "graph LR",
+        '0["&quot;Alice&quot;"]',
+        '    0 --> 1(["ASSERTION"])',
+        '        1 -- pred --> 2["&quot;knows&quot;"]',
+        '        1 -- obj --> 3["&quot;Bob&quot;"]',
+        "style 0 stroke:teal,stroke-width:4px",
+        "style 1 stroke:green,stroke-width:4px",
+        "style 2 stroke:teal,stroke-width:4px",
+        "style 3 stroke:teal,stroke-width:4px",
+        "linkStyle 0 stroke-width:2px",
+        "linkStyle 1 stroke:cyan,stroke-width:2px",
+        "linkStyle 2 stroke:magenta,stroke-width:2px",
+      ].join("\n");
+      expect(env.mermaidFormatOpt({ hideNodes: true })).toBe(expected);
+    });
+  });
 });
 
 describe("Notation Formatting", () => {
@@ -249,5 +374,51 @@ describe("Envelope Summary", () => {
       // Should show hex representation
       expect(summary.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("E1a — format-context summarizer parity with Rust", () => {
+  // Pinned regression tests for the per-tag summarizer output strings,
+  // matching `bc-components-rust/src/tags_registry.rs::register_tags_in`.
+  // Same bug-class as the SealedMessage scheme-uppercase fix from G1
+  // and the MLDSA-44/MLDSA44 hyphen fix landed alongside this pin
+  // pass — wrong summarizer output silently breaks cross-impl format
+  // parity since round-trip digest checks pass either way.
+
+  it("renders TAG_JSON as JSON(<as_str>) (E1a-1)", async () => {
+    const { JSON: JSONTagged } = await import("@bcts/components");
+    const json = JSONTagged.fromString('{"a":1}');
+    const envelope = Envelope.new(json);
+    expect(envelope.format()).toBe('JSON({"a":1})');
+  });
+
+  it("renders TAG_REFERENCE via Reference.toString() (E1a-2)", async () => {
+    const { Reference } = await import("@bcts/components");
+    // Build a Reference from a known 32-byte digest image; the short
+    // ref is the first 8 hex chars of that data.
+    const data = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) data[i] = i;
+    const ref = Reference.fromData(data);
+    const envelope = Envelope.new(ref);
+    // Reference.toString() = `Reference(<refHexShort>)`. We assert the
+    // shape rather than the exact short ref so the test stays valid
+    // even if the input bytes are tweaked.
+    expect(envelope.format()).toMatch(/^Reference\([0-9a-f]{8}\)$/);
+  });
+
+  it("renders TAG_SIGNATURE for non-default scheme using raw enum name, not human-friendly form (E1a-3)", async () => {
+    const { Signature, MLDSASignature, MLDSALevel } = await import("@bcts/components");
+    // Construct a stub Signature with the MLDSA44 scheme. The summarizer
+    // path must render `Signature(MLDSA44)` (Rust enum-Debug shape),
+    // NOT `Signature(MLDSA-44)` (TS `signatureType()` human form).
+    // The summarizer only reads the scheme tag, but the round-trip
+    // decoder validates length, so we use the canonical MLDSA44 sig
+    // length (2420 bytes).
+    const inner = MLDSASignature.fromBytes(MLDSALevel.MLDSA44, new Uint8Array(2420));
+    const stub = Signature.mldsaFromSignature(inner);
+    const envelope = Envelope.new(stub);
+    const formatted = envelope.format();
+    expect(formatted).toBe("Signature(MLDSA44)");
+    expect(formatted).not.toContain("MLDSA-44");
   });
 });

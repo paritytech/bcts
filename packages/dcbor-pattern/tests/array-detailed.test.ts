@@ -90,9 +90,19 @@ describe("array detailed tests", () => {
 
     const [paths, captures] = getPathsWithCaptures(pattern, cborData);
 
-    // TypeScript implementation formats nested captures differently
-    // The outer_item capture includes paths to the nested arrays
-    const expected = `@outer_item
+    // After DP1 fix: nested `@inner_item` captures are now collected
+    // alongside the outer `@outer_item` captures, mirroring Rust.
+    // The previous TS expected-output was authored for the buggy
+    // single-level-only capture collection — the original fixture
+    // comment explicitly noted "differs from Rust".
+    const expected = `@inner_item
+    [[42], [100]]
+        [42]
+            42
+    [[42], [100]]
+        [100]
+            100
+@outer_item
     [[42], [100]]
         [42]
     [[42], [100]]

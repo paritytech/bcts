@@ -295,15 +295,22 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
    */
   toEnvelope(): Envelope {
     if (this._result.ok) {
-      const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.untaggedCbor());
+      // Wrap the **tagged** ARID inside the response tag — mirrors
+      // Rust `CBOR::to_tagged_value(TAG_RESPONSE, response.id)` which
+      // dispatches via `From<ARID> for CBOR` (the tagged form). See
+      // request.ts for the same fix and rationale.
+      const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.taggedCbor());
       return Envelope.newLeaf(taggedArid).addAssertion(RESULT, this._result.result);
     } else {
       let subject: Envelope;
       if (this._result.id !== undefined) {
-        const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.untaggedCbor());
+        const taggedArid = toTaggedValue(TAG_RESPONSE, this._result.id.taggedCbor());
         subject = Envelope.newLeaf(taggedArid);
       } else {
-        const taggedUnknown = toTaggedValue(TAG_RESPONSE, UNKNOWN_VALUE.untaggedCbor());
+        // UNKNOWN_VALUE is a `KnownValue`; its tagged-CBOR form is
+        // tag(40000, uint(N)). Mirror Rust's
+        // `CBOR::to_tagged_value(TAG_RESPONSE, KnownValue::Unknown)`.
+        const taggedUnknown = toTaggedValue(TAG_RESPONSE, UNKNOWN_VALUE.taggedCbor());
         subject = Envelope.newLeaf(taggedUnknown);
       }
       return subject.addAssertion(ERROR, this._result.error);
@@ -344,24 +351,27 @@ export class Response implements ResponseBehavior, EnvelopeEncodable {
       throw EnvelopeError.invalidResponse();
     }
 
-    // Extract ARID from tagged subject
-    // Subject is TAG_RESPONSE(ARID_bytes) or TAG_RESPONSE(UNKNOWN_VALUE)
+    // Extract ARID from tagged subject. The subject is either
+    // TAG_RESPONSE(tag_40012(arid_bytes)) for a successful/known-id
+    // response, or TAG_RESPONSE(tag_40000(uint)) for an
+    // UNKNOWN_VALUE id. See toEnvelope above.
     const subject = envelope.subject();
     const leaf = subject.asLeaf();
     if (leaf === undefined) {
       throw EnvelopeError.general("Response envelope has invalid subject");
     }
-
-    // Expect the RESPONSE tag
     const content = leaf.expectTag(TAG_RESPONSE);
 
-    // Try to extract ARID from byte string; if it's a KnownValue, ID is undefined
+    // Distinguish ARID (tag 40012) from UNKNOWN_VALUE (tag 40000)
+    // by inspecting the tagged content.
     let id: ARID | undefined;
-    const bytes = content.asByteString();
-    if (bytes !== undefined) {
-      id = ARID.fromData(bytes);
+    try {
+      id = ARID.fromTaggedCbor(content);
+    } catch {
+      // Content is not a tagged ARID — assumed to be the
+      // UNKNOWN_VALUE known-value (tag 40000); leave id undefined.
+      id = undefined;
     }
-    // If bytes is undefined, the content is UNKNOWN_VALUE, so id remains undefined
 
     if (hasResult) {
       const resultEnvelope = envelope.objectForPredicate(RESULT);

@@ -365,28 +365,47 @@ export class SigningPublicKey
 
   /**
    * Get string representation.
+   *
+   * Mirrors Rust `Display for SigningPublicKey`
+   * (`bc-components-rust/src/signing/signing_public_key.rs:573-606`):
+   *   `SigningPublicKey(<ref_hex_short>, <inner_key_display>)`
+   * The reference is computed from the tagged-CBOR form.
    */
   toString(): string {
+    const refShort = this.reference().shortReference("hex");
+    let innerDisplay: string;
     switch (this._type) {
       case SignatureScheme.Schnorr:
-        return `SigningPublicKey(${this._type}, ${this._schnorrKey?.toHex().substring(0, 16)}...)`;
+        innerDisplay = this._schnorrKey?.toString() ?? String(this._type);
+        break;
       case SignatureScheme.Ecdsa:
-        return `SigningPublicKey(${this._type}, ${this._ecdsaKey?.toHex().substring(0, 16)}...)`;
+        innerDisplay = this._ecdsaKey?.toString() ?? String(this._type);
+        break;
       case SignatureScheme.Ed25519:
-        return `SigningPublicKey(${this._type}, ${this._ed25519Key?.toHex().substring(0, 16)}...)`;
+        innerDisplay = this._ed25519Key?.toString() ?? String(this._type);
+        break;
       case SignatureScheme.Sr25519:
-        return `SigningPublicKey(${this._type}, ${this._sr25519Key?.toHex().substring(0, 16)}...)`;
+        innerDisplay = this._sr25519Key?.toString() ?? String(this._type);
+        break;
       case SignatureScheme.MLDSA44:
       case SignatureScheme.MLDSA65:
       case SignatureScheme.MLDSA87:
-        return `SigningPublicKey(${this._type}, ${this._mldsaKey?.toString().substring(0, 30)}...)`;
+        innerDisplay = this._mldsaKey?.toString() ?? String(this._type);
+        break;
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
       case SignatureScheme.SshEcdsaP384:
-        return `SigningPublicKey(${this._type}, SSH scheme not supported)`;
+        // Mirror Rust `SigningPublicKey::SSH(key) => format!("SSHPublicKey({})", key.ref_hex_short())`.
+        // TS does not yet carry an `_sshKey` field — until SSH-key support is
+        // added, fall back to the outer reference for `ref_hex_short`. That
+        // matches Rust shape exactly when the inner key is unavailable.
+        innerDisplay = `SSHPublicKey(${refShort})`;
+        break;
     }
+    return `SigningPublicKey(${refShort}, ${innerDisplay})`;
   }
+
 
   // ============================================================================
   // ReferenceProvider Interface

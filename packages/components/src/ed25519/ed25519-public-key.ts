@@ -8,6 +8,7 @@
  */
 
 import { ED25519_PUBLIC_KEY_SIZE, ED25519_SIGNATURE_SIZE, ed25519Verify } from "@bcts/crypto";
+import { Digest } from "../digest.js";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 
@@ -107,9 +108,16 @@ export class Ed25519PublicKey {
   }
 
   /**
-   * Get string representation
+   * Get string representation.
+   *
+   * Mirrors Rust `Display for Ed25519PublicKey`
+   * (`bc-components-rust/src/ed25519/ed25519_public_key.rs`):
+   *   `Ed25519PublicKey(<ref_hex_short>)`
+   * where the reference is computed from the **raw 32-byte data**
+   * (not tagged CBOR) — same pattern as SchnorrPublicKey.
    */
   toString(): string {
-    return `Ed25519PublicKey(${this.toHex().substring(0, 16)}...)`;
+    const digest = Digest.fromImage(this._data);
+    return `Ed25519PublicKey(${digest.shortDescription()})`;
   }
 }

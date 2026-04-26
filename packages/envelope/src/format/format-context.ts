@@ -47,6 +47,13 @@ import {
   SIGNING_PUBLIC_KEY as TAG_SIGNING_PUBLIC_KEY,
   SSKR_SHARE as TAG_SSKR_SHARE,
   XID as TAG_XID,
+  FUNCTION as TAG_FUNCTION,
+  PARAMETER as TAG_PARAMETER,
+  REQUEST as TAG_REQUEST,
+  RESPONSE as TAG_RESPONSE,
+  EVENT as TAG_EVENT,
+  JSON as TAG_JSON,
+  REFERENCE as TAG_REFERENCE,
 } from "@bcts/tags";
 import {
   Digest,
@@ -68,6 +75,8 @@ import {
   SigningPublicKey,
   SSKRShareCbor,
   XID,
+  JSON as JSONTagged,
+  Reference,
 } from "@bcts/components";
 
 // ============================================================================
@@ -333,23 +342,68 @@ const setupComponentSummarizers = (context: FormatContext): void => {
     }
   });
 
-  // Signature: "Signature" for Ed25519/Schnorr (defaults), "Signature(scheme)" otherwise
-  tags.setSummarizer(TAG_SIGNATURE.value, (cbor, _flat) => {
+  // JSON: "JSON(<as_str>)"
+  // Mirrors Rust `bc-components-rust/src/tags_registry.rs:80-86`:
+  //   `Ok(json.as_str().flanked_by("JSON(", ")"))`
+  tags.setSummarizer(TAG_JSON.value, (cbor, _flat) => {
     try {
-      const tagged = toTaggedValue(TAG_SIGNATURE.value, cbor);
-      const sig = Signature.fromTaggedCbor(tagged);
-      const scheme = sig.scheme();
-      // Match Rust: default scheme shows just "Signature"
-      if (scheme === SignatureScheme.Ed25519 || scheme === SignatureScheme.Schnorr) {
-        return { ok: true, value: "Signature" };
-      }
-      return { ok: true, value: `Signature(${sig.signatureType()})` };
+      const tagged = toTaggedValue(TAG_JSON.value, cbor);
+      const json = JSONTagged.fromTaggedCbor(tagged);
+      return { ok: true, value: `JSON(${json.asStr()})` };
     } catch (e) {
       return summarizerError(e);
     }
   });
 
-  // SealedMessage: "SealedMessage" for X25519 (default), "SealedMessage(scheme)" otherwise
+  // Reference: "Reference(<short>)"
+  // Mirrors Rust `bc-components-rust/src/tags_registry.rs` REFERENCE
+  // summarizer:
+  //   `Ok(Reference::from_untagged_cbor(...).to_string())`
+  // where `Display for Reference` is `Reference(<ref_hex_short>)`.
+  tags.setSummarizer(TAG_REFERENCE.value, (cbor, _flat) => {
+    try {
+      const tagged = toTaggedValue(TAG_REFERENCE.value, cbor);
+      const ref = Reference.fromTaggedCbor(tagged);
+      return { ok: true, value: ref.toString() };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  // Signature: "Signature" for Ed25519/Schnorr (defaults), "Signature(scheme)" otherwise.
+  //
+  // Mirrors Rust `bc-components-rust/src/tags_registry.rs:149-170`:
+  //   format!("Signature({scheme:?})")
+  // where Rust's `Debug` for the `SignatureScheme` enum emits the
+  // variant name verbatim (e.g. `MLDSA44`, `Sr25519`). The TS enum
+  // string values match Rust's variant names exactly (`"MLDSA44"`,
+  // not the human-friendly `"MLDSA-44"` returned by
+  // `Signature.signatureType()`), so we use the raw scheme value
+  // here. Using `signatureType()` would render `MLDSA-44` and drift
+  // from Rust.
+  tags.setSummarizer(TAG_SIGNATURE.value, (cbor, _flat) => {
+    try {
+      const tagged = toTaggedValue(TAG_SIGNATURE.value, cbor);
+      const sig = Signature.fromTaggedCbor(tagged);
+      const scheme = sig.scheme();
+      if (scheme === SignatureScheme.Ed25519 || scheme === SignatureScheme.Schnorr) {
+        return { ok: true, value: "Signature" };
+      }
+      return { ok: true, value: `Signature(${String(scheme)})` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  // SealedMessage: "SealedMessage" for X25519 (default),
+  // "SealedMessage(<SCHEME>)" otherwise.
+  //
+  // Mirrors Rust `bc-components-rust/src/tags_registry.rs:172-186`:
+  //   format!("SealedMessage({encapsulation_scheme:?})")
+  // where Rust's `Debug` for the `EncapsulationScheme` enum emits
+  // the variant name in **uppercase** (e.g. `MLKEM512`). The TS enum
+  // values are lowercase (`"mlkem512"`) so we explicitly uppercase
+  // the rendered form to match Rust byte-for-byte.
   tags.setSummarizer(TAG_SEALED_MESSAGE.value, (cbor, _flat) => {
     try {
       const tagged = toTaggedValue(TAG_SEALED_MESSAGE.value, cbor);
@@ -358,7 +412,7 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       if (scheme === EncapsulationScheme.X25519) {
         return { ok: true, value: "SealedMessage" };
       }
-      return { ok: true, value: `SealedMessage(${scheme})` };
+      return { ok: true, value: `SealedMessage(${String(scheme).toUpperCase()})` };
     } catch (e) {
       return summarizerError(e);
     }
@@ -451,6 +505,85 @@ const setupComponentSummarizers = (context: FormatContext): void => {
       return summarizerError(e);
     }
   });
+
+  // Function: «name» / «id» / «"named"» — mirrors Rust
+  // `format_context.rs:367-377` (function summarizer).
+  tags.setSummarizer(TAG_FUNCTION.value, (cbor, _flat) => {
+    try {
+      // The untagged content is either an unsigned int (well-known
+      // function id) or a text (named function). We don't have a
+      // FunctionsStore lookup here at this layer — rendering by id
+      // is sufficient for parity with Rust's `name_for_function`
+      // fallback.
+      if (cbor.isInteger()) {
+        return { ok: true, value: `«${cbor.toInteger()}»` };
+      }
+      if (cbor.isText()) {
+        return { ok: true, value: `«"${cbor.toText()}"»` };
+      }
+      return { ok: true, value: `«${cbor.toDiagnostic()}»` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  // Parameter: ❰name❱ / ❰id❱ / ❰"named"❱ — mirrors Rust
+  // `format_context.rs:379-389` (parameter summarizer).
+  tags.setSummarizer(TAG_PARAMETER.value, (cbor, _flat) => {
+    try {
+      if (cbor.isInteger()) {
+        return { ok: true, value: `❰${cbor.toInteger()}❱` };
+      }
+      if (cbor.isText()) {
+        return { ok: true, value: `❰"${cbor.toText()}"❱` };
+      }
+      return { ok: true, value: `❰${cbor.toDiagnostic()}❱` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  });
+
+  // Request/Response/Event: render the inner envelope's format
+  // wrapped with the keyword. Mirrors Rust
+  // `format_context.rs:391-434` which calls
+  // `Envelope::new(untagged_cbor).format_opt(...)` and flanks the
+  // result with `request(`/`response(`/`event(` and `)`.
+  //
+  // We can't `import { Envelope }` directly here because that
+  // would create a hard cycle at module-load time
+  // (`base/envelope.ts` ↔ `format/format-context.ts`). Instead,
+  // `index.ts` calls {@link setEnvelopeFormatHook} once both
+  // modules have finished loading.
+  const wrapWithEnvelopeFormat = (
+    keyword: string,
+  ): CborSummarizer => (cbor, flat) => {
+    try {
+      if (envelopeFormatHook === undefined) {
+        // Hook not yet installed — fall back to the raw diag
+        // representation so we still produce *some* output.
+        return { ok: true, value: `${keyword}(${cbor.toDiagnostic()})` };
+      }
+      const innerFormat = envelopeFormatHook(cbor, flat);
+      return { ok: true, value: `${keyword}(${innerFormat})` };
+    } catch (e) {
+      return summarizerError(e);
+    }
+  };
+  tags.setSummarizer(TAG_REQUEST.value, wrapWithEnvelopeFormat("request"));
+  tags.setSummarizer(TAG_RESPONSE.value, wrapWithEnvelopeFormat("response"));
+  tags.setSummarizer(TAG_EVENT.value, wrapWithEnvelopeFormat("event"));
+};
+
+/**
+ * Hook installed by `src/index.ts` to break the circular import
+ * between `base/envelope.ts` and `format/format-context.ts`. Used by
+ * the request/response/event tag summarizers to recursively format the
+ * inner envelope.
+ */
+type EnvelopeFormatHook = (cbor: unknown, flat: boolean) => string;
+let envelopeFormatHook: EnvelopeFormatHook | undefined;
+export const setEnvelopeFormatHook = (hook: EnvelopeFormatHook): void => {
+  envelopeFormatHook = hook;
 };
 
 // ============================================================================

@@ -28,6 +28,7 @@
  */
 
 import { SCHNORR_PUBLIC_KEY_SIZE, schnorrVerify } from "@bcts/crypto";
+import { Digest } from "../digest.js";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes, toBase64 } from "../utils.js";
 import type { ECKeyBase } from "./ec-key-base.js";
@@ -147,8 +148,16 @@ export class SchnorrPublicKey implements ECKeyBase {
 
   /**
    * Get string representation.
+   *
+   * Mirrors Rust `Display for SchnorrPublicKey`
+   * (`bc-components-rust/src/ec_key/schnorr_public_key.rs:116-120`)
+   * — the reference is computed from the **raw 32-byte key data**
+   * (not the tagged-CBOR form): `Reference::from_digest(Digest::from_image(self.data()))`.
+   * `ref_hex_short()` returns the first 8 hex chars of that
+   * reference's binary form (= SHA-256(data)[0..4]).
    */
   toString(): string {
-    return `SchnorrPublicKey(${this.toHex().substring(0, 16)}...)`;
+    const digest = Digest.fromImage(this._data);
+    return `SchnorrPublicKey(${digest.shortDescription()})`;
   }
 }

@@ -50,7 +50,6 @@ import { EncapsulationScheme } from "./encapsulation-scheme.js";
 import { EncapsulationCiphertext } from "./encapsulation-ciphertext.js";
 import { MLKEMPublicKey } from "../mlkem/mlkem-public-key.js";
 import { MLKEMLevel } from "../mlkem/mlkem-level.js";
-import { bytesToHex } from "../utils.js";
 import { Reference, type ReferenceProvider } from "../reference.js";
 import { Digest } from "../digest.js";
 
@@ -287,14 +286,23 @@ export class EncapsulationPublicKey
 
   /**
    * Get string representation.
+   *
+   * Mirrors Rust `Display for EncapsulationPublicKey`
+   * (`bc-components-rust/src/encapsulation/encapsulation_public_key.rs:191-205`):
+   *   `EncapsulationPublicKey(<ref_hex_short>, <inner_key_display>)`
+   * where ref_hex_short is computed from the tagged-CBOR form.
    */
   toString(): string {
-    if (this._scheme === EncapsulationScheme.X25519) {
-      return `EncapsulationPublicKey(X25519, ${bytesToHex(this.data()).substring(0, 16)}...)`;
-    } else if (isMlkemScheme(this._scheme)) {
-      return `EncapsulationPublicKey(${String(this._scheme)}, ${bytesToHex(this.data()).substring(0, 16)}...)`;
+    const refShort = this.reference().shortReference("hex");
+    let innerDisplay: string;
+    if (this._scheme === EncapsulationScheme.X25519 && this._x25519PublicKey !== undefined) {
+      innerDisplay = this._x25519PublicKey.toString();
+    } else if (isMlkemScheme(this._scheme) && this._mlkemPublicKey !== undefined) {
+      innerDisplay = this._mlkemPublicKey.toString();
+    } else {
+      innerDisplay = String(this._scheme);
     }
-    return `EncapsulationPublicKey(${String(this._scheme)})`;
+    return `EncapsulationPublicKey(${refShort}, ${innerDisplay})`;
   }
 
   // ============================================================================

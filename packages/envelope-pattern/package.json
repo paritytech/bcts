@@ -55,10 +55,12 @@
     "vitest": "^4.1.5"
   },
   "dependencies": {
+    "@bcts/components": "workspace:*",
     "@bcts/dcbor": "workspace:*",
     "@bcts/dcbor-parse": "workspace:*",
     "@bcts/dcbor-pattern": "workspace:*",
     "@bcts/envelope": "workspace:*",
-    "@bcts/known-values": "workspace:*"
+    "@bcts/known-values": "workspace:*",
+    "@bcts/rand": "workspace:*"
   }
 }

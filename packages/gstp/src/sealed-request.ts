@@ -11,7 +11,8 @@
  * Ported from gstp-rust/src/sealed_request.rs
  */
 
-import type { ARID, PrivateKeys, Signer } from "@bcts/components";
+import { ARID, type PrivateKeys, type Signer } from "@bcts/components";
+import { CborDate, type Cbor } from "@bcts/dcbor";
 import {
   Envelope,
   Request,
@@ -24,6 +25,45 @@ import { SENDER, SENDER_CONTINUATION, RECIPIENT_CONTINUATION } from "@bcts/known
 import { XIDDocument } from "@bcts/xid";
 import { Continuation } from "./continuation";
 import { GstpError } from "./error";
+
+/**
+ * Decode a CBOR value into a typed JS value.
+ *
+ * Mirrors the type-driven `T: TryFrom<CBOR>` dispatch Rust's
+ * `extract_object_for_parameter` relies on. TS lacks compile-time
+ * trait dispatch, so we hand-roll the most common cases:
+ *  - tag 1 (`Date`) → JS `Date`,
+ *  - tag 40012 (`ARID`) → `ARID`,
+ *  - integer / text / bool / number / byte-string primitives,
+ *  - everything else → the raw `Cbor` value.
+ *
+ * Callers needing other typed extraction should use
+ * `objectForParameter()` directly and decode the envelope themselves.
+ */
+function extractCborAsT<T>(cbor: Cbor): T {
+  const tagged = cbor.asTagged();
+  if (tagged !== undefined) {
+    const [tag] = tagged;
+    const tagNumber = Number(tag.value);
+    // Tag 1 — Standard date/time (RFC 8949 §3.4.2). Rust impls
+    // `TryFrom<CBOR> for chrono::DateTime`. We surface the JS
+    // `Date` to mirror what frost-hubert's typed callers expect.
+    if (tagNumber === 1) {
+      return CborDate.fromTaggedCbor(cbor).datetime() as T;
+    }
+    // Tag 40012 — ARID (`bc-tags::TAG_ARID`). Rust impls
+    // `TryFrom<CBOR> for ARID`.
+    if (tagNumber === 40012) {
+      return ARID.fromTaggedCbor(cbor) as T;
+    }
+  }
+  if (cbor.isInteger()) return cbor.toInteger() as T;
+  if (cbor.isText()) return cbor.toText() as T;
+  if (cbor.isBool()) return cbor.toBool() as T;
+  if (cbor.isNumber()) return cbor.toNumber() as T;
+  if (cbor.isByteString()) return cbor.toByteString() as T;
+  return cbor as T;
+}
 
 /**
  * Interface that defines the behavior of a sealed request.
@@ -188,29 +228,35 @@ export class SealedRequest implements SealedRequestBehavior {
 
   /**
    * Returns all objects for a parameter.
+   *
+   * Mirrors Rust `SealedRequest::objects_for_parameter` which delegates
+   * to `Expression::objects_for_parameter`. GSTP requests can carry
+   * multiple parameters with the same ID — e.g. a DKG invite has
+   * one `participant` per group member — and a decoder must see
+   * every one of them.
    */
   objectsForParameter(param: ParameterID): Envelope[] {
-    const obj = this._request.body().getParameter(param);
-    return obj !== undefined ? [obj] : [];
+    return this._request.body().objectsForParameter(param);
   }
 
   /**
    * Extracts an object for a parameter as a specific type.
+   *
+   * Mirrors Rust `SealedRequest::extract_object_for_parameter` — Rust
+   * uses a `T: TryFrom<CBOR>` constraint and dispatches to whatever
+   * `From<CBOR> for T` impl is in scope (e.g. tag-1 CBOR decodes to
+   * `chrono::DateTime`, tag-40012 to `ARID`, etc.). TS lacks that
+   * trait dispatch, so we recognise the most common tagged types
+   * (`Date` via tag 1, `ARID` via tag 40012) plus the primitive
+   * fall-through. Callers needing other typed extraction should use
+   * `objectForParameter()` directly and decode the envelope themselves.
    */
   extractObjectForParameter<T>(param: ParameterID): T {
     const envelope = this.objectForParameter(param);
     if (envelope === undefined) {
       throw GstpError.envelope(new Error(`Parameter not found: ${param}`));
     }
-    return envelope.extractSubject((cbor) => {
-      // Extract primitive value from CBOR
-      if (cbor.isInteger()) return cbor.toInteger() as T;
-      if (cbor.isText()) return cbor.toText() as T;
-      if (cbor.isBool()) return cbor.toBool() as T;
-      if (cbor.isNumber()) return cbor.toNumber() as T;
-      if (cbor.isByteString()) return cbor.toByteString() as T;
-      return cbor as T;
-    });
+    return envelope.extractSubject((cbor) => extractCborAsT<T>(cbor));
   }
 
   /**
@@ -221,15 +267,7 @@ export class SealedRequest implements SealedRequestBehavior {
     if (envelope === undefined) {
       return undefined;
     }
-    return envelope.extractSubject((cbor) => {
-      // Extract primitive value from CBOR
-      if (cbor.isInteger()) return cbor.toInteger() as T;
-      if (cbor.isText()) return cbor.toText() as T;
-      if (cbor.isBool()) return cbor.toBool() as T;
-      if (cbor.isNumber()) return cbor.toNumber() as T;
-      if (cbor.isByteString()) return cbor.toByteString() as T;
-      return cbor as T;
-    });
+    return envelope.extractSubject((cbor) => extractCborAsT<T>(cbor));
   }
 
   /**

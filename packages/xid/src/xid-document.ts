@@ -49,7 +49,8 @@ import {
   ProvenanceMarkGenerator,
   ProvenanceMarkResolution,
 } from "@bcts/provenance-mark";
-import { type Cbor } from "@bcts/dcbor";
+import { type Cbor, asByteString, toByteString } from "@bcts/dcbor";
+import { UR } from "@bcts/uniform-resources";
 
 import { Key, XIDPrivateKeyOptions, type XIDPrivateKeyOptionsValue } from "./key";
 import { Delegate, registerXIDDocumentClass } from "./delegate";
@@ -913,6 +914,96 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
       return Envelope.new(this._xid);
     }
     return this.toEnvelope();
+  }
+
+  // ============================================================================
+  // CBOR / UR Serialization (mirrors Rust `CBORTagged for XIDDocument`)
+  // ============================================================================
+  //
+  // Rust source: `bc-xid-rust/src/xid_document.rs:1101-1147`.
+  //
+  // Wire shape (tag = TAG_XID/40024):
+  //   - empty doc:  40024(bytes(32))                — just the XID bytes
+  //   - non-empty:  40024(200(envelope_untagged))   — envelope tagged-CBOR
+  //
+  // The UR type is `xid` and the body bytes are the **untagged** form
+  // (the UR type label carries the outer tag). This is what makes
+  // `ur:xid/...` round-trip byte-identically to Rust.
+
+  /**
+   * Returns the untagged CBOR encoding for this document.
+   *
+   * Mirrors Rust `CBORTaggedEncodable for XIDDocument::untagged_cbor`:
+   * empty docs serialize as the raw 32-byte XID byte string; non-empty
+   * docs serialize as the envelope's tagged CBOR (tag 200).
+   */
+  untaggedCbor(): Cbor {
+    if (this.isEmpty()) {
+      // Mirror Rust `self.xid.untagged_cbor()` which returns
+      // `bytes(32)` (the raw XID data, untagged).
+      return toByteString(this._xid.data());
+    }
+    // Mirror Rust `self.to_envelope(...).to_cbor()`. Envelope's
+    // `taggedCbor()` returns `200(envelope_untagged)`.
+    return this.toEnvelope().taggedCbor();
+  }
+
+  /**
+   * Returns the UR for this document.
+   *
+   * UR type is `xid` (matching `TAG_XID.name` and Rust). Body bytes are
+   * `untaggedCbor()`.
+   */
+  ur(): UR {
+    return UR.new("xid", this.untaggedCbor());
+  }
+
+  /**
+   * Returns the `ur:xid/...` string representation of this document.
+   *
+   * Mirrors Rust `xid_document.ur_string()`. Round-trip with
+   * {@link XIDDocument.fromURString} is byte-identical to Rust.
+   */
+  urString(): string {
+    return this.ur().string();
+  }
+
+  /**
+   * Decode an XIDDocument from a UR.
+   *
+   * Mirrors Rust `CBORTaggedDecodable::from_untagged_cbor`:
+   *   - if the body is a CBOR byte string (32 bytes), it's an empty
+   *     XIDDocument carrying just the XID;
+   *   - otherwise it's an envelope's tagged CBOR (tag 200), which we
+   *     decode and feed through `fromEnvelope`.
+   */
+  static fromUR(ur: UR): XIDDocument {
+    ur.checkType("xid");
+    return XIDDocument.fromUntaggedCbor(ur.cbor());
+  }
+
+  /**
+   * Decode an XIDDocument from a `ur:xid/...` string.
+   */
+  static fromURString(urString: string): XIDDocument {
+    return XIDDocument.fromUR(UR.fromURString(urString));
+  }
+
+  /**
+   * Decode an XIDDocument from untagged CBOR (the UR-body form).
+   */
+  static fromUntaggedCbor(cbor: Cbor): XIDDocument {
+    const bytes = asByteString(cbor);
+    if (bytes !== undefined) {
+      return XIDDocument.fromXid(XID.fromDataRef(bytes));
+    }
+    // Envelope's tagged-CBOR form (tag 200). Decode as tagged CBOR.
+    const envelope = (
+      Envelope as unknown as {
+        fromTaggedCbor(c: Cbor): Envelope;
+      }
+    ).fromTaggedCbor(cbor);
+    return XIDDocument.fromEnvelope(envelope);
   }
 
   /**

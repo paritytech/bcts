@@ -78,16 +78,36 @@ export class URType {
   }
 
   /**
-   * Safely creates a URType, returning an error if invalid.
+   * Safely creates a URType, returning a typed `Result`-shaped
+   * discriminated union instead of throwing.
+   *
+   * Mirrors Rust `impl TryFrom<&str> for URType` /
+   * `impl TryFrom<String> for URType` (`bc-ur-rust/src/ur_type.rs`),
+   * which return `Result<URType, Error>`. The TS shape is the
+   * idiomatic discriminated form so callers can branch on `ok`
+   * without `instanceof`:
+   *
+   * @example
+   * ```typescript
+   * const r = URType.tryFrom("test");
+   * if (r.ok) {
+   *   console.log(r.value.string()); // "test"
+   * } else {
+   *   console.error(r.error.message);
+   * }
+   * ```
    *
    * @param value - The UR type string
-   * @returns Either a URType or an error
+   * @returns A typed Result: `{ ok: true; value: URType }` on success,
+   *   `{ ok: false; error: InvalidTypeError }` on failure.
    */
-  static tryFrom(value: string): URType | InvalidTypeError {
+  static tryFrom(
+    value: string,
+  ): { ok: true; value: URType } | { ok: false; error: InvalidTypeError } {
     try {
-      return new URType(value);
+      return { ok: true, value: new URType(value) };
     } catch (error) {
-      return error as InvalidTypeError;
+      return { ok: false, error: error as InvalidTypeError };
     }
   }
 }

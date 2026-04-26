@@ -81,6 +81,23 @@ describe("Post-Quantum", () => {
       const continuation = requestContinuation();
       const envelope = continuation.toEnvelope(publicKeys);
 
+      // G1: byte-shape format pin — mirrors Rust
+      // `gstp-rust/tests/pq_tests.rs::test_encrypted_continuation` line
+      // 36-39. The TAG_SEALED_MESSAGE summarizer renders the
+      // encapsulation scheme as `SealedMessage(<SCHEME>)` for
+      // non-X25519 (default) recipients. Pinning this catches
+      // regressions in:
+      //   - the SealedMessage tag summarizer's scheme rendering,
+      //   - the EncapsulationScheme `Debug`-uppercase mapping, and
+      //   - the wrap-and-encrypt-to-PQ-recipient pipeline.
+      expect(envelope.format()).toBe(
+        [
+          "ENCRYPTED [",
+          "    'hasRecipient': SealedMessage(MLKEM512)",
+          "]",
+        ].join("\n"),
+      );
+
       // The envelope's subject should be encrypted (the outer envelope is a node with hasRecipient assertion)
       expect(envelope.subject().isEncrypted()).toBe(true);
 

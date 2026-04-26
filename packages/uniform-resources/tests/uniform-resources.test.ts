@@ -99,6 +99,38 @@ describe("URType", () => {
     const urType = new URType("bytes");
     expect(urType.toString()).toBe("bytes");
   });
+
+  describe("URType.tryFrom (typed Result, UR1)", () => {
+    // Pinned regression for UR1 — `URType.tryFrom` returns a
+    // discriminated `{ ok: true | false }` union mirroring Rust's
+    // `Result<URType, Error>` from `impl TryFrom<&str> for URType`.
+
+    it("returns { ok: true, value } for a valid type", () => {
+      const result = URType.tryFrom("bytes");
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value).toBeInstanceOf(URType);
+        expect(result.value.string()).toBe("bytes");
+      }
+    });
+
+    it("returns { ok: false, error } for an invalid type", () => {
+      const result = URType.tryFrom("Bytes");
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBeInstanceOf(InvalidTypeError);
+      }
+    });
+
+    it("narrows correctly without instanceof checks", () => {
+      // The whole point of UR1: callers branch on `ok`, not type
+      // discrimination via `instanceof`. This test would fail to
+      // typecheck under the old `URType | InvalidTypeError` shape.
+      const r = URType.tryFrom("my-type-1");
+      const out = r.ok ? r.value.string() : r.error.message;
+      expect(out).toBe("my-type-1");
+    });
+  });
 });
 
 describe("Internal Utility Functions", () => {
@@ -914,16 +946,19 @@ describe("splitMessage (internal)", () => {
   });
 
   it("handles message shorter than fragment size", () => {
+    // Mirrors Rust `fragment_length(2, 10) === 2`: a 2-byte message
+    // with `max_fragment_length = 10` produces ONE fragment of length
+    // 2 (no padding) — *not* one 10-byte fragment with 8 bytes of
+    // padding, as a naive `splitMessage` would.
     const message = new Uint8Array([1, 2]);
     const fragments = splitMessage(message, 10);
 
     expect(fragments.length).toBe(1);
     const fragment = fragments[0];
     expect(fragment).toBeDefined();
-    expect(fragment?.length).toBe(10);
+    expect(fragment?.length).toBe(2);
     expect(fragment?.[0]).toBe(1);
     expect(fragment?.[1]).toBe(2);
-    expect(fragment?.[2]).toBe(0); // Padded
   });
 
   it("handles message exactly divisible by fragment size", () => {

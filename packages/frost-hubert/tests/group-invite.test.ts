@@ -9,25 +9,21 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { ARID, PrivateKeyBase } from "@bcts/components";
 import { CborDate } from "@bcts/dcbor";
 import { XIDDocument } from "@bcts/xid";
+import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { makeFakeRandomNumberGenerator, type RandomNumberGenerator } from "@bcts/rand";
 
-// @ts-expect-error TS6133 - DkgInvitationResult is used in type annotations in skipped tests
-import { DkgInvite, DkgInvitation, type DkgInvitationResult } from "../src/dkg/index.js";
+import { DkgInvite, DkgInvitation, accepted, declined } from "../src/dkg/index.js";
 import { registerTags } from "./common/index.js";
 
 function makeXidDocument(rng: RandomNumberGenerator, date: CborDate): XIDDocument {
   const privateKeyBase = PrivateKeyBase.newUsing(rng);
-
   return XIDDocument.new(
-    // @ts-expect-error TS2353 - API mismatch: PrivateKeyBase property not in current XIDInceptionKeyOptions
-    { PrivateKeyBase: privateKeyBase },
+    { type: "privateKeyBase", privateKeyBase },
     {
-      Passphrase: {
-        passphrase: "password",
-        resolution: "Quartile",
-        date,
-        info: undefined,
-      },
+      type: "passphrase",
+      passphrase: "password",
+      resolution: ProvenanceMarkResolution.Quartile,
+      date: date.datetime(),
     },
   );
 }
@@ -43,8 +39,7 @@ describe("DKG group invite", () => {
     await registerTags();
   });
 
-  // Skip until @bcts/components exports Date and other required types
-  it.skip("test_dkg_group_invite", () => {
+  it("test_dkg_group_invite", () => {
     const rng = makeFakeRandomNumberGenerator();
 
     const date = CborDate.fromYmd(2025, 12, 31);
@@ -57,12 +52,9 @@ describe("DKG group invite", () => {
     const minSigners = 2;
     const charter = "Test charter";
 
-    // @ts-expect-error TS2345 - API mismatch: toEnvelope signature differs
-    const aliceUr = alice.toEnvelope({}, {}, "Inception").urString();
-    // @ts-expect-error TS2345 - API mismatch: toEnvelope signature differs
-    const bobUr = bob.toEnvelope({}, {}, "Inception").urString();
-    // @ts-expect-error TS2345 - API mismatch: toEnvelope signature differs
-    const carolUr = carol.toEnvelope({}, {}, "Inception").urString();
+    const aliceUr = alice.toEnvelope(undefined, undefined, { type: "inception" }).urString();
+    const bobUr = bob.toEnvelope(undefined, undefined, { type: "inception" }).urString();
+    const carolUr = carol.toEnvelope(undefined, undefined, { type: "inception" }).urString();
 
     const participants = [aliceUr, bobUr, carolUr];
 
@@ -74,13 +66,12 @@ describe("DKG group invite", () => {
     const carolResponseArid = makeArid(rng);
     const responseArids = [aliceResponseArid, bobResponseArid, carolResponseArid];
 
-    // @ts-expect-error TS2339 - API mismatch: DkgInvite.new doesn't exist
-    const invite = DkgInvite.new(
+    const invite = DkgInvite.create(
       requestId,
       coordinator,
       groupId,
-      date,
-      expiry,
+      date.datetime(),
+      expiry.datetime(),
       minSigners,
       charter,
       participants,
@@ -104,7 +95,7 @@ describe("DKG group invite", () => {
 
     expect(aliceInvite.sender().xid().urString()).toBe(coordinator.xid().urString());
     expect(aliceInvite.responseArid().urString()).toBe(aliceResponseArid.urString());
-    expect(aliceInvite.validUntil().toString()).toBe(expiry.toString());
+    expect(aliceInvite.validUntil().getTime()).toBe(expiry.datetime().getTime());
     expect(aliceInvite.requestId().urString()).toBe(requestId.urString());
     expect(aliceInvite.peerContinuation()).toBeDefined();
     expect(aliceInvite.minSigners()).toBe(minSigners);
@@ -112,8 +103,7 @@ describe("DKG group invite", () => {
     expect(aliceInvite.groupId().urString()).toBe(groupId.urString());
 
     // Test success response
-    // @ts-expect-error TS2693 - DkgInvitationResult is a type, not a value
-    const successResponse = aliceInvite.toResponse(DkgInvitationResult.Accepted, alice);
+    const successResponse = aliceInvite.toResponse(accepted(), alice);
     const successEnvelope = successResponse.toEnvelope(undefined, undefined, undefined);
 
     const successFormat = successEnvelope.format();
@@ -122,8 +112,7 @@ describe("DKG group invite", () => {
     expect(successFormat).toContain("sender");
 
     // Test decline response
-    // @ts-expect-error TS2353 - Declined property not in DkgInvitationResult type
-    const declineResponse = aliceInvite.toResponse({ Declined: "Busy" }, alice);
+    const declineResponse = aliceInvite.toResponse(declined("Busy"), alice);
     const declineEnvelope = declineResponse.toEnvelope(undefined, undefined, undefined);
 
     const declineFormat = declineEnvelope.format();
@@ -132,10 +121,8 @@ describe("DKG group invite", () => {
     expect(declineFormat).toContain("Busy");
 
     // Test encrypted responses
-    // @ts-expect-error TS2693 - DkgInvitationResult is a type, not a value
-    const successEncrypted = aliceInvite.toEnvelope(DkgInvitationResult.Accepted, alice);
-    // @ts-expect-error TS2353 - Declined property not in DkgInvitationResult type
-    const declineEncrypted = aliceInvite.toEnvelope({ Declined: "Busy" }, alice);
+    const successEncrypted = aliceInvite.toEnvelope(accepted(), alice);
+    const declineEncrypted = aliceInvite.toEnvelope(declined("Busy"), alice);
 
     const successEncryptedFormat = successEncrypted.format();
     const declineEncryptedFormat = declineEncrypted.format();

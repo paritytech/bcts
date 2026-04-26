@@ -159,7 +159,12 @@ export class TaggedPattern implements Matcher {
   }
 
   toString(): string {
-    return taggedPatternDisplay(this._inner, patternDisplay);
+    // Mirror Rust `bc-envelope-pattern-rust/src/pattern/leaf/tagged_pattern.rs`'s
+    // `Display`: delegate to the underlying dcbor-pattern `Display`, then
+    // normalize the regex-variant's `,  ` (comma + two spaces — see
+    // `bc-dcbor-pattern-rust/src/pattern/structure/tagged_pattern.rs:239`)
+    // back to `, ` so envelope-pattern's surface API stays consistent.
+    return taggedPatternDisplay(this._inner, patternDisplay).replace(",  ", ", ");
   }
 
   /**

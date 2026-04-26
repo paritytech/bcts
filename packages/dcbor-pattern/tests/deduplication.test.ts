@@ -40,10 +40,18 @@ describe("deduplication tests", () => {
     const [nestedPaths, nestedCaptures] = getPathsWithCaptures(nestedPattern, nestedCbor);
 
     const actual = formatPathsWithCapturesStr(nestedPaths, nestedCaptures);
-    // Note: TS implementation currently only collects top-level captures
-    // Nested @inner_item captures are not collected (this differs from Rust)
-    // TS also iterates forward ([42], [100]) vs Rust reverse
-    const expected = `@outer_item
+    // After DP1 fix: nested @inner_item captures are now collected
+    // alongside @outer_item, matching Rust. (Pre-fix output was
+    // outer-only — the original fixture comment explicitly noted
+    // "differs from Rust".)
+    const expected = `@inner_item
+    [[42], [100]]
+        [42]
+            42
+    [[42], [100]]
+        [100]
+            100
+@outer_item
     [[42], [100]]
         [42]
     [[42], [100]]

@@ -10,6 +10,8 @@ import {
   Provenance,
   XIDGeneratorOptions,
   XIDDocument,
+  XIDError,
+  XIDErrorCode,
   XIDPrivateKeyOptions,
   XIDVerifySignature,
 } from "../src";
@@ -287,9 +289,17 @@ describe("Provenance", () => {
 
       const xidDoc = XIDDocument.new({ type: "privateKeyBase", privateKeyBase }, { type: "none" });
 
-      expect(() => {
+      // X1c: pin the specific error code/message rather than just `.toThrow()`,
+      // so future regressions in error-classification get caught at write time.
+      let caught: unknown;
+      try {
         xidDoc.nextProvenanceMarkWithEmbeddedGenerator(undefined, undefined, cbor("Test"));
-      }).toThrow();
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(XIDError);
+      expect((caught as XIDError).code).toBe(XIDErrorCode.NO_PROVENANCE_MARK);
+      expect((caught as XIDError).message).toBe("no provenance mark to advance");
     });
 
     it("should error when advancing without generator", () => {
@@ -338,9 +348,17 @@ describe("Provenance", () => {
       );
 
       // Try to advance with provided generator (should fail because document has embedded generator)
-      expect(() => {
+      let caught: unknown;
+      try {
         xidDoc.nextProvenanceMarkWithProvidedGenerator(externalGenerator, undefined, cbor("Test"));
-      }).toThrow();
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(XIDError);
+      expect((caught as XIDError).code).toBe(XIDErrorCode.GENERATOR_CONFLICT);
+      expect((caught as XIDError).message).toBe(
+        "document already has generator, cannot provide external generator",
+      );
     });
 
     it("should error on chain ID mismatch", () => {
@@ -367,9 +385,28 @@ describe("Provenance", () => {
         "passphrase2",
       );
 
-      expect(() => {
+      let caught: unknown;
+      try {
         xidDoc.nextProvenanceMarkWithProvidedGenerator(generator2, undefined, cbor("Test"));
-      }).toThrow();
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(XIDError);
+      expect((caught as XIDError).code).toBe(XIDErrorCode.CHAIN_ID_MISMATCH);
+
+      // The error message embeds the expected (mark1) and actual (generator2)
+      // chain IDs as hex. Pin the prefix shape and confirm both hex strings
+      // appear — that's exactly what the Rust `Error::ChainIdMismatch`
+      // diagnostic carries.
+      const chainIdExpectedHex = Array.from(generator1.chainId())
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const chainIdActualHex = Array.from(generator2.chainId())
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      expect((caught as XIDError).message).toBe(
+        `generator chain ID mismatch: expected ${chainIdExpectedHex}, got ${chainIdActualHex}`,
+      );
     });
 
     it("should error on sequence mismatch", () => {
@@ -395,9 +432,43 @@ describe("Provenance", () => {
       xidDoc.setProvenance(mark1);
 
       // Try to advance with generator at seq 2 (expecting seq 1)
-      expect(() => {
+      let caught: unknown;
+      try {
         xidDoc.nextProvenanceMarkWithProvidedGenerator(generator, undefined, cbor("Test"));
-      }).toThrow();
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(XIDError);
+      expect((caught as XIDError).code).toBe(XIDErrorCode.SEQUENCE_MISMATCH);
+      // mark1 is at seq 0 → expected next is 1; generator was advanced to nextSeq()=2.
+      expect((caught as XIDError).message).toBe("generator sequence mismatch: expected 1, got 2");
+    });
+
+    it("should error when document has no provenance and provided-generator advance is attempted (X1c)", () => {
+      // Pins the X1c "no-provenance" branch of `nextProvenanceMarkWithProvidedGenerator`
+      // — distinct from the "no-provenance" branch of the embedded variant
+      // already covered above.
+      const generator = ProvenanceMarkGenerator.newWithPassphrase(
+        ProvenanceMarkResolution.High,
+        "test",
+      );
+      const privateKeyBase = PrivateKeyBase.new();
+      const xidDocBase = XIDDocument.new(
+        { type: "privateKeyBase", privateKeyBase },
+        { type: "none" },
+      );
+      const xidDoc = XIDDocument.fromXid(xidDocBase.xid());
+      // Note: no setProvenance() — the document has no mark.
+
+      let caught: unknown;
+      try {
+        xidDoc.nextProvenanceMarkWithProvidedGenerator(generator, undefined, cbor("Test"));
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(XIDError);
+      expect((caught as XIDError).code).toBe(XIDErrorCode.NO_PROVENANCE_MARK);
+      expect((caught as XIDError).message).toBe("no provenance mark to advance");
     });
   });
 

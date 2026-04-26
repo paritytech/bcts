@@ -4,6 +4,22 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  and,
+  or,
+  capture,
+  search,
+  group,
+  repeat,
+  number,
+  text,
+  numberGreaterThan,
+  numberLessThan,
+  Quantifier,
+  Interval,
+  Reluctance,
+  patternDisplay,
+} from "../src";
+import {
   cbor,
   parse,
   matches,
@@ -314,6 +330,300 @@ describe("meta pattern tests", () => {
 
     // Test with deeply nested structure containing the target
     expect(matches(pattern, cbor([[[[1]]]]))).toBe(true);
+  });
+
+  it("test_empty_and_pattern", () => {
+    const pattern = and();
+
+    // Empty AND should match everything (vacuous truth)
+    expect(matches(pattern, cbor(42))).toBe(true);
+    expect(matches(pattern, cbor("hello"))).toBe(true);
+
+    // Display should be empty string
+    expect(display(pattern)).toBe("");
+  });
+
+  it("test_empty_or_pattern", () => {
+    const pattern = or();
+
+    // Empty OR should match nothing
+    expect(matches(pattern, cbor(42))).toBe(false);
+    expect(matches(pattern, cbor("hello"))).toBe(false);
+
+    // Display should be empty string
+    expect(display(pattern)).toBe("");
+  });
+
+  it("test_capture_pattern_complex", () => {
+    const pattern = capture("range", and(numberGreaterThan(5), numberLessThan(10)));
+
+    // Should match numbers in range 5 < x < 10
+    let paths = getPaths(pattern, cbor(7));
+    assertActualExpected(formatPathsStr(paths), "7");
+
+    paths = getPaths(pattern, cbor(6));
+    assertActualExpected(formatPathsStr(paths), "6");
+
+    paths = getPaths(pattern, cbor(9));
+    assertActualExpected(formatPathsStr(paths), "9");
+
+    // Should not match values outside range
+    expect(matches(pattern, cbor(5))).toBe(false);
+    expect(matches(pattern, cbor(10))).toBe(false);
+    expect(matches(pattern, cbor(15))).toBe(false);
+
+    // Display should show capture syntax with complex inner pattern
+    const displayStr = patternDisplay(pattern);
+    expect(displayStr.startsWith("@range(")).toBe(true);
+    expect(displayStr.includes("&")).toBe(true);
+    expect(displayStr.endsWith(")")).toBe(true);
+  });
+
+  it("test_nested_capture_patterns", () => {
+    const pattern = capture(
+      "outer",
+      or(capture("inner1", number(42)), capture("inner2", text("hello"))),
+    );
+
+    // Should match either captured pattern
+    let paths = getPaths(pattern, cbor(42));
+    assertActualExpected(formatPathsStr(paths), "42");
+
+    paths = getPaths(pattern, cbor("hello"));
+    assertActualExpected(formatPathsStr(paths), '"hello"');
+
+    // Should not match other values
+    expect(matches(pattern, cbor(43))).toBe(false);
+    expect(matches(pattern, cbor("world"))).toBe(false);
+
+    // Display should show nested capture syntax
+    const displayStr = patternDisplay(pattern);
+    expect(displayStr.startsWith("@outer(")).toBe(true);
+    expect(displayStr.includes("@inner1")).toBe(true);
+    expect(displayStr.includes("@inner2")).toBe(true);
+    expect(displayStr.includes("|")).toBe(true);
+    expect(displayStr.endsWith(")")).toBe(true);
+  });
+
+  it("test_capture_pattern_name_access", () => {
+    const innerPattern = number(42);
+    const pattern = capture("test_name", innerPattern);
+
+    // Test that we can access the capture pattern internals
+    expect(pattern.kind).toBe("Meta");
+    if (pattern.kind === "Meta" && pattern.pattern.type === "Capture") {
+      expect(pattern.pattern.pattern.name).toBe("test_name");
+      expect(pattern.pattern.pattern.pattern).toBe(innerPattern);
+    } else {
+      throw new Error("Expected capture pattern");
+    }
+  });
+
+  it("test_capture_pattern_is_complex", () => {
+    // Note: TS doesn't expose `isComplex()` directly, but the display format
+    // should show parentheses around complex inner patterns. We verify by
+    // checking the display string. Mirrors the spirit of the Rust test.
+
+    // Simple capture should not wrap inner pattern in parens
+    const simple = capture("simple", number(42));
+    expect(patternDisplay(simple)).toBe("@simple(42)");
+
+    // Complex capture's display reflects the complexity of its inner pattern
+    const complex = capture("complex", and(number(1), number(2)));
+    const complexDisplay = patternDisplay(complex);
+    expect(complexDisplay.startsWith("@complex(")).toBe(true);
+    expect(complexDisplay.includes("&")).toBe(true);
+  });
+
+  it("test_repeat_pattern_basic", () => {
+    // Test exact match (default quantifier)
+    const pattern = group(number(42));
+
+    const paths = getPaths(pattern, cbor(42));
+    assertActualExpected(formatPathsStr(paths), "42");
+
+    // Should not match other values
+    expect(matches(pattern, cbor(41))).toBe(false);
+    expect(matches(pattern, cbor("hello"))).toBe(false);
+
+    // Display should show pattern with {1} quantifier
+    expect(display(pattern)).toBe("(42){1}");
+  });
+
+  it("test_repeat_pattern_with_quantifier", () => {
+    // Test optional pattern (0 or 1 match)
+    const optionalPattern = repeat(
+      number(42),
+      new Quantifier(new Interval(0, 1), Reluctance.Greedy),
+    );
+
+    // Should match the number or succeed without it
+    const paths = getPaths(optionalPattern, cbor(42));
+    assertActualExpected(formatPathsStr(paths), "42");
+
+    // Display should show pattern with ? quantifier
+    expect(display(optionalPattern)).toBe("(42)?");
+  });
+
+  it("test_repeat_pattern_zero_or_more", () => {
+    // Test zero or more pattern
+    const starPattern = repeat(
+      number(42),
+      new Quantifier(Interval.atLeast(0), Reluctance.Greedy),
+    );
+
+    // Should always succeed with 0 matches or with the actual match
+    const paths = getPaths(starPattern, cbor(42));
+    assertActualExpected(formatPathsStr(paths), "42");
+
+    // Also succeeds with 0 matches for non-matching values - tested with matches()
+    expect(matches(starPattern, cbor(41))).toBe(true); // Succeeds with 0 matches
+
+    // Display should show pattern with * quantifier
+    expect(display(starPattern)).toBe("(42)*");
+  });
+
+  it("test_repeat_pattern_one_or_more", () => {
+    // Test one or more pattern
+    const plusPattern = repeat(
+      number(42),
+      new Quantifier(Interval.atLeast(1), Reluctance.Greedy),
+    );
+
+    // Should match the number but not other values
+    const paths = getPaths(plusPattern, cbor(42));
+    assertActualExpected(formatPathsStr(paths), "42");
+
+    // Should not match other values
+    expect(matches(plusPattern, cbor(41))).toBe(false);
+
+    // Display should show pattern with + quantifier
+    expect(display(plusPattern)).toBe("(42)+");
+  });
+
+  it("test_repeat_pattern_exact_count", () => {
+    // Test exact count pattern
+    const exactPattern = repeat(
+      number(42),
+      new Quantifier(new Interval(3, 3), Reluctance.Greedy),
+    );
+
+    // For single values, this should fail if count > 1
+    expect(matches(exactPattern, cbor(42))).toBe(false);
+
+    // Display should show pattern with {3} quantifier
+    expect(display(exactPattern)).toBe("(42){3}");
+  });
+
+  it("test_repeat_pattern_display_with_reluctance", () => {
+    // Test lazy quantifier
+    const lazyPattern = repeat(
+      text("test"),
+      new Quantifier(new Interval(0, 1), Reluctance.Lazy),
+    );
+
+    expect(display(lazyPattern)).toBe('("test")??');
+
+    // Test possessive quantifier
+    const possessivePattern = repeat(
+      text("test"),
+      new Quantifier(Interval.atLeast(1), Reluctance.Possessive),
+    );
+
+    expect(display(possessivePattern)).toBe('("test")++');
+  });
+
+  it("test_search_pattern_complex", () => {
+    // Search for arrays containing the number 5
+    const pattern = search(number(5));
+
+    const testData = cbor({
+      data: [{ values: [1, 2, 3] }, { values: [4, 5, 6] }, { other: "text" }],
+      meta: {
+        count: 5,
+        items: [7, 8, 9],
+      },
+    });
+
+    // Should match because the structure contains the number 5 in multiple places
+    const paths = getPaths(pattern, testData);
+    const expected = `{"data": [{"values": [1, 2, 3]}, {"values": [4, 5, 6]}, {"other": "text"}], "meta": {"count": 5, "items": [7, 8, 9]}}
+    [{"values": [1, 2, 3]}, {"values": [4, 5, 6]}, {"other": "text"}]
+        {"values": [4, 5, 6]}
+            [4, 5, 6]
+                5
+{"data": [{"values": [1, 2, 3]}, {"values": [4, 5, 6]}, {"other": "text"}], "meta": {"count": 5, "items": [7, 8, 9]}}
+    {"count": 5, "items": [7, 8, 9]}
+        5`;
+    assertActualExpected(formatPathsStr(paths), expected);
+
+    // Check specific paths are found
+    expect(paths.length).toBeGreaterThan(0);
+  });
+
+  it("test_search_pattern_with_captures", () => {
+    // Create a search pattern that captures what it finds
+    const innerPattern = capture("found", number(42));
+    const pattern = search(innerPattern);
+
+    // Test with a nested structure
+    const data = cbor([1, { key: 42 }, 3]);
+    const paths = getPaths(pattern, data);
+    const expected = `[1, {"key": 42}, 3]
+    {"key": 42}
+        42`;
+    assertActualExpected(formatPathsStr(paths), expected);
+
+    // Display should show the capture in the search
+    expect(display(pattern)).toBe("search(@found(42))");
+  });
+
+  it("test_search_pattern_paths", () => {
+    const pattern = search(text("target"));
+
+    const data = cbor({
+      level1: {
+        level2: ["target", "other"],
+      },
+      another: "target",
+    });
+
+    const paths = getPaths(pattern, data);
+
+    // Should find multiple paths to "target"
+    expect(paths.length).toBeGreaterThanOrEqual(2);
+
+    // All paths should be valid (non-empty)
+    for (const path of paths) {
+      expect(path.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("test_search_pattern_with_structure_pattern", () => {
+    // Search for any array
+    const pattern = search(parse("array"));
+
+    const data = cbor({
+      arrays: [
+        [1, 2],
+        [3, 4],
+      ],
+      not_array: 42,
+    });
+
+    const paths = getPaths(pattern, data);
+    // Should find the outer arrays structure and the inner arrays
+    const expected = `{"arrays": [[1, 2], [3, 4]], "not_array": 42}
+    [[1, 2], [3, 4]]
+{"arrays": [[1, 2], [3, 4]], "not_array": 42}
+    [[1, 2], [3, 4]]
+        [1, 2]
+{"arrays": [[1, 2], [3, 4]], "not_array": 42}
+    [[1, 2], [3, 4]]
+        [3, 4]`;
+    assertActualExpected(formatPathsStr(paths), expected);
+
+    expect(paths.length).toBeGreaterThanOrEqual(3);
   });
 
   it("test_search_array_order", () => {

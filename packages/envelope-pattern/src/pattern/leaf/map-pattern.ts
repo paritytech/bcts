@@ -63,6 +63,17 @@ export class MapPattern implements Matcher {
   }
 
   /**
+   * Creates a new MapPattern from a length Interval.
+   *
+   * Mirrors Rust `MapPattern::from_interval`. Used by the
+   * dcbor-pattern → envelope-pattern bridge to preserve `{{n,m}}`
+   * length info.
+   */
+  static fromInterval(interval: Interval): MapPattern {
+    return new MapPattern({ type: "Interval", interval });
+  }
+
+  /**
    * Gets the pattern type.
    */
   get pattern(): MapPatternType {
@@ -120,7 +131,15 @@ export class MapPattern implements Matcher {
       case "Any":
         return "map";
       case "Interval":
-        return `{{${this._pattern.interval.toString()}}}`;
+        // Mirror Rust `bc-dcbor-pattern-rust/src/pattern/structure/
+        // map_pattern.rs` `MapPattern::Length` Display:
+        //   `write!(f, "{{{}}}", interval)`  → `{<interval>}`.
+        // The interval's own `Display` already produces `{n}` /
+        // `{n,m}` / `{n,}`, so the final output is `{{n}}` (double
+        // brace from the outer literal `{` + interval's `{n}` + `}`).
+        // Earlier this port wrapped with `{{...}}` and produced
+        // `{{{n}}}` (triple brace), breaking parser parity.
+        return `{${this._pattern.interval.toString()}}`;
     }
   }
 

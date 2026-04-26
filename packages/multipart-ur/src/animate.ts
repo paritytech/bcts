@@ -149,6 +149,33 @@ export function generateFrames(ur: UR, params: AnimateParams = {}): QrFrame[] {
  *
  * For QR codes without logos, uses a small global palette (2–4 colors).
  * For QR codes with logos, uses per-frame quantization.
+ *
+ * **Parity caveat (M2 in `PARITY_OUTSTANDING.md`).** Rust's
+ * `bc-mur` uses the [`gif`](https://crates.io/crates/gif) crate;
+ * this port uses [`gifenc`](https://www.npmjs.com/package/gifenc).
+ * The two encoders produce **byte-different** GIFs for identical
+ * input frames because:
+ * - palette laid out differently (`gif` flattens RGB triplets into
+ *   a `Vec<u8>`; `gifenc` keeps an array of `[r,g,b]` triplets and
+ *   may pad to a different power-of-two table size),
+ * - many-color quantization uses different algorithms (`gif`
+ *   delegates to `color_quant::NeuQuant`; `gifenc` uses its own
+ *   palette quantizer),
+ * - LZW compression dictionary order can differ.
+ *
+ * The output is **visually equivalent** (same frames, same delays,
+ * infinite loop, same palette colors when ≤256 unique colors), but
+ * not byte-identical. Replacing the encoder is a large undertaking
+ * (audit recommends accepting divergence).
+ *
+ * The structural invariants we *do* enforce — and that the
+ * `tests/integration.test.ts > "gif structure (M2)"` test pins — are:
+ * - `GIF89a` magic at byte 0.
+ * - `NETSCAPE2.0` application extension present (= multi-frame
+ *   animated GIF).
+ * - Loop count `0x0000` (= repeat forever) per the `repeat: 0`
+ *   argument below.
+ * - One image-separator byte (`0x2c`) per frame.
  */
 export function encodeAnimatedGif(frames: readonly QrFrame[], fps: number): Uint8Array {
   if (frames.length === 0) {
@@ -157,6 +184,11 @@ export function encodeAnimatedGif(frames: readonly QrFrame[], fps: number): Uint
 
   const width = frames[0].image.width;
   const height = frames[0].image.height;
+  // Both impls compute centiseconds the same way:
+  //   Rust: `(100.0 / fps).round() as u16` → cs.
+  //   gifenc internally does `Math.round(delay_ms / 10)` → cs.
+  // So passing `delayCs * 10` ms here yields the same per-frame
+  // centisecond delay Rust writes (`gif::Frame.delay`).
   const delayCs = Math.round(100 / fps);
 
   let gif;
@@ -172,7 +204,15 @@ export function encodeAnimatedGif(frames: readonly QrFrame[], fps: number): Uint
     try {
       gif.writeFrame(indexed, width, height, {
         palette,
-        delay: delayCs * 10, // gifenc accepts delay in ms
+        // gifenc expects `delay` in milliseconds and divides by 10
+        // internally to write centiseconds — `delayCs * 10` here
+        // round-trips to the same `delayCs` Rust writes.
+        delay: delayCs * 10,
+        // `repeat: 0` → NETSCAPE2.0 loop-count = 0 = repeat forever
+        // (mirrors Rust `encoder.set_repeat(gif::Repeat::Infinite)`).
+        // gifenc only emits the NETSCAPE block on the first frame,
+        // so the per-frame `repeat: 0` is harmless on subsequent
+        // frames.
         repeat: 0,
       });
     } catch (e) {

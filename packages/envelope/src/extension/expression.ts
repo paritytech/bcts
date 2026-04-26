@@ -4,6 +4,7 @@
  *
  */
 
+import { type Cbor, cbor as toCbor, toTaggedValue } from "@bcts/dcbor";
 import { Envelope } from "../base/envelope";
 import { type EnvelopeEncodable, type EnvelopeEncodableValue } from "../base/envelope-encodable";
 import { EnvelopeError } from "../base/error";
@@ -192,9 +193,23 @@ export class Function implements EnvelopeEncodable {
   }
 
   /// Creates an expression envelope with this function as the subject.
+  ///
+  /// Mirrors Rust `EnvelopeEncodable for Function`
+  /// (`bc-envelope-rust/src/extension/expressions/function.rs:392-394`)
+  /// which calls `Envelope::new_leaf(self)` — that goes through
+  /// `From<Function> for CBOR = self.tagged_cbor()` which produces
+  /// `tag(40006, untagged)` where untagged is `uint(N)` for Known
+  /// or `text(name)` for Named.
+  ///
+  /// The earlier TS port pre-formatted the display string into a
+  /// text leaf (`Envelope.new("«\"name\"»")`), which breaks the
+  /// TAG_FUNCTION summarizer (it never fires because the leaf is
+  /// not tagged), so format() rendered the leaf as a quoted string
+  /// instead of `«"name"»`.
   envelope(): Envelope {
-    const functionStr = this._variant === "known" ? `«${this._value}»` : `«"${this._name}"»`;
-    return Envelope.new(functionStr);
+    const untagged: Cbor =
+      this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
+    return Envelope.newLeaf(toTaggedValue(40006, untagged));
   }
 
   /// Converts this function into an envelope (EnvelopeEncodable implementation).
@@ -421,12 +436,18 @@ export class Parameter implements EnvelopeEncodable {
   }
 
   /// Creates a parameter envelope.
+  ///
+  /// Mirrors Rust `EnvelopeEncodable for Parameter` (same pattern as
+  /// Function above): the parameter is stored as `tag(40007, untagged)`
+  /// where untagged is `uint(N)` (Known) or `text(name)` (Named).
   envelope(): Envelope {
-    const paramStr = this._variant === "known" ? `❰${this._value}❱` : `❰"${this._name}"❱`;
+    const untagged: Cbor =
+      this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
+    const paramLeaf = Envelope.newLeaf(toTaggedValue(40007, untagged));
     if (this._paramValue !== undefined) {
-      return Envelope.newAssertion(paramStr, this._paramValue);
+      return Envelope.newAssertion(paramLeaf, this._paramValue);
     }
-    return Envelope.new(paramStr);
+    return paramLeaf;
   }
 
   /// Converts this parameter into an envelope (EnvelopeEncodable implementation).
@@ -626,9 +647,19 @@ export const GLOBAL_PARAMETERS = new LazyStore(() => new ParametersStore([BLANK,
 //------------------------------------------------------------------------------
 
 /// Represents a complete expression with function and parameters.
+///
+/// Parameters are stored as an *append-only array*, mirroring Rust
+/// `bc-envelope`'s `Expression` which adds each parameter as a fresh
+/// envelope assertion (multiple values per parameter ID are valid —
+/// e.g. GSTP DKG invites carry multiple `participant` parameters).
+/// Earlier the TS port used `Map<string, Parameter>`, which silently
+/// overwrote previous values with the same parameter ID. The
+/// resulting envelope had only the last `participant`, breaking
+/// `objectsForParameter("participant")` decoders downstream
+/// (`frost-hubert/group-invite.ts:383`).
 export class Expression implements EnvelopeEncodable {
   private readonly _function: Function;
-  private readonly _parameters = new Map<string, Parameter>();
+  private readonly _parameters: Parameter[] = [];
   private _envelope: Envelope | null = null;
 
   constructor(func: Function) {
@@ -642,13 +673,12 @@ export class Expression implements EnvelopeEncodable {
 
   /// Returns all parameters.
   parameters(): Parameter[] {
-    return Array.from(this._parameters.values());
+    return this._parameters.slice();
   }
 
   /// Adds a parameter to the expression.
   withParameter(param: ParameterID, value: EnvelopeEncodableValue): Expression {
-    const key = typeof param === "number" ? param.toString() : param;
-    this._parameters.set(key, Parameter.withValue(param, Envelope.new(value)));
+    this._parameters.push(Parameter.withValue(param, Envelope.new(value)));
     this._envelope = null; // Invalidate cached envelope
     return this;
   }
@@ -661,16 +691,41 @@ export class Expression implements EnvelopeEncodable {
     return this;
   }
 
-  /// Gets a parameter value by ID.
+  /// Returns true if the parameter ID matches the one stored on a Parameter.
+  private static parameterIdMatches(stored: ParameterID, query: ParameterID): boolean {
+    if (typeof stored === "number" && typeof query === "number") return stored === query;
+    if (typeof stored === "string" && typeof query === "string") return stored === query;
+    // Cross-type: numeric IDs are stringified to compare against named lookups.
+    return String(stored) === String(query);
+  }
+
+  /// Gets the first parameter value with the given ID.
+  ///
+  /// For multi-valued parameters (e.g. several `participant` assertions),
+  /// use {@link objectsForParameter} to retrieve all matching values.
   getParameter(param: ParameterID): Envelope | undefined {
-    const key = typeof param === "number" ? param.toString() : param;
-    return this._parameters.get(key)?.paramValue();
+    const found = this._parameters.find((p) => Expression.parameterIdMatches(p.id(), param));
+    return found?.paramValue();
+  }
+
+  /// Returns all parameter values matching the given ID.
+  ///
+  /// Mirrors Rust `Expression::objects_for_parameter`, which delegates
+  /// to `Envelope::objects_for_predicate` and returns a `Vec<Envelope>`.
+  objectsForParameter(param: ParameterID): Envelope[] {
+    const matches: Envelope[] = [];
+    for (const p of this._parameters) {
+      if (Expression.parameterIdMatches(p.id(), param)) {
+        const v = p.paramValue();
+        if (v !== undefined) matches.push(v);
+      }
+    }
+    return matches;
   }
 
   /// Checks if a parameter exists.
   hasParameter(param: ParameterID): boolean {
-    const key = typeof param === "number" ? param.toString() : param;
-    return this._parameters.has(key);
+    return this._parameters.some((p) => Expression.parameterIdMatches(p.id(), param));
   }
 
   /// Converts the expression to an envelope.
@@ -682,18 +737,22 @@ export class Expression implements EnvelopeEncodable {
     // Start with function envelope
     let env = this._function.envelope();
 
-    // Add all parameters as assertions
+    // Add all parameters as assertions. Each parameter's envelope is
+    // itself an assertion (`Parameter.envelope()` returns
+    // `Envelope.newAssertion(parameterLeaf, value)`); we extract the
+    // predicate (a tagged-CBOR Parameter leaf, post-M0/G1 fix) and
+    // attach it to the function envelope as a fresh assertion.
+    // Earlier this passed `predicate.asText()` (which only works
+    // when the parameter is stored as a display string) so the
+    // tagged-CBOR predicate would have produced `undefined` and the
+    // assertion would silently be skipped.
     for (const param of this._parameters.values()) {
       const paramEnv = param.envelope();
-      // The paramEnv is itself an assertion envelope - extract predicate and object directly
       const paramCase = paramEnv.case();
       if (paramCase.type === "assertion") {
         const predicate = paramCase.assertion.predicate();
         const object = paramCase.assertion.object();
-        const predText = predicate.asText();
-        if (predText !== undefined) {
-          env = env.addAssertion(predText, object);
-        }
+        env = env.addAssertion(predicate, object);
       }
     }
 
@@ -707,47 +766,26 @@ export class Expression implements EnvelopeEncodable {
   }
 
   /// Creates an expression from an envelope.
+  ///
+  /// The function and each parameter are read as **tagged CBOR**
+  /// (tag 40006 / tag 40007). Earlier the TS port stored these as
+  /// pre-formatted display strings (e.g. `«"test"»`, `❰"param1"❱`)
+  /// and parsed them by string matching; that diverged from Rust
+  /// (which stores tag-40006/40007 leaves) and prevented the
+  /// TAG_FUNCTION / TAG_PARAMETER format summarizers from firing.
   static fromEnvelope(envelope: Envelope): Expression {
-    // Extract function from subject
     const subject = envelope.subject();
-    const subjectText = subject.asText();
-    if (subjectText === undefined) {
-      throw EnvelopeError.general("Not a valid function envelope");
-    }
-
-    // Parse function identifier
-    let func: Function;
-    if (subjectText.startsWith("«") && subjectText.endsWith("»")) {
-      const inner = subjectText.slice(1, -1);
-      if (inner.startsWith('"') && inner.endsWith('"')) {
-        func = Function.newNamed(inner.slice(1, -1));
-      } else {
-        func = Function.newKnown(parseInt(inner, 10));
-      }
-    } else {
-      throw EnvelopeError.general("Not a valid function envelope");
-    }
-
+    const func = readFunctionFromLeaf(subject);
     const expr = new Expression(func);
 
-    // Extract parameters from assertions
     for (const assertion of envelope.assertions()) {
       try {
         const pred = assertion.subject().asPredicate();
         const obj = assertion.asObject();
-
-        if (pred !== undefined && obj !== undefined) {
-          const predText = pred.asText();
-          if (predText !== undefined && predText.startsWith("❰") && predText.endsWith("❱")) {
-            const inner = predText.slice(1, -1);
-            let paramId: ParameterID;
-            if (inner.startsWith('"') && inner.endsWith('"')) {
-              paramId = inner.slice(1, -1);
-            } else {
-              paramId = parseInt(inner, 10);
-            }
-            expr.withParameter(paramId, obj);
-          }
+        if (pred === undefined || obj === undefined) continue;
+        const paramId = tryReadParameterIdFromLeaf(pred);
+        if (paramId !== undefined) {
+          expr.withParameter(paramId, obj);
         }
       } catch {
         // Skip non-parameter assertions
@@ -770,6 +808,48 @@ export class Expression implements EnvelopeEncodable {
 //------------------------------------------------------------------------------
 // Helper functions for creating common expressions
 //------------------------------------------------------------------------------
+
+/**
+ * Decode a Function from an envelope leaf containing a tag-40006
+ * tagged CBOR value (`tag(40006, uint(N))` for Known,
+ * `tag(40006, text(name))` for Named).
+ */
+function readFunctionFromLeaf(envelope: Envelope): Function {
+  const leaf = envelope.case();
+  if (leaf.type !== "leaf") {
+    throw EnvelopeError.general("Function envelope subject must be a leaf");
+  }
+  const tagged = leaf.cbor.asTagged?.();
+  if (tagged === undefined || Number(tagged[0].value) !== CBOR_TAG_FUNCTION) {
+    throw EnvelopeError.general("Function envelope subject must be tag 40006");
+  }
+  const inner = tagged[1];
+  if (inner.isInteger()) {
+    return Function.newKnown(Number(inner.toInteger()));
+  }
+  if (inner.isText()) {
+    return Function.newNamed(inner.toText());
+  }
+  throw EnvelopeError.general("Function tag content must be uint or text");
+}
+
+/**
+ * If `envelope` is a leaf containing a tag-40007 (Parameter) value,
+ * return the parsed `ParameterID`; otherwise `undefined`. Mirrors
+ * Rust `Parameter::from_tagged_cbor`.
+ */
+function tryReadParameterIdFromLeaf(envelope: Envelope): ParameterID | undefined {
+  const c = envelope.case();
+  if (c.type !== "leaf") return undefined;
+  const tagged = c.cbor.asTagged?.();
+  if (tagged === undefined || Number(tagged[0].value) !== CBOR_TAG_PARAMETER) {
+    return undefined;
+  }
+  const inner = tagged[1];
+  if (inner.isInteger()) return Number(inner.toInteger());
+  if (inner.isText()) return inner.toText();
+  return undefined;
+}
 
 /// Creates an addition expression: lhs + rhs
 export function add(lhs: EnvelopeEncodableValue, rhs: EnvelopeEncodableValue): Expression {

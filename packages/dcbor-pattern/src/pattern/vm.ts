@@ -402,8 +402,15 @@ const runThread = (
         }
 
         case "PushAxis": {
+          // Push child threads onto the stack in *reverse* order so
+          // that `stack.pop()` (LIFO) returns them in source order.
+          // Without the reverse, captures-with-multiple-matches
+          // collect children in the wrong order — a regression seen
+          // when the DP1 PushAxis lowering first landed.
           const children = axisChildren(instr.axis, th.cbor);
-          for (const child of children) {
+          for (let i = children.length - 1; i >= 0; i--) {
+            const child = children[i];
+            if (child === undefined) continue;
             const newThread: Thread = {
               pc: th.pc + 1,
               cbor: child,
