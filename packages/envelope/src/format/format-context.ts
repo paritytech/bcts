@@ -554,21 +554,21 @@ const setupComponentSummarizers = (context: FormatContext): void => {
   // (`base/envelope.ts` ↔ `format/format-context.ts`). Instead,
   // `index.ts` calls {@link setEnvelopeFormatHook} once both
   // modules have finished loading.
-  const wrapWithEnvelopeFormat = (
-    keyword: string,
-  ): CborSummarizer => (cbor, flat) => {
-    try {
-      if (envelopeFormatHook === undefined) {
-        // Hook not yet installed — fall back to the raw diag
-        // representation so we still produce *some* output.
-        return { ok: true, value: `${keyword}(${cbor.toDiagnostic()})` };
+  const wrapWithEnvelopeFormat =
+    (keyword: string): CborSummarizer =>
+    (cbor, flat) => {
+      try {
+        if (envelopeFormatHook === undefined) {
+          // Hook not yet installed — fall back to the raw diag
+          // representation so we still produce *some* output.
+          return { ok: true, value: `${keyword}(${cbor.toDiagnostic()})` };
+        }
+        const innerFormat = envelopeFormatHook(cbor, flat);
+        return { ok: true, value: `${keyword}(${innerFormat})` };
+      } catch (e) {
+        return summarizerError(e);
       }
-      const innerFormat = envelopeFormatHook(cbor, flat);
-      return { ok: true, value: `${keyword}(${innerFormat})` };
-    } catch (e) {
-      return summarizerError(e);
-    }
-  };
+    };
   tags.setSummarizer(TAG_REQUEST.value, wrapWithEnvelopeFormat("request"));
   tags.setSummarizer(TAG_RESPONSE.value, wrapWithEnvelopeFormat("response"));
   tags.setSummarizer(TAG_EVENT.value, wrapWithEnvelopeFormat("event"));

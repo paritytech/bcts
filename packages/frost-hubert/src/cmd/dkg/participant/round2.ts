@@ -618,8 +618,7 @@ export async function round2(
     sortedParticipantXids.push(ownerXid);
   }
   sortedParticipantXids.sort((a, b) => compareXidBytes(a.toData(), b.toData()));
-  const participantIndex =
-    sortedParticipantXids.findIndex((x) => x.urString() === ownerXidStr) + 1; // 1-indexed
+  const participantIndex = sortedParticipantXids.findIndex((x) => x.urString() === ownerXidStr) + 1; // 1-indexed
 
   // Persist Round 2 secret and collected round1 packages
   const round2SecretPath = persistRound2State(

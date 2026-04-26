@@ -15,12 +15,7 @@
  */
 
 import { parse as parseDcborPattern } from "@bcts/dcbor-pattern";
-import {
-  type Result,
-  err,
-  extraData,
-  ok,
-} from "../error";
+import { type Result, err, extraData, ok } from "../error";
 import { type Pattern, convertDcborPatternToEnvelopePattern } from "../pattern";
 import { Lexer } from "./token";
 import { parseOr } from "./meta/or-parser";

@@ -121,11 +121,7 @@ describe("Continuation", () => {
       // `test_encrypted_continuation`. Universal format (no
       // key-fingerprint in this view).
       expect(envelope.format()).toBe(
-        [
-          "ENCRYPTED [",
-          "    'hasRecipient': SealedMessage",
-          "]",
-        ].join("\n"),
+        ["ENCRYPTED [", "    'hasRecipient': SealedMessage", "]"].join("\n"),
       );
 
       // The envelope's subject should be encrypted (the outer envelope is a node with hasRecipient assertion)
@@ -246,7 +242,7 @@ describe("SealedRequest", () => {
       [
         "{",
         "    request(ARID(c66be27d)) [",
-        '        \'body\': «"test"» [',
+        "        'body': «\"test\"» [",
         '            ❰"param1"❱: 42',
         '            ❰"param2"❱: "hello"',
         "        ]",

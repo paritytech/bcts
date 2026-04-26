@@ -196,10 +196,7 @@ export const extractTaggedContent = (cbor: Cbor): Cbor => {
  * Mirrors Rust's default `from_tagged_cbor_data` impl on
  * `CBORTaggedDecodable`.
  */
-export function fromTaggedCborData<T>(
-  decodable: CborTaggedDecodable<T>,
-  data: Uint8Array,
-): T {
+export function fromTaggedCborData<T>(decodable: CborTaggedDecodable<T>, data: Uint8Array): T {
   return decodable.fromTaggedCbor(decodeCbor(data));
 }
 
@@ -210,9 +207,6 @@ export function fromTaggedCborData<T>(
  * Mirrors Rust's default `from_untagged_cbor_data` impl on
  * `CBORTaggedDecodable`.
  */
-export function fromUntaggedCborData<T>(
-  decodable: CborTaggedDecodable<T>,
-  data: Uint8Array,
-): T {
+export function fromUntaggedCborData<T>(decodable: CborTaggedDecodable<T>, data: Uint8Array): T {
   return decodable.fromUntaggedCbor(decodeCbor(data));
 }

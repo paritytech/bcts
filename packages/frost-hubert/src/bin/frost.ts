@@ -23,11 +23,7 @@ import { program } from "commander";
 
 import { ownerSet } from "../cmd/registry/owner/set.js";
 import { participantAdd } from "../cmd/registry/participant/add.js";
-import {
-  type StorageClient,
-  type StorageSelection,
-  createStorageClient,
-} from "../cmd/storage.js";
+import { type StorageClient, type StorageSelection, createStorageClient } from "../cmd/storage.js";
 
 // DKG / sign command modules transitively load `@frosts/core`, whose
 // published dist auto-imports `vitest` as a side-effect (a known
@@ -223,10 +219,7 @@ async function main(): Promise<void> {
     .action(
       runSync(
         (xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
-          ownerSet(
-            { xidDocument, petName, registryPath: options.registry },
-            process.cwd(),
-          );
+          ownerSet({ xidDocument, petName, registryPath: options.registry }, process.cwd());
         },
       ),
     );
@@ -242,10 +235,7 @@ async function main(): Promise<void> {
     .action(
       runSync(
         (xidDocument: string, petName: string | undefined, options: { registry?: string }) => {
-          participantAdd(
-            { xidDocument, petName, registryPath: options.registry },
-            process.cwd(),
-          );
+          participantAdd({ xidDocument, petName, registryPath: options.registry }, process.cwd());
         },
       ),
     );
@@ -436,9 +426,7 @@ async function main(): Promise<void> {
   );
 
   // ─── DKG participant ───────────────────────────────────────────────────
-  const dkgParticipantCmd = dkgCmd
-    .command("participant")
-    .description("DKG participant commands");
+  const dkgParticipantCmd = dkgCmd.command("participant").description("DKG participant commands");
 
   // dkg participant receive
   addStorageOpts(

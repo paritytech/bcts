@@ -48,7 +48,7 @@ beforeAll(() => {
 });
 
 describe("Digest — Rust fixture", () => {
-  it("matches the hex fixture for SHA-256(\"hello world\")", () => {
+  it('matches the hex fixture for SHA-256("hello world")', () => {
     const digest = Digest.fromImage(new TextEncoder().encode("hello world"));
     expect(bytesToHex(digest.toData())).toBe(
       "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",

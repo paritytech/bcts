@@ -26,9 +26,7 @@ export function registerAssertionsPatternFactory(
   createStructureAssertionsPattern = factory;
 }
 
-export function registerAssertionsPatternToStringDispatch(
-  fn: (pattern: Pattern) => string,
-): void {
+export function registerAssertionsPatternToStringDispatch(fn: (pattern: Pattern) => string): void {
   dispatchPatternToString = fn;
 }
 

@@ -1012,9 +1012,7 @@ describe("XIDDocument", () => {
       // PrivateKeys is now stored as a tagged-CBOR leaf (mirrors Rust);
       // the previous test asserted a byte-string subject which was the
       // pre-fix shape.
-      const leaf = (
-        envelope?.subject() as unknown as { asLeaf(): unknown }
-      ).asLeaf();
+      const leaf = (envelope?.subject() as unknown as { asLeaf(): unknown }).asLeaf();
       expect(leaf).toBeDefined();
     });
 

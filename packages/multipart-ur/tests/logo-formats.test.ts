@@ -27,7 +27,8 @@ function makeBmp2x2(): Uint8Array {
   const view = new DataView(buf.buffer);
 
   // File header
-  buf[0] = 0x42; buf[1] = 0x4d; // "BM"
+  buf[0] = 0x42;
+  buf[1] = 0x4d; // "BM"
   view.setUint32(2, fileSize, true);
   view.setUint32(10, 54, true); // pixel data offset
 
@@ -42,12 +43,20 @@ function makeBmp2x2(): Uint8Array {
 
   // Pixel data — bottom row first.
   // Bottom row: red pixel + green pixel (BGR layout)
-  buf[54] = 0; buf[55] = 0; buf[56] = 255; // red
-  buf[57] = 0; buf[58] = 255; buf[59] = 0; // green
+  buf[54] = 0;
+  buf[55] = 0;
+  buf[56] = 255; // red
+  buf[57] = 0;
+  buf[58] = 255;
+  buf[59] = 0; // green
   // 2 bytes padding
   // Top row: blue + white
-  buf[62] = 255; buf[63] = 0; buf[64] = 0; // blue
-  buf[65] = 255; buf[66] = 255; buf[67] = 255; // white
+  buf[62] = 255;
+  buf[63] = 0;
+  buf[64] = 0; // blue
+  buf[65] = 255;
+  buf[66] = 255;
+  buf[67] = 255; // white
   return buf;
 }
 
@@ -61,22 +70,43 @@ function makeBmp2x2(): Uint8Array {
 function makeGif2x2(): Uint8Array {
   return new Uint8Array([
     // GIF Header
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, // "GIF89a"
+    0x47,
+    0x49,
+    0x46,
+    0x38,
+    0x39,
+    0x61, // "GIF89a"
     // Logical Screen Descriptor: 2x2, GCT flag, 7-bit, color table size = 4 (2^(0+1) = 4 colors needs index 1, so size field = 1)
-    0x02, 0x00, // width=2
-    0x02, 0x00, // height=2
+    0x02,
+    0x00, // width=2
+    0x02,
+    0x00, // height=2
     0x91, // GCT flag=1, color resolution=001 (2-bit), sort=0, GCT size=001 (4 colors)
     0x00, // background color index
     0x00, // pixel aspect ratio
     // Global Color Table (4 entries × 3 bytes)
-    0xff, 0x00, 0x00, // 0: red
-    0x00, 0xff, 0x00, // 1: green
-    0x00, 0x00, 0xff, // 2: blue
-    0xff, 0xff, 0xff, // 3: white
+    0xff,
+    0x00,
+    0x00, // 0: red
+    0x00,
+    0xff,
+    0x00, // 1: green
+    0x00,
+    0x00,
+    0xff, // 2: blue
+    0xff,
+    0xff,
+    0xff, // 3: white
     // Image Descriptor
     0x2c, // separator
-    0x00, 0x00, 0x00, 0x00, // origin (0,0)
-    0x02, 0x00, 0x02, 0x00, // size 2x2
+    0x00,
+    0x00,
+    0x00,
+    0x00, // origin (0,0)
+    0x02,
+    0x00,
+    0x02,
+    0x00, // size 2x2
     0x00, // local CT flag=0
     // Image data
     0x02, // LZW minimum code size
@@ -84,7 +114,13 @@ function makeGif2x2(): Uint8Array {
     //   clear (4) → 0 → 1 → 2 → 3 → end (5)
     // Encoded bit stream for that sequence is: 04 0a 04 22 04 (5 bytes)
     // Block size + data + terminator block
-    0x05, 0x04, 0x0a, 0x04, 0x22, 0x04, 0x00,
+    0x05,
+    0x04,
+    0x0a,
+    0x04,
+    0x22,
+    0x04,
+    0x00,
     // Trailer
     0x3b,
   ]);
@@ -94,14 +130,11 @@ describe("M5 — Logo.fromImageBytes raster format support", () => {
   it("decodes PNG (regression — previously the only supported format)", async () => {
     // Build a tiny PNG via fast-png's encode round-trip.
     const { encode: encodePng } = await import("fast-png");
-    const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255]);
+    const pixels = new Uint8Array([
+      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+    ]);
     const png = encodePng({ width: 2, height: 2, data: pixels, depth: 8, channels: 4 });
-    const logo = Logo.fromImageBytes(
-      png as unknown as Uint8Array,
-      0.25,
-      1,
-      LogoClearShape.Square,
-    );
+    const logo = Logo.fromImageBytes(png as unknown as Uint8Array, 0.25, 1, LogoClearShape.Square);
     expect(logo).toBeInstanceOf(Logo);
   });
 
@@ -115,12 +148,7 @@ describe("M5 — Logo.fromImageBytes raster format support", () => {
       pixels[i * 4 + 3] = 255;
     }
     const encoded = jpeg.encode({ data: pixels, width: 2, height: 2 }, 90);
-    const logo = Logo.fromImageBytes(
-      encoded.data,
-      0.25,
-      1,
-      LogoClearShape.Square,
-    );
+    const logo = Logo.fromImageBytes(encoded.data, 0.25, 1, LogoClearShape.Square);
     expect(logo).toBeInstanceOf(Logo);
   });
 
@@ -161,25 +189,20 @@ describe("M5 — Logo.fromImageBytes raster format support", () => {
     const encoded = (await webp.encode(
       // ImageData isn't exported from webp-wasm directly, but the
       // implementation accepts a structurally-compatible plain object.
-      { data: rgba, width: 8, height: 8 } as unknown as InstanceType<
-        typeof globalThis.ImageData
-      >,
+      { data: rgba, width: 8, height: 8 } as unknown as InstanceType<typeof globalThis.ImageData>,
       { quality: 80 },
     )) as Buffer;
     const bytes = new Uint8Array(encoded.buffer, encoded.byteOffset, encoded.byteLength);
 
-    const logo = await Logo.fromImageBytesAsync(
-      bytes,
-      0.25,
-      1,
-      LogoClearShape.Square,
-    );
+    const logo = await Logo.fromImageBytesAsync(bytes, 0.25, 1, LogoClearShape.Square);
     expect(logo).toBeInstanceOf(Logo);
   });
 
   it("Logo.fromImageBytesAsync delegates to sync for non-WebP", async () => {
     const { encode: encodePng } = await import("fast-png");
-    const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255]);
+    const pixels = new Uint8Array([
+      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255,
+    ]);
     const png = encodePng({ width: 2, height: 2, data: pixels, depth: 8, channels: 4 });
     const logo = await Logo.fromImageBytesAsync(
       png as unknown as Uint8Array,

@@ -383,7 +383,10 @@ export const cbor = (value: CborInput): Cbor => {
       // canonical integer. Route to Float instead — Rust's `From<f64>
       // for CBOR` does the same fallback.
       result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: value } };
-    } else if (typeof value === "bigint" && (value > 0xffffffffffffffffn || value < -0x10000000000000000n)) {
+    } else if (
+      typeof value === "bigint" &&
+      (value > 0xffffffffffffffffn || value < -0x10000000000000000n)
+    ) {
       // bigint outside the [-(2^64), 2^64 - 1] CBOR-encodable integer
       // range. Surface immediately rather than crashing in encodeVarInt.
       throw new CborError({ type: "OutOfRange" });

@@ -91,11 +91,7 @@ describe("Post-Quantum", () => {
       //   - the EncapsulationScheme `Debug`-uppercase mapping, and
       //   - the wrap-and-encrypt-to-PQ-recipient pipeline.
       expect(envelope.format()).toBe(
-        [
-          "ENCRYPTED [",
-          "    'hasRecipient': SealedMessage(MLKEM512)",
-          "]",
-        ].join("\n"),
+        ["ENCRYPTED [", "    'hasRecipient': SealedMessage(MLKEM512)", "]"].join("\n"),
       );
 
       // The envelope's subject should be encrypted (the outer envelope is a node with hasRecipient assertion)

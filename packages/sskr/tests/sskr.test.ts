@@ -1,10 +1,7 @@
 // Tests ported from bc-sskr-rust/src/lib.rs
 
 import type { RandomNumberGenerator } from "@bcts/rand";
-import {
-  rngNextInClosedRange,
-  makeFakeRandomNumberGenerator,
-} from "@bcts/rand";
+import { rngNextInClosedRange, makeFakeRandomNumberGenerator } from "@bcts/rand";
 import {
   Secret,
   GroupSpec,

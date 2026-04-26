@@ -51,4 +51,3 @@ Envelope.prototype.diagnosticAnnotated = function (
   opts.tags = ctx.tags();
   return diagnosticOpt(this.taggedCbor(), opts);
 };
-

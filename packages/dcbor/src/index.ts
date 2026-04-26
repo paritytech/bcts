@@ -123,12 +123,7 @@ export {
 } from "./bignum";
 
 // CBOR-encoding-based array sorting (Rust `array.rs::CBORSortable`).
-export {
-  sortArrayByCborEncoding,
-  arraySortable,
-  setSortable,
-  type CBORSortable,
-} from "./sortable";
+export { sortArrayByCborEncoding, arraySortable, setSortable, type CBORSortable } from "./sortable";
 
 // Float utilities
 export { hasFractionalPart } from "./float";

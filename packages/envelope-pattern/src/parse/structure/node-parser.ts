@@ -23,13 +23,7 @@ import {
   unexpectedEndOfInput,
   unexpectedToken,
 } from "../../error";
-import {
-  type Pattern,
-  NodePattern,
-  anyNode,
-  patternStructure,
-  structureNode,
-} from "../../pattern";
+import { type Pattern, NodePattern, anyNode, patternStructure, structureNode } from "../../pattern";
 import type { Lexer } from "../token";
 
 export function parseNode(lexer: Lexer): Result<Pattern> {

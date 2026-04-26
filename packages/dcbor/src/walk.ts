@@ -285,20 +285,8 @@ function walkMap<State>(
     );
     if (kvStop) continue;
 
-    walkInternal(
-      key,
-      level + 1,
-      { type: EdgeType.MapKey },
-      cloneState(kvPostState),
-      visitor,
-    );
-    walkInternal(
-      value,
-      level + 1,
-      { type: EdgeType.MapValue },
-      cloneState(kvPostState),
-      visitor,
-    );
+    walkInternal(key, level + 1, { type: EdgeType.MapKey }, cloneState(kvPostState), visitor);
+    walkInternal(value, level + 1, { type: EdgeType.MapValue }, cloneState(kvPostState), visitor);
   }
 }
 

@@ -175,7 +175,10 @@ function compositeBilinearAtOffset(
       const w01 = (1 - xFrac) * yFrac;
       const w11 = xFrac * yFrac;
 
-      let r = 0, g = 0, b = 0, a = 0;
+      let r = 0,
+        g = 0,
+        b = 0,
+        a = 0;
       if (x0 >= 0 && x0 < srcW && y0 >= 0 && y0 < srcH) {
         const i = (y0 * srcW + x0) * 4;
         r += src[i] * w00;

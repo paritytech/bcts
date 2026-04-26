@@ -467,10 +467,7 @@ describe("meta pattern tests", () => {
 
   it("test_repeat_pattern_zero_or_more", () => {
     // Test zero or more pattern
-    const starPattern = repeat(
-      number(42),
-      new Quantifier(Interval.atLeast(0), Reluctance.Greedy),
-    );
+    const starPattern = repeat(number(42), new Quantifier(Interval.atLeast(0), Reluctance.Greedy));
 
     // Should always succeed with 0 matches or with the actual match
     const paths = getPaths(starPattern, cbor(42));
@@ -485,10 +482,7 @@ describe("meta pattern tests", () => {
 
   it("test_repeat_pattern_one_or_more", () => {
     // Test one or more pattern
-    const plusPattern = repeat(
-      number(42),
-      new Quantifier(Interval.atLeast(1), Reluctance.Greedy),
-    );
+    const plusPattern = repeat(number(42), new Quantifier(Interval.atLeast(1), Reluctance.Greedy));
 
     // Should match the number but not other values
     const paths = getPaths(plusPattern, cbor(42));
@@ -503,10 +497,7 @@ describe("meta pattern tests", () => {
 
   it("test_repeat_pattern_exact_count", () => {
     // Test exact count pattern
-    const exactPattern = repeat(
-      number(42),
-      new Quantifier(new Interval(3, 3), Reluctance.Greedy),
-    );
+    const exactPattern = repeat(number(42), new Quantifier(new Interval(3, 3), Reluctance.Greedy));
 
     // For single values, this should fail if count > 1
     expect(matches(exactPattern, cbor(42))).toBe(false);
@@ -517,10 +508,7 @@ describe("meta pattern tests", () => {
 
   it("test_repeat_pattern_display_with_reluctance", () => {
     // Test lazy quantifier
-    const lazyPattern = repeat(
-      text("test"),
-      new Quantifier(new Interval(0, 1), Reluctance.Lazy),
-    );
+    const lazyPattern = repeat(text("test"), new Quantifier(new Interval(0, 1), Reluctance.Lazy));
 
     expect(display(lazyPattern)).toBe('("test")??');
 

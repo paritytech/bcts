@@ -106,10 +106,8 @@ describe("EP1 — Parser round-trip + AST shape", () => {
     it("date'2023-12-25' literal", () => parseAndRoundTrip("date'2023-12-25'"));
     it("date'2023-12-24...2023-12-26' range", () =>
       parseAndRoundTrip("date'2023-12-24...2023-12-26'"));
-    it("date'2023-12-24...' range from", () =>
-      parseAndRoundTrip("date'2023-12-24...'"));
-    it("date'...2023-12-26' range to", () =>
-      parseAndRoundTrip("date'...2023-12-26'"));
+    it("date'2023-12-24...' range from", () => parseAndRoundTrip("date'2023-12-24...'"));
+    it("date'...2023-12-26' range to", () => parseAndRoundTrip("date'...2023-12-26'"));
     it("date'/2023-.*/' regex", () => parseAndRoundTrip("date'/2023-.*/'"));
   });
 
@@ -122,12 +120,9 @@ describe("EP1 — Parser round-trip + AST shape", () => {
 
   describe("Leaf — tagged", () => {
     it("tagged any", () => parseAndRoundTrip("tagged"));
-    it("tagged(100, *) numeric tag + any content", () =>
-      parseAndRoundTrip("tagged(100, *)"));
-    it("tagged(date, *) named tag + any content", () =>
-      parseAndRoundTrip("tagged(date, *)"));
-    it("tagged(/da.*/, *) regex tag", () =>
-      parseAndRoundTrip("tagged(/da.*/, *)"));
+    it("tagged(100, *) numeric tag + any content", () => parseAndRoundTrip("tagged(100, *)"));
+    it("tagged(date, *) named tag + any content", () => parseAndRoundTrip("tagged(date, *)"));
+    it("tagged(/da.*/, *) regex tag", () => parseAndRoundTrip("tagged(/da.*/, *)"));
   });
 
   describe("Leaf — cbor", () => {
@@ -150,8 +145,7 @@ describe("EP1 — Parser round-trip + AST shape", () => {
   });
 
   describe("Meta — repeat / quantifier", () => {
-    it("(number){2,4}+ possessive bounded", () =>
-      parseAndRoundTrip("(number){2,4}+"));
+    it("(number){2,4}+ possessive bounded", () => parseAndRoundTrip("(number){2,4}+"));
     it("(text)+? lazy plus", () => parseAndRoundTrip("(text)+?"));
     it("(wrapped)* greedy star", () => parseAndRoundTrip("(wrapped)*"));
   });
@@ -168,15 +162,13 @@ describe("EP1 — Parser round-trip + AST shape", () => {
       const p = parseAndRoundTrip("node");
       expect(p.type).toBe("Structure");
     });
-    it("node({1,3}) bounded assertion count", () =>
-      parseAndRoundTrip("node({1,3})"));
+    it("node({1,3}) bounded assertion count", () => parseAndRoundTrip("node({1,3})"));
     it("assert top-level assertion", () => parseAndRoundTrip("assert"));
     it("subj subject role", () => parseAndRoundTrip("subj"));
     it("pred predicate role", () => parseAndRoundTrip("pred"));
     it("pred(1) predicate equals", () => parseAndRoundTrip("pred(1)"));
     it("obj object role", () => parseAndRoundTrip("obj"));
-    it("assertobj(1) assertion-object equals", () =>
-      parseAndRoundTrip("assertobj(1)"));
+    it("assertobj(1) assertion-object equals", () => parseAndRoundTrip("assertobj(1)"));
     it("wrapped", () => parseAndRoundTrip("wrapped"));
     it("unwrap", () => parseAndRoundTrip("unwrap"));
     it("unwrap(node) unwrap structure", () => parseAndRoundTrip("unwrap(node)"));

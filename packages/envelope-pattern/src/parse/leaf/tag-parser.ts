@@ -27,13 +27,7 @@ import {
   unexpectedEndOfInput,
   unexpectedToken,
 } from "../../error";
-import {
-  type Pattern,
-  TaggedPattern,
-  anyTag,
-  patternLeaf,
-  leafTag,
-} from "../../pattern";
+import { type Pattern, TaggedPattern, anyTag, patternLeaf, leafTag } from "../../pattern";
 import type { Lexer } from "../token";
 
 /**

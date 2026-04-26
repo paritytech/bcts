@@ -32,11 +32,7 @@ import {
   tagsForValues,
 } from "@bcts/dcbor";
 import { REFERENCE as TAG_REFERENCE } from "@bcts/tags";
-import {
-  UR,
-  encodeBytewordsIdentifier,
-  encodeBytemojisIdentifier,
-} from "@bcts/uniform-resources";
+import { UR, encodeBytewordsIdentifier, encodeBytemojisIdentifier } from "@bcts/uniform-resources";
 
 import { Digest } from "./digest.js";
 import type { DigestProvider } from "./digest-provider.js";
@@ -79,11 +75,7 @@ export function isReferenceProvider(obj: unknown): obj is ReferenceProvider {
  * via `fromData` directly.
  */
 export class Reference
-  implements
-    CborTaggedEncodable,
-    CborTaggedDecodable<Reference>,
-    DigestProvider,
-    ReferenceProvider
+  implements CborTaggedEncodable, CborTaggedDecodable<Reference>, DigestProvider, ReferenceProvider
 {
   /** Reference data size in bytes — matches Rust `Reference::REFERENCE_SIZE`. */
   static readonly REFERENCE_SIZE = 32;

@@ -41,9 +41,7 @@ describe("cbor path extension (test_cbor_path_extension.rs)", () => {
   });
 
   it("nested structure paths — 4 numbers", () => {
-    const envelope = envFromDcbor(
-      '{"scores": [95, 87, 92], "value": 42}',
-    );
+    const envelope = envFromDcbor('{"scores": [95, 87, 92], "value": 42}');
     const r = parse("cbor(/search(number)/)");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -78,9 +76,7 @@ describe("cbor path extension (test_cbor_path_extension.rs)", () => {
   });
 
   it("text-search paths in complex map+array — 6 strings", () => {
-    const envelope = envFromDcbor(
-      '{"name": "Alice", "items": ["apple", "banana"], "count": 2}',
-    );
+    const envelope = envFromDcbor('{"name": "Alice", "items": ["apple", "banana"], "count": 2}');
     const r = parse("cbor(/search(text)/)");
     expect(r.ok).toBe(true);
     if (!r.ok) return;

@@ -39,14 +39,8 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
     expect(captures.has("num")).toBe(true);
     expect(captures.get("num")?.length).toBe(1);
 
-    const expected = [
-      "@num",
-      "    7f83f7bd LEAF 42",
-      "7f83f7bd LEAF 42",
-    ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    const expected = ["@num", "    7f83f7bd LEAF 42", "7f83f7bd LEAF 42"].join("\n");
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("capture with search: cbor(/@values(search(number))/) on [1,2,3]", () => {
@@ -75,9 +69,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       "4abc3113 LEAF [1, 2, 3]",
       "    084fed08 LEAF 3",
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("multiple search captures over a flat string array", () => {
@@ -110,9 +102,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       `ce1042d4 LEAF ["name", "Alice", "age", "30"]`,
       `    08e52634 LEAF "30"`,
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("nested captures: @users(search([@name(text), @score(text)]))", () => {
@@ -120,9 +110,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       ["Alice", "95"],
       ["Bob", "85"],
     ] as unknown as number);
-    const r = parse(
-      "cbor(/@users(search([@name(text), @score(text)]))/)",
-    );
+    const r = parse("cbor(/@users(search([@name(text), @score(text)]))/)");
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const [paths, captures] = patternPathsWithCaptures(r.value, envelope);
@@ -154,9 +142,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       `7dfc2858 LEAF [["Alice", "95"], ["Bob", "85"]]`,
       `    43a6ef66 LEAF ["Bob", "85"]`,
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("mixed envelope-level + dcbor-level captures", () => {
@@ -181,9 +167,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       "    7f83f7bd LEAF 42",
       "7f83f7bd LEAF 42",
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("capture-name conflicts merge across levels", () => {
@@ -204,9 +188,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       "    7f83f7bd LEAF 42",
       "7f83f7bd LEAF 42",
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it('array traversal captures via search(text) on ["hello","42","world","123"]', () => {
@@ -239,9 +221,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       `162867a4 LEAF ["hello", "42", "world", "123"]`,
       `    9bf5bb3e LEAF "123"`,
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("no-match: cbor(/@num(number)/) on text envelope returns empty", () => {
@@ -281,9 +261,7 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       "4abc3113 LEAF [1, 2, 3]",
       "    084fed08 LEAF 3",
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 
   it("comprehensive: @data(cbor(/@people(search(text))/)) on [Alice, Bob, Charlie]", () => {
@@ -321,8 +299,6 @@ describe("cbor captures (test_cbor_captures.rs)", () => {
       `aea55aad LEAF ["Alice", "Bob", "Charlie"]`,
       `    ee8e3b02 LEAF "Charlie"`,
     ].join("\n");
-    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(
-      expected,
-    );
+    expect(formatPathsWithCapturesOpt(paths, captures, defaultFormatPathsOpts())).toBe(expected);
   });
 });

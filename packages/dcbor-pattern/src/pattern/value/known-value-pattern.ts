@@ -17,10 +17,7 @@ import type { Path } from "../../format";
  * Returns true if the given tag value equals the expected tag.
  * Handles both number and bigint tag values uniformly.
  */
-const tagEquals = (
-  actual: number | bigint | undefined,
-  expected: number | bigint,
-): boolean => {
+const tagEquals = (actual: number | bigint | undefined, expected: number | bigint): boolean => {
   if (actual === undefined) return false;
   const actualBig = typeof actual === "bigint" ? actual : BigInt(actual);
   const expectedBig = typeof expected === "bigint" ? expected : BigInt(expected);

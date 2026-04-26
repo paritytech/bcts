@@ -123,10 +123,7 @@ export function parseSeed(s: string): ProvenanceSeed {
 export function parseDate(s: string): Date {
   const date = new Date(s);
   if (Number.isNaN(date.getTime())) {
-    throw new ProvenanceMarkError(
-      ProvenanceMarkErrorType.InvalidDate,
-      `cannot parse date: ${s}`,
-    );
+    throw new ProvenanceMarkError(ProvenanceMarkErrorType.InvalidDate, `cannot parse date: ${s}`);
   }
   return date;
 }

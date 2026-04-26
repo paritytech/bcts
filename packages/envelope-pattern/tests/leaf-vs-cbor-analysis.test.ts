@@ -57,9 +57,11 @@ describe("LEAF vs CBOR analysis (test_leaf_vs_cbor_analysis.rs)", () => {
 
       // Properties Rust prints in the analysis loop:
       const isLeaf = (envelope as unknown as { isLeaf(): boolean }).isLeaf();
-      const isKnownValue = (envelope as unknown as {
-        isKnownValue(): boolean;
-      }).isKnownValue();
+      const isKnownValue = (
+        envelope as unknown as {
+          isKnownValue(): boolean;
+        }
+      ).isKnownValue();
       expect(typeof isLeaf).toBe("boolean");
       expect(typeof isKnownValue).toBe("boolean");
 

@@ -27,12 +27,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  Secret,
-  sskrCombine,
-  SSKRError,
-  SSKRErrorType,
-} from "../src/index.js";
+import { Secret, sskrCombine, SSKRError, SSKRErrorType } from "../src/index.js";
 
 function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
@@ -91,8 +86,7 @@ describe("Cross-platform Rust → TS SSKR share decoding", () => {
   // From `bc-sskr-rust/src/lib.rs::test_split_2_7` (line 156).
   // Header bytes for each share:
   //   identifier 0x0011, gt/gc 0x00, gi/mt 0x01, mi 0x00..0x06.
-  const RUST_2_7_SECRET =
-    "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
+  const RUST_2_7_SECRET = "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
   const RUST_2_7_SHARES = [
     "00110001002dcd14c2252dc8489af3985030e74d5a48e8eff1478ab86e65b43869bf39d556", // 0
     "0011000101a1dfdd798388aada635b9974472b4fc59a32ae520c42c9f6a0af70149b882487", // 1
@@ -131,8 +125,7 @@ describe("Cross-platform Rust → TS SSKR share decoding", () => {
   // Header bytes:
   //   identifier 0x0011, gt/gc 0x11 (gt=2,gc=2), gi/mt = 0x01 (g0,mt=2)
   //   or 0x11 (g1,mt=2), mi = 0x00..0x02 per group.
-  const RUST_2_3_2_3_SECRET =
-    "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
+  const RUST_2_3_2_3_SECRET = "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
   const RUST_2_3_2_3_SHARES = [
     // Group 0
     "0011110100ce5cce1ad9fe9cefa4707449576e8eadfc7d107c5a9e812b21f80aeca635cacd",
@@ -183,9 +176,7 @@ describe("Cross-platform Rust → TS SSKR share decoding", () => {
       sskrCombine([tampered]);
     } catch (e) {
       expect(e).toBeInstanceOf(SSKRError);
-      expect((e as InstanceType<typeof SSKRError>).type).toBe(
-        SSKRErrorType.ShareLengthInvalid,
-      );
+      expect((e as InstanceType<typeof SSKRError>).type).toBe(SSKRErrorType.ShareLengthInvalid);
     }
   });
 
@@ -207,17 +198,11 @@ describe("Cross-platform Rust → TS SSKR share decoding", () => {
     // bytes [0x00, 0x11] for the first identifier draw, packing to
     // 0x0011 = 17 — every Rust-produced share above must have this
     // identifier in its first two bytes.
-    for (const hex of [
-      RUST_3_5_SHARES[0],
-      RUST_2_7_SHARES[0],
-      RUST_2_3_2_3_SHARES[0],
-    ]) {
+    for (const hex of [RUST_3_5_SHARES[0], RUST_2_7_SHARES[0], RUST_2_3_2_3_SHARES[0]]) {
       expect(hex.slice(0, 4)).toBe("0011");
     }
     // And that the recovered secret is unaffected.
-    const recovered = sskrCombine(
-      [0, 1, 2].map((i) => hexToBytes(RUST_3_5_SHARES[i])),
-    );
+    const recovered = sskrCombine([0, 1, 2].map((i) => hexToBytes(RUST_3_5_SHARES[i])));
     expect(recovered.equals(Secret.new(hexToBytes(RUST_3_5_SECRET)))).toBe(true);
   });
 });

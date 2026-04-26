@@ -8,19 +8,8 @@
  * @module envelope-pattern/parse/structure/wrapped-parser
  */
 
-import {
-  type Result,
-  err,
-  expectedCloseParen,
-  ok,
-  unexpectedToken,
-} from "../../error";
-import {
-  type Pattern,
-  unwrapEnvelope,
-  unwrapMatching,
-  wrapped,
-} from "../../pattern";
+import { type Result, err, expectedCloseParen, ok, unexpectedToken } from "../../error";
+import { type Pattern, unwrapEnvelope, unwrapMatching, wrapped } from "../../pattern";
 import type { Lexer } from "../token";
 import { parseOr } from "../meta/or-parser";
 

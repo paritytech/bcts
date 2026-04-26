@@ -21,8 +21,7 @@ interface EnvelopeIntrospection {
   assertions(): unknown[];
 }
 
-const i = (env: Envelope): EnvelopeIntrospection =>
-  env as unknown as EnvelopeIntrospection;
+const i = (env: Envelope): EnvelopeIntrospection => env as unknown as EnvelopeIntrospection;
 
 describe("LEAF vs NODE({0}) comparison (test_leaf_vs_node_zero.rs)", () => {
   function envelopes() {
@@ -44,9 +43,7 @@ describe("LEAF vs NODE({0}) comparison (test_leaf_vs_node_zero.rs)", () => {
       // 2 assertions → node.
       {
         label: "2 assertions",
-        env: Envelope.new("subject")
-          .addAssertion("key1", "value1")
-          .addAssertion("key2", "value2"),
+        env: Envelope.new("subject").addAssertion("key1", "value1").addAssertion("key2", "value2"),
       },
       // Wrapped envelope (a leaf wrapping another envelope's CBOR).
       { label: "Wrapped", env: Envelope.new(Envelope.new("wrapped")) },
@@ -63,18 +60,11 @@ describe("LEAF vs NODE({0}) comparison (test_leaf_vs_node_zero.rs)", () => {
     expect(patternMatches(leaf, Envelope.new("hello"))).toBe(true);
     expect(patternMatches(leaf, Envelope.new(new KnownValue(42)))).toBe(true);
     expect(patternMatches(leaf, Envelope.new("subject"))).toBe(true);
+    expect(patternMatches(leaf, Envelope.new("subject").addAssertion("key", "value"))).toBe(false);
     expect(
       patternMatches(
         leaf,
-        Envelope.new("subject").addAssertion("key", "value"),
-      ),
-    ).toBe(false);
-    expect(
-      patternMatches(
-        leaf,
-        Envelope.new("subject")
-          .addAssertion("key1", "value1")
-          .addAssertion("key2", "value2"),
+        Envelope.new("subject").addAssertion("key1", "value1").addAssertion("key2", "value2"),
       ),
     ).toBe(false);
     expect(patternMatches(leaf, Envelope.new(Envelope.new("wrapped")))).toBe(true);
@@ -104,12 +94,12 @@ describe("LEAF vs NODE({0}) comparison (test_leaf_vs_node_zero.rs)", () => {
     // intentional. The Rust file uses these for diagnostic
     // `println!` only and does not assert specific values.
     const expected = [
-      { label: "Pure leaf (hello)", isLeaf: true,  isKv: false, isNode: false, assertions: 0 },
-      { label: "Known value leaf",  isLeaf: false, isKv: true,  isNode: false, assertions: 0 },
-      { label: "Bare subject",      isLeaf: true,  isKv: false, isNode: false, assertions: 0 },
-      { label: "1 assertion",       isLeaf: false, isKv: false, isNode: true,  assertions: 1 },
-      { label: "2 assertions",      isLeaf: false, isKv: false, isNode: true,  assertions: 2 },
-      { label: "Wrapped",           isLeaf: true,  isKv: false, isNode: false, assertions: 0 },
+      { label: "Pure leaf (hello)", isLeaf: true, isKv: false, isNode: false, assertions: 0 },
+      { label: "Known value leaf", isLeaf: false, isKv: true, isNode: false, assertions: 0 },
+      { label: "Bare subject", isLeaf: true, isKv: false, isNode: false, assertions: 0 },
+      { label: "1 assertion", isLeaf: false, isKv: false, isNode: true, assertions: 1 },
+      { label: "2 assertions", isLeaf: false, isKv: false, isNode: true, assertions: 2 },
+      { label: "Wrapped", isLeaf: true, isKv: false, isNode: false, assertions: 0 },
     ];
     const cases = envelopes();
     for (let n = 0; n < cases.length; n++) {

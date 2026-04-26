@@ -7,13 +7,7 @@
  * @module envelope-pattern/parse/leaf/number-parser
  */
 
-import {
-  type Result,
-  err,
-  ok,
-  unexpectedEndOfInput,
-  unexpectedToken,
-} from "../../error";
+import { type Result, err, ok, unexpectedEndOfInput, unexpectedToken } from "../../error";
 import {
   type Pattern,
   NumberPattern,

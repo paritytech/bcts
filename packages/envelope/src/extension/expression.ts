@@ -207,8 +207,7 @@ export class Function implements EnvelopeEncodable {
   /// not tagged), so format() rendered the leaf as a quoted string
   /// instead of `«"name"»`.
   envelope(): Envelope {
-    const untagged: Cbor =
-      this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
+    const untagged: Cbor = this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
     return Envelope.newLeaf(toTaggedValue(40006, untagged));
   }
 
@@ -441,8 +440,7 @@ export class Parameter implements EnvelopeEncodable {
   /// Function above): the parameter is stored as `tag(40007, untagged)`
   /// where untagged is `uint(N)` (Known) or `text(name)` (Named).
   envelope(): Envelope {
-    const untagged: Cbor =
-      this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
+    const untagged: Cbor = this._variant === "known" ? toCbor(this._value) : toCbor(this._name);
     const paramLeaf = Envelope.newLeaf(toTaggedValue(40007, untagged));
     if (this._paramValue !== undefined) {
       return Envelope.newAssertion(paramLeaf, this._paramValue);

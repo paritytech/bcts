@@ -26,8 +26,7 @@ import {
   NotReferenceEnvelopeError,
 } from "../src";
 
-const TEST_ARID_HEX =
-  "4676635a6e6068c2ef3ffd8ff726dd401fd341036e920f136a1d8af5e829496d";
+const TEST_ARID_HEX = "4676635a6e6068c2ef3ffd8ff726dd401fd341036e920f136a1d8af5e829496d";
 
 function testArid(): ARID {
   return ARID.fromHex(TEST_ARID_HEX);
@@ -75,9 +74,7 @@ describe("H-11 — Reference envelope round-trip", () => {
 
   it("rejects envelopes with a non-`ipfs` dereferenceVia value", async () => {
     const { DEREFERENCE_VIA, ID } = await import("@bcts/known-values");
-    const env = Envelope.unit()
-      .addAssertion(DEREFERENCE_VIA, "https")
-      .addAssertion(ID, testArid());
+    const env = Envelope.unit().addAssertion(DEREFERENCE_VIA, "https").addAssertion(ID, testArid());
     expect(isReferenceEnvelope(env)).toBe(false);
   });
 

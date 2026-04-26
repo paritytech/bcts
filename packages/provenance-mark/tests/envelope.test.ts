@@ -262,9 +262,7 @@ describe("ProvenanceMark Envelope Support", () => {
       const mark = generator.next(date, cbor("Info field content"));
 
       // Mark `idHex()` matches Rust's `Display` payload exactly.
-      expect(mark.idHex()).toBe(
-        "59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee",
-      );
+      expect(mark.idHex()).toBe("59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee");
       expect(mark.toString()).toBe(
         "ProvenanceMark(59def089a4d373a2d3f6a449c6758f62ba55cda64c7faf01c1c74a1130d3c1ee)",
       );

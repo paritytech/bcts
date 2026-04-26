@@ -23,13 +23,7 @@
  */
 
 import { Quantifier, Reluctance } from "@bcts/dcbor-pattern";
-import {
-  type Result,
-  err,
-  expectedCloseParen,
-  ok,
-  unexpectedToken,
-} from "../../error";
+import { type Result, err, expectedCloseParen, ok, unexpectedToken } from "../../error";
 import { type Pattern, repeat } from "../../pattern";
 import type { Lexer } from "../token";
 import { parseOr } from "./or-parser";
@@ -79,7 +73,5 @@ export function parseGroup(lexer: Lexer): Result<Pattern> {
   }
 
   lexer.next(); // consume the quantifier token
-  return ok(
-    repeat(inner.value, quantifier.min(), quantifier.max(), quantifier.reluctance()),
-  );
+  return ok(repeat(inner.value, quantifier.min(), quantifier.max(), quantifier.reluctance()));
 }

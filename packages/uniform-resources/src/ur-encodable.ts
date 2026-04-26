@@ -71,9 +71,7 @@ export function urFromEncodable(encodable: CborTaggedEncodable): UR {
     throw new Error("UREncodable: cborTags() returned no tags");
   }
   if (tag.name === undefined) {
-    throw new Error(
-      `CBOR tag ${tag.value} must have a name. Did you call register_tags()?`,
-    );
+    throw new Error(`CBOR tag ${tag.value} must have a name. Did you call register_tags()?`);
   }
   return UR.new(tag.name, encodable.untaggedCbor());
 }

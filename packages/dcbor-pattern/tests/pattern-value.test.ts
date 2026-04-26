@@ -351,9 +351,7 @@ describe("value pattern tests", () => {
 
       const digitsCbor = cbor(new Uint8Array([0x31, 0x32, 0x33, 0x34, 0x35])); // "12345" in hex
       const lettersCbor = cbor(new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f])); // "Hello" in hex
-      const mixedCbor = cbor(
-        new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x31, 0x32, 0x33]),
-      ); // "Hello123" in hex
+      const mixedCbor = cbor(new Uint8Array([0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x31, 0x32, 0x33])); // "Hello123" in hex
       const textCbor = cbor("12345");
 
       // Should match byte strings with digits
@@ -370,9 +368,7 @@ describe("value pattern tests", () => {
       const pattern = parse("bstr");
 
       // Test with actual binary data (not text)
-      const binaryCbor = cbor(
-        new Uint8Array([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]),
-      );
+      const binaryCbor = cbor(new Uint8Array([0x00, 0x01, 0x02, 0x03, 0xff, 0xfe, 0xfd]));
 
       const paths = getPaths(pattern, binaryCbor);
       assertActualExpected(formatPathsStr(paths), "h'00010203fffefd'");
@@ -866,9 +862,7 @@ describe("value pattern tests", () => {
 
     it("test_map_bstr_keys", () => {
       const mapPattern = parse("{h'68656c6c6f': text}");
-      const data = cborFromString(
-        `{h'68656c6c6f': "first", h'776f726c64': "second"}`,
-      );
+      const data = cborFromString(`{h'68656c6c6f': "first", h'776f726c64': "second"}`);
       const paths = getPaths(mapPattern, data);
       assertActualExpected(
         formatPathsStr(paths),
@@ -881,10 +875,7 @@ describe("value pattern tests", () => {
       const mapPattern = parse("{'100': text}");
       const data = cborFromString(`{'100': "first", '200': "second"}`);
       const paths = getPaths(mapPattern, data);
-      assertActualExpected(
-        formatPathsStr(paths),
-        `{40000(100): "first", 40000(200): "second"}`,
-      );
+      assertActualExpected(formatPathsStr(paths), `{40000(100): "first", 40000(200): "second"}`);
     });
   });
 

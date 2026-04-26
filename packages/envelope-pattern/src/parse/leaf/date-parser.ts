@@ -14,22 +14,8 @@
  */
 
 import { CborDate } from "@bcts/dcbor";
-import {
-  type Result,
-  type Span,
-  err,
-  invalidDateFormat,
-  invalidRegex,
-  ok,
-} from "../../error";
-import {
-  type Pattern,
-  date,
-  dateEarliest,
-  dateLatest,
-  dateRange,
-  dateRegex,
-} from "../../pattern";
+import { type Result, type Span, err, invalidDateFormat, invalidRegex, ok } from "../../error";
+import { type Pattern, date, dateEarliest, dateLatest, dateRange, dateRegex } from "../../pattern";
 
 /**
  * Parse a date pattern of one of the forms accepted by Rust:

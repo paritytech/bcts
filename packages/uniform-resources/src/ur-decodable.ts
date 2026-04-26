@@ -73,19 +73,14 @@ export interface URDecodable {
  * Use from a class implementing both `URDecodable` and
  * `CborTaggedDecodable<T>` to skip the type-check / delegate boilerplate.
  */
-export function decodableFromUR<T>(
-  decodable: CborTaggedDecodable<T>,
-  ur: UR,
-): T {
+export function decodableFromUR<T>(decodable: CborTaggedDecodable<T>, ur: UR): T {
   const tags = decodable.cborTags();
   const tag = tags[0];
   if (tag === undefined) {
     throw new Error("URDecodable: cborTags() returned no tags");
   }
   if (tag.name === undefined) {
-    throw new Error(
-      `CBOR tag ${tag.value} must have a name. Did you call register_tags()?`,
-    );
+    throw new Error(`CBOR tag ${tag.value} must have a name. Did you call register_tags()?`);
   }
   ur.checkType(tag.name);
   return decodable.fromUntaggedCbor(ur.cbor());
@@ -96,10 +91,7 @@ export function decodableFromUR<T>(
  * (`bc-ur-rust/src/ur_decodable.rs:17-22`):
  * `Self::from_ur(UR::from_ur_string(s)?)`.
  */
-export function decodableFromURString<T>(
-  decodable: CborTaggedDecodable<T>,
-  urString: string,
-): T {
+export function decodableFromURString<T>(decodable: CborTaggedDecodable<T>, urString: string): T {
   return decodableFromUR(decodable, UR.fromURString(urString));
 }
 

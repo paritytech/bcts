@@ -474,10 +474,7 @@ Envelope.prototype.isIdenticalTo = function (this: Envelope, other: Envelope): b
 /// Structural sharing: if a recursion produces an envelope that is
 /// {@link Envelope.isIdenticalTo} the original, the original instance is
 /// reused instead of allocating a new node.
-Envelope.prototype.walkDecrypt = function (
-  this: Envelope,
-  keys: SymmetricKey[],
-): Envelope {
+Envelope.prototype.walkDecrypt = function (this: Envelope, keys: SymmetricKey[]): Envelope {
   const c = this.case();
 
   switch (c.type) {

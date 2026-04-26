@@ -176,17 +176,21 @@ describe("Mermaid Formatting", () => {
         theme: MermaidTheme.Dark,
         orientation: MermaidOrientation.TopToBottom,
       });
-      expect(dark.startsWith(
-        "%%{ init: { 'theme': 'dark', 'flowchart': { 'curve': 'basis' } } }%%\ngraph TB\n",
-      )).toBe(true);
+      expect(
+        dark.startsWith(
+          "%%{ init: { 'theme': 'dark', 'flowchart': { 'curve': 'basis' } } }%%\ngraph TB\n",
+        ),
+      ).toBe(true);
 
       const forest = env.mermaidFormatOpt({
         theme: MermaidTheme.Forest,
         orientation: MermaidOrientation.LeftToRight,
       });
-      expect(forest.startsWith(
-        "%%{ init: { 'theme': 'forest', 'flowchart': { 'curve': 'basis' } } }%%\ngraph LR\n",
-      )).toBe(true);
+      expect(
+        forest.startsWith(
+          "%%{ init: { 'theme': 'forest', 'flowchart': { 'curve': 'basis' } } }%%\ngraph LR\n",
+        ),
+      ).toBe(true);
     });
 
     it("hides NODE elements (and their digests) under hideNodes (E1b-4)", () => {

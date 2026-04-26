@@ -14,12 +14,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import {
-  MLKEMPrivateKey,
-  MLKEMLevel,
-  MLDSAPrivateKey,
-  MLDSALevel,
-} from "../src/index.js";
+import { MLKEMPrivateKey, MLKEMLevel, MLDSAPrivateKey, MLDSALevel } from "../src/index.js";
 
 // CBOR major-6 (tag) encoding helper for the 40100-range tags:
 //   tags 40100-40105 are 5-digit decimal numbers, encoded as 0xd9 (major-6
@@ -37,16 +32,10 @@ describe("ML-KEM CBOR layout (matches Rust pqcrypto-mlkem)", () => {
       const pub = priv.publicKey();
 
       // Sizes match NIST FIPS-203 (and Rust pqcrypto-mlkem).
-      const expectedPriv = level === MLKEMLevel.MLKEM512
-        ? 1632
-        : level === MLKEMLevel.MLKEM768
-          ? 2400
-          : 3168;
-      const expectedPub = level === MLKEMLevel.MLKEM512
-        ? 800
-        : level === MLKEMLevel.MLKEM768
-          ? 1184
-          : 1568;
+      const expectedPriv =
+        level === MLKEMLevel.MLKEM512 ? 1632 : level === MLKEMLevel.MLKEM768 ? 2400 : 3168;
+      const expectedPub =
+        level === MLKEMLevel.MLKEM512 ? 800 : level === MLKEMLevel.MLKEM768 ? 1184 : 1568;
 
       expect(priv.data().length).toBe(expectedPriv);
       expect(pub.data().length).toBe(expectedPub);

@@ -91,10 +91,7 @@ if (Envelope?.prototype) {
   /// stability across calls), most notably `xid::Key` /
   /// `xid::Provenance` whose salts are constructed once and stored on
   /// the value type.
-  Envelope.prototype.addSaltInstance = function (
-    this: Envelope,
-    salt: SaltComponent,
-  ): Envelope {
+  Envelope.prototype.addSaltInstance = function (this: Envelope, salt: SaltComponent): Envelope {
     return this.addAssertion(SALT, salt);
   };
 

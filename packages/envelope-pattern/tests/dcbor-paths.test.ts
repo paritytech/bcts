@@ -11,9 +11,7 @@ import { formatPaths, parse, patternPaths } from "../src";
 
 describe("cbor pattern dcbor paths (test_dcbor_paths.rs)", () => {
   it("returns extended paths for all numbers in nested map+array", () => {
-    const parsed = parseDcborItem(
-      '{"numbers": [1, 2, 3], "nested": {"value": 42}}',
-    );
+    const parsed = parseDcborItem('{"numbers": [1, 2, 3], "nested": {"value": 42}}');
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const envelope = Envelope.new(parsed.value as unknown as number);
@@ -65,10 +63,7 @@ describe("cbor pattern dcbor paths (test_dcbor_paths.rs)", () => {
     const paths = patternPaths(r.value, envelope);
 
     expect(paths.length).toBe(1);
-    const expected = [
-      `4cd61f73 LEAF [1, "hello", true]`,
-      `    cb835593 LEAF "hello"`,
-    ].join("\n");
+    const expected = [`4cd61f73 LEAF [1, "hello", true]`, `    cb835593 LEAF "hello"`].join("\n");
     expect(formatPaths(paths)).toBe(expected);
   });
 
@@ -96,9 +91,7 @@ describe("cbor pattern dcbor paths (test_dcbor_paths.rs)", () => {
   });
 
   it("multiple paths for `{numbers: [1,2,3], value: 42}`", () => {
-    const parsed = parseDcborItem(
-      '{"numbers": [1, 2, 3], "value": 42}',
-    );
+    const parsed = parseDcborItem('{"numbers": [1, 2, 3], "value": 42}');
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const envelope = Envelope.new(parsed.value as unknown as number);

@@ -21,26 +21,14 @@
 import { describe, it, expect } from "vitest";
 import * as jpeg from "jpeg-js";
 import { decode as decodePng } from "fast-png";
-import {
-  Color,
-  CorrectionLevel,
-  renderUrQr,
-} from "../src";
+import { Color, CorrectionLevel, renderUrQr } from "../src";
 
 const QUIET_ZONE = 1;
 const SIZE = 256;
 const TEST_UR = "ur:bytes/hdcxdwinvezm";
 
 function renderRefImage() {
-  return renderUrQr(
-    TEST_UR,
-    CorrectionLevel.Low,
-    SIZE,
-    Color.BLACK,
-    Color.WHITE,
-    QUIET_ZONE,
-    null,
-  );
+  return renderUrQr(TEST_UR, CorrectionLevel.Low, SIZE, Color.BLACK, Color.WHITE, QUIET_ZONE, null);
 }
 
 describe("M6a — PNG round-trip exact pixel parity", () => {

@@ -79,8 +79,7 @@ describe("Cross-platform Rust → TS share decoding", () => {
 
   // Rust KAT: 2-of-7 split of a 32-byte secret.
   // From `bc-shamir-rust/src/lib.rs::test_split_secret_2_7`.
-  const RUST_2_7_SECRET =
-    "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
+  const RUST_2_7_SECRET = "204188bfa6b440a1bdfd6753ff55a8241e07af5c5be943db917e3efabc184b1a";
   const RUST_2_7_SHARES = [
     "2dcd14c2252dc8489af3985030e74d5a48e8eff1478ab86e65b43869bf39d556", // share 0
     "a1dfdd798388aada635b9974472b4fc59a32ae520c42c9f6a0af70149b882487", // share 1

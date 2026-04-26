@@ -1136,11 +1136,7 @@ export class Envelope implements DigestProvider {
   // Test-determinism overloads matching Rust's `*_using` variants.
   declare addSaltUsing: (rng: RandomNumberGenerator) => Envelope;
   declare addSaltWithLenUsing: (count: number, rng: RandomNumberGenerator) => Envelope;
-  declare addSaltInRangeUsing: (
-    min: number,
-    max: number,
-    rng: RandomNumberGenerator,
-  ) => Envelope;
+  declare addSaltInRangeUsing: (min: number, max: number, rng: RandomNumberGenerator) => Envelope;
 
   // From signature.ts — matches bc-envelope-rust/src/extension/signature/signature_impl.rs
   declare addSignature: (signer: Signer) => Envelope;

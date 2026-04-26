@@ -73,12 +73,7 @@ export type { WalkElement, EdgeTypeVariant, Visitor } from "./walk";
 export { biguintToCbor, bigintToCbor, cborToBiguint, cborToBigint } from "./bignum";
 
 // CBOR-encoding-based array sorting (Rust `prelude.rs::CBORSortable`).
-export {
-  sortArrayByCborEncoding,
-  arraySortable,
-  setSortable,
-  type CBORSortable,
-} from "./sortable";
+export { sortArrayByCborEncoding, arraySortable, setSortable, type CBORSortable } from "./sortable";
 
 // Error handling
 export type { Error, Result } from "./error";

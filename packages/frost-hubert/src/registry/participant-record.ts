@@ -183,9 +183,12 @@ function parseSignedXidDocument(xidDocumentUr: string): [string, XIDDocument] {
     try {
       envelope = Envelope.fromUntaggedCbor(envelopeCbor);
     } catch (e) {
-      throw new Error(`Unable to decode XID document envelope: ${(e as Error).message ?? String(e)}`, {
-        cause: e,
-      });
+      throw new Error(
+        `Unable to decode XID document envelope: ${(e as Error).message ?? String(e)}`,
+        {
+          cause: e,
+        },
+      );
     }
   }
 

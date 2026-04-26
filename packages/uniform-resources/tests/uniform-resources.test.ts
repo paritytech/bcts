@@ -27,12 +27,7 @@ import {
   urFromEncodable,
   urStringFromEncodable,
 } from "../src";
-import {
-  cbor,
-  createTag,
-  createTaggedCbor,
-  type CborTaggedEncodable,
-} from "@bcts/dcbor";
+import { cbor, createTag, createTaggedCbor, type CborTaggedEncodable } from "@bcts/dcbor";
 
 // Import internal utilities for testing internal functionality
 // These are NOT part of the public API but needed for internal tests
@@ -764,7 +759,6 @@ describe("bytewords namespace (Rust `bc_ur::bytewords`)", () => {
   });
 });
 
-
 // =============================================================================
 // RUST PARITY: NotSinglePartError on multipart input to from_ur_string
 // Source: bc-ur-rust/src/ur.rs:33-35
@@ -774,17 +768,15 @@ describe("Rust ur.rs NotSinglePart parity", () => {
     // A minimal valid multipart UR: type/seqNum-seqLen/payload. The
     // payload doesn't have to be valid bytewords because the multipart
     // detection happens before the bytewords decode.
-    expect(() =>
-      UR.fromURString("ur:bytes/1-9/lpadbbcsiecyvdidatkpfeghihjtcxiabdfevlms"),
-    ).toThrow(NotSinglePartError);
+    expect(() => UR.fromURString("ur:bytes/1-9/lpadbbcsiecyvdidatkpfeghihjtcxiabdfevlms")).toThrow(
+      NotSinglePartError,
+    );
   });
 
   it("UR.fromURString rejects malformed indices with URDecodeError", () => {
     // Rust upstream returns `Error::InvalidIndices`
     // (`ur-0.4.1/src/ur.rs:447-449`). We surface that as URDecodeError.
-    expect(() =>
-      UR.fromURString("ur:bytes/1-1a/aeadaolazmjendeoti"),
-    ).toThrow(URDecodeError);
+    expect(() => UR.fromURString("ur:bytes/1-1a/aeadaolazmjendeoti")).toThrow(URDecodeError);
   });
 });
 
@@ -798,9 +790,7 @@ describe("Rust ur.rs validation order", () => {
     // the CBOR for [1, 2, 3]). The type contains `@` which is not a
     // valid UR-type char, so we should see InvalidTypeError immediately,
     // not a downstream bytewords/CBOR error.
-    expect(() =>
-      UR.fromURString("ur:bad@type/lsadaoaxjygonesw"),
-    ).toThrow(InvalidTypeError);
+    expect(() => UR.fromURString("ur:bad@type/lsadaoaxjygonesw")).toThrow(InvalidTypeError);
   });
 });
 

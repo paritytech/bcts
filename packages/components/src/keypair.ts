@@ -78,10 +78,7 @@ export function keypairOptUsing(
   encapsulationScheme: EncapsulationScheme,
   rng: RandomNumberGenerator,
 ): [PrivateKeys, PublicKeys] {
-  const [signingPrivateKey, signingPublicKey] = createSigningKeypairUsing(
-    signatureScheme,
-    rng,
-  );
+  const [signingPrivateKey, signingPublicKey] = createSigningKeypairUsing(signatureScheme, rng);
   const [encapsulationPrivateKey, encapsulationPublicKey] = createEncapsulationKeypairUsing(
     rng,
     encapsulationScheme,

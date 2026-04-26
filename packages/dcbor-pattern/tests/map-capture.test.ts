@@ -80,9 +80,7 @@ describe("map capture tests", () => {
   });
 
   it("test_map_capture_collect_names", () => {
-    const pattern = parse(
-      `{@key1(text): @val1(number), @key2(text): @val2(text)}`,
-    );
+    const pattern = parse(`{@key1(text): @val1(number), @key2(text): @val2(text)}`);
 
     // Compile and read out the captureNames the compiler discovered.
     // Mirrors Rust `pattern.collect_capture_names`.

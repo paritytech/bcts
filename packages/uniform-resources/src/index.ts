@@ -25,17 +25,9 @@ export {
 export type { Result } from "./error";
 
 // Traits/Interfaces
-export {
-  isUREncodable,
-  urFromEncodable,
-  urStringFromEncodable,
-} from "./ur-encodable";
+export { isUREncodable, urFromEncodable, urStringFromEncodable } from "./ur-encodable";
 export type { UREncodable } from "./ur-encodable";
-export {
-  isURDecodable,
-  decodableFromUR,
-  decodableFromURString,
-} from "./ur-decodable";
+export { isURDecodable, decodableFromUR, decodableFromURString } from "./ur-decodable";
 export type { URDecodable } from "./ur-decodable";
 export { isURCodable } from "./ur-codable";
 export type { URCodable } from "./ur-codable";

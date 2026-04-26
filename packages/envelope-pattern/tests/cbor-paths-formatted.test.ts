@@ -64,9 +64,7 @@ describe("cbor pattern formatted paths (test_cbor_paths_formatted.rs)", () => {
   });
 
   it("text-search paths — finds 6 text values incl. map keys", () => {
-    const parsed = parseDcborItem(
-      '{"name": "Alice", "items": ["apple", "banana"], "count": 2}',
-    );
+    const parsed = parseDcborItem('{"name": "Alice", "items": ["apple", "banana"], "count": 2}');
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     const envelope = Envelope.new(parsed.value as unknown as number);
@@ -114,9 +112,7 @@ describe("cbor pattern formatted paths (test_cbor_paths_formatted.rs)", () => {
     const numbers: number[] = [];
     for (const path of paths) {
       const last = path[path.length - 1];
-      const cbor = last
-        ? (last as unknown as { asLeaf(): unknown }).asLeaf()
-        : undefined;
+      const cbor = last ? (last as unknown as { asLeaf(): unknown }).asLeaf() : undefined;
       if (cbor !== undefined) {
         const c = cbor as { value: unknown; type: number };
         if (typeof c.value === "number" || typeof c.value === "bigint") {

@@ -8,13 +8,7 @@
  * @module envelope-pattern/parse/structure/object-parser
  */
 
-import {
-  type Result,
-  err,
-  expectedCloseParen,
-  ok,
-  unexpectedToken,
-} from "../../error";
+import { type Result, err, expectedCloseParen, ok, unexpectedToken } from "../../error";
 import { type Pattern, anyObject, object } from "../../pattern";
 import type { Lexer } from "../token";
 import { parseOr } from "../meta/or-parser";

@@ -60,10 +60,7 @@ export function rngFillRandomData(rng: RandomNumberGenerator, data: Uint8Array):
 /**
  * Returns a random `u8` value strictly less than `upperBound`.
  */
-export function rngNextWithUpperBoundU8(
-  rng: RandomNumberGenerator,
-  upperBound: number,
-): number {
+export function rngNextWithUpperBoundU8(rng: RandomNumberGenerator, upperBound: number): number {
   if (upperBound === 0) throw new Error("upperBound must be non-zero");
   const ub = upperBound & 0xff;
   let random = Number(rng.nextU64() & 0xffn);
@@ -81,10 +78,7 @@ export function rngNextWithUpperBoundU8(
 /**
  * Returns a random `u16` value strictly less than `upperBound`.
  */
-export function rngNextWithUpperBoundU16(
-  rng: RandomNumberGenerator,
-  upperBound: number,
-): number {
+export function rngNextWithUpperBoundU16(rng: RandomNumberGenerator, upperBound: number): number {
   if (upperBound === 0) throw new Error("upperBound must be non-zero");
   const ub = upperBound & 0xffff;
   let random = Number(rng.nextU64() & 0xffffn);
@@ -102,10 +96,7 @@ export function rngNextWithUpperBoundU16(
 /**
  * Returns a random `u32` value strictly less than `upperBound`.
  */
-export function rngNextWithUpperBoundU32(
-  rng: RandomNumberGenerator,
-  upperBound: number,
-): number {
+export function rngNextWithUpperBoundU32(rng: RandomNumberGenerator, upperBound: number): number {
   if (upperBound === 0) throw new Error("upperBound must be non-zero");
   const ub = upperBound >>> 0;
   let random = Number(rng.nextU64() & 0xffffffffn);
@@ -123,10 +114,7 @@ export function rngNextWithUpperBoundU32(
 /**
  * Returns a random `u64` value strictly less than `upperBound`.
  */
-export function rngNextWithUpperBoundU64(
-  rng: RandomNumberGenerator,
-  upperBound: bigint,
-): bigint {
+export function rngNextWithUpperBoundU64(rng: RandomNumberGenerator, upperBound: bigint): bigint {
   if (upperBound === 0n) throw new Error("upperBound must be non-zero");
   const mask64 = 0xffffffffffffffffn;
   const ub = upperBound & mask64;
@@ -167,11 +155,7 @@ function fromU64ThrowsIfAbove(value: bigint, max: bigint): bigint {
 }
 
 /** Random `u8` in the half-open range [start, end). */
-export function rngNextInRangeU8(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeU8(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = start & 0xff;
   const hi = end & 0xff;
@@ -183,11 +167,7 @@ export function rngNextInRangeU8(
 }
 
 /** Random `u16` in the half-open range [start, end). */
-export function rngNextInRangeU16(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeU16(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = start & 0xffff;
   const hi = end & 0xffff;
@@ -199,11 +179,7 @@ export function rngNextInRangeU16(
 }
 
 /** Random `u32` in the half-open range [start, end). */
-export function rngNextInRangeU32(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeU32(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = start >>> 0;
   const hi = end >>> 0;
@@ -215,11 +191,7 @@ export function rngNextInRangeU32(
 }
 
 /** Random `u64` in the half-open range [start, end). */
-export function rngNextInRangeU64(
-  rng: RandomNumberGenerator,
-  start: bigint,
-  end: bigint,
-): bigint {
+export function rngNextInRangeU64(rng: RandomNumberGenerator, start: bigint, end: bigint): bigint {
   if (start >= end) throw new Error("start must be less than end");
   const mask64 = 0xffffffffffffffffn;
   const delta = (end - start) & mask64;
@@ -238,11 +210,7 @@ export function rngNextInRangeU64(
 export const rngNextInRange = rngNextInRangeU64;
 
 /** Random `i8` in the half-open range [start, end). */
-export function rngNextInRangeI8(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeI8(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = (start << 24) >> 24;
   const hi = (end << 24) >> 24;
@@ -256,11 +224,7 @@ export function rngNextInRangeI8(
 }
 
 /** Random `i16` in the half-open range [start, end). */
-export function rngNextInRangeI16(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeI16(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = (start << 16) >> 16;
   const hi = (end << 16) >> 16;
@@ -274,11 +238,7 @@ export function rngNextInRangeI16(
 }
 
 /** Random `i32` in the half-open range [start, end). */
-export function rngNextInRangeI32(
-  rng: RandomNumberGenerator,
-  start: number,
-  end: number,
-): number {
+export function rngNextInRangeI32(rng: RandomNumberGenerator, start: number, end: number): number {
   if (start >= end) throw new Error("start must be less than end");
   const lo = start | 0;
   const hi = end | 0;
@@ -292,11 +252,7 @@ export function rngNextInRangeI32(
 }
 
 /** Random `i64` in the half-open range [start, end). */
-export function rngNextInRangeI64(
-  rng: RandomNumberGenerator,
-  start: bigint,
-  end: bigint,
-): bigint {
+export function rngNextInRangeI64(rng: RandomNumberGenerator, start: bigint, end: bigint): bigint {
   if (start >= end) throw new Error("start must be less than end");
   const delta = toMagnitude64(end - start);
   const mask64 = 0xffffffffffffffffn;

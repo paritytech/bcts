@@ -51,10 +51,7 @@ import { parseArray } from "../leaf/array-parser";
 import { parseCbor } from "../leaf/cbor-parser";
 import { parseDateContent } from "../leaf/date-parser";
 import { parseKnownValueContent } from "../leaf/known-value-parser";
-import {
-  parseComparisonNumber,
-  parseNumberRangeOrComparison,
-} from "../leaf/number-parser";
+import { parseComparisonNumber, parseNumberRangeOrComparison } from "../leaf/number-parser";
 import { parseTag } from "../leaf/tag-parser";
 import { parseAssertion } from "../structure/assertion-parser";
 import { parseAssertionObj } from "../structure/assertion-obj-parser";

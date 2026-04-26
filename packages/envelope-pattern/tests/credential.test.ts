@@ -18,18 +18,12 @@ import { hexToBytes } from "@bcts/components";
 import { makeFakeRandomNumberGenerator } from "@bcts/rand";
 import { IS_A, ISSUER, CONTROLLER, NOTE } from "@bcts/known-values";
 import type { Digest } from "@bcts/envelope";
-import {
-  parse,
-  patternMatches,
-  patternPaths,
-  patternPathsWithCaptures,
-} from "../src";
+import { parse, patternMatches, patternPaths, patternPathsWithCaptures } from "../src";
 
 // `alice_seed` from `common/test_data.rs:30-32`.
 const ALICE_SEED_HEX = "82f32c855d3d542256180810797e0073";
 // `credential` ARID from `common/test_data.rs:95-97`.
-const CREDENTIAL_ARID_HEX =
-  "4676635a6e6068c2ef3ffd8ff726dd401fd341036e920f136a1d8af5e829496d";
+const CREDENTIAL_ARID_HEX = "4676635a6e6068c2ef3ffd8ff726dd401fd341036e920f136a1d8af5e829496d";
 
 function alicePrivateKey(): PrivateKeyBase {
   return PrivateKeyBase.fromData(hexToBytes(ALICE_SEED_HEX));
@@ -67,10 +61,7 @@ function credential(): Envelope {
   // deterministic RNG so output is reproducible across runs.
   const schnorrSigner = alicePrivateKey().schnorrPrivateKeys().signingPrivateKey();
   const signed = wrapped.addSignatureOpt(schnorrSigner, { type: "Schnorr", rng });
-  return signed.addAssertion(
-    NOTE,
-    "Signed by Example Electrical Engineering Board",
-  );
+  return signed.addAssertion(NOTE, "Signed by Example Electrical Engineering Board");
 }
 
 /**
@@ -107,9 +98,11 @@ function redactedCredential(env: Envelope): Envelope {
     "expirationDate",
   ];
   for (const pred of revealed) {
-    const assertion = (content as unknown as {
-      assertionWithPredicate(p: unknown): Envelope | undefined;
-    }).assertionWithPredicate(pred);
+    const assertion = (
+      content as unknown as {
+        assertionWithPredicate(p: unknown): Envelope | undefined;
+      }
+    ).assertionWithPredicate(pred);
     if (assertion === undefined) continue;
     for (const d of (assertion as unknown as { shallowDigests(): Digest[] }).shallowDigests()) {
       target.add(d);

@@ -253,8 +253,7 @@ const group = (
 
 const isGroup = (i: DiagItem): boolean => i.kind === "group";
 
-const containsGroup = (i: DiagItem): boolean =>
-  i.kind === "group" && i.items.some(isGroup);
+const containsGroup = (i: DiagItem): boolean => i.kind === "group" && i.items.some(isGroup);
 
 const totalStringsLen = (i: DiagItem): number =>
   i.kind === "item" ? i.value.length : i.items.reduce((acc, c) => acc + totalStringsLen(c), 0);
@@ -282,10 +281,14 @@ function joined(elements: string[], itemSeparator: string, pairSeparator?: strin
   return result;
 }
 
-const diagFormat = (i: DiagItem, opts: DiagFormatOpts): string =>
-  diagFormatOpt(i, 0, "", opts);
+const diagFormat = (i: DiagItem, opts: DiagFormatOpts): string => diagFormatOpt(i, 0, "", opts);
 
-function diagFormatOpt(i: DiagItem, level: number, separator: string, opts: DiagFormatOpts): string {
+function diagFormatOpt(
+  i: DiagItem,
+  level: number,
+  separator: string,
+  opts: DiagFormatOpts,
+): string {
   if (i.kind === "item") {
     return formatLine(level, opts, i.value, separator, undefined);
   }
@@ -347,12 +350,7 @@ function multilineComposition(
   const openOpts: DiagFormatOpts = { ...opts, flat: false };
   lines.push(formatLine(level, openOpts, i.begin, "", i.comment));
   for (let idx = 0; idx < i.items.length; idx++) {
-    const sep =
-      idx === i.items.length - 1
-        ? ""
-        : i.isPairs && (idx & 1) === 0
-          ? ":"
-          : ",";
+    const sep = idx === i.items.length - 1 ? "" : i.isPairs && (idx & 1) === 0 ? ":" : ",";
     lines.push(diagFormatOpt(i.items[idx], level + 1, sep, opts));
   }
   // Closing line: print `end` at the parent level, with the outer separator.

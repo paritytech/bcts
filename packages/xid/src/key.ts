@@ -409,9 +409,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       // Salt must live nested on the assertion node (Rust contract).
       const saltAssertionInner = ext.optionalAssertionWithPredicate(SALT);
       if (saltAssertionInner === undefined) {
-        throw XIDError.envelopeParsing(
-          new Error("missing 'salt' assertion on private-key node"),
-        );
+        throw XIDError.envelopeParsing(new Error("missing 'salt' assertion on private-key node"));
       }
       const saltObj = (saltAssertionInner as EnvelopeExt).tryObject() as EnvelopeExt;
       const salt = Salt.fromTaggedCbor(saltObj.tryLeaf());
@@ -453,8 +451,7 @@ export class Key implements HasNickname, HasPermissions, EnvelopeEncodable, Veri
       const nicknameObj = (
         env as unknown as { objectForPredicate(p: unknown): EnvelopeExt }
       ).objectForPredicate(NICKNAME);
-      nickname =
-        (nicknameObj as unknown as { asText(): string | undefined }).asText() ?? "";
+      nickname = (nicknameObj as unknown as { asText(): string | undefined }).asText() ?? "";
     } catch {
       // No nickname assertion.
     }

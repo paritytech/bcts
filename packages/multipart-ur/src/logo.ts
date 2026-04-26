@@ -155,9 +155,7 @@ export class Logo {
           "WebP decoding requires the async API — use `Logo.fromImageBytesAsync` instead",
         );
       } else {
-        throw new Error(
-          "unrecognized format (expected PNG, JPEG, GIF, or BMP)",
-        );
+        throw new Error("unrecognized format (expected PNG, JPEG, GIF, or BMP)");
       }
     } catch (e) {
       throw MurError.imageEncode(
@@ -201,10 +199,9 @@ export class Logo {
     try {
       const webp = await import("webp-wasm");
       // `webp-wasm` returns a Promise<ImageData> with `data`/`width`/`height`.
-      imageData = (await webp.decode(data.buffer.slice(
-        data.byteOffset,
-        data.byteOffset + data.byteLength,
-      ) as ArrayBuffer)) as unknown as {
+      imageData = (await webp.decode(
+        data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer,
+      )) as unknown as {
         data: Uint8ClampedArray;
         width: number;
         height: number;
@@ -218,7 +215,11 @@ export class Logo {
     const pixels =
       imageData.data instanceof Uint8Array
         ? imageData.data
-        : new Uint8Array(imageData.data.buffer, imageData.data.byteOffset, imageData.data.byteLength);
+        : new Uint8Array(
+            imageData.data.buffer,
+            imageData.data.byteOffset,
+            imageData.data.byteLength,
+          );
     return new Logo(pixels, imageData.width, imageData.height, f, cb, clearShape);
   }
 }

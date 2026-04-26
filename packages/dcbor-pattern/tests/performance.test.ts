@@ -8,14 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { performance } from "node:perf_hooks";
-import {
-  cbor,
-  parse,
-  matches,
-  getPaths,
-  formatPathsStr,
-  assertActualExpected,
-} from "./common";
+import { cbor, parse, matches, getPaths, formatPathsStr, assertActualExpected } from "./common";
 
 describe("performance tests", () => {
   it("test_deeply_nested_performance", () => {
@@ -61,15 +54,7 @@ describe("performance tests", () => {
     const patternCreationTime = performance.now() - patternStart;
 
     // Create test data with many elements to test backtracking performance
-    const data = cbor([
-      { id: 1 },
-      { id: 2 },
-      42,
-      "test",
-      true,
-      { name: "Alice" },
-      { name: "Bob" },
-    ]);
+    const data = cbor([{ id: 1 }, { id: 2 }, 42, "test", true, { name: "Alice" }, { name: "Bob" }]);
 
     const matchStart = performance.now();
     const result = matches(pattern, data);
@@ -178,9 +163,7 @@ describe("performance tests", () => {
 
   it("test_vm_instruction_optimization", () => {
     // Test that complex patterns compile to efficient VM instructions
-    const pattern = parse(
-      `tagged(100, [({"key": number})*, "separator", ({"value": text})*])`,
-    );
+    const pattern = parse(`tagged(100, [({"key": number})*, "separator", ({"value": text})*])`);
 
     // Test multiple matches to ensure VM optimization is effective
     const testCases: ReturnType<typeof cbor>[] = [
@@ -189,13 +172,7 @@ describe("performance tests", () => {
       cbor({ tag: 100, value: cbor(["separator", { value: "test" }]) }),
       cbor({
         tag: 100,
-        value: cbor([
-          { key: 1 },
-          { key: 2 },
-          "separator",
-          { value: "a" },
-          { value: "b" },
-        ]),
+        value: cbor([{ key: 1 }, { key: 2 }, "separator", { value: "a" }, { value: "b" }]),
       }),
     ];
 

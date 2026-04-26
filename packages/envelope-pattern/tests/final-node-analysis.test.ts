@@ -65,11 +65,41 @@ describe("NODE pattern behaviour (test_final_node_analysis.rs)", () => {
     //   - NODE({n}) matches when the assertion count equals n.
     //   - NODE({n,m}) matches when the assertion count is in [n,m].
     const expected: Record<string, Record<string, boolean>> = {
-      "Plain CBOR":   { "NODE (any)": false, "NODE({0})": false, "NODE({1})": false, "NODE({2})": false, "NODE({1,2})": false },
-      "Known value":  { "NODE (any)": false, "NODE({0})": false, "NODE({1})": false, "NODE({2})": false, "NODE({1,2})": false },
-      "1 assertion":  { "NODE (any)": true,  "NODE({0})": false, "NODE({1})": true,  "NODE({2})": false, "NODE({1,2})": true },
-      "2 assertions": { "NODE (any)": true,  "NODE({0})": false, "NODE({1})": false, "NODE({2})": true,  "NODE({1,2})": true },
-      "3 assertions": { "NODE (any)": true,  "NODE({0})": false, "NODE({1})": false, "NODE({2})": false, "NODE({1,2})": false },
+      "Plain CBOR": {
+        "NODE (any)": false,
+        "NODE({0})": false,
+        "NODE({1})": false,
+        "NODE({2})": false,
+        "NODE({1,2})": false,
+      },
+      "Known value": {
+        "NODE (any)": false,
+        "NODE({0})": false,
+        "NODE({1})": false,
+        "NODE({2})": false,
+        "NODE({1,2})": false,
+      },
+      "1 assertion": {
+        "NODE (any)": true,
+        "NODE({0})": false,
+        "NODE({1})": true,
+        "NODE({2})": false,
+        "NODE({1,2})": true,
+      },
+      "2 assertions": {
+        "NODE (any)": true,
+        "NODE({0})": false,
+        "NODE({1})": false,
+        "NODE({2})": true,
+        "NODE({1,2})": true,
+      },
+      "3 assertions": {
+        "NODE (any)": true,
+        "NODE({0})": false,
+        "NODE({1})": false,
+        "NODE({2})": false,
+        "NODE({1,2})": false,
+      },
     };
 
     for (const { label, envelope, expectedAssertions } of cases) {

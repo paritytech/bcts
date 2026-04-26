@@ -406,7 +406,6 @@ export class SigningPublicKey
     return `SigningPublicKey(${refShort}, ${innerDisplay})`;
   }
 
-
   // ============================================================================
   // ReferenceProvider Interface
   // ============================================================================

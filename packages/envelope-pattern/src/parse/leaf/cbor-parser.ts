@@ -13,13 +13,7 @@
  * @module envelope-pattern/parse/leaf/cbor-parser
  */
 
-import {
-  type Result,
-  err,
-  expectedCloseParen,
-  ok,
-  unexpectedToken,
-} from "../../error";
+import { type Result, err, expectedCloseParen, ok, unexpectedToken } from "../../error";
 import { type Pattern, anyCbor } from "../../pattern";
 import type { Lexer } from "../token";
 import { parseCborInner } from "../utils";

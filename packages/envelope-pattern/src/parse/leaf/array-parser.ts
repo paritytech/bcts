@@ -13,13 +13,7 @@
  * @module envelope-pattern/parse/leaf/array-parser
  */
 
-import {
-  type Result,
-  err,
-  expectedCloseBracket,
-  ok,
-  unexpectedToken,
-} from "../../error";
+import { type Result, err, expectedCloseBracket, ok, unexpectedToken } from "../../error";
 import type { Pattern } from "../../pattern";
 import type { Lexer } from "../token";
 import { parseArrayInner } from "../utils";
