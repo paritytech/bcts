@@ -12,7 +12,7 @@ const {
   activeIdentity, identities, setActive,
   currentSection, currentSectionMeta, sectionsCompleted, progress,
   treeOutput, hexOutput, notationOutput, diagnosticOutput, envelopeUrOutput,
-  error, goToSection, resetTutorial, activeDoc,
+  error, goToSection, resetTutorial,
 } = useXidTutorial()
 
 function onGoToSection(index: number) { goToSection(index) }

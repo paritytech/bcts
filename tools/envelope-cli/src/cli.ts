@@ -192,7 +192,7 @@ subjectCmd
         compact({
           subjectType: dataTypeFromString(type),
           subjectValue: value,
-          urTag: opts["urTag"] as number | undefined,
+          urTag: opts["urTag"],
         }),
       ),
     );
@@ -216,8 +216,8 @@ subjectCmd
             predValue,
             objType: dataTypeFromString(objType, "OBJ_TYPE"),
             objValue,
-            predTag: opts["predTag"] as number | undefined,
-            objTag: opts["objTag"] as number | undefined,
+            predTag: opts["predTag"],
+            objTag: opts["objTag"],
           }),
         ),
       );
@@ -258,8 +258,8 @@ assertionAdd
             predValue,
             objType: dataTypeFromString(objType, "OBJ_TYPE"),
             objValue,
-            predTag: opts["predTag"] as number | undefined,
-            objTag: opts["objTag"] as number | undefined,
+            predTag: opts["predTag"],
+            objTag: opts["objTag"],
             salted: Boolean(opts["salted"]),
             envelope,
           }),
@@ -330,8 +330,8 @@ assertionCmd
             predValue,
             objType: dataTypeFromString(objType, "OBJ_TYPE"),
             objValue,
-            predTag: opts["predTag"] as number | undefined,
-            objTag: opts["objTag"] as number | undefined,
+            predTag: opts["predTag"],
+            objTag: opts["objTag"],
             salted: Boolean(opts["salted"]),
           }),
         ),
@@ -354,7 +354,7 @@ assertionFind
           compact({
             subjectType: dataTypeFromString(type),
             subjectValue: value,
-            urTag: opts["urTag"] as number | undefined,
+            urTag: opts["urTag"],
             envelope,
           }),
         ),
@@ -376,7 +376,7 @@ assertionFind
           compact({
             subjectType: dataTypeFromString(type),
             subjectValue: value,
-            urTag: opts["urTag"] as number | undefined,
+            urTag: opts["urTag"],
             envelope,
           }),
         ),
@@ -410,8 +410,8 @@ assertionRemove
             predValue,
             objType: dataTypeFromString(objType, "OBJ_TYPE"),
             objValue,
-            predTag: opts["predTag"] as number | undefined,
-            objTag: opts["objTag"] as number | undefined,
+            predTag: opts["predTag"],
+            objTag: opts["objTag"],
             envelope,
           }),
         ),
@@ -460,11 +460,11 @@ program
     run(() =>
       cmd.format.exec(
         compact({
-          type: opts["type"] as FormatType,
+          type: opts["type"],
           hideNodes: Boolean(opts["hideNodes"]),
-          digestFormat: opts["digestFormat"] as DigestFormatType,
-          theme: opts["theme"] as MermaidThemeType,
-          orientation: opts["orientation"] as MermaidOrientationType,
+          digestFormat: opts["digestFormat"],
+          theme: opts["theme"],
+          orientation: opts["orientation"],
           monochrome: Boolean(opts["monochrome"]),
           envelope,
         }),
@@ -490,7 +490,7 @@ program
     run(() =>
       cmd.digest.exec(
         compact({
-          depth: opts["depth"] as DigestDepth,
+          depth: opts["depth"],
           hex: Boolean(opts["hex"]),
           envelope,
         }),
@@ -514,8 +514,8 @@ program
       cmd.extract.exec(
         compact({
           type: parseEnumValue(ExtractSubjectType, type, "TYPE"),
-          urType: opts["urType"] as string | undefined,
-          urTag: opts["urTag"] as number | undefined,
+          urType: opts["urType"],
+          urTag: opts["urTag"],
           envelope,
         }),
       ),
@@ -548,9 +548,9 @@ program
       cmd.sign.exec(
         compact({
           signers: (opts["signer"] as string[] | undefined) ?? [],
-          note: opts["note"] as string | undefined,
+          note: opts["note"],
           namespace: (opts["namespace"] as string | undefined) ?? "envelope",
-          hashType: opts["hash"] as SignHashType,
+          hashType: opts["hash"],
           envelope,
         }),
       ),
@@ -609,11 +609,11 @@ program
     await runAsync(() =>
       cmd.encrypt.exec(
         compact({
-          key: opts["key"] as string | undefined,
-          password: opts["password"] as string | undefined,
+          key: opts["key"],
+          password: opts["password"],
           askpass: Boolean(opts["askpass"]),
-          passwordDerivation: opts["passwordDerivation"] as EncryptPasswordDerivation,
-          sshId: opts["sshId"] as string | undefined,
+          passwordDerivation: opts["passwordDerivation"],
+          sshId: opts["sshId"],
           recipients: (opts["recipient"] as string[] | undefined) ?? [],
           envelope,
         }),
@@ -634,11 +634,11 @@ program
     await runAsync(() =>
       cmd.decrypt.exec(
         compact({
-          key: opts["key"] as string | undefined,
-          password: opts["password"] as string | undefined,
+          key: opts["key"],
+          password: opts["password"],
           askpass: Boolean(opts["askpass"]),
-          recipient: opts["recipient"] as string | undefined,
-          sshId: opts["sshId"] as string | undefined,
+          recipient: opts["recipient"],
+          sshId: opts["sshId"],
           envelope,
         }),
       ),
@@ -738,8 +738,8 @@ generateCmd
     run(() =>
       cmd.generate.seed.exec(
         compact({
-          count: opts["count"] as number | undefined,
-          hex: opts["hex"] as string | undefined,
+          count: opts["count"],
+          hex: opts["hex"],
         }),
       ),
     );
@@ -762,8 +762,8 @@ generateCmd
     run(() =>
       cmd.generate.keypairs.exec(
         compact({
-          signing: opts["signing"] as KeypairsSigningScheme,
-          encryption: opts["encryption"] as KeypairsEncryptionScheme,
+          signing: opts["signing"],
+          encryption: opts["encryption"],
         }),
       ),
     );
@@ -788,8 +788,8 @@ generateCmd
       cmd.generate.prvKeys.exec(
         compact({
           input,
-          signing: opts["signing"] as PrvKeysSigningScheme,
-          encryption: opts["encryption"] as PrvKeysEncryptionScheme,
+          signing: opts["signing"],
+          encryption: opts["encryption"],
         }),
       ),
     );
@@ -826,7 +826,7 @@ program
       cmd.importCmd.exec(
         compact({
           object,
-          password: opts["password"] as string | undefined,
+          password: opts["password"],
           askpass: Boolean(opts["askpass"]),
         }),
       ),
@@ -846,7 +846,7 @@ program
         compact({
           urString,
           encrypt: Boolean(opts["encrypt"]),
-          password: opts["password"] as string | undefined,
+          password: opts["password"],
           askpass: Boolean(opts["askpass"]),
         }),
       ),
@@ -866,7 +866,7 @@ program
     run(() =>
       cmd.salt.exec(
         compact({
-          size: opts["size"] as number | undefined,
+          size: opts["size"],
           envelope,
         }),
       ),
@@ -966,10 +966,10 @@ xidCmd
             permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
             keys: key,
           },
-          generatorOpts: opts["generator"] as GeneratorOptions,
-          date: opts["date"] as string | undefined,
-          info: opts["info"] as string | undefined,
-          urTag: opts["urTag"] as number | undefined,
+          generatorOpts: opts["generator"],
+          date: opts["date"],
+          info: opts["info"],
+          urTag: opts["urTag"],
           outputOpts: {
             privateOpts: opts["private"] as PrivateOptions,
             generatorOpts: opts["generator"] as GeneratorOptions,
@@ -1105,7 +1105,14 @@ interface XidSharedOpts {
   signingKey?: string;
 }
 
-function readWriteArgs(opts: AnyArgs) {
+function readWriteArgs(opts: AnyArgs): {
+  read: { password: string | undefined; askpass: boolean };
+  write: {
+    encryptPassword: string | undefined;
+    encryptAskpass: boolean;
+    encryptMethod: PasswordMethod;
+  };
+} {
   const o = opts as XidSharedOpts;
   return {
     read: {
@@ -1120,7 +1127,7 @@ function readWriteArgs(opts: AnyArgs) {
   };
 }
 
-function readArgsOnly(opts: AnyArgs) {
+function readArgsOnly(opts: AnyArgs): { password: string | undefined; askpass: boolean } {
   const o = opts as XidSharedOpts;
   return {
     password: o.password,
@@ -1128,7 +1135,10 @@ function readArgsOnly(opts: AnyArgs) {
   };
 }
 
-function outputOpts(opts: AnyArgs) {
+function outputOpts(opts: AnyArgs): {
+  privateOpts: PrivateOptions;
+  generatorOpts: GeneratorOptions;
+} {
   const o = opts as XidSharedOpts;
   return {
     privateOpts: o.private ?? PrivateOptions.Include,
@@ -1136,12 +1146,12 @@ function outputOpts(opts: AnyArgs) {
   };
 }
 
-function verifyArgs(opts: AnyArgs) {
+function verifyArgs(opts: AnyArgs): { verify: VerifyOption } {
   const o = opts as XidSharedOpts;
   return { verify: o.verify ?? VerifyOption.None };
 }
 
-function signingArgs(opts: AnyArgs) {
+function signingArgs(opts: AnyArgs): { sign: SigningOption; signingKey: string | undefined } {
   const o = opts as XidSharedOpts;
   return {
     sign: o.sign ?? SigningOption.None,
@@ -1227,7 +1237,7 @@ addXidSigningOptions(
           permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
           keys: key,
         },
-        generatorOpts: opts["generator"] as GeneratorOptions,
+        generatorOpts: opts["generator"],
         passwordArgs: readWriteArgs(opts),
         verifyArgs: verifyArgs(opts),
         signingArgs: signingArgs(opts),
@@ -1357,7 +1367,7 @@ addXidSigningOptions(
           permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
           keys: key,
         },
-        generatorOpts: opts["generator"] as GeneratorOptions,
+        generatorOpts: opts["generator"],
         passwordArgs: readWriteArgs(opts),
         verifyArgs: verifyArgs(opts),
         signingArgs: signingArgs(opts),
@@ -1643,7 +1653,14 @@ addXidSigningOptions(
 // ----- xid service -----
 const xidServiceCmd = xidCmd.command("service").description("Work with services");
 
-function buildServiceArgs(opts: AnyArgs) {
+function buildServiceArgs(opts: AnyArgs): {
+  name: string | undefined;
+  capability: string | undefined;
+  keys: string[];
+  delegates: string[];
+  permissions: XIDPrivilege[];
+  uri: string | undefined;
+} {
   return {
     name: opts["name"] as string | undefined,
     capability: opts["capability"] as string | undefined,
@@ -1853,10 +1870,10 @@ xidEdgeCmd
     run(() =>
       cmd.xid.edge.find.exec(
         compact({
-          isA: opts["isA"] as string | undefined,
-          source: opts["source"] as string | undefined,
-          target: opts["target"] as string | undefined,
-          subject: opts["subject"] as string | undefined,
+          isA: opts["isA"],
+          source: opts["source"],
+          target: opts["target"],
+          subject: opts["subject"],
           envelope,
         }),
       ),
@@ -1994,10 +2011,10 @@ addXidSigningOptions(
   await runAsync(() =>
     cmd.xid.attachment.add.exec(
       compact({
-        attachment: opts["attachment"] as string | undefined,
-        vendor: opts["vendor"] as string | undefined,
-        payload: opts["payload"] as string | undefined,
-        conformsTo: opts["conformsTo"] as string | undefined,
+        attachment: opts["attachment"],
+        vendor: opts["vendor"],
+        payload: opts["payload"],
+        conformsTo: opts["conformsTo"],
         outputOpts: outputOpts(opts),
         passwordArgs: readWriteArgs(opts),
         verifyArgs: verifyArgs(opts),
@@ -2043,8 +2060,8 @@ xidAttachmentCmd
     run(() =>
       cmd.xid.attachment.find.exec(
         compact({
-          vendor: opts["vendor"] as string | undefined,
-          conformsTo: opts["conformsTo"] as string | undefined,
+          vendor: opts["vendor"],
+          conformsTo: opts["conformsTo"],
           envelope,
         }),
       ),
@@ -2126,10 +2143,10 @@ addXidSigningOptions(
   await runAsync(() =>
     cmd.xid.provenance.next.exec(
       compact({
-        date: opts["date"] as string | undefined,
-        info: opts["info"] as string | undefined,
-        urTag: opts["urTag"] as number | undefined,
-        externalGenerator: opts["externalGenerator"] as string | undefined,
+        date: opts["date"],
+        info: opts["info"],
+        urTag: opts["urTag"],
+        externalGenerator: opts["externalGenerator"],
         outputOpts: outputOpts(opts),
         passwordArgs: readWriteArgs(opts),
         verifyArgs: verifyArgs(opts),

@@ -109,7 +109,7 @@ export class SignCommand implements Exec {
       if (signersWithOptions.length !== 1) {
         throw new Error("can only add a note on a single signature");
       }
-      const { signer, options } = signersWithOptions[0]!;
+      const { signer, options } = signersWithOptions[0];
       const metadata = SignatureMetadata.new().withAssertion(NOTE, this.args.note);
       return envelope.addSignatureOpt(signer, options, metadata).urString();
     }
