@@ -4,15 +4,10 @@
 
 ### Changed
 
-- Now byte-identical with [`provenance-mark-cli`](https://crates.io/crates/provenance-mark-cli) (Rust) for all 22 parity-harness cases. Notable adjustments:
-  - Clap-style enum-error format (`[possible values: …]`, exit code 2) instead of commander's default.
-  - Uppercased option metavars (`<RESOLUTION>`, `<COUNT>`, …) and stripped trailing periods on descriptions to match the Rust binary verbatim.
-  - Restored backticks in the `--info` description; `--seed` description matches the Rust wording exactly.
-  - Version string prefixed `@bcts/provenance-mark-cli ` and sourced from `package.json` so it cannot drift.
-
-### Added
-
-- `tests/parity-check.sh` — 22-case byte-for-byte diff harness against the Rust binary; wired into CI via `.github/workflows/parity.yml` (`provenance-mark-parity` job).
+- Clap-style enum-error format (`[possible values: …]`, exit code 2) instead of commander's default.
+- Uppercased option metavars (`<RESOLUTION>`, `<COUNT>`, …) and stripped trailing periods on descriptions to match the Rust binary verbatim.
+- Restored backticks in the `--info` description; `--seed` description matches the Rust wording exactly.
+- Version string prefixed `@bcts/provenance-mark-cli ` and sourced from `package.json` so it cannot drift.
 
 ## [1.0.0-alpha.23] - 2026-04-24
 

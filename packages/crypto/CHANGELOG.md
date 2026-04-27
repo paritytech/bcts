@@ -4,7 +4,7 @@
 
 ### Changed
 
-- `argon`, `error`, `public-key-encryption`, `scrypt`, `memzero` modules and re-exports aligned with upstream `bc-crypto` (Rust).
+- `argon`, `error`, `public-key-encryption`, `scrypt`, `memzero` modules and re-exports aligned with upstream `bc-crypto`.
 
 ## [1.0.0-alpha.23] - 2026-04-24
 

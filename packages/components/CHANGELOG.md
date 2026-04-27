@@ -5,7 +5,7 @@
 ### Added
 
 - Initial SSH key support: OpenSSH-format private keys, public keys, certificates, and signatures (`SSHPrivateKey`, `SSHPublicKey`, `SSHCertificate`, `SSHSignature`, `SSHAlgorithm`) with sign/verify and PEM round-trip.
-- `toSsh()` / `isSsh()` accessors on `SigningPrivateKey` / `SigningPublicKey` to bridge BC envelopes and OpenSSH artefacts.
+- `toSsh()` / `isSsh()` accessors on `SigningPrivateKey` / `SigningPublicKey` to bridge BC envelopes and OpenSSH artifacts.
 - Sr25519 keypair surface and tests; sr25519 / mldsa / mlkem level helpers exposed for parity.
 - Comprehensive SSH test suite (buffer, certificate, private key, public key, sign/verify, signature).
 

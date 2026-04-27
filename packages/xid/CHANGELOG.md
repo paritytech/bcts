@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Workspace version bump (no functional changes — first cross-workspace beta release).
+- Workspace version bump
 
 ## [1.0.0-alpha.23] - 2026-04-24
 

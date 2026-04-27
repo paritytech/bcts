@@ -4,7 +4,7 @@
 
 ### Changed
 
-- `format/diagnostic.ts` and `format/format-context.ts` aligned with upstream `bc-envelope` (Rust); format tests updated.
+- `format/diagnostic.ts` and `format/format-context.ts` aligned with upstream `bc-envelope`; format tests updated.
 
 ## [1.0.0-alpha.23] - 2026-04-24
 
