@@ -10,7 +10,7 @@ Also includes a library of CBOR tags and UR types for use with these types.
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) **v0.31.1** ([commit](https://github.com/BlockchainCommons/bc-components-rust/tree/fe31ddd48c1a1b0dfa161e876f7ea5bbadfb5a8f)).
+This TypeScript implementation is based on [bc-components-rust](https://github.com/BlockchainCommons/bc-components-rust) **v0.31.1** ([commit](https://github.com/BlockchainCommons/bc-components-rust/tree/cc4d40218810319e286dc2d4e588731a3a70d0f5)).
 
 ### SSH Support
 
