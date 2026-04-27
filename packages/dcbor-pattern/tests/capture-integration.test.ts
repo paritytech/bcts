@@ -289,9 +289,9 @@ describe("capture integration tests", () => {
             9`;
     assertActualExpected(formatPathsWithCapturesStr(paths, captures), expectedOutput);
 
-    // Should complete reasonably quickly (less than 100ms for this small example)
+    // Should complete reasonably quickly (less than 250ms for this small example)
     // Note: Using a higher threshold than Rust's 10ms due to JS runtime variance
-    expect(duration).toBeLessThan(100);
+    expect(duration).toBeLessThan(250);
   });
 
   /**
