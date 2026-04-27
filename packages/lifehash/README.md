@@ -13,9 +13,9 @@ LifeHash generates a unique, colorful, abstract image from any input data. It's 
 - **Human-Friendly**: Easy to recognize and compare at a glance
 - **Collision-Resistant**: Hard to find two inputs that produce similar images
 
-## C++ Reference Implementation
+## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-lifehash](https://github.com/BlockchainCommons/bc-lifehash) ([commit 0444dbe](https://github.com/BlockchainCommons/bc-lifehash/tree/0444dbed5615fbc9a98163608c6499c025b7873b)). Test parity is enforced against the 35 upstream test vectors vendored at `tests/fixtures/test-vectors.json`.
+This TypeScript implementation is based on [bc-lifehash-rust](https://github.com/BlockchainCommons/bc-lifehash-rust) **v0.1.0** ([commit](https://github.com/BlockchainCommons/bc-lifehash-rust/tree/081daa072e1095b9100f35d2ee3cfe17e9f5bbb2)).
 
 ## Rust parity fuzz
 

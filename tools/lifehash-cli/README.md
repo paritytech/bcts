@@ -106,4 +106,4 @@ Options:
 
 ## C++ Reference Implementation
 
-This TypeScript implementation is based on [bc-lifehash-cli](https://github.com/BlockchainCommons/bc-lifehash-cli).
+This TypeScript implementation is based on [lifehash-cli](https://github.com/BlockchainCommons/lifehash-cli) **v0.1.0** ([commit](https://github.com/BlockchainCommons/lifehash-cli/tree/ce697876976ab5e66e03c7964cd061d9c6696c95)).

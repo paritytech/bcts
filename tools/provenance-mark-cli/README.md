@@ -17,7 +17,7 @@ Features:
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [provenance-mark-cli-rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) **v0.6.0** ([commit](https://github.com/BlockchainCommons/provenance-mark-cli-rust/tree/8ab225787e677646739817c5954f16b3e21e1b24)).
+This TypeScript implementation is based on [provenance-mark-cli-rust](https://github.com/BlockchainCommons/provenance-mark-cli-rust) **v0.7.0** ([commit](https://github.com/BlockchainCommons/provenance-mark-cli-rust/tree/167495aa19b1af66838f04fa8c74af2feef64fd6)).
 
 ## Installation
 
