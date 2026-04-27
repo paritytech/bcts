@@ -10,7 +10,16 @@ const { completeAndAdvance } = useXidTutorial()
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Welcome</h2>
       </div>
       <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-        This course takes you through creating, verifying, and maintaining a self-sovereign
+        This tutorial is fully based on Blockchain Commons'
+        <a
+          href="https://learningxids.blockchaincommons.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-primary-600 dark:text-primary-400 font-medium hover:underline"
+        >Learning XIDs</a> course.
+      </p>
+      <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+        We will take you through creating, verifying, and maintaining a self-sovereign
         identity based on <strong>eXtensible IDentifiers (XIDs)</strong>. You'll follow Amira, a
         software developer who needs a pseudonymous identity to contribute to social-impact
         projects without risking her professional position or her family's safety.

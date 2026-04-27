@@ -16,9 +16,19 @@ const CANNED_RESPONSES: Record<string, GithubKey[]> = {
 
 export async function fetchGithubSigningKeys(
   username: string,
-  opts: { live?: boolean } = {},
+  opts: { live?: boolean; cannedKeyOverride?: string } = {},
 ): Promise<{ keys: GithubKey[]; source: "live" | "canned"; error?: string }> {
+  // Canned mode simulates "the user uploaded their freshly-generated SSH key
+  // to GitHub" — echo back whatever the XID's edge actually claims so the
+  // mismatch isn't a teaching artifact. Mirrors the upstream tutorial's local
+  // mode (`scripts/03_2_SCRIPT.sh`) where GitHub == the locally-built XID.
   if (!opts.live) {
+    if (opts.cannedKeyOverride) {
+      return {
+        keys: [{ key: opts.cannedKeyOverride, created_at: new Date().toISOString() }],
+        source: "canned",
+      };
+    }
     const canned = CANNED_RESPONSES[username];
     if (canned) return { keys: canned, source: "canned" };
     return { keys: [], source: "canned", error: `No canned data for "${username}"` };

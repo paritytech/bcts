@@ -1,6 +1,6 @@
 import { Envelope } from "@bcts/envelope";
 import { IS_A, DATE, NICKNAME, DEREFERENCE_VIA } from "@bcts/known-values";
-import type { PrivateKeys } from "@bcts/components";
+import { XID, type PrivateKeys } from "@bcts/components";
 
 export interface ClaInput {
   project: string;
@@ -17,8 +17,10 @@ export interface ClaInput {
   contributorRepresents: string;
 }
 
+// CLA `projectManager` / `contributor` sub-envelopes wrap the XID *identifier*,
+// not the XID document. Parse the `ur:xid/…` string and use it as the envelope subject.
 function parseXid(ur: string): Envelope {
-  return (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(ur);
+  return Envelope.new(XID.fromURString(ur));
 }
 
 /** Build the CLA envelope (unsigned). */

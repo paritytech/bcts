@@ -15,7 +15,7 @@ const { completeAndAdvance } = useXidTutorial()
       </p>
     </section>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
       <XidTutorialConceptCard title="Gordian Envelope" icon="i-heroicons-envelope">
         A smart-document format with a subject-predicate-object shape. Every element has a
         cryptographic digest that forms a Merkle-like tree, which is what enables elision and

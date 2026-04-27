@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { Privilege } from '@bcts/xid'
 import type { Envelope } from '@bcts/envelope'
 import { buildSignedEdge } from '@/utils/xid-tutorial/edge'
 
 const {
-  activeSlot, activeDoc, addSideKey, attachEdgeToActive,
+  activeSlot, activeDoc, activeIdentity, setActive, generateSshKey, attachEdgeToActive,
   advanceProvenance, completeAndAdvance, edgeList, sshPublicKeyText,
 } = useXidTutorial()
 
@@ -17,23 +16,19 @@ const builtEdge = shallowRef<Envelope | null>(null)
 const builtEdgeTree = ref('')
 const edgeAttached = ref(false)
 
-function ensureSshKey() {
-  if (!activeSlot.value.sshKey) {
-    const side = addSideKey('amira', 'ssh', 'SshEd25519', [Privilege.Sign])
-    if (side) sshKeyText.value = sshPublicKeyText(side.pubKeys)
-  } else {
-    sshKeyText.value = sshPublicKeyText(activeSlot.value.sshKey.pubKeys)
-  }
+function handleGenerateSsh() {
+  const side = generateSshKey('amira')
+  if (side) sshKeyText.value = sshPublicKeyText(side.pubKeys)
 }
 
 function handleBuildEdge() {
   const doc = activeDoc.value
   if (!doc) return
-  ensureSshKey()
   const ssh = activeSlot.value.sshKey
   if (!ssh) return
   const xidUr = doc.xid().urString()
   const keyText = sshPublicKeyText(ssh.pubKeys)
+  const sshPubUr = ssh.pubKeys.urString()
   const edge = buildSignedEdge({
     subject: edgeSubject.value,
     isA: isA.value,
@@ -46,6 +41,7 @@ function handleBuildEdge() {
         'sshSigningKeyText': keyText,
         'sshSigningKeysURL': `https://api.github.com/users/${githubUsername.value}/ssh_signing_keys`,
       },
+      sshPublicKeysUr: sshPubUr,
     },
     date: new Date(),
     conformsTo: 'https://github.com',
@@ -64,8 +60,13 @@ function handleAttach() {
 function handleAdvance() { advanceProvenance() }
 
 onMounted(() => {
+  // §3.1 is Amira's GitHub-edge flow per the upstream tutorial — make sure
+  // she's the active identity so the UI reflects the slot we mutate.
+  if (activeIdentity.value !== 'amira') setActive('amira')
   if (activeSlot.value.sshKey) sshKeyText.value = sshPublicKeyText(activeSlot.value.sshKey.pubKeys)
 })
+
+const hasSshKey = computed(() => activeSlot.value.sshKey !== null)
 
 const canContinue = computed(() => edgeAttached.value)
 </script>
@@ -101,10 +102,10 @@ const canContinue = computed(() => edgeAttached.value)
       <!-- SSH key -->
       <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
         <h3 class="text-sm font-semibold">SSH signing key</h3>
-        <div v-if="activeSlot.sshKey" class="space-y-2">
+        <div v-if="hasSshKey" class="space-y-2">
           <div class="flex items-center gap-2 text-sm">
             <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
-            <span>SSH key registered in your XID (Sign-only).</span>
+            <span>Standalone SSH signing key generated. Its public counterpart will go inside the edge target; the private half signs the edge.</span>
           </div>
           <pre class="font-mono text-xs bg-gray-950 text-gray-200 p-3 rounded-md overflow-auto">{{ sshKeyText }}</pre>
           <p class="text-xs text-gray-500">
@@ -112,7 +113,7 @@ const canContinue = computed(() => edgeAttached.value)
             tutorial we'll continue using the canned BRadvoc8 GitHub account.
           </p>
         </div>
-        <UButton v-else label="Generate + register SSH signing key" color="primary" icon="i-heroicons-key" @click="ensureSshKey" />
+        <UButton v-else label="Generate SSH signing key" color="primary" icon="i-heroicons-key" @click="handleGenerateSsh" />
       </div>
 
       <!-- Build edge -->

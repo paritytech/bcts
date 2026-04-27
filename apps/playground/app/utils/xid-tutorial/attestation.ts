@@ -1,6 +1,6 @@
 import { Envelope } from "@bcts/envelope";
 import { IS_A, SOURCE, TARGET, DATE, VERIFIABLE_AT } from "@bcts/known-values";
-import type { PrivateKeys, PublicKeys } from "@bcts/components";
+import { XID, type PrivateKeys, type PublicKeys } from "@bcts/components";
 import type { XIDDocument } from "@bcts/xid";
 
 export interface FairWitnessInput {
@@ -12,8 +12,12 @@ export interface FairWitnessInput {
   extras?: Record<string, string>;
 }
 
+// `source` / `target` in fair-witness attestations are the XID *identifier*
+// (a 32-byte tagged value), not the full XID document. Parse the `ur:xid/…`
+// string and wrap it as an envelope subject — mirrors `XIDDocument.toEnvelope`'s
+// `Envelope.new(this._xid)`.
 function parseXidUrToEnvelope(ur: string): Envelope {
-  return (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(ur);
+  return Envelope.new(XID.fromURString(ur));
 }
 
 /** Build + wrap + sign a fair-witness attestation (pattern from §2.1). */

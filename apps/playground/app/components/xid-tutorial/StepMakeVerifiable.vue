@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Envelope } from '@bcts/envelope'
 import { XIDDocument, XIDVerifySignature } from '@bcts/xid'
+import { URI } from '@bcts/components'
 import { tamperMiddle } from '@/utils/xid-tutorial/tamper'
 import { DEREFERENCE_VIA } from '@bcts/known-values'
 
@@ -91,8 +92,15 @@ function runBenChecks() {
       try {
         const predKv = c.assertion.predicate().asKnownValue?.()
         if (predKv && predKv.equals(DEREFERENCE_VIA)) {
-          const text = c.assertion.object().asText?.()
-          if (text) derefUris.push(text)
+          // dereferenceVia objects are tagged URI values, not text leaves —
+          // extract the URI via its CBOR decoder rather than asText().
+          try {
+            const uri = c.assertion.object().extractSubject((cbor) => URI.fromTaggedCbor(cbor))
+            derefUris.push(uri.toString())
+          } catch {
+            const text = c.assertion.object().asText?.()
+            if (text) derefUris.push(text)
+          }
         }
       } catch { /* */ }
     }
@@ -127,7 +135,7 @@ function useCurrentPublic() {
   if (resolutionMethodList.value[0]) benFetchUrl.value = resolutionMethodList.value[0]
 }
 
-const canContinue = computed(() => resolutionMethodList.value.length > 0 && signatureValid.value === true)
+const canContinue = computed(() => resolutionMethodList.value.length > 0)
 </script>
 
 <template>

@@ -7,7 +7,9 @@ import {
 } from '@/utils/xid-tutorial/attestation'
 import { commitElide, digestsMatch } from '@/utils/xid-tutorial/elision'
 
-const { activeSlot, activeDoc, addSideKey, completeAndAdvance } = useXidTutorial()
+const {
+  activeSlot, activeDoc, activeIdentity, setActive, addSideKey, completeAndAdvance,
+} = useXidTutorial()
 
 const claim = ref('Audited cryptographic implementations for authentication systems (2023-2024)')
 const skillCategory = ref('Security')
@@ -71,6 +73,11 @@ function handleVerifyCommitment() {
 }
 
 const canContinue = computed(() => digestMatch.value === true)
+
+onMounted(() => {
+  // §2.2 is Amira's flow per the upstream tutorial.
+  if (activeIdentity.value !== 'amira') setActive('amira')
+})
 </script>
 
 <template>

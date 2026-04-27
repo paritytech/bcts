@@ -66,6 +66,11 @@ const currentSection = ref(0);
 const sectionsCompleted = ref<boolean[]>(new Array(TUTORIAL_SECTIONS.length).fill(false));
 const error = ref<string | null>(null);
 
+// Cross-step artifact handoff: each step can stash a UR string under a stable
+// key so a later step can pre-fill a textarea instead of asking the user to
+// paste it manually. Persisted alongside identities.
+const artifacts = ref<Record<string, string>>({});
+
 const xidHex = ref("");
 const xidUrString = ref("");
 const xidBytewords = ref("");
@@ -294,16 +299,45 @@ export function useXidTutorial() {
         scheme,
       );
       addSideKeyToXid(slot.document, side, allow);
-      if (kind === "attestation") slot.attestationKey = side;
-      if (kind === "ssh") slot.sshKey = side;
-      if (kind === "contract") slot.contractKey = side;
-      identities.value = { ...identities.value, [slotName]: slot };
+      // Replace the slot with a fresh object — mutating in place keeps the
+      // same reference, which makes the `activeSlot` computed return an
+      // unchanged value and dependent computeds (e.g. `hasAttestationKey`)
+      // never re-run.
+      const updatedSlot: IdentitySlot = {
+        ...slot,
+        attestationKey: kind === "attestation" ? side : slot.attestationKey,
+        sshKey: kind === "ssh" ? side : slot.sshKey,
+        contractKey: kind === "contract" ? side : slot.contractKey,
+      };
+      identities.value = { ...identities.value, [slotName]: updatedSlot };
       invalidatePrivateEnvelope(slotName);
       bumpDoc();
       saveState();
       return side;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to add key";
+      return null;
+    }
+  }
+
+  // Generate an SSH signing keypair *without* registering it as a sub-key on
+  // the XID — matches the upstream XID-Quickstart §3.1, where the SSH key is
+  // standalone (its public counterpart is embedded inside the edge target
+  // sub-envelope, and the key signs the edge directly). The previous flow
+  // tried to register it via `addSideKeyToXid`, which is what was silently
+  // failing on click.
+  function generateSshKey(slotName: IdentityName) {
+    try {
+      error.value = null;
+      const slot = identities.value[slotName];
+      if (!slot.document) throw new Error("No identity document loaded");
+      const side = generateSideKey("ssh-signing-key", "SshEd25519");
+      const updatedSlot: IdentitySlot = { ...slot, sshKey: side };
+      identities.value = { ...identities.value, [slotName]: updatedSlot };
+      saveState();
+      return side;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to generate SSH key";
       return null;
     }
   }
@@ -454,6 +488,15 @@ export function useXidTutorial() {
     return verifyInceptionSignature(env.urString());
   }
 
+  // ---- Cross-step artifacts ----
+  function setArtifact(key: string, ur: string) {
+    artifacts.value = { ...artifacts.value, [key]: ur };
+    saveState();
+  }
+  function getArtifact(key: string): string | undefined {
+    return artifacts.value[key];
+  }
+
   // ---- Step progression ----
   function completeSection(index: number) {
     if (index >= 0 && index < TUTORIAL_SECTIONS.length) {
@@ -477,6 +520,7 @@ export function useXidTutorial() {
     for (const name of Object.keys(identities.value) as IdentityName[]) forgetIdentity(name);
     currentSection.value = 0;
     sectionsCompleted.value = new Array(TUTORIAL_SECTIONS.length).fill(false);
+    artifacts.value = {};
     error.value = null;
     if (import.meta.client) {
       if (saveTimer) {
@@ -497,6 +541,7 @@ export function useXidTutorial() {
     sectionsCompleted: boolean[];
     activeIdentity: IdentityName;
     identities: Partial<Record<IdentityName, PersistedSlot>>;
+    artifacts?: Record<string, string>;
   };
 
   function saveState() {
@@ -516,6 +561,7 @@ export function useXidTutorial() {
         sectionsCompleted: sectionsCompleted.value,
         activeIdentity: activeIdentity.value,
         identities: {},
+        artifacts: artifacts.value,
       };
       for (const key of Object.keys(identities.value) as IdentityName[]) {
         const slot = identities.value[key];
@@ -544,6 +590,7 @@ export function useXidTutorial() {
         sectionsCompleted.value =
           p.sectionsCompleted ?? new Array(TUTORIAL_SECTIONS.length).fill(false);
         activeIdentity.value = p.activeIdentity ?? "amira";
+        artifacts.value = p.artifacts ?? {};
         for (const [name, data] of Object.entries(p.identities)) {
           if (!data?.ur) continue;
           const slot = identities.value[name as IdentityName];
@@ -626,6 +673,7 @@ export function useXidTutorial() {
     forgetIdentity,
     // keys
     addSideKey,
+    generateSshKey,
     // resolution
     addResolutionMethod,
     removeResolutionMethodUri,
@@ -637,6 +685,9 @@ export function useXidTutorial() {
     // edges
     attachEdgeToActive,
     removeEdgeFromActive,
+    // cross-step artifacts
+    setArtifact,
+    getArtifact,
     // serialization
     getPrivateEnvelope,
     getPublicEnvelope,

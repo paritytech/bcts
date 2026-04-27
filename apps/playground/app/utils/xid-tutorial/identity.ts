@@ -161,10 +161,8 @@ export function addSideKeyToXid(doc: XIDDocument, side: SideKey, allow: Privileg
   doc.addKey(key);
 }
 
-/** Export the SSH public key as its human-readable `ssh-ed25519 …` string. */
+/** Export the SSH public key as its human-readable `ssh-ed25519 …` line —
+ *  mirrors the upstream tutorial's `envelope export "$SSH_PUBKEYS"` output. */
 export function sshPublicKeyText(pubKeys: PublicKeys): string {
-  // The signing public key's toString() for SSH schemes returns the text form.
-  const signing = pubKeys.signingPublicKey();
-  const s = signing.toString();
-  return s;
+  return pubKeys.signingPublicKey().toSshOpenssh();
 }

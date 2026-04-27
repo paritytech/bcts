@@ -1,11 +1,14 @@
 import { Envelope } from "@bcts/envelope";
 import { IS_A, SOURCE, TARGET, DATE, VERIFIABLE_AT, CONFORMS_TO } from "@bcts/known-values";
-import type { PrivateKeys, PublicKeys } from "@bcts/components";
+import { XID, PublicKeys, type PrivateKeys, type SigningOptions } from "@bcts/components";
 import type { XIDDocument } from "@bcts/xid";
 
 export interface EdgeTargetInput {
   xidUr: string;
   extras?: Record<string, string | number | boolean>;
+  /** Optional SSH public keys to embed as `sshSigningKey` (UR) — mirrors
+   * the upstream tutorial's `pred-obj string "sshSigningKey" ur $SSH_PUBKEYS`. */
+  sshPublicKeysUr?: string;
 }
 
 export interface EdgeBuildInput {
@@ -18,8 +21,11 @@ export interface EdgeBuildInput {
   verifiableAt?: string;
 }
 
+// Edge `source` / `target` sub-envelopes are built from the XID *identifier*
+// (a tagged value), not the full XID document envelope. Parse the `ur:xid/…`
+// string and wrap it as an envelope subject.
 function parseXid(ur: string): Envelope {
-  return (Envelope as unknown as { fromURString(s: string): Envelope }).fromURString(ur);
+  return Envelope.new(XID.fromURString(ur));
 }
 
 function buildSubEnvelope(input: EdgeTargetInput): Envelope {
@@ -30,10 +36,18 @@ function buildSubEnvelope(input: EdgeTargetInput): Envelope {
       env = env.addAssertion(k, v);
     }
   }
+  if (input.sshPublicKeysUr) {
+    const pubKeys = PublicKeys.fromURString(input.sshPublicKeysUr);
+    env = env.addAssertion("sshSigningKey", pubKeys);
+  }
   return env;
 }
 
-/** Build + wrap + sign an edge envelope (§3.1 pattern). */
+/** Build + wrap + sign an edge envelope (§3.1 pattern).
+ *
+ * SSH signing keys need a per-signer `SigningOptions.Ssh { namespace, hashAlg }`
+ * — the same defaults the `envelope sign` CLI uses (`tools/envelope-cli/src/cmd/sign.ts:69`).
+ */
 export function buildSignedEdge(input: EdgeBuildInput, signer: PrivateKeys): Envelope {
   const src = buildSubEnvelope(input.source);
   const tgt = buildSubEnvelope(input.target);
@@ -47,7 +61,10 @@ export function buildSignedEdge(input: EdgeBuildInput, signer: PrivateKeys): Env
   if (input.date) edge = edge.addAssertion(DATE, input.date.toISOString());
   if (input.verifiableAt) edge = edge.addAssertion(VERIFIABLE_AT, input.verifiableAt);
 
-  return edge.wrap().sign(signer);
+  const options: SigningOptions | undefined = signer.signingPrivateKey().isSsh()
+    ? { type: "Ssh", namespace: "envelope", hashAlg: "sha256" }
+    : undefined;
+  return edge.signOpt(signer, options);
 }
 
 /** Attach a signed edge to a XID. */
@@ -97,5 +114,24 @@ export function verifyEdgeSignature(edge: Envelope, pub: PublicKeys): boolean {
     return edge.hasSignatureFrom(pub);
   } catch {
     return false;
+  }
+}
+
+/** Pull the embedded SSH `PublicKeys` out of an edge's target sub-envelope.
+ *
+ * The edge target was built with `addAssertion("sshSigningKey", pubKeys)`
+ * (`buildSubEnvelope`), so the object is a tagged-CBOR `PublicKeys`. This
+ * mirrors the upstream §3.2 verification flow which extracts the SSH key from
+ * the GitHub attachment and verifies the signature against it. */
+export function extractEdgeSshPublicKeys(edge: Envelope): PublicKeys | undefined {
+  try {
+    const target = extractEdgeTarget(edge);
+    const obj = target.objectForPredicate("sshSigningKey" as never);
+    const ext = obj as unknown as {
+      extractSubject<T>(decoder: (cbor: unknown) => T): T;
+    };
+    return ext.extractSubject((cbor) => PublicKeys.fromTaggedCbor(cbor as never));
+  } catch {
+    return undefined;
   }
 }

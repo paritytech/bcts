@@ -9,7 +9,8 @@ import {
 } from '@/utils/xid-tutorial/attestation'
 
 const {
-  activeSlot, activeDoc, addSideKey, advanceProvenance, completeAndAdvance,
+  activeSlot, activeDoc, activeIdentity, setActive, addSideKey,
+  advanceProvenance, completeAndAdvance, provenanceMark,
 } = useXidTutorial()
 
 const claim = ref('Contributed mass spec visualization code to galaxyproject/galaxy (PR #12847, merged 2024)')
@@ -22,10 +23,19 @@ interface StoredAttestation {
   signed: Envelope
   tree: string
   supersedesId?: string
+  supersededBy?: string
   retracted?: boolean
+  verifiableAt?: string
 }
 const attestations = shallowRef<StoredAttestation[]>([])
 const verifyResults = ref<Record<string, { verified: boolean; keyNickname?: string }>>({})
+
+const hasAttestationKey = computed(() => activeSlot.value.attestationKey !== null)
+const canSign = computed(() =>
+  hasAttestationKey.value
+  && claim.value.trim().length > 0
+  && verifiableAt.value.trim().length > 0,
+)
 
 function ensureAttestationKey() {
   if (!activeSlot.value.attestationKey) {
@@ -36,7 +46,6 @@ function ensureAttestationKey() {
 function handleCreateClaim() {
   const doc = activeDoc.value
   if (!doc) return
-  ensureAttestationKey()
   const key = activeSlot.value.attestationKey
   if (!key) return
   const xidUr = doc.xid().urString()
@@ -56,6 +65,7 @@ function handleCreateClaim() {
     label: claim.value.slice(0, 60),
     signed,
     tree: signed.treeFormat(),
+    verifiableAt: verifiableAt.value || undefined,
   }
   attestations.value = [...attestations.value, entry]
 }
@@ -86,13 +96,19 @@ function handleSupersede(entry: StoredAttestation) {
     },
     key.prvKeys,
   )
-  attestations.value = [...attestations.value, {
-    id: crypto.randomUUID(),
+  const newId = crypto.randomUUID()
+  const newEntry: StoredAttestation = {
+    id: newId,
     label: `(supersedes) ${entry.label.slice(0, 40)}`,
     signed: superseded,
     tree: superseded.treeFormat(),
     supersedesId: entry.id,
-  }]
+    verifiableAt: verifiableAt.value || undefined,
+  }
+  attestations.value = [
+    ...attestations.value.map(a => a.id === entry.id ? { ...a, supersededBy: newId } : a),
+    newEntry,
+  ]
 }
 
 function handleRetract(entry: StoredAttestation) {
@@ -115,7 +131,12 @@ function handleRetract(entry: StoredAttestation) {
 
 function handleAdvance() { advanceProvenance() }
 
-const hasAttestationKey = computed(() => activeSlot.value.attestationKey !== null)
+onMounted(() => {
+  // §2.1 is Amira's flow per the upstream tutorial — make sure she's the
+  // active identity so the slot we mutate is the one the UI shows.
+  if (activeIdentity.value !== 'amira') setActive('amira')
+})
+
 const hasAttestations = computed(() => attestations.value.length > 0)
 </script>
 
@@ -177,8 +198,15 @@ const hasAttestations = computed(() => attestations.value.length > 0)
           label="Sign attestation"
           icon="i-heroicons-pencil-square"
           color="primary"
+          :disabled="!canSign"
           @click="handleCreateClaim"
         />
+        <p v-if="!hasAttestationKey" class="text-xs text-gray-500">
+          Create + register the attestation key above before signing.
+        </p>
+        <p v-else-if="!canSign" class="text-xs text-gray-500">
+          Both <em>claim</em> and <em>verifiableAt</em> are required for a fair-witness attestation.
+        </p>
       </div>
 
       <div v-if="hasAttestations" class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
@@ -189,17 +217,40 @@ const hasAttestations = computed(() => attestations.value.length > 0)
           class="rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 p-3 space-y-2"
         >
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-gray-400" />
               <span class="text-sm font-medium">{{ a.label }}</span>
               <UBadge v-if="a.supersedesId" color="info" size="xs" variant="subtle">supersedes</UBadge>
+              <UBadge v-if="a.supersededBy" color="neutral" size="xs" variant="subtle">superseded</UBadge>
               <UBadge v-if="a.retracted" color="warning" size="xs" variant="subtle">retraction</UBadge>
+              <UBadge
+                v-if="verifyResults[a.id]?.verified === true"
+                color="success" size="xs" variant="subtle" icon="i-heroicons-check-circle"
+              >
+                {{ verifyResults[a.id]?.keyNickname ?? 'verified' }}
+              </UBadge>
+              <UBadge
+                v-else-if="verifyResults[a.id]?.verified === false"
+                color="error" size="xs" variant="subtle" icon="i-heroicons-x-circle"
+              >
+                unverified
+              </UBadge>
             </div>
             <div class="flex items-center gap-1">
               <UButton size="xs" variant="ghost" icon="i-heroicons-magnifying-glass" label="Verify" @click="verifyOne(a)" />
               <UButton v-if="!a.retracted" size="xs" variant="ghost" icon="i-heroicons-arrow-path-rounded-square" label="Supersede" @click="handleSupersede(a)" />
               <UButton v-if="!a.retracted" size="xs" variant="ghost" color="warning" icon="i-heroicons-x-circle" label="Retract" @click="handleRetract(a)" />
             </div>
+          </div>
+          <div v-if="a.verifiableAt" class="text-xs flex items-center gap-1.5">
+            <UIcon name="i-heroicons-link" class="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span class="text-gray-500">verifiableAt</span>
+            <a
+              :href="a.verifiableAt"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-primary-600 dark:text-primary-400 hover:underline break-all"
+            >{{ a.verifiableAt }}</a>
           </div>
           <pre class="font-mono text-xs bg-gray-950 text-gray-200 p-3 rounded-md overflow-auto max-h-48">{{ a.tree }}</pre>
           <UAlert
@@ -222,6 +273,9 @@ const hasAttestations = computed(() => attestations.value.length > 0)
           provenance mark.
         </p>
         <UButton label="Advance provenance" icon="i-heroicons-arrow-path" variant="outline" color="neutral" @click="handleAdvance" />
+        <p v-if="provenanceMark" class="text-xs text-gray-500">
+          Edition seq <span class="font-mono text-gray-700 dark:text-gray-300">#{{ provenanceMark.seq() }}</span> ready to publish.
+        </p>
       </div>
 
       <div class="flex justify-end">

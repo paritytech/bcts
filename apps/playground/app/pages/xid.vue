@@ -78,7 +78,7 @@ function globalIndex(sectionId: string): number {
           </div>
         </div>
       </template>
-    <div class="flex flex-col lg:grid lg:grid-cols-[17rem_1fr_30rem] gap-0 h-full overflow-hidden">
+    <div class="flex flex-col lg:grid lg:grid-cols-[16rem_1fr_1fr] gap-0 h-full overflow-hidden">
       <!-- Left sidebar: chapter + section list -->
       <aside class="overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30">
         <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active identity</div>

@@ -7,8 +7,10 @@ import { readTextFile } from '@/utils/xid-tutorial/file-io'
 
 const {
   activeSlot, activeDoc, attachEdgeToActive, advanceProvenance,
-  completeAndAdvance, edgeList,
+  completeAndAdvance, edgeList, getArtifact,
 } = useXidTutorial()
+
+const claFromPrevStep = computed(() => getArtifact('acceptedCla'))
 
 // Part A: embed a commitment into an edge
 const projectName = ref('SisterSpaces')
@@ -31,6 +33,13 @@ function handleLoadContract() {
   if (!env) return
   contractEnvelope.value = env
   contractDigestUrValue.value = digestUr(env)
+}
+
+function handlePasteFromCla() {
+  const ur = claFromPrevStep.value
+  if (!ur) return
+  contractUrPaste.value = ur
+  handleLoadContract()
 }
 
 function handleBuildContractEdge() {
@@ -126,7 +135,16 @@ const canContinue = computed(() => edgeAttached.value || readmeMarkdown.value.le
         <UFormField label="Paste a signed contract UR (e.g. the accepted CLA from §4.1)">
           <UTextarea v-model="contractUrPaste" :rows="3" placeholder="ur:envelope/…" class="w-full font-mono text-xs" />
         </UFormField>
-        <UButton label="Compute digest" icon="i-heroicons-calculator" color="primary" @click="handleLoadContract" />
+        <div class="flex items-center gap-2 flex-wrap">
+          <UButton label="Compute digest" icon="i-heroicons-calculator" color="primary" @click="handleLoadContract" />
+          <UButton
+            v-if="claFromPrevStep"
+            label="Paste from §4.1"
+            icon="i-heroicons-clipboard-document-check"
+            variant="outline" color="neutral"
+            @click="handlePasteFromCla"
+          />
+        </div>
 
         <div v-if="contractDigestUrValue" class="text-xs space-y-1">
           <div><span class="text-gray-500">Digest:</span></div>
