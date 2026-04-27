@@ -1,5 +1,11 @@
 # @bcts/multipart-ur
 
+## 1.0.0-beta.0
+
+### Changed
+
+- Workspace version bump
+
 ## 1.0.0-alpha.24
 
 ### Initial release

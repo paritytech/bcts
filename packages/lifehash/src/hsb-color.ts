@@ -4,8 +4,7 @@
  *
  */
 
-import { Color } from "./color";
-import { clamped, max, min, modulo } from "./numeric";
+import { Color, clamped, modulo } from "./color";
 
 /**
  * A struct representing a color in the HSB space.
@@ -19,40 +18,16 @@ export class HSBColor {
   ) {}
 
   /**
-   * Create HSBColor from RGB Color.
+   * Create an HSBColor from a hue alone, with saturation and brightness both set to 1.
    */
-  static fromColor(color: Color): HSBColor {
-    const r = color.r;
-    const g = color.g;
-    const b = color.b;
-
-    const maxValue = max(r, g, b);
-    const minValue = min(r, g, b);
-
-    const brightness = maxValue;
-    const d = maxValue - minValue;
-    const saturation = maxValue === 0 ? 0 : d / maxValue;
-
-    let hue: number;
-    if (maxValue === minValue) {
-      hue = 0; // achromatic
-    } else if (maxValue === r) {
-      hue = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-    } else if (maxValue === g) {
-      hue = ((b - r) / d + 2) / 6;
-    } else if (maxValue === b) {
-      hue = ((r - g) / d + 4) / 6;
-    } else {
-      throw new Error("Internal error.");
-    }
-
-    return new HSBColor(hue, saturation, brightness);
+  static fromHue(hue: number): HSBColor {
+    return new HSBColor(hue, 1, 1);
   }
 
   /**
    * Convert to RGB Color.
    */
-  toColor(): Color {
+  color(): Color {
     const v = clamped(this.brightness);
     const s = clamped(this.saturation);
 
@@ -66,7 +41,9 @@ export class HSBColor {
     }
     h *= 6;
 
-    const i = Math.floor(h);
+    // C++/Rust use floorf on an f32, which can pick a different sextant than
+    // a plain f64 floor when h is just below an integer boundary.
+    const i = Math.floor(Math.fround(h));
     const f = h - i;
     const p = v * (1 - s);
     const q = v * (1 - s * f);
@@ -86,7 +63,7 @@ export class HSBColor {
       case 5:
         return new Color(v, p, q);
       default:
-        throw new Error("Internal error.");
+        throw new Error("Internal error in HSB conversion");
     }
   }
 }

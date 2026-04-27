@@ -5,25 +5,19 @@
  */
 
 import { Grid } from "./grid";
-import { Color } from "./color";
-import { Point } from "./point";
-import { type Size } from "./size";
 import type { Data } from "./data";
-import { BitEnumerator } from "./bit-enumerator";
-import { BitAggregator } from "./bit-aggregator";
+import { BitAggregator, BitEnumerator } from "./bit-enumerator";
 import type { ChangeGrid } from "./change-grid";
 
 /**
  * A class that holds an array of boolean cells and that is
  * capable of running Conway's Game of Life to produce the next generation.
  */
-export class CellGrid extends Grid<boolean> {
-  constructor(size: Size) {
-    super(size, false);
-  }
+export class CellGrid {
+  public readonly grid: Grid<boolean>;
 
-  protected colorForValue(value: boolean): Color {
-    return value ? Color.white : Color.black;
+  constructor(width: number, height: number) {
+    this.grid = new Grid<boolean>(width, height, false);
   }
 
   private static isAliveInNextGeneration(currentAlive: boolean, neighborsCount: number): boolean {
@@ -34,13 +28,13 @@ export class CellGrid extends Grid<boolean> {
     }
   }
 
-  private countNeighbors(point: Point): number {
+  private countNeighbors(px: number, py: number): number {
     let total = 0;
-    this.forNeighborhood(point, (o, p) => {
-      if (o.equals(Point.zero)) {
+    this.grid.forNeighborhood(px, py, (ox, oy, nx, ny) => {
+      if (ox === 0 && oy === 0) {
         return;
       }
-      if (this.getValue(p)) {
+      if (this.grid.getValue(nx, ny)) {
         total++;
       }
     });
@@ -49,22 +43,17 @@ export class CellGrid extends Grid<boolean> {
 
   data(): Data {
     const a = new BitAggregator();
-    this.forAll((p) => {
-      a.append(this.getValue(p));
+    this.grid.forAll((x, y) => {
+      a.append(this.grid.getValue(x, y));
     });
     return a.data();
   }
 
   setData(data: Data): void {
-    if (this.capacity !== data.length * 8) {
-      throw new Error(
-        `Data size mismatch: expected ${this.capacity / 8} bytes, got ${data.length}`,
-      );
-    }
     const e = new BitEnumerator(data);
     let i = 0;
     e.forAll((b) => {
-      this.storage[i] = b;
+      this.grid.storage[i] = b;
       i++;
     });
   }
@@ -74,23 +63,27 @@ export class CellGrid extends Grid<boolean> {
     nextCellGrid: CellGrid,
     nextChangeGrid: ChangeGrid,
   ): void {
-    nextCellGrid.setAll(false);
-    nextChangeGrid.setAll(false);
+    nextCellGrid.grid.setAll(false);
+    nextChangeGrid.grid.setAll(false);
 
-    this.forAll((p) => {
-      const currentAlive = this.getValue(p);
-      if (currentChangeGrid.getValue(p)) {
-        const neighborsCount = this.countNeighbors(p);
-        const nextAlive = CellGrid.isAliveInNextGeneration(currentAlive, neighborsCount);
-        if (nextAlive) {
-          nextCellGrid.setValue(true, p);
+    const width = this.grid.width;
+    const height = this.grid.height;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const currentAlive = this.grid.getValue(x, y);
+        if (currentChangeGrid.grid.getValue(x, y)) {
+          const neighborsCount = this.countNeighbors(x, y);
+          const nextAlive = CellGrid.isAliveInNextGeneration(currentAlive, neighborsCount);
+          if (nextAlive) {
+            nextCellGrid.grid.setValue(true, x, y);
+          }
+          if (currentAlive !== nextAlive) {
+            nextChangeGrid.setChanged(x, y);
+          }
+        } else {
+          nextCellGrid.grid.setValue(currentAlive, x, y);
         }
-        if (currentAlive !== nextAlive) {
-          nextChangeGrid.setChanged(p);
-        }
-      } else {
-        nextCellGrid.setValue(currentAlive, p);
       }
-    });
+    }
   }
 }

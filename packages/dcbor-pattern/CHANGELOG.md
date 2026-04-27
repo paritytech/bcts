@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- Aligned parsers, matcher, and VM with upstream `dcbor-pattern`: primary parser, map/tagged parsers, text parser, sequence pattern, array helpers / index, structure patterns, value patterns (date / digest / known-value / number).
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

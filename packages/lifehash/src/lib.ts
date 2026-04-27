@@ -6,7 +6,6 @@
 
 import { Version } from "./version";
 import type { Data } from "./data";
-import { Size } from "./size";
 import { CellGrid } from "./cell-grid";
 import { ChangeGrid } from "./change-grid";
 import { FracGrid } from "./frac-grid";
@@ -16,7 +15,7 @@ import { selectGradient } from "./gradients";
 import { selectPattern } from "./patterns";
 import { sha256 } from "./sha256";
 import { toData } from "./format-utils";
-import { clamped, lerpFrom, min, max } from "./numeric";
+import { clamped, lerpFrom, min, max } from "./color";
 import { dataToHex } from "./hex";
 
 export { Version } from "./version";
@@ -37,8 +36,8 @@ function makeImage(
   moduleSize: number,
   hasAlpha: boolean,
 ): Image {
-  if (moduleSize === 0) {
-    throw new Error("Invalid module size.");
+  if (!Number.isInteger(moduleSize) || moduleSize <= 0) {
+    throw new Error("Invalid module size");
   }
 
   const scaledWidth = width * moduleSize;
@@ -48,14 +47,18 @@ function makeImage(
 
   const resultColors = new Uint8Array(scaledCapacity);
 
-  for (let targetY = 0; targetY < scaledHeight; targetY++) {
-    for (let targetX = 0; targetX < scaledWidth; targetX++) {
+  // Match C++/Rust loop order: outer uses scaledWidth, inner uses
+  // scaledHeight (variables intentionally swapped relative to their names —
+  // harmless because LifeHash images are always square).
+  for (let targetY = 0; targetY < scaledWidth; targetY++) {
+    for (let targetX = 0; targetX < scaledHeight; targetX++) {
       const sourceX = Math.floor(targetX / moduleSize);
       const sourceY = Math.floor(targetY / moduleSize);
       const sourceOffset = (sourceY * width + sourceX) * 3;
       const targetOffset = (targetY * scaledWidth + targetX) * resultComponents;
 
-      // C++ truncates when assigning double to uint8_t, so use Math.trunc
+      // Rust `(x as u8)` truncates an f64 toward zero and saturates to
+      // [0, 255]; Math.trunc + Uint8Array assignment does the same in JS.
       resultColors[targetOffset] = Math.trunc(clamped(floatColors[sourceOffset]) * 255);
       resultColors[targetOffset + 1] = Math.trunc(clamped(floatColors[sourceOffset + 1]) * 255);
       resultColors[targetOffset + 2] = Math.trunc(clamped(floatColors[sourceOffset + 2]) * 255);
@@ -110,7 +113,7 @@ export function makeFromDigest(
   hasAlpha = false,
 ): Image {
   if (digest.length !== 32) {
-    throw new Error("Digest must be 32 bytes.");
+    throw new Error("Digest must be 32 bytes");
   }
 
   let length: number;
@@ -129,16 +132,14 @@ export function makeFromDigest(
       maxGenerations = 300;
       break;
     default:
-      throw new Error("Invalid version.");
+      throw new Error("Invalid version");
   }
 
-  const size = new Size(length, length);
-
   // These get reused from generation to generation by swapping them.
-  let currentCellGrid = new CellGrid(size);
-  let nextCellGrid = new CellGrid(size);
-  let currentChangeGrid = new ChangeGrid(size);
-  let nextChangeGrid = new ChangeGrid(size);
+  let currentCellGrid = new CellGrid(length, length);
+  let nextCellGrid = new CellGrid(length, length);
+  let currentChangeGrid = new ChangeGrid(length, length);
+  let nextChangeGrid = new ChangeGrid(length, length);
 
   const historySet = new Set<string>();
   const history: Data[] = [];
@@ -175,7 +176,7 @@ export function makeFromDigest(
     }
   }
 
-  nextChangeGrid.setAll(true);
+  nextChangeGrid.grid.setAll(true);
 
   // Run the Game of Life
   while (history.length < maxGenerations) {
@@ -197,7 +198,7 @@ export function makeFromDigest(
   }
 
   // Build the frac grid from history
-  const fracGrid = new FracGrid(size);
+  const fracGrid = new FracGrid(length, length);
   for (let i = 0; i < history.length; i++) {
     currentCellGrid.setData(history[i]);
     const frac = clamped(lerpFrom(0, history.length, i + 1));
@@ -212,15 +213,15 @@ export function makeFromDigest(
     let minValue = Infinity;
     let maxValue = -Infinity;
 
-    fracGrid.forAll((p) => {
-      const value = fracGrid.getValue(p);
+    fracGrid.grid.forAll((x, y) => {
+      const value = fracGrid.grid.getValue(x, y);
       minValue = min(minValue, value);
       maxValue = max(maxValue, value);
     });
 
-    fracGrid.forAll((p) => {
-      const value = lerpFrom(minValue, maxValue, fracGrid.getValue(p));
-      fracGrid.setValue(value, p);
+    fracGrid.grid.forAll((x, y) => {
+      const value = lerpFrom(minValue, maxValue, fracGrid.grid.getValue(x, y));
+      fracGrid.grid.setValue(value, x, y);
     });
   }
 
@@ -248,8 +249,8 @@ export function makeFromDigest(
   const colorGrid = new ColorGrid(fracGrid, gradient, pattern);
 
   return makeImage(
-    colorGrid.size.width,
-    colorGrid.size.height,
+    colorGrid.grid.width,
+    colorGrid.grid.height,
     colorGrid.colors(),
     moduleSize,
     hasAlpha,

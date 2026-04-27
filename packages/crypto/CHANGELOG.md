@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- `argon`, `error`, `public-key-encryption`, `scrypt`, `memzero` modules and re-exports aligned with upstream `bc-crypto`.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

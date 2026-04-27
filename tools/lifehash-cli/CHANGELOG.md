@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- Transitively benefits from `@bcts/lifehash`'s byte-identical Rust parity refactor (file-tree, composition, f32 precision sites).
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

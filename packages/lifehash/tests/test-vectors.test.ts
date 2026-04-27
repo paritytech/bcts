@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
-import { makeFromUtf8, makeFromData, Version, hexToData } from "../src";
+import { makeFromUtf8, makeFromData, Version } from "../src";
+import { hexToData } from "../src/hex";
 
 interface TestVector {
   input: string;

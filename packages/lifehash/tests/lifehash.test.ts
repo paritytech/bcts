@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { makeFromUtf8, Version, dataToHex, hexToData, sha256 } from "../src";
+import { makeFromUtf8, Version } from "../src";
+import { dataToHex, hexToData } from "../src/hex";
+import { sha256 } from "../src/sha256";
 
 describe("LifeHash", () => {
   it("should generate correct lifehash from UTF-8 string", () => {

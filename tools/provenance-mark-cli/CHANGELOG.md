@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- Clap-style enum-error format (`[possible values: …]`, exit code 2) instead of commander's default.
+- Uppercased option metavars (`<RESOLUTION>`, `<COUNT>`, …) and stripped trailing periods on descriptions to match the Rust binary verbatim.
+- Restored backticks in the `--info` description; `--seed` description matches the Rust wording exactly.
+- Version string prefixed `@bcts/provenance-mark-cli ` and sourced from `package.json` so it cannot drift.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

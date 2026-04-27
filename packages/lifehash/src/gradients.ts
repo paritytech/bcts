@@ -4,44 +4,47 @@
  *
  */
 
-import { Color } from "./color";
+import { Color, lerp, modulo } from "./color";
 import { HSBColor } from "./hsb-color";
-import { blend, reverse, type ColorFunc } from "./color-func";
+import { blend, blend2, reverse, type ColorFunc } from "./color-func";
 import { type BitEnumerator } from "./bit-enumerator";
 import { Version } from "./version";
-import { lerp, modulo } from "./numeric";
 
-// Grayscale gradient
-const grayscale: ColorFunc = blend(Color.black, Color.white);
+function grayscale(): ColorFunc {
+  return blend2(Color.black, Color.white);
+}
 
 function selectGrayscale(entropy: BitEnumerator): ColorFunc {
-  return entropy.next() ? grayscale : reverse(grayscale);
+  return entropy.next() ? grayscale() : reverse(grayscale());
 }
 
 function makeHue(t: number): Color {
-  return new HSBColor(t).toColor();
+  return HSBColor.fromHue(t).color();
 }
 
-// Spectrum gradients
-const spectrum: ColorFunc = blend([
-  Color.fromUint8Values(0, 168, 222),
-  Color.fromUint8Values(51, 51, 145),
-  Color.fromUint8Values(233, 19, 136),
-  Color.fromUint8Values(235, 45, 46),
-  Color.fromUint8Values(253, 233, 43),
-  Color.fromUint8Values(0, 158, 84),
-  Color.fromUint8Values(0, 168, 222),
-]);
+function spectrum(): ColorFunc {
+  return blend([
+    Color.fromUint8Values(0, 168, 222),
+    Color.fromUint8Values(51, 51, 145),
+    Color.fromUint8Values(233, 19, 136),
+    Color.fromUint8Values(235, 45, 46),
+    Color.fromUint8Values(253, 233, 43),
+    Color.fromUint8Values(0, 158, 84),
+    Color.fromUint8Values(0, 168, 222),
+  ]);
+}
 
-const spectrumCmykSafe: ColorFunc = blend([
-  Color.fromUint8Values(0, 168, 222),
-  Color.fromUint8Values(41, 60, 130),
-  Color.fromUint8Values(210, 59, 130),
-  Color.fromUint8Values(217, 63, 53),
-  Color.fromUint8Values(244, 228, 81),
-  Color.fromUint8Values(0, 158, 84),
-  Color.fromUint8Values(0, 168, 222),
-]);
+function spectrumCmykSafe(): ColorFunc {
+  return blend([
+    Color.fromUint8Values(0, 168, 222),
+    Color.fromUint8Values(41, 60, 130),
+    Color.fromUint8Values(210, 59, 130),
+    Color.fromUint8Values(217, 63, 53),
+    Color.fromUint8Values(244, 228, 81),
+    Color.fromUint8Values(0, 158, 84),
+    Color.fromUint8Values(0, 168, 222),
+  ]);
+}
 
 function adjustForLuminance(color: Color, contrastColor: Color): Color {
   const lum = color.luminance();
@@ -83,11 +86,11 @@ function monochromatic(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFu
     contrastBrightness = 0;
   }
 
-  const neutralColor = grayscale(contrastBrightness);
+  const neutralColor = grayscale()(contrastBrightness);
   const keyColor2 = keyColor.lerpTo(neutralColor, keyAdvance);
   const neutralColor2 = neutralColor.lerpTo(keyColor, neutralAdvance);
 
-  const gradient = blend(keyColor2, neutralColor2);
+  const gradient = blend2(keyColor2, neutralColor2);
   return isReversed ? reverse(gradient) : gradient;
 }
 
@@ -97,7 +100,8 @@ function monochromaticFiducial(entropy: BitEnumerator): ColorFunc {
   const isTint = entropy.next();
 
   const contrastColor = isTint ? Color.white : Color.black;
-  const keyColor = adjustForLuminance(spectrumCmykSafe(hue), contrastColor);
+  const spec = spectrumCmykSafe();
+  const keyColor = adjustForLuminance(spec(hue), contrastColor);
 
   const gradient = blend([keyColor, contrastColor, keyColor]);
   return isReversed ? reverse(gradient) : gradient;
@@ -130,7 +134,7 @@ function complementary(entropy: BitEnumerator, hueGenerator: ColorFunc): ColorFu
   const adjustedLighterColor = lighterColor.lighten(lighterAdvance);
   const adjustedDarkerColor = darkerColor.darken(darkerAdvance);
 
-  const gradient = blend(adjustedDarkerColor, adjustedLighterColor);
+  const gradient = blend2(adjustedDarkerColor, adjustedLighterColor);
   return isReversed ? reverse(gradient) : gradient;
 }
 
@@ -142,8 +146,9 @@ function complementaryFiducial(entropy: BitEnumerator): ColorFunc {
   const neutralColorBias = entropy.next();
 
   const neutralColor = isTint ? Color.white : Color.black;
-  const color1 = spectrumCmykSafe(spectrum1);
-  const color2 = spectrumCmykSafe(spectrum2);
+  const spec = spectrumCmykSafe();
+  const color1 = spec(spectrum1);
+  const color2 = spec(spectrum2);
 
   const biasedNeutralColor = neutralColor.lerpTo(neutralColorBias ? color1 : color2, 0.2).burn(0.1);
 
@@ -191,11 +196,8 @@ function triadicFiducial(entropy: BitEnumerator): ColorFunc {
 
   const neutralColor = isTint ? Color.white : Color.black;
 
-  const colors = [
-    spectrumCmykSafe(spectrum1),
-    spectrumCmykSafe(spectrum2),
-    spectrumCmykSafe(spectrum3),
-  ];
+  const spec = spectrumCmykSafe();
+  const colors = [spec(spectrum1), spec(spectrum2), spec(spectrum3)];
 
   switch (neutralInsertIndex) {
     case 1:
@@ -209,7 +211,7 @@ function triadicFiducial(entropy: BitEnumerator): ColorFunc {
       colors[0] = adjustForLuminance(colors[0], colors[1]);
       break;
     default:
-      throw new Error("Internal error.");
+      throw new Error("Internal error");
   }
 
   colors.splice(neutralInsertIndex, 0, neutralColor);
@@ -273,11 +275,8 @@ function analogousFiducial(entropy: BitEnumerator): ColorFunc {
 
   const neutralColor = isTint ? Color.white : Color.black;
 
-  const colors = [
-    spectrumCmykSafe(spectrum1),
-    spectrumCmykSafe(spectrum2),
-    spectrumCmykSafe(spectrum3),
-  ];
+  const spec = spectrumCmykSafe();
+  const colors = [spec(spectrum1), spec(spectrum2), spec(spectrum3)];
 
   switch (neutralInsertIndex) {
     case 1:
@@ -318,49 +317,49 @@ export function selectGradient(entropy: BitEnumerator, version: Version): ColorF
           return monochromatic(entropy, makeHue);
         case Version.version2:
         case Version.detailed:
-          return monochromatic(entropy, spectrumCmykSafe);
+          return monochromatic(entropy, spectrumCmykSafe());
         case Version.fiducial:
           return monochromaticFiducial(entropy);
         default:
-          return grayscale;
+          return grayscale();
       }
     case 1:
       switch (version) {
         case Version.version1:
-          return complementary(entropy, spectrum);
+          return complementary(entropy, spectrum());
         case Version.version2:
         case Version.detailed:
-          return complementary(entropy, spectrumCmykSafe);
+          return complementary(entropy, spectrumCmykSafe());
         case Version.fiducial:
           return complementaryFiducial(entropy);
         default:
-          return grayscale;
+          return grayscale();
       }
     case 2:
       switch (version) {
         case Version.version1:
-          return triadic(entropy, spectrum);
+          return triadic(entropy, spectrum());
         case Version.version2:
         case Version.detailed:
-          return triadic(entropy, spectrumCmykSafe);
+          return triadic(entropy, spectrumCmykSafe());
         case Version.fiducial:
           return triadicFiducial(entropy);
         default:
-          return grayscale;
+          return grayscale();
       }
     case 3:
       switch (version) {
         case Version.version1:
-          return analogous(entropy, spectrum);
+          return analogous(entropy, spectrum());
         case Version.version2:
         case Version.detailed:
-          return analogous(entropy, spectrumCmykSafe);
+          return analogous(entropy, spectrumCmykSafe());
         case Version.fiducial:
           return analogousFiducial(entropy);
         default:
-          return grayscale;
+          return grayscale();
       }
     default:
-      return grayscale;
+      return grayscale();
   }
 }

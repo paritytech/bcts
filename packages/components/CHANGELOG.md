@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Added
+
+- Initial SSH key support: OpenSSH-format private keys, public keys, certificates, and signatures (`SSHPrivateKey`, `SSHPublicKey`, `SSHCertificate`, `SSHSignature`, `SSHAlgorithm`) with sign/verify and PEM round-trip.
+- `toSsh()` / `isSsh()` accessors on `SigningPrivateKey` / `SigningPublicKey` to bridge BC envelopes and OpenSSH artifacts.
+- Sr25519 keypair surface and tests; sr25519 / mldsa / mlkem level helpers exposed for parity.
+- Comprehensive SSH test suite (buffer, certificate, private key, public key, sign/verify, signature).
+
+### Changed
+
+- Refined signing scheme, signature, and signing-private/public-key APIs to align with `bc-components-rust`.
+- Subpath exports added (`@bcts/components/ssh`, etc.); typedoc and bundler config tightened.
+- Misc cleanups in `private-key-base`, `keypair`, `private-keys`, `public-keys`, `reference`, encrypted-key parameter types.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed
