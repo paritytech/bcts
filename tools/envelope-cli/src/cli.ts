@@ -208,13 +208,7 @@ subjectCmd
   .option("--pred-tag <n>", "Predicate UR tag", intArg)
   .option("--obj-tag <n>", "Object UR tag", intArg)
   .action(
-    (
-      predType: string,
-      predValue: string,
-      objType: string,
-      objValue: string,
-      opts: AnyArgs,
-    ) => {
+    (predType: string, predValue: string, objType: string, objValue: string, opts: AnyArgs) => {
       run(() =>
         cmd.subject.assertion.exec(
           compact({
@@ -258,16 +252,18 @@ assertionAdd
       opts: AnyArgs,
     ) => {
       run(() =>
-        cmd.assertion.add.predObj.exec(compact({
-          predType: dataTypeFromString(predType, "PRED_TYPE"),
-          predValue,
-          objType: dataTypeFromString(objType, "OBJ_TYPE"),
-          objValue,
-          predTag: opts["predTag"] as number | undefined,
-          objTag: opts["objTag"] as number | undefined,
-          salted: Boolean(opts["salted"]),
-          envelope,
-        })),
+        cmd.assertion.add.predObj.exec(
+          compact({
+            predType: dataTypeFromString(predType, "PRED_TYPE"),
+            predValue,
+            objType: dataTypeFromString(objType, "OBJ_TYPE"),
+            objValue,
+            predTag: opts["predTag"] as number | undefined,
+            objTag: opts["objTag"] as number | undefined,
+            salted: Boolean(opts["salted"]),
+            envelope,
+          }),
+        ),
       );
     },
   );
@@ -280,11 +276,13 @@ assertionAdd
   .option("-s, --salted", "Add salt", false)
   .action((assertion: string, envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.assertion.add.envelope.exec(compact({
-        assertion,
-        salted: Boolean(opts["salted"]),
-        envelope,
-      })),
+      cmd.assertion.add.envelope.exec(
+        compact({
+          assertion,
+          salted: Boolean(opts["salted"]),
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -326,15 +324,17 @@ assertionCmd
   .action(
     (predType: string, predValue: string, objType: string, objValue: string, opts: AnyArgs) => {
       run(() =>
-        cmd.assertion.create.exec(compact({
-          predType: dataTypeFromString(predType, "PRED_TYPE"),
-          predValue,
-          objType: dataTypeFromString(objType, "OBJ_TYPE"),
-          objValue,
-          predTag: opts["predTag"] as number | undefined,
-          objTag: opts["objTag"] as number | undefined,
-          salted: Boolean(opts["salted"]),
-        })),
+        cmd.assertion.create.exec(
+          compact({
+            predType: dataTypeFromString(predType, "PRED_TYPE"),
+            predValue,
+            objType: dataTypeFromString(objType, "OBJ_TYPE"),
+            objValue,
+            predTag: opts["predTag"] as number | undefined,
+            objTag: opts["objTag"] as number | undefined,
+            salted: Boolean(opts["salted"]),
+          }),
+        ),
       );
     },
   );
@@ -347,16 +347,20 @@ assertionFind
   .argument("[value]", "Subject value")
   .argument("[envelope]")
   .option("--ur-tag <n>", "CBOR tag for an enclosed UR", intArg)
-  .action((type: string, value: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
-    run(() =>
-      cmd.assertion.find.predicate.exec(compact({
-        subjectType: dataTypeFromString(type),
-        subjectValue: value,
-        urTag: opts["urTag"] as number | undefined,
-        envelope,
-      })),
-    );
-  });
+  .action(
+    (type: string, value: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
+      run(() =>
+        cmd.assertion.find.predicate.exec(
+          compact({
+            subjectType: dataTypeFromString(type),
+            subjectValue: value,
+            urTag: opts["urTag"] as number | undefined,
+            envelope,
+          }),
+        ),
+      );
+    },
+  );
 
 assertionFind
   .command("object")
@@ -365,16 +369,20 @@ assertionFind
   .argument("[value]", "Subject value")
   .argument("[envelope]")
   .option("--ur-tag <n>", "CBOR tag for an enclosed UR", intArg)
-  .action((type: string, value: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
-    run(() =>
-      cmd.assertion.find.object.exec(compact({
-        subjectType: dataTypeFromString(type),
-        subjectValue: value,
-        urTag: opts["urTag"] as number | undefined,
-        envelope,
-      })),
-    );
-  });
+  .action(
+    (type: string, value: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
+      run(() =>
+        cmd.assertion.find.object.exec(
+          compact({
+            subjectType: dataTypeFromString(type),
+            subjectValue: value,
+            urTag: opts["urTag"] as number | undefined,
+            envelope,
+          }),
+        ),
+      );
+    },
+  );
 
 const assertionRemove = assertionCmd.command("remove").description("Remove an assertion");
 assertionRemove
@@ -396,15 +404,17 @@ assertionRemove
       opts: AnyArgs,
     ) => {
       run(() =>
-        cmd.assertion.remove.predObj.exec(compact({
-          predType: dataTypeFromString(predType, "PRED_TYPE"),
-          predValue,
-          objType: dataTypeFromString(objType, "OBJ_TYPE"),
-          objValue,
-          predTag: opts["predTag"] as number | undefined,
-          objTag: opts["objTag"] as number | undefined,
-          envelope,
-        })),
+        cmd.assertion.remove.predObj.exec(
+          compact({
+            predType: dataTypeFromString(predType, "PRED_TYPE"),
+            predValue,
+            objType: dataTypeFromString(objType, "OBJ_TYPE"),
+            objValue,
+            predTag: opts["predTag"] as number | undefined,
+            objTag: opts["objTag"] as number | undefined,
+            envelope,
+          }),
+        ),
       );
     },
   );
@@ -448,15 +458,17 @@ program
   .option("--monochrome", "Monochrome mermaid output", false)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.format.exec(compact({
-        type: opts["type"] as FormatType,
-        hideNodes: Boolean(opts["hideNodes"]),
-        digestFormat: opts["digestFormat"] as DigestFormatType,
-        theme: opts["theme"] as MermaidThemeType,
-        orientation: opts["orientation"] as MermaidOrientationType,
-        monochrome: Boolean(opts["monochrome"]),
-        envelope,
-      })),
+      cmd.format.exec(
+        compact({
+          type: opts["type"] as FormatType,
+          hideNodes: Boolean(opts["hideNodes"]),
+          digestFormat: opts["digestFormat"] as DigestFormatType,
+          theme: opts["theme"] as MermaidThemeType,
+          orientation: opts["orientation"] as MermaidOrientationType,
+          monochrome: Boolean(opts["monochrome"]),
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -476,11 +488,13 @@ program
   .option("--hex", "Output as hex instead of UR", false)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.digest.exec(compact({
-        depth: opts["depth"] as DigestDepth,
-        hex: Boolean(opts["hex"]),
-        envelope,
-      })),
+      cmd.digest.exec(
+        compact({
+          depth: opts["depth"] as DigestDepth,
+          hex: Boolean(opts["hex"]),
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -497,12 +511,14 @@ program
   .option("--ur-tag <n>", "CBOR tag for an enclosed UR", intArg)
   .action((type: string, envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.extract.exec(compact({
-        type: parseEnumValue(ExtractSubjectType, type, "TYPE"),
-        urType: opts["urType"] as string | undefined,
-        urTag: opts["urTag"] as number | undefined,
-        envelope,
-      })),
+      cmd.extract.exec(
+        compact({
+          type: parseEnumValue(ExtractSubjectType, type, "TYPE"),
+          urType: opts["urType"] as string | undefined,
+          urTag: opts["urTag"] as number | undefined,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -529,13 +545,15 @@ program
   )
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.sign.exec(compact({
-        signers: (opts["signer"] as string[] | undefined) ?? [],
-        note: opts["note"] as string | undefined,
-        namespace: (opts["namespace"] as string | undefined) ?? "envelope",
-        hashType: opts["hash"] as SignHashType,
-        envelope,
-      })),
+      cmd.sign.exec(
+        compact({
+          signers: (opts["signer"] as string[] | undefined) ?? [],
+          note: opts["note"] as string | undefined,
+          namespace: (opts["namespace"] as string | undefined) ?? "envelope",
+          hashType: opts["hash"] as SignHashType,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -543,17 +561,24 @@ program
   .command("verify")
   .description("Verify signatures on the envelope")
   .argument("[envelope]")
-  .option("-v, --verifier <verifier>", "Verifier (public or private key); may be repeated", collect, [])
+  .option(
+    "-v, --verifier <verifier>",
+    "Verifier (public or private key); may be repeated",
+    collect,
+    [],
+  )
   .option("-s, --silent", "Don't output the envelope on success", false)
   .option("-t, --threshold <n>", "Minimum required valid signatures", intArg, 1)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.verify.exec(compact({
-        silent: Boolean(opts["silent"]),
-        threshold: (opts["threshold"] as number | undefined) ?? 1,
-        verifiers: (opts["verifier"] as string[] | undefined) ?? [],
-        envelope,
-      })),
+      cmd.verify.exec(
+        compact({
+          silent: Boolean(opts["silent"]),
+          threshold: (opts["threshold"] as number | undefined) ?? 1,
+          verifiers: (opts["verifier"] as string[] | undefined) ?? [],
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -582,15 +607,17 @@ program
   )
   .action(async (envelope: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.encrypt.exec(compact({
-        key: opts["key"] as string | undefined,
-        password: opts["password"] as string | undefined,
-        askpass: Boolean(opts["askpass"]),
-        passwordDerivation: opts["passwordDerivation"] as EncryptPasswordDerivation,
-        sshId: opts["sshId"] as string | undefined,
-        recipients: (opts["recipient"] as string[] | undefined) ?? [],
-        envelope,
-      })),
+      cmd.encrypt.exec(
+        compact({
+          key: opts["key"] as string | undefined,
+          password: opts["password"] as string | undefined,
+          askpass: Boolean(opts["askpass"]),
+          passwordDerivation: opts["passwordDerivation"] as EncryptPasswordDerivation,
+          sshId: opts["sshId"] as string | undefined,
+          recipients: (opts["recipient"] as string[] | undefined) ?? [],
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -605,14 +632,16 @@ program
   .option("--ssh-id <id>", "SSH identity used to decrypt the subject")
   .action(async (envelope: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.decrypt.exec(compact({
-        key: opts["key"] as string | undefined,
-        password: opts["password"] as string | undefined,
-        askpass: Boolean(opts["askpass"]),
-        recipient: opts["recipient"] as string | undefined,
-        sshId: opts["sshId"] as string | undefined,
-        envelope,
-      })),
+      cmd.decrypt.exec(
+        compact({
+          key: opts["key"] as string | undefined,
+          password: opts["password"] as string | undefined,
+          askpass: Boolean(opts["askpass"]),
+          recipient: opts["recipient"] as string | undefined,
+          sshId: opts["sshId"] as string | undefined,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -707,10 +736,12 @@ generateCmd
   .option("--hex <hex>", "Raw hex data for the seed")
   .action((opts: AnyArgs) => {
     run(() =>
-      cmd.generate.seed.exec(compact({
-        count: opts["count"] as number | undefined,
-        hex: opts["hex"] as string | undefined,
-      })),
+      cmd.generate.seed.exec(
+        compact({
+          count: opts["count"] as number | undefined,
+          hex: opts["hex"] as string | undefined,
+        }),
+      ),
     );
   });
 
@@ -729,10 +760,12 @@ generateCmd
   )
   .action((opts: AnyArgs) => {
     run(() =>
-      cmd.generate.keypairs.exec(compact({
-        signing: opts["signing"] as KeypairsSigningScheme,
-        encryption: opts["encryption"] as KeypairsEncryptionScheme,
-      })),
+      cmd.generate.keypairs.exec(
+        compact({
+          signing: opts["signing"] as KeypairsSigningScheme,
+          encryption: opts["encryption"] as KeypairsEncryptionScheme,
+        }),
+      ),
     );
   });
 
@@ -752,11 +785,13 @@ generateCmd
   )
   .action((input: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.generate.prvKeys.exec(compact({
-        input,
-        signing: opts["signing"] as PrvKeysSigningScheme,
-        encryption: opts["encryption"] as PrvKeysEncryptionScheme,
-      })),
+      cmd.generate.prvKeys.exec(
+        compact({
+          input,
+          signing: opts["signing"] as PrvKeysSigningScheme,
+          encryption: opts["encryption"] as PrvKeysEncryptionScheme,
+        }),
+      ),
     );
   });
 
@@ -767,10 +802,12 @@ generateCmd
   .option("--comment <comment>", "SSH key comment", "")
   .action((prvKeys: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.generate.pubKeys.exec(compact({
-        prvKeys,
-        comment: (opts["comment"] as string | undefined) ?? "",
-      })),
+      cmd.generate.pubKeys.exec(
+        compact({
+          prvKeys,
+          comment: (opts["comment"] as string | undefined) ?? "",
+        }),
+      ),
     );
   });
 
@@ -786,11 +823,13 @@ program
   .option("--askpass", "Use SSH_ASKPASS to read the password", false)
   .action(async (object: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.importCmd.exec(compact({
-        object,
-        password: opts["password"] as string | undefined,
-        askpass: Boolean(opts["askpass"]),
-      })),
+      cmd.importCmd.exec(
+        compact({
+          object,
+          password: opts["password"] as string | undefined,
+          askpass: Boolean(opts["askpass"]),
+        }),
+      ),
     );
   });
 
@@ -803,12 +842,14 @@ program
   .option("--askpass", "Use SSH_ASKPASS to read the password", false)
   .action(async (urString: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.exportCmd.exec(compact({
-        urString,
-        encrypt: Boolean(opts["encrypt"]),
-        password: opts["password"] as string | undefined,
-        askpass: Boolean(opts["askpass"]),
-      })),
+      cmd.exportCmd.exec(
+        compact({
+          urString,
+          encrypt: Boolean(opts["encrypt"]),
+          password: opts["password"] as string | undefined,
+          askpass: Boolean(opts["askpass"]),
+        }),
+      ),
     );
   });
 
@@ -823,10 +864,12 @@ program
   .option("-s, --size <n>", "Salt size in bytes", intArg)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.salt.exec(compact({
-        size: opts["size"] as number | undefined,
-        envelope,
-      })),
+      cmd.salt.exec(
+        compact({
+          size: opts["size"] as number | undefined,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -837,10 +880,12 @@ program
   .option("-s, --subject", "Compress only the subject", false)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.compress.exec(compact({
-        subject: Boolean(opts["subject"]),
-        envelope,
-      })),
+      cmd.compress.exec(
+        compact({
+          subject: Boolean(opts["subject"]),
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -851,10 +896,12 @@ program
   .option("-s, --subject", "Decompress only the subject", false)
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.decompress.exec(compact({
-        subject: Boolean(opts["subject"]),
-        envelope,
-      })),
+      cmd.decompress.exec(
+        compact({
+          subject: Boolean(opts["subject"]),
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -910,38 +957,40 @@ xidCmd
   .option("--ur-tag <n>", "CBOR tag for an enclosed UR", intArg)
   .action(async (key: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.xid.newCmd.exec(compact({
-        keyArgs: {
-          nickname: (opts["nickname"] as string | undefined) ?? "",
-          privateOpts: opts["private"] as PrivateOptions,
-          endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
-          permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
-          keys: key,
-        },
-        generatorOpts: opts["generator"] as GeneratorOptions,
-        date: opts["date"] as string | undefined,
-        info: opts["info"] as string | undefined,
-        urTag: opts["urTag"] as number | undefined,
-        outputOpts: {
-          privateOpts: opts["private"] as PrivateOptions,
+      cmd.xid.newCmd.exec(
+        compact({
+          keyArgs: {
+            nickname: (opts["nickname"] as string | undefined) ?? "",
+            privateOpts: opts["private"] as PrivateOptions,
+            endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
+            permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
+            keys: key,
+          },
           generatorOpts: opts["generator"] as GeneratorOptions,
-        },
-        passwordArgs: {
-          read: {
-            password: opts["password"] as string | undefined,
-            askpass: Boolean(opts["askpass"]),
+          date: opts["date"] as string | undefined,
+          info: opts["info"] as string | undefined,
+          urTag: opts["urTag"] as number | undefined,
+          outputOpts: {
+            privateOpts: opts["private"] as PrivateOptions,
+            generatorOpts: opts["generator"] as GeneratorOptions,
           },
-          write: {
-            encryptPassword: opts["encryptPassword"] as string | undefined,
-            encryptAskpass: Boolean(opts["encryptAskpass"]),
-            encryptMethod: opts["encryptMethod"] as PasswordMethod,
+          passwordArgs: {
+            read: {
+              password: opts["password"] as string | undefined,
+              askpass: Boolean(opts["askpass"]),
+            },
+            write: {
+              encryptPassword: opts["encryptPassword"] as string | undefined,
+              encryptAskpass: Boolean(opts["encryptAskpass"]),
+              encryptMethod: opts["encryptMethod"] as PasswordMethod,
+            },
           },
-        },
-        signingArgs: {
-          sign: opts["sign"] as SigningOption,
-          signingKey: opts["signingKey"] as string | undefined,
-        },
-      })),
+          signingArgs: {
+            sign: opts["sign"] as SigningOption,
+            signingKey: opts["signingKey"] as string | undefined,
+          },
+        }),
+      ),
     );
   });
 
@@ -966,11 +1015,13 @@ xidCmd
       const formats = (opts["format"] as string[] | undefined)?.map((f) =>
         parseEnumValue(XidIDFormat, f, "format"),
       ) ?? [XidIDFormat.Ur];
-      return cmd.xid.id.exec(compact({
-        format: formats,
-        verifyArgs: { verify: opts["verify"] as VerifyOption },
-        envelope,
-      }));
+      return cmd.xid.id.exec(
+        compact({
+          format: formats,
+          verifyArgs: { verify: opts["verify"] as VerifyOption },
+          envelope,
+        }),
+      );
     });
   });
 
@@ -1011,29 +1062,31 @@ xidCmd
   .option("--signing-key <ur>")
   .action(async (envelope: string | undefined, opts: AnyArgs) => {
     await runAsync(() =>
-      cmd.xid.exportCmd.exec(compact({
-        outputOpts: {
-          privateOpts: opts["private"] as PrivateOptions,
-          generatorOpts: opts["generator"] as GeneratorOptions,
-        },
-        passwordArgs: {
-          read: {
-            password: opts["password"] as string | undefined,
-            askpass: Boolean(opts["askpass"]),
+      cmd.xid.exportCmd.exec(
+        compact({
+          outputOpts: {
+            privateOpts: opts["private"] as PrivateOptions,
+            generatorOpts: opts["generator"] as GeneratorOptions,
           },
-          write: {
-            encryptPassword: opts["encryptPassword"] as string | undefined,
-            encryptAskpass: Boolean(opts["encryptAskpass"]),
-            encryptMethod: opts["encryptMethod"] as PasswordMethod,
+          passwordArgs: {
+            read: {
+              password: opts["password"] as string | undefined,
+              askpass: Boolean(opts["askpass"]),
+            },
+            write: {
+              encryptPassword: opts["encryptPassword"] as string | undefined,
+              encryptAskpass: Boolean(opts["encryptAskpass"]),
+              encryptMethod: opts["encryptMethod"] as PasswordMethod,
+            },
           },
-        },
-        verifyArgs: { verify: opts["verify"] as VerifyOption },
-        signingArgs: {
-          sign: opts["sign"] as SigningOption,
-          signingKey: opts["signingKey"] as string | undefined,
-        },
-        envelope,
-      })),
+          verifyArgs: { verify: opts["verify"] as VerifyOption },
+          signingArgs: {
+            sign: opts["sign"] as SigningOption,
+            signingKey: opts["signingKey"] as string | undefined,
+          },
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -1125,18 +1178,14 @@ function addXidPasswordOptions(c: Command): Command {
 
 function addXidVerifyOption(c: Command): Command {
   return c.addOption(
-    new Option("--verify <opt>")
-      .choices(Object.values(VerifyOption))
-      .default(VerifyOption.None),
+    new Option("--verify <opt>").choices(Object.values(VerifyOption)).default(VerifyOption.None),
   );
 }
 
 function addXidSigningOptions(c: Command): Command {
   return c
     .addOption(
-      new Option("--sign <mode>")
-        .choices(Object.values(SigningOption))
-        .default(SigningOption.None),
+      new Option("--sign <mode>").choices(Object.values(SigningOption)).default(SigningOption.None),
     )
     .option("--signing-key <ur>");
 }
@@ -1169,20 +1218,22 @@ addXidSigningOptions(
   ),
 ).action(async (key: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.add.exec(compact({
-      keyArgs: {
-        nickname: (opts["nickname"] as string | undefined) ?? "",
-        privateOpts: opts["private"] as PrivateOptions,
-        endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
-        permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
-        keys: key,
-      },
-      generatorOpts: opts["generator"] as GeneratorOptions,
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.add.exec(
+      compact({
+        keyArgs: {
+          nickname: (opts["nickname"] as string | undefined) ?? "",
+          privateOpts: opts["private"] as PrivateOptions,
+          endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
+          permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
+          keys: key,
+        },
+        generatorOpts: opts["generator"] as GeneratorOptions,
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1196,12 +1247,14 @@ addXidVerifyOption(
     .option("--askpass", "Use SSH_ASKPASS to read the password", false),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.all.exec(compact({
-      private: Boolean(opts["private"]),
-      passwordArgs: readArgsOnly(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.all.exec(
+      compact({
+        private: Boolean(opts["private"]),
+        passwordArgs: readArgsOnly(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1216,13 +1269,15 @@ addXidVerifyOption(
     .option("--askpass", "Use SSH_ASKPASS to read the password", false),
 ).action(async (index: number, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.at.exec(compact({
-      index,
-      private: Boolean(opts["private"]),
-      passwordArgs: readArgsOnly(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.at.exec(
+      compact({
+        index,
+        private: Boolean(opts["private"]),
+        passwordArgs: readArgsOnly(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1230,10 +1285,12 @@ addXidVerifyOption(
   xidKeyCmd.command("count").description("Count keys").argument("[envelope]"),
 ).action((envelope: string | undefined, opts: AnyArgs) => {
   run(() =>
-    cmd.xid.key.count.exec(compact({
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.count.exec(
+      compact({
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1251,16 +1308,18 @@ addXidSigningOptions(
   ),
 ).action(async (keys: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.remove.exec(compact({
-      keys,
-      privateOpts: (opts["private"] as PrivateOptions | undefined) ?? PrivateOptions.Include,
-      generatorOpts:
-        (opts["generator"] as GeneratorOptions | undefined) ?? GeneratorOptions.Include,
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.remove.exec(
+      compact({
+        keys,
+        privateOpts: (opts["private"] as PrivateOptions | undefined) ?? PrivateOptions.Include,
+        generatorOpts:
+          (opts["generator"] as GeneratorOptions | undefined) ?? GeneratorOptions.Include,
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1289,20 +1348,22 @@ addXidSigningOptions(
   ),
 ).action(async (key: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.update.exec(compact({
-      keyArgs: {
-        nickname: (opts["nickname"] as string | undefined) ?? "",
-        privateOpts: opts["private"] as PrivateOptions,
-        endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
-        permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
-        keys: key,
-      },
-      generatorOpts: opts["generator"] as GeneratorOptions,
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.update.exec(
+      compact({
+        keyArgs: {
+          nickname: (opts["nickname"] as string | undefined) ?? "",
+          privateOpts: opts["private"] as PrivateOptions,
+          endpoints: endpointsFromArray(opts["endpoint"] as string[] | undefined),
+          permissions: privilegesFromArray(opts["allow"] as string[] | undefined),
+          keys: key,
+        },
+        generatorOpts: opts["generator"] as GeneratorOptions,
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1318,12 +1379,14 @@ addXidVerifyOption(
     .option("--askpass", "Use SSH_ASKPASS to read the password", false),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.find.inception.exec(compact({
-      private: Boolean(opts["private"]),
-      passwordArgs: readArgsOnly(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.find.inception.exec(
+      compact({
+        private: Boolean(opts["private"]),
+        passwordArgs: readArgsOnly(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1338,13 +1401,15 @@ addXidVerifyOption(
     .option("--askpass", "Use SSH_ASKPASS to read the password", false),
 ).action(async (name: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.find.name.exec(compact({
-      name,
-      private: Boolean(opts["private"]),
-      passwordArgs: readArgsOnly(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.find.name.exec(
+      compact({
+        name,
+        private: Boolean(opts["private"]),
+        passwordArgs: readArgsOnly(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1359,13 +1424,15 @@ addXidVerifyOption(
     .option("--askpass", "Use SSH_ASKPASS to read the password", false),
 ).action(async (keys: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.key.find.publicCmd.exec(compact({
-      keys,
-      private: Boolean(opts["private"]),
-      passwordArgs: readArgsOnly(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.key.find.publicCmd.exec(
+      compact({
+        keys,
+        private: Boolean(opts["private"]),
+        passwordArgs: readArgsOnly(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1386,14 +1453,16 @@ addXidSigningOptions(
   ),
 ).action(async (method: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.method.add.exec(compact({
-      method,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.method.add.exec(
+      compact({
+        method,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1436,14 +1505,16 @@ addXidSigningOptions(
   ),
 ).action(async (method: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.method.remove.exec(compact({
-      method,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.method.remove.exec(
+      compact({
+        method,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1465,15 +1536,17 @@ addXidSigningOptions(
   ),
 ).action(async (delegate: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.delegate.add.exec(compact({
-      delegate,
-      allow: privilegesFromArray(opts["allow"] as string[] | undefined),
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.delegate.add.exec(
+      compact({
+        delegate,
+        allow: privilegesFromArray(opts["allow"] as string[] | undefined),
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1526,15 +1599,17 @@ addXidSigningOptions(
   ),
 ).action(async (delegate: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.delegate.update.exec(compact({
-      delegate,
-      allow: privilegesFromArray(opts["allow"] as string[] | undefined),
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.delegate.update.exec(
+      compact({
+        delegate,
+        allow: privilegesFromArray(opts["allow"] as string[] | undefined),
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1552,14 +1627,16 @@ addXidSigningOptions(
   ),
 ).action(async (delegate: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.delegate.remove.exec(compact({
-      delegate,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.delegate.remove.exec(
+      compact({
+        delegate,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1596,14 +1673,16 @@ addXidSigningOptions(
   ),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.service.add.exec(compact({
-      serviceArgs: buildServiceArgs(opts),
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.service.add.exec(
+      compact({
+        serviceArgs: buildServiceArgs(opts),
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1667,14 +1746,16 @@ addXidSigningOptions(
   ),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.service.update.exec(compact({
-      serviceArgs: buildServiceArgs(opts),
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.service.update.exec(
+      compact({
+        serviceArgs: buildServiceArgs(opts),
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1692,14 +1773,16 @@ addXidSigningOptions(
   ),
 ).action(async (uri: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.service.remove.exec(compact({
-      uri,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.service.remove.exec(
+      compact({
+        uri,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1720,14 +1803,16 @@ addXidSigningOptions(
   ),
 ).action(async (edge: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.edge.add.exec(compact({
-      edge,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.edge.add.exec(
+      compact({
+        edge,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1766,13 +1851,15 @@ xidEdgeCmd
   .option("--subject <ur>")
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.xid.edge.find.exec(compact({
-        isA: opts["isA"] as string | undefined,
-        source: opts["source"] as string | undefined,
-        target: opts["target"] as string | undefined,
-        subject: opts["subject"] as string | undefined,
-        envelope,
-      })),
+      cmd.xid.edge.find.exec(
+        compact({
+          isA: opts["isA"] as string | undefined,
+          source: opts["source"] as string | undefined,
+          target: opts["target"] as string | undefined,
+          subject: opts["subject"] as string | undefined,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -1790,14 +1877,16 @@ addXidSigningOptions(
   ),
 ).action(async (edge: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.edge.remove.exec(compact({
-      edge,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.edge.remove.exec(
+      compact({
+        edge,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1818,14 +1907,16 @@ addXidSigningOptions(
   ),
 ).action(async (uri: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.resolution.add.exec(compact({
-      uri,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.resolution.add.exec(
+      compact({
+        uri,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1868,14 +1959,16 @@ addXidSigningOptions(
   ),
 ).action(async (uri: string | undefined, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.resolution.remove.exec(compact({
-      uri,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.resolution.remove.exec(
+      compact({
+        uri,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1899,17 +1992,19 @@ addXidSigningOptions(
   ),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.attachment.add.exec(compact({
-      attachment: opts["attachment"] as string | undefined,
-      vendor: opts["vendor"] as string | undefined,
-      payload: opts["payload"] as string | undefined,
-      conformsTo: opts["conformsTo"] as string | undefined,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.attachment.add.exec(
+      compact({
+        attachment: opts["attachment"] as string | undefined,
+        vendor: opts["vendor"] as string | undefined,
+        payload: opts["payload"] as string | undefined,
+        conformsTo: opts["conformsTo"] as string | undefined,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1946,11 +2041,13 @@ xidAttachmentCmd
   .option("--conforms-to <uri>")
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() =>
-      cmd.xid.attachment.find.exec(compact({
-        vendor: opts["vendor"] as string | undefined,
-        conformsTo: opts["conformsTo"] as string | undefined,
-        envelope,
-      })),
+      cmd.xid.attachment.find.exec(
+        compact({
+          vendor: opts["vendor"] as string | undefined,
+          conformsTo: opts["conformsTo"] as string | undefined,
+          envelope,
+        }),
+      ),
     );
   });
 
@@ -1968,14 +2065,16 @@ addXidSigningOptions(
   ),
 ).action(async (attachment: string, envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.attachment.remove.exec(compact({
-      attachment,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.attachment.remove.exec(
+      compact({
+        attachment,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -1998,11 +2097,13 @@ addXidVerifyOption(
     ),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.provenance.get.exec(compact({
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      envelope,
-    })),
+    cmd.xid.provenance.get.exec(
+      compact({
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 
@@ -2023,17 +2124,19 @@ addXidSigningOptions(
   ),
 ).action(async (envelope: string | undefined, opts: AnyArgs) => {
   await runAsync(() =>
-    cmd.xid.provenance.next.exec(compact({
-      date: opts["date"] as string | undefined,
-      info: opts["info"] as string | undefined,
-      urTag: opts["urTag"] as number | undefined,
-      externalGenerator: opts["externalGenerator"] as string | undefined,
-      outputOpts: outputOpts(opts),
-      passwordArgs: readWriteArgs(opts),
-      verifyArgs: verifyArgs(opts),
-      signingArgs: signingArgs(opts),
-      envelope,
-    })),
+    cmd.xid.provenance.next.exec(
+      compact({
+        date: opts["date"] as string | undefined,
+        info: opts["info"] as string | undefined,
+        urTag: opts["urTag"] as number | undefined,
+        externalGenerator: opts["externalGenerator"] as string | undefined,
+        outputOpts: outputOpts(opts),
+        passwordArgs: readWriteArgs(opts),
+        verifyArgs: verifyArgs(opts),
+        signingArgs: signingArgs(opts),
+        envelope,
+      }),
+    ),
   );
 });
 

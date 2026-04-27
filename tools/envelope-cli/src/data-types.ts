@@ -324,9 +324,7 @@ function hexCharToNibble(code: number, index: number): number {
   if (code >= 0x30 && code <= 0x39) return code - 0x30; // 0-9
   if (code >= 0x61 && code <= 0x66) return code - 0x61 + 10; // a-f
   if (code >= 0x41 && code <= 0x46) return code - 0x41 + 10; // A-F
-  throw new Error(
-    `Invalid character '${String.fromCharCode(code)}' at position ${index}`,
-  );
+  throw new Error(`Invalid character '${String.fromCharCode(code)}' at position ${index}`);
 }
 
 /**

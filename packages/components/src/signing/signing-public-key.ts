@@ -229,15 +229,7 @@ export class SigningPublicKey
         }
         break;
     }
-    return new SigningPublicKey(
-      scheme,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      key,
-    );
+    return new SigningPublicKey(scheme, undefined, undefined, undefined, undefined, undefined, key);
   }
 
   // ============================================================================

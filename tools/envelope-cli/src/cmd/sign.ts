@@ -13,12 +13,7 @@
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import {
-  PrivateKeys,
-  SigningPrivateKey,
-  type Signer,
-  type SigningOptions,
-} from "@bcts/components";
+import { PrivateKeys, SigningPrivateKey, type Signer, type SigningOptions } from "@bcts/components";
 import { SignatureMetadata, NOTE } from "@bcts/envelope";
 
 /**

@@ -2,10 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const rootPkg = JSON.parse(
-  readFileSync(
-    fileURLToPath(new URL("../../package.json", import.meta.url)),
-    "utf-8",
-  ),
+  readFileSync(fileURLToPath(new URL("../../package.json", import.meta.url)), "utf-8"),
 ) as { version: string };
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
