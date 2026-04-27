@@ -5,15 +5,15 @@
  *
  * Sign command - 1:1 port of cmd/sign.rs
  *
- * Sign the envelope subject with the provided signer(s).
- *
- * NOTE: SSH signature options are not currently supported in the TypeScript
- * implementation. All keys are signed using their default algorithm.
+ * Sign the envelope subject with the provided signer(s). When the
+ * signer is an SSH key, attaches the per-signer
+ * `SigningOptions.Ssh { namespace, hashAlg }` matching Rust
+ * `cmd/sign.rs:53-99`.
  */
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import { PrivateKeys, SigningPrivateKey, type Signer } from "@bcts/components";
+import { PrivateKeys, SigningPrivateKey, type Signer, type SigningOptions } from "@bcts/components";
 import { SignatureMetadata, NOTE } from "@bcts/envelope";
 
 /**
@@ -65,12 +65,23 @@ export class SignCommand implements Exec {
     }
 
     const allSigners: Signer[] = [];
+    const signersWithOptions: { signer: Signer; options?: SigningOptions }[] = [];
+    const sshOptions: SigningOptions = {
+      type: "Ssh",
+      namespace: this.args.namespace,
+      hashAlg: this.args.hashType === HashType.Sha512 ? "sha512" : "sha256",
+    };
 
     for (const s of this.args.signers) {
       // Try parsing as PrivateKeys first (most common for CLI)
       try {
         const key = PrivateKeys.fromURString(s);
         allSigners.push(key);
+        if (key.signingPrivateKey().isSsh()) {
+          signersWithOptions.push({ signer: key, options: sshOptions });
+        } else {
+          signersWithOptions.push({ signer: key });
+        }
         continue;
       } catch {
         // Not a PrivateKeys
@@ -80,6 +91,11 @@ export class SignCommand implements Exec {
       try {
         const key = SigningPrivateKey.fromURString(s);
         allSigners.push(key);
+        if (key.isSsh()) {
+          signersWithOptions.push({ signer: key, options: sshOptions });
+        } else {
+          signersWithOptions.push({ signer: key });
+        }
         continue;
       } catch {
         // Not a SigningPrivateKey
@@ -90,19 +106,16 @@ export class SignCommand implements Exec {
 
     // If there's a note, add it to a single signature
     if (this.args.note) {
-      if (allSigners.length !== 1) {
+      if (signersWithOptions.length !== 1) {
         throw new Error("can only add a note on a single signature");
       }
-      const signer = allSigners[0];
-      if (signer === undefined) {
-        throw new Error("no signer found");
-      }
+      const { signer, options } = signersWithOptions[0];
       const metadata = SignatureMetadata.new().withAssertion(NOTE, this.args.note);
-      return envelope.addSignatureWithMetadata(signer, metadata).urString();
+      return envelope.addSignatureOpt(signer, options, metadata).urString();
     }
 
-    // Add all signatures
-    return envelope.addSignatures(allSigners).urString();
+    // Add all signatures with their per-signer options (SSH gets namespace + hashAlg).
+    return envelope.addSignaturesOpt(signersWithOptions).urString();
   }
 }
 

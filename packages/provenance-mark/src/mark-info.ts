@@ -109,18 +109,22 @@ export class ProvenanceMarkInfo {
   }
 
   /**
-   * JSON serialization.
+   * JSON serialization. Field order mirrors Rust's `#[derive(Serialize)]`
+   * on `ProvenanceMarkInfo` (provenance-mark-rust/src/mark_info.rs):
+   * `ur, bytewords, bytemoji, [comment,] mark` — `comment` (when present)
+   * comes BEFORE `mark`. Rust uses `skip_serializing_if = "String::is_empty"`,
+   * matched here by the `if (...length > 0)` guard.
    */
   toJSON(): Record<string, unknown> {
     const result: Record<string, unknown> = {
       ur: this._ur.toString(),
       bytewords: this._bytewords,
       bytemoji: this._bytemoji,
-      mark: this._mark.toJSON(),
     };
     if (this._comment.length > 0) {
       result["comment"] = this._comment;
     }
+    result["mark"] = this._mark.toJSON();
     return result;
   }
 

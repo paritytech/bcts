@@ -86,10 +86,17 @@ export { registerTags, registerTagsIn, tagsForValues } from "./tags";
 export { CborDate } from "./date";
 
 // Diagnostic formatting
-export { diagnosticOpt, summary, type DiagFormatOpts } from "./diag";
+export {
+  diagnostic,
+  diagnosticAnnotated,
+  diagnosticFlat,
+  diagnosticOpt,
+  summary,
+  type DiagFormatOpts,
+} from "./diag";
 
 // Hex formatting
-export { hexOpt, hexToBytes, bytesToHex, type HexFormatOpts } from "./dump";
+export { hex, hexOpt, hexAnnotated, hexToBytes, bytesToHex, type HexFormatOpts } from "./dump";
 
 // Walk/Traversal functionality
 export {

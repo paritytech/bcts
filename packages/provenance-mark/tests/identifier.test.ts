@@ -100,11 +100,9 @@ describe("ProvenanceMark.idBytewords()", () => {
     const [mark] = makeTestMarks(1);
     const without = mark.idBytewords(4, false);
     const withPrefix = mark.idBytewords(4, true);
-    expect(withPrefix.startsWith("\u{1F151} ")).toBe(true);
-    // "🅟 " is 2 code points (🅟 plus a space) but encodes as "🅑 ";
-    // use the Rust test's index of 5 bytes (4 UTF-8 bytes for 🅟 + 1 space).
-    // In JS we can just strip the prefix by its exact length.
-    const prefixLen = "\u{1F151} ".length;
+    expect(withPrefix.startsWith("\u{1F15F} ")).toBe(true);
+    // Strip the prefix by its exact JS code-point length.
+    const prefixLen = "\u{1F15F} ".length;
     expect(withPrefix.slice(prefixLen)).toBe(without);
   });
 });
@@ -265,9 +263,9 @@ describe("ProvenanceMark.disambiguatedIdBytewords() prefix flag", () => {
     const marks = makeTestMarks(3);
     const noPrefix = ProvenanceMark.disambiguatedIdBytewords(marks, false);
     const withPrefix = ProvenanceMark.disambiguatedIdBytewords(marks, true);
-    const prefixLen = "\u{1F151} ".length;
+    const prefixLen = "\u{1F15F} ".length;
     for (let i = 0; i < noPrefix.length; i++) {
-      expect(withPrefix[i].startsWith("\u{1F151} ")).toBe(true);
+      expect(withPrefix[i].startsWith("\u{1F15F} ")).toBe(true);
       expect(withPrefix[i].slice(prefixLen)).toBe(noPrefix[i]);
     }
   });

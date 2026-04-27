@@ -147,6 +147,16 @@ export class SSHPublicKey {
     );
   }
 
+  /**
+   * Returns a copy of this SSH public key with the comment replaced.
+   *
+   * Mirrors `ssh_key::PublicKey::set_comment` (mutating in Rust; we
+   * return a new instance to keep the type immutable).
+   */
+  withComment(comment: string): SSHPublicKey {
+    return new SSHPublicKey(this.data, comment);
+  }
+
   // --------------------------------------------------------------------------
   // OpenSSH text format
   // --------------------------------------------------------------------------

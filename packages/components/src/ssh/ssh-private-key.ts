@@ -133,6 +133,17 @@ export class SSHPrivateKey {
     this.checkint = checkint >>> 0;
   }
 
+  /**
+   * Construct an `SSHPrivateKey` from already-decoded parts. Used by
+   * `PrivateKeyBase.sshSigningPrivateKey` after generating key material
+   * from an HKDF-seeded RNG. The `checkint` should be derived
+   * deterministically from the private bytes (matching Rust's
+   * `ssh-key` 0.6.7 `KeypairData::checkint`).
+   */
+  static fromParts(data: SshPrivateKeyData, comment: string, checkint: number): SSHPrivateKey {
+    return new SSHPrivateKey(data, comment, checkint);
+  }
+
   /** Algorithm tag for this key. */
   get algorithm(): SshAlgorithm {
     const data = this.data;

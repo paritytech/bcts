@@ -26,12 +26,23 @@ const encryptedTree = ref('')
 const publicTree = ref('')
 const signatureValid = ref<boolean | null>(null)
 const provenanceValid = ref<boolean | null>(null)
+const creating = ref(false)
 
-function handleCreate() {
+async function handleCreate() {
+  if (creating.value) return
+  creating.value = true
   signatureValid.value = null
   provenanceValid.value = null
-  createIdentity('amira', nickname.value, scheme.value, password.value, withProvenance.value)
-  nextTick(updateTrees)
+  // Let the browser paint the loading state before the sync Argon2id hash blocks the main thread
+  await nextTick()
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+  try {
+    createIdentity('amira', nickname.value, scheme.value, password.value, withProvenance.value)
+    await nextTick()
+    updateTrees()
+  } finally {
+    creating.value = false
+  }
 }
 
 function updateTrees() {
@@ -136,9 +147,11 @@ function handleContinue() { completeAndAdvance(2) }
       <div class="flex items-center gap-2">
         <UButton
           type="submit"
-          label="Create XID"
+          :label="creating ? 'Creating XID…' : 'Create XID'"
           color="primary"
           icon="i-heroicons-sparkles"
+          :loading="creating"
+          :disabled="creating"
         />
         <UButton
           type="button"
@@ -146,6 +159,7 @@ function handleContinue() { completeAndAdvance(2) }
           variant="outline"
           color="neutral"
           icon="i-heroicons-arrow-up-tray"
+          :disabled="creating"
           @click="fileInput?.click()"
         />
         <input ref="fileInput" type="file" accept=".envelope,.txt" class="hidden" @change="handleFileLoad">

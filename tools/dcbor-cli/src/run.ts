@@ -7,7 +7,8 @@
  * Equivalent to Rust's run function in main.rs
  */
 
-import { registerTags, errorToString } from "@bcts/dcbor";
+import { errorToString } from "@bcts/dcbor";
+import { registerTags as registerBcTags } from "@bcts/tags";
 import type { InputFormat, OutputFormat } from "./format.js";
 import { execArray, execDefault, execMap, execMatch, type MatchOutputFormat } from "./cmd/index.js";
 
@@ -53,8 +54,10 @@ export interface RunResult {
 export function run(
   options: RunOptions,
 ): { ok: true; value: RunResult } | { ok: false; error: Error } {
-  // Register BC components tags
-  registerTags();
+  // Register Blockchain Commons component tags (also registers dcbor's tags
+  // internally via registerTagsIn → registerDcborTagsIn). Mirrors Rust's
+  // bc_components::register_tags() call in bc-dcbor-cli/src/main.rs:119.
+  registerBcTags();
 
   const { command, stdinContent } = options;
 

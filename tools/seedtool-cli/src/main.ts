@@ -13,9 +13,13 @@ import { SSKRGroupSpec } from "@bcts/components";
 import { Cli, type InputFormatKey, type OutputFormatKey, type SSKRFormatKey } from "./cli.js";
 import { selectInputFormat, selectOutputFormat } from "./formats/index.js";
 import { DeterministicRandomNumberGenerator } from "./random.js";
-import fs from "node:fs";
+import pkg from "../package.json" with { type: "json" };
 
-const VERSION = "0.4.0";
+/**
+ * Package version, sourced from `package.json` so the CLI's `--version` output
+ * never drifts from the published version.
+ */
+const VERSION: string = pkg.version;
 
 /**
  * CLI options parsed from commander.
@@ -36,6 +40,78 @@ interface CliOptions {
   sskrFormat: SSKRFormatKey;
   deterministic?: string;
 }
+
+/**
+ * Build an argParser that validates a value against the given choices and,
+ * on failure, emits the clap-style error format used by Rust's seedtool-cli:
+ *
+ *   error: invalid value 'X' for '--<long> <UPPER>'
+ *     [possible values: a, b, c]
+ *
+ *   For more information, try '--help'.
+ *
+ * `metavar` is the value-name placeholder (e.g. INPUT_TYPE), normally derived
+ * from the option's `<META>` declaration. Used in conjunction with `.choices()`
+ * for help-text generation — argParser runs first, so on a bad value we exit
+ * before commander's own choice-validation message can fire.
+ */
+function clapChoiceParser<T extends string>(
+  longName: string,
+  metavar: string,
+  choices: readonly T[],
+): (value: string) => T {
+  return (value: string): T => {
+    if ((choices as readonly string[]).includes(value)) return value as T;
+    process.stderr.write(
+      `error: invalid value '${value}' for '--${longName} <${metavar}>'\n` +
+        `  [possible values: ${choices.join(", ")}]\n\n` +
+        `For more information, try '--help'.\n`,
+    );
+    process.exit(2);
+  };
+}
+
+// Choice arrays match Rust's clap `ValueEnum` declaration order so that
+// `--help` and the `[possible values: …]` block in error output line up
+// byte-identically. See seedtool-cli-rust/src/cli.rs.
+const IN_CHOICES = [
+  "random",
+  "hex",
+  "btw",
+  "btwu",
+  "btwm",
+  "bits",
+  "cards",
+  "dice",
+  "base6",
+  "base10",
+  "ints",
+  "bip39",
+  "sskr",
+  "envelope",
+  "multipart",
+  "seed",
+] as const;
+
+const OUT_CHOICES = [
+  "hex",
+  "btw",
+  "btwu",
+  "btwm",
+  "bits",
+  "cards",
+  "dice",
+  "base6",
+  "base10",
+  "ints",
+  "bip39",
+  "sskr",
+  "envelope",
+  "multipart",
+  "seed",
+] as const;
+
+const SSKR_FORMAT_CHOICES = ["envelope", "btw", "btwm", "btwu", "ur"] as const;
 
 function parseLowInt(value: string): number {
   const num = parseInt(value, 10);
@@ -88,10 +164,10 @@ function main(): void {
         "Report bugs to ChristopherA@BlockchainCommons.com.\n" +
         "© 2024 Blockchain Commons.",
     )
-    .version(VERSION)
+    .version(`@bcts/seedtool-cli ${VERSION}`)
     .argument(
       "[INPUT]",
-      "The input to be transformed. If required and not present, it will be read from stdin.",
+      "The input to be transformed. If required and not present, it will be read from stdin",
     )
     .option(
       "-c, --count <COUNT>",
@@ -101,54 +177,23 @@ function main(): void {
     .addOption(
       new Option(
         "-i, --in <INPUT_TYPE>",
-        "The input format. If not specified, a new random seed is generated using a secure random number generator.",
+        "The input format. If not specified, a new random seed is generated using a secure random number generator",
       )
-        .choices([
-          "random",
-          "hex",
-          "btw",
-          "btwm",
-          "btwu",
-          "bits",
-          "cards",
-          "dice",
-          "base6",
-          "base10",
-          "ints",
-          "bip39",
-          "sskr",
-          "envelope",
-          "seed",
-          "multipart",
-        ])
+        .choices([...IN_CHOICES])
+        .argParser(clapChoiceParser("in", "INPUT_TYPE", IN_CHOICES))
         .default("random"),
     )
     .addOption(
-      new Option("-o, --out <OUTPUT_TYPE>", "The output format.")
-        .choices([
-          "hex",
-          "btw",
-          "btwm",
-          "btwu",
-          "bits",
-          "cards",
-          "dice",
-          "base6",
-          "base10",
-          "ints",
-          "bip39",
-          "sskr",
-          "envelope",
-          "seed",
-          "multipart",
-        ])
+      new Option("-o, --out <OUTPUT_TYPE>", "The output format")
+        .choices([...OUT_CHOICES])
+        .argParser(clapChoiceParser("out", "OUTPUT_TYPE", OUT_CHOICES))
         .default("hex"),
     )
     .option("--low <LOW>", "The lowest int returned (0-254)", parseLowInt, 0)
     .option("--high <HIGH>", "The highest int returned (1-255), low < high", parseHighInt, 9)
-    .option("--name <NAME>", "The name of the seed.")
-    .option("--note <NOTE>", "The note associated with the seed.")
-    .option("--date <DATE>", "The seed's creation date, in ISO-8601 format. May also be `now`.")
+    .option("--name <NAME>", "The name of the seed")
+    .option("--note <NOTE>", "The note associated with the seed")
+    .option("--date <DATE>", "The seed's creation date, in ISO-8601 format. May also be `now`")
     .option(
       "--max-fragment-len <MAX_FRAG_LEN>",
       "For `multipart` output, the UR will be segmented into parts with fragments no larger than MAX_FRAG_LEN",
@@ -156,7 +201,7 @@ function main(): void {
     )
     .option(
       "--additional-parts <NUM_PARTS>",
-      "For `multipart` output, the number of additional parts above the minimum to generate using fountain encoding.",
+      "For `multipart` output, the number of additional parts above the minimum to generate using fountain encoding",
       "0",
     )
     .option(
@@ -167,18 +212,19 @@ function main(): void {
     )
     .option(
       "-t, --group-threshold <THRESHOLD>",
-      "The number of groups that must meet their threshold. Must be <= the number of group specifications.",
+      "The number of groups that must meet their threshold. Must be <= the number of group specifications",
       parseGroupThreshold,
       1,
     )
     .addOption(
-      new Option("-s, --sskr-format <SSKR_FORMAT>", "SSKR output format.")
-        .choices(["envelope", "btw", "btwm", "btwu", "ur"])
+      new Option("-s, --sskr-format <SSKR_FORMAT>", "Output format")
+        .choices([...SSKR_FORMAT_CHOICES])
+        .argParser(clapChoiceParser("sskr-format", "SSKR_FORMAT", SSKR_FORMAT_CHOICES))
         .default("envelope"),
     )
     .option(
       "-d, --deterministic <SEED_STRING>",
-      "Use a deterministic random number generator with the given seed string. Output generated from this seed will be the same every time, so generated seeds are only as secure as the seed string.",
+      "Use a deterministic random number generator with the given seed string. Output generated from this seed will be the same every time, so generated seeds are only as secure as the seed string",
     );
 
   program.parse();
@@ -189,12 +235,12 @@ function main(): void {
   // Create the CLI state
   const cli = new Cli();
 
-  // Set input from argument or stdin
+  // Set input from positional argv. Stdin is NOT read here — the active input
+  // format calls `cli.expectInput()` lazily, mirroring Rust's `expect_input()`.
+  // This keeps deterministic flows (--in random, -d <SEED>, etc.) from
+  // blocking on stdin in non-TTY contexts (CI, sub-processes).
   if (args.length > 0) {
     cli.input = args[0];
-  } else if (process.stdin.isTTY !== true) {
-    // Read from stdin if it's piped
-    cli.input = fs.readFileSync(process.stdin.fd, "utf-8").trim();
   }
 
   // Set options
@@ -249,6 +295,9 @@ try {
   main();
 } catch (error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(message);
+  // Mirrors Rust's anyhow `Error: {msg}` stderr format. Avoid double-prefixing
+  // if a deeper layer already emitted "Error: " (e.g. roundtrippability check).
+  const prefixed = message.startsWith("Error: ") ? message : `Error: ${message}`;
+  console.error(prefixed);
   process.exit(1);
 }

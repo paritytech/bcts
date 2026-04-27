@@ -71,6 +71,7 @@
     "@bcts/dcbor": "workspace:*",
     "@bcts/dcbor-parse": "workspace:*",
     "@bcts/dcbor-pattern": "workspace:*",
+    "@bcts/tags": "workspace:*",
     "commander": "^14.0.3"
   }
 }

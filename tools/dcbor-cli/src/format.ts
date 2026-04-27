@@ -12,10 +12,10 @@
 import {
   type Cbor,
   type Result,
-  diagnosticOpt,
-  hexOpt,
-  bytesToHex,
-  cborData,
+  diagnosticAnnotated,
+  diagnosticFlat,
+  hex,
+  hexAnnotated,
   errorMsg,
 } from "@bcts/dcbor";
 
@@ -41,24 +41,24 @@ export function formatOutput(
   try {
     switch (outFormat) {
       case "diag":
-        // Use flat: true for compact single-line output (matching Rust CLI behavior)
-        if (annotate) {
-          return { ok: true, value: diagnosticOpt(cbor, { annotate: true, flat: true }) };
-        } else {
-          return { ok: true, value: diagnosticOpt(cbor, { flat: true }) };
-        }
+        // Mirrors Rust's format_output:
+        //   annotate=true  → cbor.diagnostic_annotated()
+        //   annotate=false → cbor.diagnostic_flat()
+        return {
+          ok: true,
+          value: annotate ? diagnosticAnnotated(cbor) : diagnosticFlat(cbor),
+        };
 
       case "hex":
-        if (annotate) {
-          return { ok: true, value: hexOpt(cbor, { annotate: true }) };
-        } else {
-          return { ok: true, value: bytesToHex(cborData(cbor)) };
-        }
+        // Mirrors Rust:
+        //   annotate=true  → cbor.hex_annotated()
+        //   annotate=false → cbor.hex()
+        return { ok: true, value: annotate ? hexAnnotated(cbor) : hex(cbor) };
 
       case "bin":
-        // For binary output, return hex representation
-        // The caller will handle converting to actual binary
-        return { ok: true, value: bytesToHex(cborData(cbor)) };
+        // Return the hex representation; the CLI layer decodes hex → bytes
+        // before writing to stdout. Mirrors Rust's `hex::encode(cbor.to_cbor_data())`.
+        return { ok: true, value: hex(cbor) };
 
       case "none":
         return { ok: true, value: "" };

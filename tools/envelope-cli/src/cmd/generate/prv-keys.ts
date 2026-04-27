@@ -108,14 +108,20 @@ export class PrvKeysCommand implements Exec {
         break;
 
       case SigningScheme.SshEd25519:
+        privateKeys = privateKeyBase.sshPrivateKeys({ kind: "ed25519" }, "");
+        break;
+
       case SigningScheme.SshDsa:
+        privateKeys = privateKeyBase.sshPrivateKeys({ kind: "dsa" }, "");
+        break;
+
       case SigningScheme.SshEcdsaP256:
+        privateKeys = privateKeyBase.sshPrivateKeys({ kind: "ecdsa", curve: "nistp256" }, "");
+        break;
+
       case SigningScheme.SshEcdsaP384:
-        // SSH key generation not yet implemented
-        throw new Error(
-          `SSH ${this.args.signing} key generation is not yet implemented in the TypeScript version. ` +
-            "Use --signing ed25519 instead.",
-        );
+        privateKeys = privateKeyBase.sshPrivateKeys({ kind: "ecdsa", curve: "nistp384" }, "");
+        break;
     }
 
     return privateKeys.urString();

@@ -18,7 +18,7 @@
  */
 
 import { Envelope } from "../base/envelope";
-import { diagnosticOpt, type DiagFormatOpts } from "@bcts/dcbor";
+import { diagnostic, diagnosticOpt, type DiagFormatOpts } from "@bcts/dcbor";
 import { type FormatContext, getGlobalFormatContext } from "./format-context";
 
 // Note: Method declarations are in the base Envelope class.
@@ -27,12 +27,14 @@ import { type FormatContext, getGlobalFormatContext } from "./format-context";
 /// Implementation of diagnostic()
 ///
 /// Mirrors Rust `Envelope::diagnostic` (`bc-envelope-rust/src/format/
-/// diagnostic.rs`): the envelope's tagged CBOR is rendered via the dCBOR
-/// pretty-printer (multi-line, tag annotations on by default — matching
-/// Rust which uses `dcbor::diagnostic_opt(self.tagged_cbor(), opts)` with
-/// `annotate = true` by default in the no-arg call site).
+/// diagnostic.rs:27`):
+///
+///     pub fn diagnostic(&self) -> String { self.tagged_cbor().diagnostic() }
+///
+/// Plain CBOR diagnostic notation, no tag-name annotations. The annotated
+/// variant lives on `diagnosticAnnotated()` below.
 Envelope.prototype.diagnostic = function (this: Envelope): string {
-  return diagnosticOpt(this.taggedCbor(), { annotate: true });
+  return diagnostic(this.taggedCbor());
 };
 
 /// Implementation of diagnosticAnnotated()

@@ -30,8 +30,10 @@ import {
   type CborTaggedDecodable,
   cbor,
   toByteString,
+  toTaggedValue,
   expectArray,
   expectBytes,
+  expectText,
   expectUnsigned,
   createTaggedCbor,
   validateTag,
@@ -42,12 +44,17 @@ import {
   isArray,
   isTagged,
 } from "@bcts/dcbor";
-import { SIGNATURE as TAG_SIGNATURE, MLDSA_SIGNATURE as TAG_MLDSA_SIGNATURE } from "@bcts/tags";
+import {
+  SIGNATURE as TAG_SIGNATURE,
+  MLDSA_SIGNATURE as TAG_MLDSA_SIGNATURE,
+  SSH_TEXT_SIGNATURE as TAG_SSH_TEXT_SIGNATURE,
+} from "@bcts/tags";
 import { CryptoError } from "../error.js";
 import { bytesToHex, hexToBytes } from "../utils.js";
 import { SignatureScheme, isMldsaScheme } from "./signature-scheme.js";
 import { MLDSASignature } from "../mldsa/mldsa-signature.js";
 import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { SSHSignature } from "../ssh/ssh-signature.js";
 import { UR } from "@bcts/uniform-resources";
 
 /**
@@ -64,11 +71,18 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   private readonly _type: SignatureScheme;
   private readonly _data: Uint8Array;
   private readonly _mldsaSignature: MLDSASignature | undefined;
+  private readonly _sshSig: SSHSignature | undefined;
 
-  private constructor(type: SignatureScheme, data: Uint8Array, mldsaSignature?: MLDSASignature) {
+  private constructor(
+    type: SignatureScheme,
+    data: Uint8Array,
+    mldsaSignature?: MLDSASignature,
+    sshSig?: SSHSignature,
+  ) {
     this._type = type;
     this._data = new Uint8Array(data);
     this._mldsaSignature = mldsaSignature;
+    this._sshSig = sshSig;
   }
 
   // ============================================================================
@@ -190,6 +204,41 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
         throw new Error(`Unknown MLDSA level: ${sig.level()}`);
     }
     return new Signature(scheme, sig.data(), sig);
+  }
+
+  /**
+   * Creates a Signature from an SSHSignature.
+   *
+   * Mirrors Rust `Signature::from_ssh`
+   * (`bc-components-rust/src/signing/signature.rs:398`).
+   *
+   * The signature scheme is derived from the inner public-key algorithm,
+   * matching Rust `Signature::scheme()` at lines 506-519.
+   *
+   * @param sig - The SSHSignature
+   * @returns A new SSH Signature
+   */
+  static fromSsh(sig: SSHSignature): Signature {
+    let scheme: SignatureScheme;
+    switch (sig.publicKey.data.kind) {
+      case "ed25519":
+        scheme = SignatureScheme.SshEd25519;
+        break;
+      case "dsa":
+        scheme = SignatureScheme.SshDsa;
+        break;
+      case "ecdsa":
+        switch (sig.publicKey.data.curve) {
+          case "nistp256":
+            scheme = SignatureScheme.SshEcdsaP256;
+            break;
+          case "nistp384":
+            scheme = SignatureScheme.SshEcdsaP384;
+            break;
+        }
+        break;
+    }
+    return new Signature(scheme, sig.signatureBytes, undefined, sig);
   }
 
   // ============================================================================
@@ -339,6 +388,25 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
   }
 
   /**
+   * Returns the underlying SSHSignature if this is an SSH signature.
+   *
+   * Mirrors Rust `Signature::to_ssh`
+   * (`bc-components-rust/src/signing/signature.rs:459`).
+   *
+   * @returns The SSHSignature if this is an SSH signature, null otherwise
+   */
+  toSsh(): SSHSignature | null {
+    return this._sshSig ?? null;
+  }
+
+  /**
+   * Checks if this is an SSH signature.
+   */
+  isSsh(): boolean {
+    return this._sshSig !== undefined;
+  }
+
+  /**
    * Get hex string representation of the signature data.
    */
   toHex(): string {
@@ -350,6 +418,10 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
    */
   equals(other: Signature): boolean {
     if (this._type !== other._type) return false;
+    if (this._sshSig !== undefined || other._sshSig !== undefined) {
+      if (this._sshSig === undefined || other._sshSig === undefined) return false;
+      return this._sshSig.toPem() === other._sshSig.toPem();
+    }
     if (this._data.length !== other._data.length) return false;
     for (let i = 0; i < this._data.length; i++) {
       if (this._data[i] !== other._data[i]) return false;
@@ -407,8 +479,14 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        throw new Error(`SSH signature scheme ${this._type} is not supported for CBOR encoding`);
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshSig === undefined) {
+          throw new Error("SSH signature is missing");
+        }
+        // Mirror Rust `Signature::SSH(sig) => to_tagged_value(TAG_SSH_TEXT_SIGNATURE, pem)`
+        // (`signature.rs:643-646`).
+        return toTaggedValue(TAG_SSH_TEXT_SIGNATURE, this._sshSig.toPem());
+      }
     }
   }
 
@@ -469,17 +547,22 @@ export class Signature implements CborTaggedEncodable, CborTaggedDecodable<Signa
       }
     }
 
-    // Tagged format for MLDSA
+    // Tagged format for MLDSA / SSH
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
       if (tagged?.[0].value === TAG_MLDSA_SIGNATURE.value) {
         const mldsaSig = MLDSASignature.fromTaggedCbor(cborValue);
         return Signature.mldsaFromSignature(mldsaSig);
       }
+      if (tagged?.[0].value === TAG_SSH_TEXT_SIGNATURE.value) {
+        const text = expectText(tagged[1]);
+        const sshSig = SSHSignature.fromPem(text);
+        return Signature.fromSsh(sshSig);
+      }
     }
 
     throw new Error(
-      "Signature must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), or tagged MLDSA",
+      "Signature must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), tagged MLDSA, or tagged SSH",
     );
   }
 

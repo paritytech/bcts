@@ -56,8 +56,8 @@ export class ExportCommand implements ExecAsync {
     try {
       const signingPrivateKey = SigningPrivateKey.fromURString(object);
 
-      // Check if this is an SSH-compatible key type (Ed25519)
-      if (signingPrivateKey.keyType() !== "Ed25519") {
+      const sshKey = signingPrivateKey.toSsh();
+      if (sshKey === null) {
         throw new Error("UR is not an SSH private key.");
       }
 
@@ -69,8 +69,7 @@ export class ExportCommand implements ExecAsync {
         throw new Error("Encrypted SSH private key export is not yet implemented.");
       }
 
-      // toSsh() returns the OpenSSH format string directly
-      return signingPrivateKey.toSsh();
+      return sshKey.toOpenssh();
     } catch (e) {
       const msg = (e as Error).message;
       if (
@@ -86,13 +85,12 @@ export class ExportCommand implements ExecAsync {
     try {
       const signingPublicKey = SigningPublicKey.fromURString(object);
 
-      // Check if this is an SSH-compatible key type (Ed25519)
-      if (signingPublicKey.keyType() !== "Ed25519") {
+      const sshKey = signingPublicKey.toSsh();
+      if (sshKey === null) {
         throw new Error("UR is not an SSH public key.");
       }
 
-      // toSsh() returns the OpenSSH format string directly
-      return signingPublicKey.toSsh();
+      return sshKey.toOpenssh();
     } catch (e) {
       if ((e as Error).message === "UR is not an SSH public key.") {
         throw e;
@@ -105,13 +103,12 @@ export class ExportCommand implements ExecAsync {
       const publicKeys = PublicKeys.fromURString(object);
       const signingPublicKey = publicKeys.signingPublicKey();
 
-      // Check if this is an SSH-compatible key type (Ed25519)
-      if (signingPublicKey.keyType() !== "Ed25519") {
+      const sshKey = signingPublicKey.toSsh();
+      if (sshKey === null) {
         throw new Error("UR is not a PublicKeys with an SSH public key.");
       }
 
-      // toSsh() returns the OpenSSH format string directly
-      return signingPublicKey.toSsh();
+      return sshKey.toOpenssh();
     } catch (e) {
       if ((e as Error).message === "UR is not a PublicKeys with an SSH public key.") {
         throw e;

@@ -31,8 +31,10 @@ import {
   type CborTaggedDecodable,
   cbor,
   toByteString,
+  toTaggedValue,
   expectArray,
   expectBytes,
+  expectText,
   expectUnsigned,
   createTaggedCbor,
   validateTag,
@@ -46,6 +48,7 @@ import {
 import {
   SIGNING_PUBLIC_KEY as TAG_SIGNING_PUBLIC_KEY,
   MLDSA_PUBLIC_KEY as TAG_MLDSA_PUBLIC_KEY,
+  SSH_TEXT_PUBLIC_KEY as TAG_SSH_TEXT_PUBLIC_KEY,
 } from "@bcts/tags";
 import { Ed25519PublicKey } from "../ed25519/ed25519-public-key.js";
 import { Sr25519PublicKey } from "../sr25519/sr25519-public-key.js";
@@ -53,6 +56,7 @@ import { ECPublicKey } from "../ec-key/ec-public-key.js";
 import { SchnorrPublicKey } from "../ec-key/schnorr-public-key.js";
 import { MLDSAPublicKey } from "../mldsa/mldsa-public-key.js";
 import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { SSHPublicKey } from "../ssh/ssh-public-key.js";
 import { SignatureScheme, isMldsaScheme } from "./signature-scheme.js";
 import type { Signature } from "./signature.js";
 import type { Verifier } from "./signer.js";
@@ -79,6 +83,7 @@ export class SigningPublicKey
   private readonly _ed25519Key: Ed25519PublicKey | undefined;
   private readonly _sr25519Key: Sr25519PublicKey | undefined;
   private readonly _mldsaKey: MLDSAPublicKey | undefined;
+  private readonly _sshKey: SSHPublicKey | undefined;
 
   private constructor(
     type: SignatureScheme,
@@ -87,6 +92,7 @@ export class SigningPublicKey
     ed25519Key?: Ed25519PublicKey,
     sr25519Key?: Sr25519PublicKey,
     mldsaKey?: MLDSAPublicKey,
+    sshKey?: SSHPublicKey,
   ) {
     this._type = type;
     this._schnorrKey = schnorrKey;
@@ -94,6 +100,7 @@ export class SigningPublicKey
     this._ed25519Key = ed25519Key;
     this._sr25519Key = sr25519Key;
     this._mldsaKey = mldsaKey;
+    this._sshKey = sshKey;
   }
 
   // ============================================================================
@@ -191,6 +198,38 @@ export class SigningPublicKey
         throw new Error(`Unknown MLDSA level: ${key.level()}`);
     }
     return new SigningPublicKey(scheme, undefined, undefined, undefined, undefined, key);
+  }
+
+  /**
+   * Creates a new signing public key from an SSHPublicKey.
+   *
+   * Mirrors Rust `SigningPublicKey::from_ssh`
+   * (`bc-components-rust/src/signing/signing_public_key.rs:214`).
+   *
+   * @param key - An SSHPublicKey
+   * @returns A new signing public key wrapping the SSH public key
+   */
+  static fromSsh(key: SSHPublicKey): SigningPublicKey {
+    let scheme: SignatureScheme;
+    switch (key.data.kind) {
+      case "ed25519":
+        scheme = SignatureScheme.SshEd25519;
+        break;
+      case "dsa":
+        scheme = SignatureScheme.SshDsa;
+        break;
+      case "ecdsa":
+        switch (key.data.curve) {
+          case "nistp256":
+            scheme = SignatureScheme.SshEcdsaP256;
+            break;
+          case "nistp384":
+            scheme = SignatureScheme.SshEcdsaP384;
+            break;
+        }
+        break;
+    }
+    return new SigningPublicKey(scheme, undefined, undefined, undefined, undefined, undefined, key);
   }
 
   // ============================================================================
@@ -333,6 +372,37 @@ export class SigningPublicKey
   }
 
   /**
+   * Returns the underlying SSH public key if this is an SSH key.
+   *
+   * Mirrors Rust `SigningPublicKey::to_ssh`
+   * (`bc-components-rust/src/signing/signing_public_key.rs:272`).
+   *
+   * @returns The SSHPublicKey if this is an SSH key, null otherwise
+   */
+  toSsh(): SSHPublicKey | null {
+    return this._sshKey ?? null;
+  }
+
+  /**
+   * Checks if this is an SSH signing key.
+   */
+  isSsh(): boolean {
+    return this._sshKey !== undefined;
+  }
+
+  /**
+   * Returns a copy of this SSH public key with its comment replaced.
+   * Throws if this is not an SSH key — mirrors Rust's `set_comment`
+   * which is only callable on `SigningPublicKey::SSH` variants.
+   */
+  withSshComment(comment: string): SigningPublicKey {
+    if (this._sshKey === undefined) {
+      throw new Error(`SigningPublicKey.withSshComment: not an SSH key (scheme: ${this._type})`);
+    }
+    return SigningPublicKey.fromSsh(this._sshKey.withComment(comment));
+  }
+
+  /**
    * Compare with another SigningPublicKey.
    */
   equals(other: SigningPublicKey): boolean {
@@ -358,8 +428,10 @@ export class SigningPublicKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        return false;
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined || other._sshKey === undefined) return false;
+        return this._sshKey.equals(other._sshKey);
+      }
     }
   }
 
@@ -396,11 +468,9 @@ export class SigningPublicKey
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
       case SignatureScheme.SshEcdsaP384:
-        // Mirror Rust `SigningPublicKey::SSH(key) => format!("SSHPublicKey({})", key.ref_hex_short())`.
-        // TS does not yet carry an `_sshKey` field — until SSH-key support is
-        // added, fall back to the outer reference for `ref_hex_short`. That
-        // matches Rust shape exactly when the inner key is unavailable.
-        innerDisplay = `SSHPublicKey(${refShort})`;
+        // Mirror Rust `SigningPublicKey::SSH(key) => format!("SSHPublicKey({})", key.ref_hex_short())`
+        // (`signing_public_key.rs:592-594`).
+        innerDisplay = this._sshKey?.toString() ?? `SSHPublicKey(${refShort})`;
         break;
     }
     return `SigningPublicKey(${refShort}, ${innerDisplay})`;
@@ -514,8 +584,18 @@ export class SigningPublicKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        return false;
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined) return false;
+        const sshSig = signature.toSsh();
+        if (sshSig === null) return false;
+        // Mirror Rust `SigningPublicKey::SSH(key) => key.verify(sig.namespace(), msg, sig).is_ok()`
+        // (`signing_public_key.rs:362-364`).
+        try {
+          return this._sshKey.verifySshSignature(sshSig.namespace, message, sshSig);
+        } catch {
+          return false;
+        }
+      }
     }
   }
 
@@ -578,8 +658,14 @@ export class SigningPublicKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        throw new Error(`SSH signature scheme ${this._type} is not supported for CBOR encoding`);
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined) {
+          throw new Error("SSH public key is missing");
+        }
+        // Mirror Rust `SigningPublicKey::SSH(key) => to_tagged_value(TAG_SSH_TEXT_PUBLIC_KEY, openssh)`
+        // (`signing_public_key.rs:441-443`).
+        return toTaggedValue(TAG_SSH_TEXT_PUBLIC_KEY, this._sshKey.toOpenssh());
+      }
     }
   }
 
@@ -640,17 +726,22 @@ export class SigningPublicKey
       }
     }
 
-    // Tagged format for MLDSA
+    // Tagged format for MLDSA / SSH
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
       if (tagged?.[0].value === TAG_MLDSA_PUBLIC_KEY.value) {
         const mldsaKey = MLDSAPublicKey.fromTaggedCbor(cborValue);
         return SigningPublicKey.fromMldsa(mldsaKey);
       }
+      if (tagged?.[0].value === TAG_SSH_TEXT_PUBLIC_KEY.value) {
+        const text = expectText(tagged[1]);
+        const sshKey = SSHPublicKey.fromOpenssh(text);
+        return SigningPublicKey.fromSsh(sshKey);
+      }
     }
 
     throw new Error(
-      "SigningPublicKey must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), or tagged MLDSA",
+      "SigningPublicKey must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), tagged MLDSA, or tagged SSH",
     );
   }
 
@@ -750,63 +841,17 @@ export class SigningPublicKey
   // ============================================================================
 
   /**
-   * Converts the public key to SSH format.
-   * Currently only supports Ed25519 keys.
+   * Returns the OpenSSH single-line public-key text for an SSH public key.
+   *
+   * Only valid when this `SigningPublicKey` wraps an `SSHPublicKey`
+   * (i.e. one of the four `SignatureScheme.SshXxx` variants). Mirrors
+   * Rust's `SigningPublicKey::SSH(key) => key.to_openssh()` usage at
+   * `signing_public_key.rs:442`.
    */
-  toSsh(comment?: string): string {
-    if (this._type !== SignatureScheme.Ed25519) {
-      throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
+  toSshOpenssh(): string {
+    if (this._sshKey === undefined) {
+      throw new Error(`SigningPublicKey is not an SSH key (scheme: ${this._type})`);
     }
-    if (this._ed25519Key === undefined) {
-      throw new Error("Ed25519 key not initialized");
-    }
-
-    // SSH format: ssh-ed25519 <base64-encoded-data> [comment]
-    // The data is: 4-byte length of "ssh-ed25519" + "ssh-ed25519" + 4-byte length of key + key bytes
-    const algorithm = "ssh-ed25519";
-    const algorithmBytes = new TextEncoder().encode(algorithm);
-    const keyBytes = this._ed25519Key.toData();
-    const keyLen = keyBytes.length;
-
-    // Build the blob: [4-byte length][algorithm][4-byte length][key]
-    const totalLength = 4 + algorithmBytes.length + 4 + keyLen;
-    const blob = new Uint8Array(totalLength);
-    let offset = 0;
-
-    // Write algorithm length (big-endian)
-    blob[offset++] = (algorithmBytes.length >> 24) & 0xff;
-    blob[offset++] = (algorithmBytes.length >> 16) & 0xff;
-    blob[offset++] = (algorithmBytes.length >> 8) & 0xff;
-    blob[offset++] = algorithmBytes.length & 0xff;
-
-    // Write algorithm
-    blob.set(algorithmBytes, offset);
-    offset += algorithmBytes.length;
-
-    // Write key length (big-endian)
-    blob[offset++] = (keyLen >> 24) & 0xff;
-    blob[offset++] = (keyLen >> 16) & 0xff;
-    blob[offset++] = (keyLen >> 8) & 0xff;
-    blob[offset++] = keyLen & 0xff;
-
-    // Write key
-    blob.set(keyBytes, offset);
-
-    // Base64 encode the blob
-    let base64 = "";
-    const bytes = blob;
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    for (let i = 0; i < bytes.length; i += 3) {
-      const b0 = bytes[i];
-      const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-      const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-      base64 += chars[(b0 >> 2) & 0x3f];
-      base64 += chars[((b0 << 4) | (b1 >> 4)) & 0x3f];
-      base64 += i + 1 < bytes.length ? chars[((b1 << 2) | (b2 >> 6)) & 0x3f] : "=";
-      base64 += i + 2 < bytes.length ? chars[b2 & 0x3f] : "=";
-    }
-
-    const result = `${algorithm} ${base64}`;
-    return comment !== undefined && comment !== "" ? `${result} ${comment}` : result;
+    return this._sshKey.toOpenssh();
   }
 }

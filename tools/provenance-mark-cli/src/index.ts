@@ -10,7 +10,13 @@
  * @packageDocumentation
  */
 
-export const VERSION = "1.0.0-alpha.13";
+import pkg from "../package.json" with { type: "json" };
+
+/**
+ * Package version, sourced from `package.json` so the CLI's `--version` output
+ * never drifts from the published version.
+ */
+export const VERSION: string = pkg.version;
 
 // Export exec interface
 export type { Exec, ExecResult } from "./exec.js";

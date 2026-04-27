@@ -17,6 +17,8 @@ import { Sr25519PrivateKey } from "../sr25519/sr25519-private-key.js";
 import { ECPrivateKey } from "../ec-key/ec-private-key.js";
 import { MLDSAPrivateKey } from "../mldsa/mldsa-private-key.js";
 import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { PrivateKeyBase } from "../private-key-base.js";
+import type { SshAlgorithm } from "../ssh/ssh-algorithm.js";
 import { SigningPrivateKey } from "./signing-private-key.js";
 import type { SigningPublicKey } from "./signing-public-key.js";
 import { CryptoError } from "../error.js";
@@ -168,13 +170,43 @@ export type SigningOptions =
     };
 
 /**
+ * Map an `SshXxx` `SignatureScheme` value to its underlying
+ * `SshAlgorithm`. Helper for `createKeypair`/`createKeypairUsing`.
+ */
+function sshSchemeToAlgorithm(scheme: SignatureScheme): SshAlgorithm {
+  switch (scheme) {
+    case SignatureScheme.SshEd25519:
+      return { kind: "ed25519" };
+    case SignatureScheme.SshDsa:
+      return { kind: "dsa" };
+    case SignatureScheme.SshEcdsaP256:
+      return { kind: "ecdsa", curve: "nistp256" };
+    case SignatureScheme.SshEcdsaP384:
+      return { kind: "ecdsa", curve: "nistp384" };
+    case SignatureScheme.Schnorr:
+    case SignatureScheme.Ecdsa:
+    case SignatureScheme.Ed25519:
+    case SignatureScheme.Sr25519:
+    case SignatureScheme.MLDSA44:
+    case SignatureScheme.MLDSA65:
+    case SignatureScheme.MLDSA87:
+      throw new Error(`Not an SSH SignatureScheme: ${scheme}`);
+  }
+}
+
+/**
  * Creates a new key pair for the signature scheme.
  *
- * @param scheme - The signature scheme to use
+ * @param scheme  - The signature scheme to use
+ * @param comment - Optional comment for SSH keys (ignored for non-SSH schemes;
+ *                  mirrors Rust `SignatureScheme::keypair_opt(comment)` at
+ *                  `signature_scheme.rs:152`)
  * @returns A tuple containing a signing private key and its corresponding public key
- * @throws CryptoError for SSH-based schemes which require SSH agent support
  */
-export function createKeypair(scheme: SignatureScheme): [SigningPrivateKey, SigningPublicKey] {
+export function createKeypair(
+  scheme: SignatureScheme,
+  comment = "",
+): [SigningPrivateKey, SigningPublicKey] {
   switch (scheme) {
     case SignatureScheme.Schnorr: {
       const ecKey = ECPrivateKey.random();
@@ -221,25 +253,32 @@ export function createKeypair(scheme: SignatureScheme): [SigningPrivateKey, Sign
     case SignatureScheme.SshEd25519:
     case SignatureScheme.SshDsa:
     case SignatureScheme.SshEcdsaP256:
-    case SignatureScheme.SshEcdsaP384:
-      throw CryptoError.sshAgent(
-        `SSH signature scheme ${scheme} requires SSH agent support which is not yet implemented. ` +
-          "Use Ed25519, Sr25519, Schnorr, ECDSA, or MLDSA variants instead.",
-      );
+    case SignatureScheme.SshEcdsaP384: {
+      // Mirror Rust `signature_scheme.rs:209-276`: build an empty
+      // `PrivateKeyBase` and derive an SSH keypair from it.
+      const base = PrivateKeyBase.new();
+      const privateKey = base.sshSigningPrivateKey(sshSchemeToAlgorithm(scheme), comment);
+      const publicKey = privateKey.publicKey();
+      return [privateKey, publicKey];
+    }
   }
 }
 
 /**
  * Creates a new key pair for the signature scheme using a provided RNG.
  *
- * @param scheme - The signature scheme to use
- * @param rng - The random number generator to use
+ * @param scheme  - The signature scheme to use
+ * @param rng     - The random number generator to use
+ * @param comment - Optional comment for SSH keys (ignored for non-SSH schemes;
+ *                  mirrors Rust `SignatureScheme::keypair_using(rng, comment)`
+ *                  at `signature_scheme.rs:316`)
  * @returns A tuple containing a signing private key and its corresponding public key
- * @throws CryptoError for SSH-based schemes or MLDSA (which doesn't support deterministic generation)
+ * @throws CryptoError for MLDSA (which doesn't support deterministic generation)
  */
 export function createKeypairUsing(
   scheme: SignatureScheme,
   rng: RandomNumberGenerator,
+  comment = "",
 ): [SigningPrivateKey, SigningPublicKey] {
   switch (scheme) {
     case SignatureScheme.Schnorr: {
@@ -276,10 +315,13 @@ export function createKeypairUsing(
     case SignatureScheme.SshEd25519:
     case SignatureScheme.SshDsa:
     case SignatureScheme.SshEcdsaP256:
-    case SignatureScheme.SshEcdsaP384:
-      throw CryptoError.sshAgent(
-        `SSH signature scheme ${scheme} requires SSH agent support which is not yet implemented. ` +
-          "Use Ed25519, Sr25519, Schnorr, ECDSA, or MLDSA variants instead.",
-      );
+    case SignatureScheme.SshEcdsaP384: {
+      // Mirror Rust `signature_scheme.rs:316-413`: build a
+      // `PrivateKeyBase::new_using(rng)` and derive an SSH keypair.
+      const base = PrivateKeyBase.newUsing(rng);
+      const privateKey = base.sshSigningPrivateKey(sshSchemeToAlgorithm(scheme), comment);
+      const publicKey = privateKey.publicKey();
+      return [privateKey, publicKey];
+    }
   }
 }
