@@ -14,30 +14,36 @@ export class URError extends Error {
 
 /**
  * Error type for invalid UR schemes.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs: `invalid UR scheme`.
  */
 export class InvalidSchemeError extends URError {
   constructor() {
-    super("Invalid UR scheme");
+    super("invalid UR scheme");
     this.name = "InvalidSchemeError";
   }
 }
 
 /**
  * Error type for unspecified UR types.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs: `no UR type specified`.
  */
 export class TypeUnspecifiedError extends URError {
   constructor() {
-    super("No UR type specified");
+    super("no UR type specified");
     this.name = "TypeUnspecifiedError";
   }
 }
 
 /**
  * Error type for invalid UR types.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs: `invalid UR type`.
  */
 export class InvalidTypeError extends URError {
   constructor() {
-    super("Invalid UR type");
+    super("invalid UR type");
     this.name = "InvalidTypeError";
   }
 }
@@ -54,30 +60,37 @@ export class NotSinglePartError extends URError {
 
 /**
  * Error type for unexpected UR types.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs:
+ * `expected UR type {expected}, but found {found}`.
  */
 export class UnexpectedTypeError extends URError {
   constructor(expected: string, found: string) {
-    super(`Expected UR type ${expected}, but found ${found}`);
+    super(`expected UR type ${expected}, but found ${found}`);
     this.name = "UnexpectedTypeError";
   }
 }
 
 /**
  * Error type for Bytewords encoding/decoding errors.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs: `Bytewords error ({0})`.
  */
 export class BytewordsError extends URError {
   constructor(message: string) {
-    super(`Bytewords error: ${message}`);
+    super(`Bytewords error (${message})`);
     this.name = "BytewordsError";
   }
 }
 
 /**
  * Error type for CBOR encoding/decoding errors.
+ *
+ * Message matches Rust bc-ur-rust/src/error.rs: `CBOR error ({0})`.
  */
 export class CBORError extends URError {
   constructor(message: string) {
-    super(`CBOR error: ${message}`);
+    super(`CBOR error (${message})`);
     this.name = "CBORError";
   }
 }

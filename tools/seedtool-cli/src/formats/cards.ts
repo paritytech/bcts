@@ -26,7 +26,8 @@ function parseRank(c: string): number {
   const lower = c.toLowerCase();
   const index = CARD_RANKS.indexOf(lower);
   if (index === -1) {
-    throw new Error(`Invalid card rank: ${c}. Allowed: [A,2-9,T,J,Q,K]`);
+    // Mirrors Rust cards.rs:43 — terse, no offending-char suffix.
+    throw new Error("Invalid card rank. Allowed: [A,2-9,T,J,Q,K]");
   }
   return index;
 }
@@ -39,7 +40,11 @@ function parseSuit(c: string): number {
   const lower = c.toLowerCase();
   const index = CARD_SUITS.indexOf(lower);
   if (index === -1) {
-    throw new Error(`Invalid card suit: ${c}. Allowed: [C,D,H,S]`);
+    // Mirrors Rust cards.rs:53 verbatim, including the upstream copy-paste bug
+    // that says "rank" instead of "suit" and orders [D,C,H,S]. We replicate
+    // the bug for byte-identical stderr; once Rust is fixed upstream, mirror
+    // the corrected wording here.
+    throw new Error("Invalid card rank. Allowed: [D,C,H,S]");
   }
   return index;
 }

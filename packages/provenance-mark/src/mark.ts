@@ -316,7 +316,7 @@ export class ProvenanceMark {
       throw new Error(`word_count must be 4..=32, got ${wordCount}`);
     }
     const s = encodeToWords(this.id().subarray(0, wordCount)).toUpperCase();
-    return prefix ? `\u{1F151} ${s}` : s;
+    return prefix ? `\u{1F15F} ${s}` : s;
   }
 
   /**
@@ -331,7 +331,7 @@ export class ProvenanceMark {
       throw new Error(`word_count must be 4..=32, got ${wordCount}`);
     }
     const s = encodeToBytemojis(this.id().subarray(0, wordCount)).toUpperCase();
-    return prefix ? `\u{1F151} ${s}` : s;
+    return prefix ? `\u{1F15F} ${s}` : s;
   }
 
   /**
@@ -347,7 +347,7 @@ export class ProvenanceMark {
       throw new Error(`word_count must be 4..=32, got ${wordCount}`);
     }
     const s = encodeToMinimalBytewords(this.id().subarray(0, wordCount)).toUpperCase();
-    return prefix ? `\u{1F151} ${s}` : s;
+    return prefix ? `\u{1F15F} ${s}` : s;
   }
 
   /**
@@ -468,7 +468,7 @@ export class ProvenanceMark {
     const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
     return ids.map((id, i) => {
       const s = encodeToWords(id.subarray(0, lengths[i])).toUpperCase();
-      return prefix ? `\u{1F151} ${s}` : s;
+      return prefix ? `\u{1F15F} ${s}` : s;
     });
   }
 
@@ -484,7 +484,7 @@ export class ProvenanceMark {
     const lengths = ProvenanceMark.minimalNoncollidingPrefixLengths(ids);
     return ids.map((id, i) => {
       const s = encodeToBytemojis(id.subarray(0, lengths[i])).toUpperCase();
-      return prefix ? `\u{1F151} ${s}` : s;
+      return prefix ? `\u{1F15F} ${s}` : s;
     });
   }
 
@@ -826,16 +826,20 @@ export class ProvenanceMark {
   }
 
   /**
-   * JSON serialization.
+   * JSON serialization. Field order, names, and date format mirror Rust's
+   * `#[derive(Serialize)]` on `ProvenanceMark` (provenance-mark-rust/src/mark.rs):
+   * `seq, date, res, chain_id, key, hash[, info_bytes]`. The date uses
+   * `dateToDisplay()` (date-only when midnight, RFC3339-seconds with `Z`
+   * otherwise), matching Rust's `serialize_iso8601` / `Date::to_string()`.
    */
   toJSON(): Record<string, unknown> {
     const result: Record<string, unknown> = {
+      seq: this._seq,
+      date: dateToDisplay(this._date),
       res: this._res,
+      chain_id: toBase64(this._chainId),
       key: toBase64(this._key),
       hash: toBase64(this._hash),
-      chainID: toBase64(this._chainId),
-      seq: this._seq,
-      date: this._date.toISOString(),
     };
     if (this._infoBytes.length > 0) {
       result["info_bytes"] = toBase64(this._infoBytes);
@@ -850,7 +854,8 @@ export class ProvenanceMark {
     const res = json["res"] as ProvenanceMarkResolution;
     const key = fromBase64(json["key"] as string);
     const hash = fromBase64(json["hash"] as string);
-    const chainId = fromBase64(json["chainID"] as string);
+    const chainIdRaw = json["chain_id"] ?? json["chainID"]; // accept legacy `chainID` for back-compat
+    const chainId = fromBase64(chainIdRaw as string);
     const seq = json["seq"] as number;
     const dateStr = json["date"] as string;
     const date = new Date(dateStr);

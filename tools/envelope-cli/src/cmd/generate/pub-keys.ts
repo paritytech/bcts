@@ -8,11 +8,9 @@
  * Convert private keys to public keys.
  * Takes a ur:crypto-prvkeys or ur:signing-private-key and converts it to
  * ur:crypto-pubkeys or ur:signing-public-key.
- *
- * NOTE: SSH key comment support is not yet implemented in the TypeScript version.
  */
 
-import { PrivateKeys, SigningPrivateKey } from "@bcts/components";
+import { PrivateKeys, PublicKeys, SigningPrivateKey } from "@bcts/components";
 import type { Exec } from "../../exec.js";
 import { readStdinLine } from "../../utils.js";
 
@@ -60,12 +58,16 @@ export class PubKeysCommand implements Exec {
     // Try to parse as PrivateKeys first
     try {
       const privateKeys = PrivateKeys.fromURString(urString);
-      const publicKeys = privateKeys.publicKeys();
+      let publicKeys = privateKeys.publicKeys();
 
-      // Note: SSH comment support requires isSsh()/asSsh() methods
-      // which are not yet implemented in @bcts/components
-      if (this.args.comment) {
-        console.warn("Warning: SSH key comment support is not yet implemented");
+      // Mirror Rust `pub_keys.rs:49-60`: replace the SSH key with one
+      // carrying the requested comment.
+      const signingPub = publicKeys.signingPublicKey();
+      if (this.args.comment.length > 0 && signingPub.isSsh()) {
+        publicKeys = PublicKeys.new(
+          signingPub.withSshComment(this.args.comment),
+          publicKeys.encapsulationPublicKey(),
+        );
       }
 
       return publicKeys.urString();
@@ -76,11 +78,11 @@ export class PubKeysCommand implements Exec {
     // Try to parse as SigningPrivateKey
     try {
       const signingPrivateKey = SigningPrivateKey.fromURString(urString);
-      const signingPublicKey = signingPrivateKey.publicKey();
+      let signingPublicKey = signingPrivateKey.publicKey();
 
-      // Note: SSH comment support requires isSsh()/asSsh() methods
-      if (this.args.comment) {
-        console.warn("Warning: SSH key comment support is not yet implemented");
+      // Mirror Rust `pub_keys.rs:69-76` for the SigningPrivateKey path.
+      if (this.args.comment.length > 0 && signingPublicKey.isSsh()) {
+        signingPublicKey = signingPublicKey.withSshComment(this.args.comment);
       }
 
       return signingPublicKey.urString();

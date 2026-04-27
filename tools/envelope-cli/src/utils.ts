@@ -320,17 +320,19 @@ export function readEnvelope(envelope?: string): Envelope {
     throw new Error("No envelope provided");
   }
 
-  // Try parsing as ur:envelope first
+  // Mirror Rust bc-envelope-cli-rust/src/utils.rs:148-149:
+  //
+  //     Envelope::from_ur_string(ur_string)
+  //         .or_else(|_| envelope_from_ur(&UR::from_ur_string(ur_string)?))
+  //
+  // The `?` propagates the inner UR-parse error (e.g. "invalid UR scheme") —
+  // so we must rethrow whatever the second attempt raised, not a constant
+  // "Invalid envelope" placeholder.
   try {
     return Envelope.fromUrString(urString);
   } catch {
-    // Try as other UR type
-    try {
-      const ur = UR.fromURString(urString);
-      return envelopeFromUr(ur);
-    } catch {
-      throw new Error("Invalid envelope");
-    }
+    const ur = UR.fromURString(urString);
+    return envelopeFromUr(ur);
   }
 }
 

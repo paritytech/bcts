@@ -81,11 +81,35 @@ describe("SignatureScheme", () => {
       expect(privateKey1.equals(privateKey2)).toBe(false);
     });
 
-    it("should throw error for SSH schemes (not yet implemented)", () => {
-      expect(() => createKeypair(SignatureScheme.SshEd25519)).toThrow("SSH agent");
-      expect(() => createKeypair(SignatureScheme.SshDsa)).toThrow("SSH agent");
-      expect(() => createKeypair(SignatureScheme.SshEcdsaP256)).toThrow("SSH agent");
-      expect(() => createKeypair(SignatureScheme.SshEcdsaP384)).toThrow("SSH agent");
+    it("should create SSH Ed25519 keypair", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.SshEd25519);
+      expect(privateKey.scheme()).toBe(SignatureScheme.SshEd25519);
+      expect(publicKey.scheme()).toBe(SignatureScheme.SshEd25519);
+      expect(privateKey.isSsh()).toBe(true);
+      expect(publicKey.isSsh()).toBe(true);
+    });
+
+    it("should create SSH ECDSA P-256 keypair", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.SshEcdsaP256);
+      expect(privateKey.scheme()).toBe(SignatureScheme.SshEcdsaP256);
+      expect(publicKey.scheme()).toBe(SignatureScheme.SshEcdsaP256);
+    });
+
+    it("should create SSH ECDSA P-384 keypair", () => {
+      const [privateKey, publicKey] = createKeypair(SignatureScheme.SshEcdsaP384);
+      expect(privateKey.scheme()).toBe(SignatureScheme.SshEcdsaP384);
+      expect(publicKey.scheme()).toBe(SignatureScheme.SshEcdsaP384);
+    });
+
+    it("throws for SSH DSA keypair (DSA-1024 keygen not yet ported)", () => {
+      // Mirrors Rust which fully supports DSA via the `dsa` crate's
+      // FIPS 186-4 prime search. Porting the prime search to TS is a
+      // documented gap — see `SSH_V2_PLAN.md` A.1. Sign/verify and
+      // PEM round-trip remain functional for parsed Rust-generated DSA
+      // PEM input.
+      expect(() => createKeypair(SignatureScheme.SshDsa)).toThrow(
+        "SSH DSA key generation is not yet implemented",
+      );
     });
   });
 

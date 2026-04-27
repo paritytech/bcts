@@ -8,6 +8,7 @@
  */
 
 import * as readline from "node:readline";
+import * as fs from "node:fs";
 import { SSKRGroupSpec, SSKRSpec } from "@bcts/components";
 import type { SecureRandomNumberGenerator } from "@bcts/rand";
 import type { Envelope } from "@bcts/envelope";
@@ -219,16 +220,23 @@ export class Cli {
   rng?: RngSource;
 
   /**
-   * Get input from argument or read from stdin.
-   * Matches Rust expect_input method.
+   * Get input from argument or lazily read it from stdin.
+   *
+   * Mirrors Rust's `Cli::expect_input` (seedtool-cli-rust/src/cli.rs:191-200):
+   * stdin is touched only when an input-consuming code path actually needs it.
+   * Modes like `--in random` or `-d <SEED>` (deterministic) never call this,
+   * so they exit cleanly even when stdin is a non-TTY but no input is piped.
+   *
+   * Reads the stdin file descriptor synchronously via `fs.readFileSync(0, ...)`
+   * and caches the trimmed result on `this.input` so subsequent calls don't
+   * re-read.
    */
   expectInput(): string {
     if (this.input !== undefined) {
       return this.input;
     }
-    // Read from stdin synchronously
-    // Note: In Node.js, we need to handle this differently for actual CLI use
-    throw new Error("Input required but not provided. Use stdin or pass as argument.");
+    this.input = fs.readFileSync(0, "utf-8").trim();
+    return this.input;
   }
 
   /**

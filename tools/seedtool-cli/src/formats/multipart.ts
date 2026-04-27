@@ -40,7 +40,11 @@ export class MultipartFormat implements InputFormat, OutputFormat {
     }
 
     if (!decoder.isComplete()) {
-      throw new Error("Insufficient multipart shares");
+      // Mirrors Rust multipart.rs:30 verbatim, including the upstream copy-paste
+      // bug that says "SSKR shares" instead of "multipart shares". Replicated
+      // for byte-identical stderr; mirror the corrected wording once Rust is
+      // fixed upstream.
+      throw new Error("Insufficient SSKR shares");
     }
 
     const ur = decoder.message();

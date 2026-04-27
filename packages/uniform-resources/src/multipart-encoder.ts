@@ -87,18 +87,16 @@ export class MultipartEncoder {
 
   /**
    * Encodes a fountain part as a UR string.
+   *
+   * Always emits the multipart `ur:<type>/<seqNum>-<seqLen>/<bytewords>`
+   * format — including for single-part messages (`1-1/...`). This mirrors
+   * Rust's `bc_ur::MultipartEncoder::next_part`, which never short-circuits
+   * to plain UR. Callers that want plain UR for tiny payloads should use
+   * `UR.string()` directly instead of constructing a `MultipartEncoder`.
    */
   private _encodePart(part: FountainPart): string {
-    // For single-part messages, use simple format
-    if (part.seqLen === 1) {
-      return this._ur.string();
-    }
-
-    // Encode the part data as CBOR: [seqNum, seqLen, messageLen, checksum, data]
-    // Using a simple format: seqNum-seqLen prefix followed by bytewords-encoded part
     const partData = this._encodePartData(part);
     const encoded = encodeBytewords(partData, BytewordsStyle.Minimal);
-
     return `ur:${this._ur.urTypeStr()}/${part.seqNum}-${part.seqLen}/${encoded}`;
   }
 

@@ -129,8 +129,7 @@ describe("keys command", () => {
       );
     });
 
-    // Skip: SSH Ed25519 key generation is not yet implemented in TypeScript
-    it.skip("test_ssh_ed25519", async () => {
+    it("test_ssh_ed25519", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.SshEd25519,
         "ur:crypto-prvkeys/lftansgotanehnkkadlsdpdpdpdpdpfwfeflgaglcxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbkideofwjzidjtglknhsfxehjphthdjejyieimfefpfpfpfpfpfwfleckoidjngofpfpfpfpfeidjneskphtgyfpfpfpfpfpfpfpfpfpfwfpfpfpfpgtktfpfpfpfpjykniaeyiojyhthgbkgykkglghgoksgwgyfpfpfpfxfpiheskokkdliekogwkokoeyfyemjyeckoihidkkjnemhsjnisjehtjnecghehjtknfyeyimjnhggwdlesgshdktfpfpfpgaimjkeejpgyjlemgwgrdybkgrfpfpfpfpfpjykniaeyiojyhthggykkglghgoksgwgyfpfpfpfxfpiheskokkdliekogwkokoeyfyemjyeckoihidkkjnemhsjnisjehtjnecghehjtknfyeyimjnhggwdlesgshdktbkfpfpfpfefyidiaesjpgdjojpioioidjkkokpiaghgugsjsjlflkphdidiahtecihgyktjsinfxecehfgfykpdygheciegwfwemeydlgseseyetendndlhkgdkpeojneseckogridjyjsbkhsflgmjnidjzgdhgiygtgdhsgwhthkemdldyjyiyfpfpfpfpfpfpfefxfpktgyfgbkdpdpdpdpdpfeglfycxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbktansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdsmejlckmn",
@@ -139,8 +138,7 @@ describe("keys command", () => {
       );
     });
 
-    // Skip: SSH ECDSA P256 key generation is not yet implemented in TypeScript
-    it.skip("test_ssh_ecdsa_nistp256", async () => {
+    it("test_ssh_ecdsa_nistp256", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.SshEcdsaP256,
         "ur:crypto-prvkeys/lftansgotanehnkkadvtdpdpdpdpdpfwfeflgaglcxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbkideofwjzidjtglknhsfxehjphthdjejyieimfefpfpfpfpfpfwfleckoidjngofpfpfpfpfeidjneskphtgyfpfpfpfpfpfpfpfpfpfwfpfpfpfphsfpfpfpfpfwgljzhkeygmknhkgubkehknhsflfekkgshgecjoiaeogmktgtimgoeyfpfpfpfpfxflecjoiaeogmktgtimgoeyfpfpfpfpgygygmkpingsisjefgfdgeesjyjygheygakninhdjegohkinhdeoeyhthtjkgyjpbkgwktihjpjninethtdygljlgdglemeyjnemidjygheoineodykpjsjoehgrgmhsfwguglgegdkkjlgdfxfgdnemhdjseefleceyemingsfygufwgtfpfpfpfpjngwhggsfxgykojzinktbkjegsfpfpfpfpfeeyhfimhtfdglisgshdgljlhkghgajyidjnjzkniefdfpkkglghhkfpfpfpfpgaidjnjzkniefdfpkkglghhkfpfpfpfwfwfwflengakpflgygoiajteyeyehgdhkimbkgwgeihgmgmingeiyiyhtjzjnksfxjkemfwenkphsgsksjtgyeyioeteokohsidjykpehgdihgsiyguenjsjtgojofgjlfggadyjedlgrioetgahdemjyihjpioidjtidkpgajkglgafebkktfpfpfpfpiofdjeeegreeengtktgleejpeoiaesimjnjtjteyjzglkkghimhkiydnemdlgaghgdindngsiojlkkgoflghfxfpfpfpfpfpfpbkdpdpdpdpdpfeglfycxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbktansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdshprhjszt",
@@ -149,8 +147,7 @@ describe("keys command", () => {
       );
     });
 
-    // Skip: SSH ECDSA P384 key generation is not yet implemented in TypeScript
-    it.skip("test_ssh_ecdsa_nistp384", async () => {
+    it("test_ssh_ecdsa_nistp384", async () => {
       await testKeys(
         generate.PrvKeysSigningScheme.SshEcdsaP384,
         "ur:crypto-prvkeys/lftansgotanehnkkaohtdpdpdpdpdpfwfeflgaglcxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbkideofwjzidjtglknhsfxehjphthdjejyieimfefpfpfpfpfpfwfleckoidjngofpfpfpfpfeidjneskphtgyfpfpfpfpfpfpfpfpfpfwfpfpfpfpinfpfpfpfpfwgljzhkeygmknhkgubkehknhsflfekkgshgecjoiaeogmktgtkniodyfpfpfpfpfxflecjoiaeogmktgtkniodyfpfpfpfphkgygmgwglfwiegthsgujehffeeyfdhgeekokkjlgmghengyhdjyghjnenhginknbkieenfyjsfwjzehhtflgsetihgohgeyetkpimemfdfwinhgihksimglgaindyjtjljshsgrgdgtjzdygwksfphffeiahkisingajzgsenfdehjpemiygeihfwgoiegmjyjkgugafxglgabkeogyjliyglisguidfdhfgliaishkdlflhdgsfygakoeehtkpgodljoeyjlfpfpfpfygyioeseefegtgagdihfwfyfpfpfpfpfpghhthggljeiaeyfejyiaeyisisgtinehkphshdgldybkiafygteeglfpfpfpfpfpiskphshdgldyiafygteeglfpfpfpfpflfefeghimgyhdghfljejofggmglisehkpgsetjsfegodnjefgemgoeckpjzjljkeoihioeniohtiehggmindlfdjzbkfgjykogsjldnkskthkjzjtjkhkkngugajygeengrjninimkngeiefyjkgyfggmfdflgahkingegudniseshsdneokkhdiohffdgoididfeinfpimgugldygrfdknhkgojnksehghhdgabkhggdksjzkkktkkgsdnflidjzgdeniejsfpfpfpfpgtgyfxjljejtjygdinidgmfejliaiadlehglioiejofddnhdkojleejpjejehdenglesjyjofldliagrjljkgeisdyjeksjekojybkdyfgihkkesktknhkioehfpetkshtkojseefpfpfpfpfpfpgygafyfwfpgoflfwktfsfsbkdpdpdpdpdpfeglfycxgwgdfeglgugufdcxgdgmgahffpghfecxgrfehkdpdpdpdpdpbktansgehdcxvsdapeurgauovlbsvdfhvdcevywlptspfgnejpbksadehkhkfzehhfaysrsrbsdswnecfzhf",

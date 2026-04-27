@@ -40,42 +40,35 @@ function globalIndex(sectionId: string): number {
 <template>
   <UDashboardPanel id="xid-tutorial">
     <template #header>
-      <UDashboardNavbar>
-        <template #left>
-          <div class="flex items-center gap-3">
-            <UIcon name="i-heroicons-academic-cap" class="text-primary-500 w-5 h-5" />
-            <div>
-              <h1 class="font-semibold text-gray-900 dark:text-white">XID Tutorial</h1>
-              <p v-if="currentSectionMeta" class="text-xs text-gray-500">
-                §{{ currentSectionMeta.id }} · {{ currentSectionMeta.title }}
-              </p>
-            </div>
-          </div>
+      <UDashboardNavbar title="XID Tutorial">
+        <template #leading>
+          <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-500">{{ progress.done }} / {{ progress.total }}</span>
-            <UButton
-              v-if="activeDoc"
-              label="Open in Builder"
-              icon="i-heroicons-wrench-screwdriver"
-              variant="ghost"
-              size="sm"
-              to="/xid-builder"
-            />
-            <UButton
-              label="Reset"
-              icon="i-heroicons-arrow-path"
-              variant="ghost"
-              size="sm"
-              color="neutral"
-              @click="resetTutorial"
-            />
-          </div>
+          <span class="text-xs text-gray-500">{{ progress.done }} / {{ progress.total }}</span>
+          <UButton
+            label="Reset"
+            icon="i-heroicons-arrow-path"
+            variant="ghost"
+            size="sm"
+            color="neutral"
+            @click="resetTutorial"
+          />
+          <UColorModeButton size="sm" />
+          <UButton
+            to="https://github.com/paritytech/bcts"
+            target="_blank"
+            icon="i-simple-icons-github"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="GitHub Repository"
+          />
         </template>
       </UDashboardNavbar>
     </template>
 
+    <template #body>
     <ClientOnly>
       <template #fallback>
         <div class="flex items-center justify-center h-full">
@@ -85,9 +78,9 @@ function globalIndex(sectionId: string): number {
           </div>
         </div>
       </template>
-    <div class="flex flex-col lg:grid lg:grid-cols-12 gap-0 h-full overflow-hidden">
+    <div class="flex flex-col lg:grid lg:grid-cols-[17rem_1fr_30rem] gap-0 h-full overflow-hidden">
       <!-- Left sidebar: chapter + section list -->
-      <aside class="lg:col-span-3 overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30">
+      <aside class="overflow-y-auto border-r border-gray-200 dark:border-gray-800 p-4 space-y-4 bg-gray-50 dark:bg-gray-900/30">
         <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active identity</div>
         <div class="space-y-1">
           <button
@@ -146,7 +139,7 @@ function globalIndex(sectionId: string): number {
       </aside>
 
       <!-- Main content -->
-      <div class="lg:col-span-6 overflow-y-auto p-6 border-r border-gray-200 dark:border-gray-800">
+      <div class="overflow-y-auto p-6 border-r border-gray-200 dark:border-gray-800">
         <XidTutorialStep1Welcome v-if="currentSectionMeta?.id === '1.1'" />
         <XidTutorialStep1Concepts v-else-if="currentSectionMeta?.id === '1.2'" />
         <XidTutorialStepCreateXid v-else-if="currentSectionMeta?.id === '1.3'" />
@@ -164,7 +157,7 @@ function globalIndex(sectionId: string): number {
       </div>
 
       <!-- Right panel: Live output -->
-      <div class="lg:col-span-3 flex flex-col overflow-hidden">
+      <div class="flex flex-col overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800/50 bg-gray-50 dark:bg-gray-900/50">
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Active Envelope</h3>
           <p class="text-xs text-gray-500 mt-0.5">{{ identities[activeIdentity].displayName }}</p>
@@ -188,5 +181,6 @@ function globalIndex(sectionId: string): number {
       </div>
     </div>
     </ClientOnly>
+    </template>
   </UDashboardPanel>
 </template>

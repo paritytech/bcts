@@ -32,8 +32,10 @@ import {
   type CborTaggedDecodable,
   cbor,
   toByteString,
+  toTaggedValue,
   expectArray,
   expectBytes,
+  expectText,
   expectUnsigned,
   createTaggedCbor,
   validateTag,
@@ -47,12 +49,14 @@ import {
 import {
   SIGNING_PRIVATE_KEY as TAG_SIGNING_PRIVATE_KEY,
   MLDSA_PRIVATE_KEY as TAG_MLDSA_PRIVATE_KEY,
+  SSH_TEXT_PRIVATE_KEY as TAG_SSH_TEXT_PRIVATE_KEY,
 } from "@bcts/tags";
 import { Ed25519PrivateKey } from "../ed25519/ed25519-private-key.js";
 import { Sr25519PrivateKey } from "../sr25519/sr25519-private-key.js";
 import { ECPrivateKey } from "../ec-key/ec-private-key.js";
 import { MLDSAPrivateKey } from "../mldsa/mldsa-private-key.js";
 import { MLDSALevel } from "../mldsa/mldsa-level.js";
+import { SSHPrivateKey } from "../ssh/ssh-private-key.js";
 import { SignatureScheme, isMldsaScheme, type SigningOptions } from "./signature-scheme.js";
 import { Signature } from "./signature.js";
 import { SigningPublicKey } from "./signing-public-key.js";
@@ -84,6 +88,7 @@ export class SigningPrivateKey
   private readonly _ed25519Key: Ed25519PrivateKey | undefined;
   private readonly _sr25519Key: Sr25519PrivateKey | undefined;
   private readonly _mldsaKey: MLDSAPrivateKey | undefined;
+  private readonly _sshKey: SSHPrivateKey | undefined;
 
   private constructor(
     type: SignatureScheme,
@@ -91,12 +96,14 @@ export class SigningPrivateKey
     ed25519Key?: Ed25519PrivateKey,
     sr25519Key?: Sr25519PrivateKey,
     mldsaKey?: MLDSAPrivateKey,
+    sshKey?: SSHPrivateKey,
   ) {
     this._type = type;
     this._ecKey = ecKey;
     this._ed25519Key = ed25519Key;
     this._sr25519Key = sr25519Key;
     this._mldsaKey = mldsaKey;
+    this._sshKey = sshKey;
   }
 
   // ============================================================================
@@ -166,6 +173,38 @@ export class SigningPrivateKey
         throw new Error(`Unknown MLDSA level: ${key.level()}`);
     }
     return new SigningPrivateKey(scheme, undefined, undefined, undefined, key);
+  }
+
+  /**
+   * Creates a new SSH signing private key from an SSHPrivateKey.
+   *
+   * Mirrors Rust `SigningPrivateKey::new_ssh`
+   * (`bc-components-rust/src/signing/signing_private_key.rs:317`).
+   *
+   * @param key - The SSH private key to wrap
+   * @returns A new SSH signing private key
+   */
+  static fromSsh(key: SSHPrivateKey): SigningPrivateKey {
+    let scheme: SignatureScheme;
+    switch (key.data.kind) {
+      case "ed25519":
+        scheme = SignatureScheme.SshEd25519;
+        break;
+      case "dsa":
+        scheme = SignatureScheme.SshDsa;
+        break;
+      case "ecdsa":
+        switch (key.data.curve) {
+          case "nistp256":
+            scheme = SignatureScheme.SshEcdsaP256;
+            break;
+          case "nistp384":
+            scheme = SignatureScheme.SshEcdsaP384;
+            break;
+        }
+        break;
+    }
+    return new SigningPrivateKey(scheme, undefined, undefined, undefined, undefined, key);
   }
 
   /**
@@ -400,9 +439,32 @@ export class SigningPrivateKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        throw new Error(`SSH signature scheme ${this._type} is not supported`);
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined) {
+          throw new Error("SSH private key is missing");
+        }
+        return SigningPublicKey.fromSsh(this._sshKey.publicKey());
+      }
     }
+  }
+
+  /**
+   * Returns the underlying SSH private key if this is an SSH key.
+   *
+   * Mirrors Rust `SigningPrivateKey::to_ssh`
+   * (`bc-components-rust/src/signing/signing_private_key.rs:387`).
+   *
+   * @returns The SSHPrivateKey if this is an SSH key, null otherwise
+   */
+  toSsh(): SSHPrivateKey | null {
+    return this._sshKey ?? null;
+  }
+
+  /**
+   * Checks if this is an SSH signing key.
+   */
+  isSsh(): boolean {
+    return this._sshKey !== undefined;
   }
 
   /**
@@ -429,8 +491,10 @@ export class SigningPrivateKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        return false;
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined || other._sshKey === undefined) return false;
+        return this._sshKey.toOpenssh() === other._sshKey.toOpenssh();
+      }
     }
   }
 
@@ -472,7 +536,7 @@ export class SigningPrivateKey
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
       case SignatureScheme.SshEcdsaP384:
-        innerDisplay = `SSHPrivateKey(${refShort})`;
+        innerDisplay = this._sshKey?.toString() ?? `SSHPrivateKey(${refShort})`;
         break;
     }
     return `SigningPrivateKey(${refShort}, ${innerDisplay})`;
@@ -557,15 +621,18 @@ export class SigningPrivateKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        // SSH signing requires SigningOptions.Ssh with namespace and hash algorithm
-        if (options?.type === "Ssh") {
-          throw new Error(
-            `SSH signature scheme ${this._type} is not yet implemented. ` +
-              `Namespace: ${options.namespace}, hashAlg: ${options.hashAlg}`,
-          );
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined) {
+          throw new Error("SSH private key is missing");
         }
-        throw new Error(`SSH signature scheme ${this._type} requires SigningOptions.Ssh`);
+        if (options?.type !== "Ssh") {
+          // Mirror Rust error message verbatim
+          // (`signing_private_key.rs:796`).
+          throw new Error("Missing namespace and hash algorithm for SSH signing");
+        }
+        const sshSig = this._sshKey.sign(options.namespace, options.hashAlg, message);
+        return Signature.fromSsh(sshSig);
+      }
     }
   }
 
@@ -763,8 +830,14 @@ export class SigningPrivateKey
       case SignatureScheme.SshEd25519:
       case SignatureScheme.SshDsa:
       case SignatureScheme.SshEcdsaP256:
-      case SignatureScheme.SshEcdsaP384:
-        throw new Error(`SSH signature scheme ${this._type} is not supported for CBOR encoding`);
+      case SignatureScheme.SshEcdsaP384: {
+        if (this._sshKey === undefined) {
+          throw new Error("SSH private key is missing");
+        }
+        // Mirror Rust `SigningPrivateKey::SSH` untagged CBOR encoding:
+        // `CBOR::to_tagged_value(TAG_SSH_TEXT_PRIVATE_KEY, key.to_openssh())`.
+        return toTaggedValue(TAG_SSH_TEXT_PRIVATE_KEY, this._sshKey.toOpenssh());
+      }
     }
   }
 
@@ -826,17 +899,22 @@ export class SigningPrivateKey
       }
     }
 
-    // Tagged format for MLDSA
+    // Tagged format for MLDSA / SSH
     if (isTagged(cborValue)) {
       const tagged = cborValue.asTagged();
       if (tagged?.[0].value === TAG_MLDSA_PRIVATE_KEY.value) {
         const mldsaKey = MLDSAPrivateKey.fromTaggedCbor(cborValue);
         return SigningPrivateKey.newMldsa(mldsaKey);
       }
+      if (tagged?.[0].value === TAG_SSH_TEXT_PRIVATE_KEY.value) {
+        const text = expectText(tagged[1]);
+        const sshKey = SSHPrivateKey.fromOpenssh(text);
+        return SigningPrivateKey.fromSsh(sshKey);
+      }
     }
 
     throw new Error(
-      "SigningPrivateKey must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), or tagged MLDSA",
+      "SigningPrivateKey must be a byte string (Schnorr), array (ECDSA/Ed25519/Sr25519), tagged MLDSA, or tagged SSH",
     );
   }
 
@@ -934,45 +1012,17 @@ export class SigningPrivateKey
   // ============================================================================
 
   /**
-   * Converts the private key to OpenSSH format.
-   * Currently only supports Ed25519 keys.
+   * Returns the canonical OpenSSH armored PEM for an SSH private key.
+   *
+   * Only valid when this `SigningPrivateKey` wraps an `SSHPrivateKey`
+   * (i.e. one of the four `SignatureScheme.SshXxx` variants). Mirrors
+   * Rust's `SigningPrivateKey::SSH(key) => key.to_openssh(LineEnding::LF)`
+   * usage at `signing_private_key.rs:896`.
    */
-  toSsh(comment?: string): string {
-    if (this._type !== SignatureScheme.Ed25519) {
-      throw new Error(`SSH export only supports Ed25519 keys, got ${this._type}`);
+  toSshOpenssh(): string {
+    if (this._sshKey === undefined) {
+      throw new Error(`SigningPrivateKey is not an SSH key (scheme: ${this._type})`);
     }
-    if (this._ed25519Key === undefined) {
-      throw new Error("Ed25519 key not initialized");
-    }
-
-    // OpenSSH private key format for Ed25519
-
-    const publicKey = this._ed25519Key.publicKey();
-    const privateKeyBytes = this._ed25519Key.toData();
-    const publicKeyBytes = publicKey.toData();
-
-    // For OpenSSH Ed25519, the "private key" is actually the 64-byte concatenation of:
-    // - 32-byte seed (the actual private key)
-    // - 32-byte public key
-    const combinedKey = new Uint8Array(64);
-    combinedKey.set(privateKeyBytes, 0);
-    combinedKey.set(publicKeyBytes, 32);
-
-    // Build the OpenSSH private key format (simplified version)
-    const algorithm = "ssh-ed25519";
-    const checkInt = Math.floor(Math.random() * 0xffffffff);
-    const checkIntBytes = new Uint8Array(4);
-    checkIntBytes[0] = (checkInt >> 24) & 0xff;
-    checkIntBytes[1] = (checkInt >> 16) & 0xff;
-    checkIntBytes[2] = (checkInt >> 8) & 0xff;
-    checkIntBytes[3] = checkInt & 0xff;
-
-    // This is a simplified implementation - in practice you'd need bcrypt_pbkdf
-    // and proper key wrapping. For now, return a placeholder format.
-    const actualComment = comment ?? "";
-    return `-----BEGIN OPENSSH PRIVATE KEY-----
-Placeholder for ${algorithm} private key export (${actualComment})
-This requires bcrypt_pbkdf implementation for proper encryption.
------END OPENSSH PRIVATE KEY-----`;
+    return this._sshKey.toOpenssh();
   }
 }

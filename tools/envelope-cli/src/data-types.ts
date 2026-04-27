@@ -195,7 +195,7 @@ function parseKnownValue(s: string): Envelope {
     return Envelope.new(knownValue);
   }
 
-  throw new Error(`Unknown known value: ${s}`);
+  throw new Error("Unknown known value");
 }
 
 /**
@@ -301,19 +301,32 @@ export function parseUrToCbor(s: string, cborTagValue?: number | bigint): Cbor {
 }
 
 /**
- * Helper to convert hex string to Uint8Array.
+ * Convert a hex string to a Uint8Array. Strict-mode parser matching the Rust
+ * `hex` crate: rejects any non `[0-9a-fA-F]` character with
+ * `Invalid character 'X' at position N`, and odd-length input with
+ * `Odd number of digits`. Does NOT strip a `0x` prefix (Rust hex::decode
+ * rejects the `x` as an invalid character).
  */
 function hexToBytes(hex: string): Uint8Array {
-  // Remove any 0x prefix
-  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error("Invalid hex string: odd length");
+  if (hex.length % 2 !== 0) {
+    throw new Error("Odd number of digits");
   }
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0; i < cleanHex.length; i += 2) {
-    bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    const hi = hexCharToNibble(hex.charCodeAt(i), i);
+    const lo = hexCharToNibble(hex.charCodeAt(i + 1), i + 1);
+    bytes[i / 2] = (hi << 4) | lo;
   }
   return bytes;
+}
+
+function hexCharToNibble(code: number, index: number): number {
+  if (code >= 0x30 && code <= 0x39) return code - 0x30; // 0-9
+  if (code >= 0x61 && code <= 0x66) return code - 0x61 + 10; // a-f
+  if (code >= 0x41 && code <= 0x46) return code - 0x41 + 10; // A-F
+  throw new Error(
+    `Invalid character '${String.fromCharCode(code)}' at position ${index}`,
+  );
 }
 
 /**

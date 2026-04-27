@@ -225,7 +225,7 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
     // Try parsing as ISO 8601 date string
     const dt = new Date(value);
     if (isNaN(dt.getTime())) {
-      throw new CborError({ type: "InvalidDate", message: `Invalid date string: ${value}` });
+      throw new CborError({ type: "InvalidDate", message: "Invalid date string" });
     }
     return CborDate.fromDatetime(dt);
   }

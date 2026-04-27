@@ -48,6 +48,16 @@ import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-k
 import { bytesToHex } from "./utils.js";
 import { PrivateKeys } from "./private-keys.js";
 import type { PublicKeys } from "./public-keys.js";
+import { HKDFRng } from "./hkdf-rng.js";
+import { SSHPrivateKey, type SshPrivateKeyData } from "./ssh/ssh-private-key.js";
+import {
+  sshAlgorithmName,
+  sshEcdsaPointLen,
+  sshEcdsaScalarLen,
+  type SshAlgorithm,
+} from "./ssh/ssh-algorithm.js";
+import { ed25519 } from "@noble/curves/ed25519.js";
+import { p256, p384 } from "@noble/curves/nist.js";
 
 /** Default size of PrivateKeyBase key material in bytes (used for random generation) */
 const PRIVATE_KEY_BASE_DEFAULT_SIZE = 32;
@@ -227,6 +237,106 @@ export class PrivateKeyBase
   }
 
   /**
+   * Derive an SSH `SigningPrivateKey` from this `PrivateKeyBase`.
+   *
+   * Mirrors Rust `PrivateKeyBase::ssh_signing_private_key`
+   * (`bc-components-rust/src/private_key_base.rs:179-207`):
+   * builds an `HKDFRng` seeded by `this._data` with salt
+   * `sshAlgorithmName(algorithm)`, then dispatches to the matching
+   * `*Keypair::random` constructor.
+   *
+   * Supported algorithms (matching the four `SignatureScheme.SshXxx`
+   * variants Rust ships in `signature_scheme.rs`):
+   *   - Ed25519 (`ssh-ed25519`)
+   *   - DSA (`ssh-dss`) — **throws**: byte-deterministic DSA-1024 prime
+   *     generation requires porting the upstream `dsa` crate's
+   *     FIPS 186-4 prime search, which is not yet implemented in TS.
+   *   - ECDSA P-256 (`ecdsa-sha2-nistp256`)
+   *   - ECDSA P-384 (`ecdsa-sha2-nistp384`)
+   *
+   * @param algorithm - The SSH key algorithm to derive
+   * @param comment   - Optional comment carried through the OpenSSH PEM
+   */
+  sshSigningPrivateKey(algorithm: SshAlgorithm, comment = ""): SigningPrivateKey {
+    const rng = HKDFRng.new(this._data, sshAlgorithmName(algorithm));
+    let data: SshPrivateKeyData;
+    switch (algorithm.kind) {
+      case "ed25519": {
+        // Mirror `ssh-key` 0.6.7 `Ed25519PrivateKey::random`:
+        // `rng.fill_bytes(&mut [0u8; 32])`. The 32 bytes are the seed.
+        const seed = rng.randomData(32);
+        const pubBytes = ed25519.getPublicKey(seed);
+        data = { kind: "ed25519", seed, pubBytes: new Uint8Array(pubBytes) };
+        break;
+      }
+      case "ecdsa": {
+        const scalarLen = sshEcdsaScalarLen(algorithm.curve);
+        const pointLen = sshEcdsaPointLen(algorithm.curve);
+        const curve = algorithm.curve === "nistp256" ? p256 : p384;
+        // Mirror `p{256,384}::SecretKey::random` rejection sampling:
+        // read `scalarLen` bytes; if the big-endian scalar is zero or
+        // ≥ n, retry. We delegate the bounds check to noble's
+        // `utils.isValidSecretKey` which performs exactly the same
+        // `0 < scalar < n` predicate as Rust.
+        let scalar: Uint8Array;
+        for (;;) {
+          const bytes = rng.randomData(scalarLen);
+          if (curve.utils.isValidSecretKey(bytes)) {
+            scalar = bytes;
+            break;
+          }
+        }
+        const point = curve.getPublicKey(scalar, false);
+        if (point.length !== pointLen || point[0] !== 0x04) {
+          throw new Error(
+            `sshSigningPrivateKey ecdsa-${algorithm.curve}: noble returned non-uncompressed point`,
+          );
+        }
+        data = {
+          kind: "ecdsa",
+          curve: algorithm.curve,
+          point: new Uint8Array(point),
+          scalar,
+        };
+        break;
+      }
+      case "dsa":
+        throw new Error(
+          "SSH DSA key generation is not yet implemented in TS. Rust's " +
+            "`bc-components-rust` ships byte-deterministic DSA-1024 keygen " +
+            "via the `dsa` crate's FIPS 186-4 prime search, which has not " +
+            "been ported. See SSH_V2_PLAN.md A.1 for status. Sign/verify " +
+            "and PEM round-trip work for DSA keys parsed from existing " +
+            "Rust-generated PEM input.",
+        );
+    }
+    const checkint = sshCheckintFromPrivateBytes(data);
+    const sshKey = SSHPrivateKey.fromParts(data, comment, checkint);
+    return SigningPrivateKey.fromSsh(sshKey);
+  }
+
+  /**
+   * Derive a `PrivateKeys` container with an SSH signing key and an X25519
+   * agreement key. Mirrors Rust `PrivateKeyBase::ssh_private_keys`
+   * (`bc-components-rust/src/private_key_base.rs:273-283`).
+   */
+  sshPrivateKeys(algorithm: SshAlgorithm, comment = ""): PrivateKeys {
+    return PrivateKeys.withKeys(
+      this.sshSigningPrivateKey(algorithm, comment),
+      this.encapsulationPrivateKey(),
+    );
+  }
+
+  /**
+   * Derive a `PublicKeys` container from `sshPrivateKeys`. Mirrors Rust
+   * `PrivateKeyBase::ssh_public_keys`
+   * (`bc-components-rust/src/private_key_base.rs:289-300`).
+   */
+  sshPublicKeys(algorithm: SshAlgorithm, comment = ""): PublicKeys {
+    return this.sshPrivateKeys(algorithm, comment).publicKeys();
+  }
+
+  /**
    * Internal key derivation using HKDF-SHA256.
    * Matches Rust's hkdf_hmac_sha256(key_material, salt, key_len) with empty info.
    */
@@ -375,4 +485,40 @@ export class PrivateKeyBase
     const ur = UR.fromURString(urString);
     return PrivateKeyBase.fromUR(ur);
   }
+}
+
+/**
+ * Mirror of `ssh-key` 0.6.7 `KeypairData::checkint`
+ * (`ssh-key/src/private/keypair.rs:215-241`): XOR successive 4-byte
+ * big-endian chunks of the algorithm-specific private bytes.
+ *
+ *   - Ed25519 → seed (32 bytes)
+ *   - ECDSA   → canonical scalar (32 / 48 bytes)
+ *   - DSA     → secret exponent x bytes
+ *
+ * The `chunks_exact(4)` rule discards any trailing bytes whose count
+ * is not a multiple of 4 — match it here.
+ */
+function sshCheckintFromPrivateBytes(data: SshPrivateKeyData): number {
+  let bytes: Uint8Array;
+  switch (data.kind) {
+    case "ed25519":
+      bytes = data.seed;
+      break;
+    case "ecdsa":
+      bytes = data.scalar;
+      break;
+    case "dsa":
+      bytes = data.x;
+      break;
+  }
+  let n = 0;
+  const fullChunks = Math.floor(bytes.length / 4);
+  for (let i = 0; i < fullChunks; i++) {
+    const off = i * 4;
+    const chunk =
+      ((bytes[off] << 24) | (bytes[off + 1] << 16) | (bytes[off + 2] << 8) | bytes[off + 3]) >>> 0;
+    n = (n ^ chunk) >>> 0;
+  }
+  return n;
 }

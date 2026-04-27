@@ -1,8 +1,21 @@
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+const rootPkg = JSON.parse(
+  readFileSync(
+    fileURLToPath(new URL("../../package.json", import.meta.url)),
+    "utf-8",
+  ),
+) as { version: string };
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-09-11",
+  runtimeConfig: {
+    public: {
+      appVersion: rootPkg.version,
+    },
+  },
   modules: ["@nuxt/eslint", "@nuxt/ui", "@nuxthub/core", "@nuxtjs/seo", "nuxt-gtag"],
   css: ["~/assets/css/main.css"],
   devtools: { enabled: false },

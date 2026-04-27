@@ -19,21 +19,39 @@ export function dataToHex(bytes: Uint8Array): string {
 
 /**
  * Convert hex string to bytes.
- * Matches Rust hex_to_data function.
+ *
+ * Mirrors the error wording produced by Rust's `hex` crate
+ * (`FromHexError::OddLength` and `FromHexError::InvalidHexCharacter`),
+ * which seedtool-cli-rust surfaces unchanged through anyhow:
+ *
+ *   "Odd number of digits"
+ *   "Invalid character '{c}' at position {n}"
+ *
+ * The outer CLI layer adds the `Error: ` prefix to match Rust's anyhow
+ * output.
  */
 export function hexToData(hex: string): Uint8Array {
   if (hex.length % 2 !== 0) {
-    throw new Error("Hex string must have even length");
+    throw new Error("Odd number of digits");
   }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
-    const byte = parseInt(hex.substring(i, i + 2), 16);
-    if (isNaN(byte)) {
-      throw new Error(`Invalid hex character at position ${i}`);
-    }
-    bytes[i / 2] = byte;
+    const hi = hexCharToNibble(hex, i);
+    const lo = hexCharToNibble(hex, i + 1);
+    bytes[i / 2] = (hi << 4) | lo;
   }
   return bytes;
+}
+
+function hexCharToNibble(hex: string, index: number): number {
+  const c = hex.charCodeAt(index);
+  // 0..9
+  if (c >= 0x30 && c <= 0x39) return c - 0x30;
+  // a..f
+  if (c >= 0x61 && c <= 0x66) return c - 0x61 + 10;
+  // A..F
+  if (c >= 0x41 && c <= 0x46) return c - 0x41 + 10;
+  throw new Error(`Invalid character '${hex[index]}' at position ${index}`);
 }
 
 /**
@@ -136,7 +154,9 @@ export function digitsToData(inStr: string, low: number, high: number): Uint8Arr
   for (const c of inStr) {
     const n = c.charCodeAt(0) - "0".charCodeAt(0);
     if (n < low || n > high) {
-      throw new Error(`Invalid digit: ${c}. Expected range [${low}-${high}].`);
+      // Mirrors Rust util.rs:64 (`bail!("Invalid digit.")`). The terser wording
+      // is intentional — if Rust's diagnostic is broadened upstream, mirror here.
+      throw new Error("Invalid digit.");
     }
     result.push(n);
   }
