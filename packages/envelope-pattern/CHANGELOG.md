@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- Sweeping alignment with upstream `envelope-pattern` (Rust): all leaf / meta / structure parsers (array, cbor, date, known-value, null, number, tag, and / or / not / capture / group / search / traverse / primary, plus assertion / compressed / digest / elided / encrypted / node / object / obscured / predicate / subject / wrapped) and the corresponding pattern types and VM updated.
+- DCBOR↔envelope-pattern conversion bridge (`dcbor-integration.ts`) updated; format helpers refined.
+
+### Added
+
+- `PARITY_AUDIT.md` documenting the upstream parity sweep, plus extensive new test coverage (cbor captures, paths-formatted, credential, dcbor-paths, extended-paths, leaf-parsing, …).
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

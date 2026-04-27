@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Added
+
+- Initial SSH key support: `generate prv-keys --ssh` / `generate pub-keys --ssh` produce ur:signing-private-key / ur:signing-public-key UR strings backed by SSH key material; `export` round-trips them to OpenSSH format; `sign` accepts SSH-backed signing keys.
+
+### Changed
+
+- `export` command now null-checks `toSsh()` and renders via `toOpenssh()` so SSH artefacts emit canonical OpenSSH text.
+- Lint pass: removed unnecessary type assertions and the unsafe `signersWithOptions[0]!` non-null assertion in `sign.ts`; added explicit return types to internal arg-shaping helpers in `cli.ts`.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed

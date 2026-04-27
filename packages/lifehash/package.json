@@ -36,6 +36,7 @@
     "build": "tsdown",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:parity": "vitest run tests/parity.test.ts",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "lint:fix": "eslint 'src/**/*.ts' 'tests/**/*.ts' --fix",
     "typecheck": "tsc --noEmit",

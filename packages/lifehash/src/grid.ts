@@ -4,78 +4,60 @@
  *
  */
 
-import { type Color } from "./color";
-import { Point } from "./point";
-import { type Size } from "./size";
-
 /**
  * A class that holds a 2-dimensional grid of values,
  * and allows the reading, writing, and iteration through those values.
  */
-export abstract class Grid<T> {
-  protected readonly capacity: number;
-  protected readonly maxX: number;
-  protected readonly maxY: number;
-  protected readonly storage: T[];
+export class Grid<T> {
+  public readonly storage: T[];
 
   constructor(
-    public readonly size: Size,
+    public readonly width: number,
+    public readonly height: number,
     defaultValue: T,
   ) {
-    this.capacity = size.width * size.height;
-    this.maxX = size.width - 1;
-    this.maxY = size.height - 1;
-    this.storage = new Array<T>(this.capacity).fill(defaultValue);
+    this.storage = new Array<T>(width * height).fill(defaultValue);
   }
 
-  protected abstract colorForValue(value: T): Color;
-
-  private offset(p: Point): number {
-    return p.y * this.size.width + p.x;
+  private offset(x: number, y: number): number {
+    return y * this.width + x;
   }
 
   private static circularIndex(index: number, modulus: number): number {
-    return (index + modulus) % modulus;
+    return ((index % modulus) + modulus) % modulus;
   }
 
   setAll(value: T): void {
     this.storage.fill(value);
   }
 
-  setValue(value: T, p: Point): void {
-    this.storage[this.offset(p)] = value;
+  setValue(value: T, x: number, y: number): void {
+    this.storage[this.offset(x, y)] = value;
   }
 
-  getValue(p: Point): T {
-    return this.storage[this.offset(p)];
+  getValue(x: number, y: number): T {
+    return this.storage[this.offset(x, y)];
   }
 
-  forAll(f: (p: Point) => void): void {
-    for (let y = 0; y <= this.maxY; y++) {
-      for (let x = 0; x <= this.maxX; x++) {
-        f(new Point(x, y));
+  forAll(f: (x: number, y: number) => void): void {
+    for (let y = 0; y < this.height; y++) {
+      for (let x = 0; x < this.width; x++) {
+        f(x, y);
       }
     }
   }
 
-  forNeighborhood(point: Point, f: (offset: Point, p: Point) => void): void {
+  forNeighborhood(
+    px: number,
+    py: number,
+    f: (ox: number, oy: number, nx: number, ny: number) => void,
+  ): void {
     for (let oy = -1; oy <= 1; oy++) {
       for (let ox = -1; ox <= 1; ox++) {
-        const o = new Point(ox, oy);
-        const px = Grid.circularIndex(ox + point.x, this.size.width);
-        const py = Grid.circularIndex(oy + point.y, this.size.height);
-        const p = new Point(px, py);
-        f(o, p);
+        const nx = Grid.circularIndex(ox + px, this.width);
+        const ny = Grid.circularIndex(oy + py, this.height);
+        f(ox, oy, nx, ny);
       }
     }
-  }
-
-  colors(): number[] {
-    const result: number[] = [];
-    for (const value of this.storage) {
-      const c = this.colorForValue(value);
-      result.push(c.r, c.g, c.b);
-    }
-    return result;
   }
 }

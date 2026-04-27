@@ -6,8 +6,6 @@
 
 import { Grid } from "./grid";
 import { Color } from "./color";
-import { Point } from "./point";
-import { Size } from "./size";
 import type { FracGrid } from "./frac-grid";
 import type { ColorFunc } from "./color-func";
 import { Pattern } from "./patterns";
@@ -38,25 +36,43 @@ const fiducialTransforms: Transform[] = [{ transpose: false, reflectX: false, re
  * A class that takes a grayscale grid and applies color and
  * symmetry to it to yield the finished LifeHash.
  */
-export class ColorGrid extends Grid<Color> {
+export class ColorGrid {
+  public readonly grid: Grid<Color>;
+
   constructor(fracGrid: FracGrid, gradient: ColorFunc, pattern: Pattern) {
-    super(ColorGrid.targetSize(fracGrid.size, pattern), new Color());
-
-    const transforms = ColorGrid.getTransforms(pattern);
-
-    fracGrid.forAll((p) => {
-      const color = gradient(fracGrid.getValue(p));
-      this.draw(p, color, transforms);
-    });
-  }
-
-  protected colorForValue(color: Color): Color {
-    return color;
-  }
-
-  private static targetSize(inSize: Size, pattern: Pattern): Size {
     const multiplier = pattern === Pattern.fiducial ? 1 : 2;
-    return new Size(inSize.width * multiplier, inSize.height * multiplier);
+    const targetWidth = fracGrid.grid.width * multiplier;
+    const targetHeight = fracGrid.grid.height * multiplier;
+
+    this.grid = new Grid<Color>(targetWidth, targetHeight, new Color());
+
+    const maxX = targetWidth - 1;
+    const maxY = targetHeight - 1;
+
+    const transforms: Transform[] = ColorGrid.getTransforms(pattern);
+
+    const fracWidth = fracGrid.grid.width;
+    const fracHeight = fracGrid.grid.height;
+    for (let y = 0; y < fracHeight; y++) {
+      for (let x = 0; x < fracWidth; x++) {
+        const value = fracGrid.grid.getValue(x, y);
+        const color = gradient(value);
+        for (const t of transforms) {
+          let px = x;
+          let py = y;
+          if (t.transpose) {
+            [px, py] = [py, px];
+          }
+          if (t.reflectX) {
+            px = maxX - px;
+          }
+          if (t.reflectY) {
+            py = maxY - py;
+          }
+          this.grid.setValue(color, px, py);
+        }
+      }
+    }
   }
 
   private static getTransforms(pattern: Pattern): Transform[] {
@@ -70,27 +86,11 @@ export class ColorGrid extends Grid<Color> {
     }
   }
 
-  private transformPoint(point: Point, transform: Transform): Point {
-    let x = point.x;
-    let y = point.y;
-
-    if (transform.transpose) {
-      [x, y] = [y, x];
+  colors(): number[] {
+    const result: number[] = [];
+    for (const c of this.grid.storage) {
+      result.push(c.r, c.g, c.b);
     }
-    if (transform.reflectX) {
-      x = this.maxX - x;
-    }
-    if (transform.reflectY) {
-      y = this.maxY - y;
-    }
-
-    return new Point(x, y);
-  }
-
-  private draw(p: Point, color: Color, transforms: Transform[]): void {
-    for (const t of transforms) {
-      const p2 = this.transformPoint(p, t);
-      this.setValue(color, p2);
-    }
+    return result;
   }
 }

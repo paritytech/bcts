@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Fixed
+
+- `ProvenanceMark.toJSON()` field order now matches `bc-provenance-mark-rust` exactly (`seq`, `date`, `res`, `chain_id`, `key`, `hash`, optional `info_bytes`).
+- Bytewords / Bytemoji prefix glyph corrected from `\u{1F151}` to `\u{1F15F}` (the canonical "negative-circled latin capital letter P") across all identifier helpers.
+- `ProvenanceMarkInfo.toJSON()` field order now emits `comment` before `mark`, matching the Rust crate.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Added

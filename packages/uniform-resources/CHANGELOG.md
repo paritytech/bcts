@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Fixed
+
+- `MultipartEncoder` now always emits the `seqNum-seqLen/` prefix, including when `seqLen === 1`. The previous short-circuit returned a plain UR for single-part messages and diverged from `bc-ur-rust`.
+
+### Changed
+
+- Misc cleanups in `error.ts` and `bytewords-namespace.ts` to align surface with Rust upstream.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Added

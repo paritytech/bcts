@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0-beta.0] - 2026-04-27
+
+### Changed
+
+- Sweeping alignment with upstream `dcbor` (Rust): bignum, decode, diag, dump, float, set, simple, sortable, tag/tags, varint, walk, conveniences, prelude, and tagged decodable / encodable helpers all updated.
+- `date.ts` and `index.ts` re-exports refined to mirror Rust's public surface; redundant casts removed.
+
 ## [1.0.0-alpha.23] - 2026-04-24
 
 ### Changed
