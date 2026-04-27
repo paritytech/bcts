@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Envelope } from '@bcts/envelope'
 import { fetchGithubSigningKeys, sshKeysMatch, type GithubKey } from '@/utils/xid-tutorial/github'
-import { extractEdgeTarget, extractString, verifyEdgeSignature } from '@/utils/xid-tutorial/edge'
+import {
+  extractEdgeTarget, extractString, verifyEdgeSignature, extractEdgeSshPublicKeys,
+} from '@/utils/xid-tutorial/edge'
 import { verifyAttestationAgainstXid } from '@/utils/xid-tutorial/attestation'
 
 const { activeDoc, edgeList, completeAndAdvance, verifySignature } = useXidTutorial()
@@ -40,7 +42,13 @@ function handleExtract() {
 }
 
 async function handleFetchGithub() {
-  githubResult.value = await fetchGithubSigningKeys(githubUsername.value, { live: githubLive.value })
+  // Canned mode echoes the XID's claimed key back so it represents
+  // "user uploaded their generated key to GitHub" — otherwise the canned
+  // hardcoded key never matches the freshly-generated SSH key from §3.1.
+  githubResult.value = await fetchGithubSigningKeys(githubUsername.value, {
+    live: githubLive.value,
+    cannedKeyOverride: extracted.value?.claimedText,
+  })
   if (extracted.value?.claimedText && githubResult.value.keys[0]) {
     keysMatch.value = sshKeysMatch(extracted.value.claimedText, githubResult.value.keys[0].key)
   }
@@ -50,7 +58,16 @@ function handleVerifyEdgeSig() {
   const e = selectedEdge.value
   const doc = activeDoc.value
   if (!e || !doc) return
-  // Find any SSH key registered on the XID
+  // The SSH signing key in §3.1 is standalone (not registered on the XID),
+  // so verify against the public key embedded in the edge target itself —
+  // the same key just confirmed to match GitHub. This is what closes the
+  // cross-verification loop: same key text → same private key signed the edge.
+  const claimedPub = extractEdgeSshPublicKeys(e)
+  if (claimedPub && verifyEdgeSignature(e, claimedPub)) {
+    edgeSignatureValid.value = true
+    return
+  }
+  // Fallback: any key registered on the XID (covers non-SSH edges).
   for (const key of doc.keys()) {
     try {
       if (verifyEdgeSignature(e, key.publicKeys())) {
@@ -59,7 +76,6 @@ function handleVerifyEdgeSig() {
       }
     } catch { continue }
   }
-  // Fallback: try the original verifier helper over doc keys
   const r = verifyAttestationAgainstXid(e, doc)
   edgeSignatureValid.value = r.verified
 }

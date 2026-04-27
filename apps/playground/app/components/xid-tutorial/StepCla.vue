@@ -5,8 +5,8 @@ import { sha256 } from '@bcts/crypto'
 import { buildClaEnvelope, signCla, acceptCla } from '@/utils/xid-tutorial/cla'
 
 const {
-  identities, activeDoc, addSideKey, advanceProvenance,
-  createIdentity, completeAndAdvance,
+  identities, activeDoc, activeIdentity, setActive, addSideKey, advanceProvenance,
+  createIdentity, completeAndAdvance, setArtifact,
 } = useXidTutorial()
 
 const benPassword = ref("ben's-own-password")
@@ -87,6 +87,9 @@ function handleAccept() {
   const accepted = acceptCla(signedCla.value, ben.xid().urString(), benKey, new Date())
   acceptedCla.value = accepted
   acceptedClaTree.value = accepted.treeFormat()
+  // Stash the accepted CLA for §4.2 (Privacy step) — saves the user from
+  // copy-pasting the UR back to the previous screen.
+  setArtifact('acceptedCla', accepted.urString())
 }
 
 function handleVerifyContribSig() {
@@ -106,6 +109,12 @@ function handleVerifyAcceptSig() {
 }
 
 const canContinue = computed(() => acceptedCla.value !== null)
+
+onMounted(() => {
+  // §4.1 builds Amira's CLA — make sure she's the active identity before
+  // we mutate her slot (contract key, advanceProvenance).
+  if (activeIdentity.value !== 'amira') setActive('amira')
+})
 </script>
 
 <template>

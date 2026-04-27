@@ -5,7 +5,7 @@ import { buildSignedAttestation, verifyAttestationAgainstXid } from '@/utils/xid
 import { encryptForRecipient, tryDecrypt } from '@/utils/xid-tutorial/encryption'
 
 const {
-  activeSlot, activeDoc, identities, addSideKey,
+  activeSlot, activeDoc, activeIdentity, setActive, identities, addSideKey,
   createIdentity, completeAndAdvance,
 } = useXidTutorial()
 
@@ -102,6 +102,11 @@ function handleWrongKey() {
 }
 
 const canContinue = computed(() => decrypted.value !== null)
+
+onMounted(() => {
+  // §2.3 is Amira's flow per the upstream tutorial.
+  if (activeIdentity.value !== 'amira') setActive('amira')
+})
 </script>
 
 <template>
