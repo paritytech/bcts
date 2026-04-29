@@ -10,8 +10,11 @@ import {
 
 const {
   activeSlot, activeDoc, activeIdentity, setActive, addSideKey,
-  advanceProvenance, completeAndAdvance, provenanceMark,
+  advanceProvenance, completeAndAdvance, provenanceMark, verifySignature,
 } = useXidTutorial()
+
+const hasPublished = ref(false)
+const inceptionSignatureValid = ref<boolean | null>(null)
 
 const claim = ref('Contributed mass spec visualization code to galaxyproject/galaxy (PR #12847, merged 2024)')
 const verifiableAt = ref('https://github.com/galaxyproject/galaxy/pull/12847')
@@ -129,7 +132,15 @@ function handleRetract(entry: StoredAttestation) {
   }]
 }
 
-function handleAdvance() { advanceProvenance() }
+function handleAdvance() {
+  if (!hasPublished.value) return
+  advanceProvenance()
+  hasPublished.value = false
+}
+
+function handleVerifyInception() {
+  inceptionSignatureValid.value = verifySignature()
+}
 
 onMounted(() => {
   // §2.1 is Amira's flow per the upstream tutorial — make sure she's the
@@ -266,13 +277,38 @@ const hasAttestations = computed(() => attestations.value.length > 0)
         </div>
       </div>
 
-      <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-2">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Advance provenance</h3>
+      <div class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Verify &amp; advance</h3>
         <p class="text-xs text-gray-500">
-          Publishing a new edition of the XID (now with the attestation key) advances the
-          provenance mark.
+          Re-verify the inception signature now that you've added an attestation key, then
+          publish this edition and advance the provenance mark for the next one.
         </p>
-        <UButton label="Advance provenance" icon="i-heroicons-arrow-path" variant="outline" color="neutral" @click="handleAdvance" />
+        <div class="flex items-center gap-2 flex-wrap">
+          <UButton
+            label="Verify inception signature"
+            icon="i-heroicons-check-badge"
+            color="neutral" variant="outline"
+            @click="handleVerifyInception"
+          />
+          <UAlert
+            v-if="inceptionSignatureValid === true"
+            color="success" icon="i-heroicons-check-circle"
+            title="Signature valid" class="flex-1"
+          />
+          <UAlert
+            v-else-if="inceptionSignatureValid === false"
+            color="error" icon="i-heroicons-x-circle"
+            title="Signature failed" class="flex-1"
+          />
+        </div>
+        <UCheckbox v-model="hasPublished" label="I have published this edition — advance the provenance mark for the next one" />
+        <UButton
+          label="Advance provenance"
+          icon="i-heroicons-arrow-path"
+          color="neutral" variant="outline"
+          :disabled="!hasPublished"
+          @click="handleAdvance"
+        />
         <p v-if="provenanceMark" class="text-xs text-gray-500">
           Edition seq <span class="font-mono text-gray-700 dark:text-gray-300">#{{ provenanceMark.seq() }}</span> ready to publish.
         </p>
