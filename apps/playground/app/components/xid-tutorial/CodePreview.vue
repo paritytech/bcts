@@ -46,21 +46,6 @@ const envelopeLabel = computed(() => {
       </div>
 
       <template v-else>
-        <!-- Tree Format Output -->
-        <div v-if="tree">
-          <div class="flex items-center justify-between mb-2">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tree Format</h4>
-            <UButton
-              :icon="copiedLabel === 'tree' ? 'i-heroicons-check' : 'i-heroicons-clipboard-document'"
-              :color="copiedLabel === 'tree' ? 'success' : 'neutral'"
-              size="xs"
-              variant="ghost"
-              @click="copyToClipboard(tree, 'tree')"
-            />
-          </div>
-          <pre class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre max-h-64">{{ tree }}</pre>
-        </div>
-
         <!-- Envelope Output (Notation / CBOR Hex / CBOR Diagnostic) -->
         <div v-if="notation || hex || diagnostic">
           <div class="flex items-center justify-between mb-2">
@@ -91,6 +76,21 @@ const envelopeLabel = computed(() => {
             {{ hex }}
           </div>
           <pre v-else-if="envelopeOutputMode === 'diag' && diagnostic" class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre max-h-48">{{ diagnostic }}</pre>
+        </div>
+
+        <!-- Tree Format Output -->
+        <div v-if="tree">
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tree Format</h4>
+            <UButton
+              :icon="copiedLabel === 'tree' ? 'i-heroicons-check' : 'i-heroicons-clipboard-document'"
+              :color="copiedLabel === 'tree' ? 'success' : 'neutral'"
+              size="xs"
+              variant="ghost"
+              @click="copyToClipboard(tree, 'tree')"
+            />
+          </div>
+          <pre class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 text-xs font-mono text-gray-800 dark:text-gray-200 overflow-x-auto whitespace-pre max-h-64">{{ tree }}</pre>
         </div>
 
         <!-- UR String -->
