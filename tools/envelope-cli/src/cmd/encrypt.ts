@@ -11,18 +11,6 @@
 import type { ExecAsync } from "../exec.js";
 import { readEnvelope, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
 import { SymmetricKey, PublicKeys, KeyDerivationMethod } from "@bcts/components";
-import { PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
-
-/**
- * Convert a PublicKeys to envelope's PublicKeyBase.
- * Extracts the X25519 encapsulation key and creates envelope-compatible type.
- */
-function publicKeysToEnvelopeKey(pk: PublicKeys): EnvelopePublicKeyBase {
-  const encKey = pk.encapsulationPublicKey();
-  const publicData = encKey.x25519PublicKey().data();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
-  return new (EnvelopePublicKeyBase as any)(publicData);
-}
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
 
@@ -103,11 +91,13 @@ export class EncryptCommand implements ExecAsync {
     // Encrypt the subject using the content key
     let encryptedEnvelope = envelope.encryptSubject(contentKey);
 
-    // Convert recipients to PublicKeys and add them
+    // Convert recipients to PublicKeys and add them. `PublicKeys` implements
+    // the `Encrypter` interface (mirrors Rust `impl Encrypter for PublicKeys`),
+    // so it is passed directly — preserving the encapsulation scheme rather
+    // than flattening to raw X25519 bytes.
     for (const recipientUr of this.args.recipients) {
       const recipient = PublicKeys.fromURString(recipientUr);
-      const envelopeKey = publicKeysToEnvelopeKey(recipient);
-      encryptedEnvelope = encryptedEnvelope.addRecipient(envelopeKey, contentKey);
+      encryptedEnvelope = encryptedEnvelope.addRecipient(recipient, contentKey);
     }
 
     // If there is a password, add it

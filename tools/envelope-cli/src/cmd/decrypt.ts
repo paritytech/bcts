@@ -10,35 +10,9 @@
 
 import type { ExecAsync } from "../exec.js";
 import { readEnvelope, readPassword, ASKPASS_HELP, ASKPASS_LONG_HELP } from "../utils.js";
-import { PrivateKeyBase, PrivateKeys, SymmetricKey } from "@bcts/components";
-import { PrivateKeyBase as EnvelopePrivateKeyBase } from "@bcts/envelope";
+import { type Decrypter, PrivateKeyBase, PrivateKeys, SymmetricKey } from "@bcts/components";
 
 export { ASKPASS_HELP, ASKPASS_LONG_HELP };
-
-/**
- * Convert a PrivateKeys to envelope's PrivateKeyBase.
- * Extracts the X25519 encapsulation key and creates envelope-compatible type.
- */
-function privateKeysToEnvelopeKey(pk: PrivateKeys): EnvelopePrivateKeyBase {
-  const encKey = pk.encapsulationPrivateKey();
-  const x25519Key = encKey.x25519PrivateKey();
-  const privateData = x25519Key.data();
-  const publicData = x25519Key.publicKey().data();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  return (EnvelopePrivateKeyBase as any).fromBytes(privateData, publicData);
-}
-
-/**
- * Convert a components PrivateKeyBase to envelope's PrivateKeyBase.
- * Derives the X25519 key and creates envelope-compatible type.
- */
-function privateKeyBaseToEnvelopeKey(pkb: PrivateKeyBase): EnvelopePrivateKeyBase {
-  const x25519Key = pkb.x25519PrivateKey();
-  const privateData = x25519Key.data();
-  const publicData = x25519Key.publicKey().data();
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  return (EnvelopePrivateKeyBase as any).fromBytes(privateData, publicData);
-}
 
 /**
  * Command arguments for the decrypt command.
@@ -94,25 +68,24 @@ export class DecryptCommand implements ExecAsync {
     }
 
     if (this.args.recipient) {
-      // If a recipient's private key is provided, decrypt the subject using it
-      // Try to parse as PrivateKeys first, then PrivateKeyBase
+      // If a recipient's private key is provided, decrypt the subject using it.
+      // Mirror Rust: try to parse as `PrivateKeys` first, then `PrivateKeyBase`.
+      // Both implement the `Decrypter` interface and are passed directly —
+      // the parse only discriminates the type; decryption errors propagate.
+      let recipient: Decrypter;
       try {
-        const recipient = PrivateKeys.fromURString(this.args.recipient);
-        const envelopeKey = privateKeysToEnvelopeKey(recipient);
-        const decrypted = envelope.decryptSubjectToRecipient(envelopeKey);
-        return decrypted.urString();
+        recipient = PrivateKeys.fromURString(this.args.recipient);
       } catch {
         try {
-          const recipient = PrivateKeyBase.fromURString(this.args.recipient);
-          const envelopeKey = privateKeyBaseToEnvelopeKey(recipient);
-          const decrypted = envelope.decryptSubjectToRecipient(envelopeKey);
-          return decrypted.urString();
+          recipient = PrivateKeyBase.fromURString(this.args.recipient);
         } catch {
           throw new Error(
             "invalid recipient private key: must be ur:crypto-prvkeys or ur:crypto-prvkey-base",
           );
         }
       }
+      const decrypted = envelope.decryptSubjectToRecipient(recipient);
+      return decrypted.urString();
     }
 
     if (this.args.sshId !== undefined) {

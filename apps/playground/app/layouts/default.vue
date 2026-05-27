@@ -268,16 +268,16 @@ const bottomNavigationItems: NavigationMenuItem[] = [
         footer: 'lg:border-t lg:border-gray-200 dark:lg:border-gray-800/50'
       }"
     >
-      <template #header="{ collapsed }">
-        <div :class="['flex items-center', collapsed ? 'justify-center w-full' : 'gap-2']">
+      <template #header="{ collapsed: isCollapsed }">
+        <div :class="['flex items-center', isCollapsed ? 'justify-center w-full' : 'gap-2']">
           <BctsLogo width="24" height="24" />
-          <h2 v-if="!collapsed" class="font-semibold text-gray-900 dark:text-white">BCTS IDE</h2>
+          <h2 v-if="!isCollapsed" class="font-semibold text-gray-900 dark:text-white">BCTS IDE</h2>
         </div>
       </template>
 
-      <template #default="{ collapsed }">
+      <template #default="{ collapsed: isCollapsed }">
           <UNavigationMenu
-            :collapsed="collapsed"
+            :collapsed="isCollapsed"
             :items="navigationItems"
             :external-icon="false"
             orientation="vertical"
@@ -294,11 +294,11 @@ const bottomNavigationItems: NavigationMenuItem[] = [
               <button
                 :class="[
                   'group w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors',
-                  collapsed && 'justify-center'
+                  isCollapsed && 'justify-center'
                 ]"
               >
                 <UIcon name="i-heroicons-book-open" class="size-5 shrink-0 text-gray-500" />
-                <span v-if="!collapsed" class="truncate">API References</span>
+                <span v-if="!isCollapsed" class="truncate">API References</span>
               </button>
               <template #content>
                 <UNavigationMenu
@@ -311,7 +311,7 @@ const bottomNavigationItems: NavigationMenuItem[] = [
             </UPopover>
 
             <UNavigationMenu
-              :collapsed="collapsed"
+              :collapsed="isCollapsed"
               :items="resourceNavigationItems"
               :external-icon="false"
               orientation="vertical"
@@ -321,7 +321,7 @@ const bottomNavigationItems: NavigationMenuItem[] = [
           </div>
 
           <UNavigationMenu
-            :collapsed="collapsed"
+            :collapsed="isCollapsed"
             :items="bottomNavigationItems"
             :external-icon="false"
             orientation="vertical"
@@ -331,8 +331,8 @@ const bottomNavigationItems: NavigationMenuItem[] = [
           />
       </template>
 
-      <template #footer="{ collapsed }">
-        <div v-if="!collapsed" class="w-full text-center text-xs text-gray-500 dark:text-gray-400">
+      <template #footer="{ collapsed: isCollapsed }">
+        <div v-if="!isCollapsed" class="w-full text-center text-xs text-gray-500 dark:text-gray-400">
           v{{ appVersion }}
         </div>
       </template>

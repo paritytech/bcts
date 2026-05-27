@@ -10,18 +10,18 @@
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.59.0",
-    "@typescript-eslint/parser": "^8.59.0"
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/parser": "^8.60.0"
   },
   "devDependencies": {
     "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@vercel/style-guide": "^6.0.0",
     "@vue/eslint-config-typescript": "^14.7.0",
-    "eslint-config-turbo": "^2.9.6",
+    "eslint-config-turbo": "^2.9.15",
     "typescript": "6.0.3"
   },
   "peerDependencies": {
-    "eslint": "^10.2.1",
+    "eslint": "^10.4.0",
     "typescript": ">=6.0.3"
   }
 }

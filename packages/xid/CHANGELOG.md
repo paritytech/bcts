@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0-beta.1] - 2026-05-27
+
+### Added
+
+- `XIDDocument.extraAssertions()` accessor exposing preserved extension assertions (synced with `bc-xid` v0.23.0).
+
+### Changed
+
+- `XIDDocument` now preserves unrecognized top-level assertions through parse → mutate → serialize round-trips instead of throwing `UNEXPECTED_PREDICATE`. `equals()` and `clone()` account for the preserved assertions.
+- `XIDDocument.isEmpty()` now also accounts for services, attachments, edges, and extension assertions.
+
 ## [1.0.0-beta.0] - 2026-04-27
 
 ### Changed

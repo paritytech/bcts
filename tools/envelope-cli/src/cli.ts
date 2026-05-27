@@ -168,6 +168,15 @@ const EMPTY_OPT: Record<string, never> = {};
 // Program setup
 // ============================================================================
 
+// Exit cleanly when a downstream consumer closes the pipe early (e.g.
+// `envelope format … | grep -q …` or `| head`). Without this, the EPIPE
+// surfaces as an unhandled stream 'error' event and Node aborts with a stack
+// trace and a non-zero exit code, which breaks `set -e` shell pipelines.
+process.stdout.on("error", (err: Error & { code?: string }) => {
+  if (err.code === "EPIPE") process.exit(0);
+  throw err;
+});
+
 const program = new Command();
 program
   .name("envelope")
@@ -914,6 +923,53 @@ program
   });
 
 // ============================================================================
+// SSKR
+// ============================================================================
+
+const sskrCmd = program.command("sskr").description("Sharded Secret Key Reconstruction (SSKR)");
+
+sskrCmd
+  .command("split")
+  .description("Split an envelope into several shares using SSKR")
+  .argument("[envelope]")
+  .option(
+    "-t, --group-threshold <n>",
+    "Number of groups that must meet their threshold (1-16)",
+    intArg,
+    1,
+  )
+  .option("-g, --group <spec>", "Group specification, e.g. 2-of-3 (may repeat)", collect, [])
+  .option("-k, --key <ur>", "Symmetric key to use for encryption (ur:crypto-key)")
+  .option(
+    "-r, --recipient <ur>",
+    "Public keys (ur:crypto-pubkeys) to also encrypt to (may repeat)",
+    collect,
+    [],
+  )
+  .action((envelope: string | undefined, opts: AnyArgs) => {
+    const groups = opts["group"] as string[] | undefined;
+    run(() =>
+      cmd.sskr.split.exec(
+        compact({
+          groupThreshold: (opts["groupThreshold"] as number | undefined) ?? 1,
+          groups: groups && groups.length > 0 ? groups : ["1-of-1"],
+          key: opts["key"],
+          recipients: (opts["recipient"] as string[] | undefined) ?? [],
+          envelope,
+        }),
+      ),
+    );
+  });
+
+sskrCmd
+  .command("join")
+  .description("Join a set of SSKR shares back into the original envelope")
+  .argument("[shares...]", "The shares to join (ur:envelope)")
+  .action((shares: string[] | undefined) => {
+    run(() => cmd.sskr.join.exec(compact({ shares: shares ?? [] })));
+  });
+
+// ============================================================================
 // XID
 // ============================================================================
 
@@ -1012,9 +1068,14 @@ xidCmd
   )
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() => {
-      const formats = (opts["format"] as string[] | undefined)?.map((f) =>
-        parseEnumValue(XidIDFormat, f, "format"),
-      ) ?? [XidIDFormat.Ur];
+      // Mirror Rust `#[arg(long, default_value = "ur")]`: when no `--format`
+      // is supplied (commander's `collect` default is an empty array), fall
+      // back to `ur` rather than emitting nothing.
+      const rawFormats = (opts["format"] as string[] | undefined) ?? [];
+      const formats =
+        rawFormats.length > 0
+          ? rawFormats.map((f) => parseEnumValue(XidIDFormat, f, "format"))
+          : [XidIDFormat.Ur];
       return cmd.xid.id.exec(
         compact({
           format: formats,

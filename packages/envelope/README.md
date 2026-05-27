@@ -20,4 +20,4 @@ Gordian Envelope is formally specified in the [IETF Internet Draft](https://data
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) **v0.42.0** ([commit](https://github.com/BlockchainCommons/bc-envelope-rust/tree/c39b5a30b4a03ab604ba62dfa82eef6c7192426e)).
+This TypeScript implementation is based on [bc-envelope-rust](https://github.com/BlockchainCommons/bc-envelope-rust) **v0.43.0** ([commit](https://github.com/BlockchainCommons/bc-envelope-rust/tree/bae6880035bcd14c0d149d4eb42082b0069edb83)).

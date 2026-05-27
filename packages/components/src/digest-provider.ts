@@ -32,7 +32,7 @@
  * }
  * ```
  */
-import type { Digest } from "./digest.js";
+import { Digest } from "./digest.js";
 
 /**
  * A type that can provide a single unique digest that characterizes its contents.
@@ -58,8 +58,6 @@ export interface DigestProvider {
  * @param data - The byte array to hash
  * @returns A Promise resolving to a Digest of the data
  */
-export async function digestFromBytes(data: Uint8Array): Promise<Digest> {
-  // Dynamic import to avoid circular dependency
-  const { Digest } = await import("./digest.js");
-  return Digest.fromImage(data);
+export function digestFromBytes(data: Uint8Array): Promise<Digest> {
+  return Promise.resolve(Digest.fromImage(data));
 }
