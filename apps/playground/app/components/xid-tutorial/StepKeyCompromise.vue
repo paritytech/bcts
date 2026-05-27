@@ -3,6 +3,9 @@ import { Privilege } from '@bcts/xid'
 import type { Envelope } from '@bcts/envelope'
 import { trySskrJoin } from '@/utils/xid-tutorial/backup'
 import { loadXidFromUr } from '@/utils/xid-tutorial/identity'
+import { keyDisavowalInfo, type DisavowedKey } from '@/utils/xid-tutorial/keys'
+import { buildSignedDisavowal } from '@/utils/xid-tutorial/disavowal'
+import type { SideKey } from '@/utils/xid-tutorial/types'
 
 const {
   activeDoc, activeSlot, activeIdentity, setActive, keyInventory, getArtifact,
@@ -20,10 +23,20 @@ const revokeNickname = ref('')
 const revokeDone = ref(false)
 const rekeyDone = ref(false)
 const provenanceAdvanced = ref(false)
+// Captured at revoke time so Step D can name the keys in a signed disavowal,
+// and the replacement key (the signer of that disavowal).
+// shallowRef so Vue's UnwrapRef doesn't mangle the PublicKeys/Digest class types.
+const disavowedKeys = shallowRef<DisavowedKey[]>([])
+const replacementKey = shallowRef<SideKey | null>(null)
 
 // Step C — rebuild operational view
 const operationalTree = ref('')
 const operationalBuilt = ref(false)
+
+// Step D — disavowal statement
+const disavowalTree = ref('')
+const disavowalVerified = ref<boolean | null>(null)
+const disavowalBuilt = ref(false)
 
 const operationalNicknames = computed(() =>
   keyInventory.value.filter(k => !k.isInception).map(k => ({ label: k.nickname, value: k.nickname })),
@@ -56,7 +69,12 @@ function handleReconstruct() {
 
 function handleRevoke() {
   const name = revokeNickname.value
-  if (!name) return
+  const doc = activeDoc.value
+  if (!name || !doc) return
+  // Capture the key's identity BEFORE removing it (mirrors upstream: run
+  // `xid key find name` + `digest` ahead of `key remove`).
+  const info = keyDisavowalInfo(doc, name)
+  if (info) disavowedKeys.value = [...disavowedKeys.value, info]
   if (removeActiveKeyByNickname(name)) revokeDone.value = true
 }
 
@@ -65,7 +83,30 @@ function handleRekey() {
   const side = addOperationalKeyToActive(`${base}-may2026`, 'Ed25519', [
     Privilege.Auth, Privilege.Sign, Privilege.Elide, Privilege.Access,
   ])
-  if (side) rekeyDone.value = true
+  if (side) {
+    replacementKey.value = side
+    rekeyDone.value = true
+  }
+}
+
+function handleBuildDisavowal() {
+  const doc = activeDoc.value
+  const signer = replacementKey.value
+  if (!doc || !signer || disavowedKeys.value.length === 0) return
+  const today = new Date()
+  const stamp = today.toISOString().slice(0, 10).replace(/-/g, '')
+  const n = disavowedKeys.value.length
+  const signed = buildSignedDisavowal({
+    disavowerXidUr: doc.xid().urString(),
+    subject: `disavowal-statement-${stamp}`,
+    statement: `Disavowing signatures from ${n} key${n === 1 ? '' : 's'} during the compromise window`,
+    reason: 'Key compromise: unauthorized access',
+    date: today,
+    keys: disavowedKeys.value,
+  }, signer.prvKeys)
+  disavowalTree.value = signed.format()
+  disavowalVerified.value = signed.hasSignatureFrom(signer.pubKeys)
+  disavowalBuilt.value = true
 }
 
 function handleAdvance() {
@@ -189,11 +230,33 @@ const canFinish = computed(() => operationalBuilt.value)
         <pre v-if="operationalBuilt" class="font-mono text-xs bg-gray-950 text-gray-200 p-3 rounded-md overflow-auto max-h-72">{{ operationalTree }}</pre>
       </div>
 
+      <!-- Step D: disavowal statement -->
+      <div v-if="rekeyDone && disavowedKeys.length > 0" class="rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <h3 class="text-sm font-semibold">4. Create a signed disavowal statement</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Revoking a key doesn't retroactively invalidate signatures it already made. Amira
+          publishes a signed statement — structured as a standard edge (§3.1) and signed by her
+          new key — naming the compromised keys so verifiers can distrust signatures from the
+          compromise window. She can publish it alongside her XID without adding it as an edge.
+        </p>
+        <UButton label="Build &amp; sign disavowal" icon="i-heroicons-megaphone" color="primary" @click="handleBuildDisavowal" />
+        <div v-if="disavowalBuilt" class="space-y-2">
+          <UAlert
+            :color="disavowalVerified ? 'success' : 'error'"
+            :icon="disavowalVerified ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle'"
+            :title="disavowalVerified ? 'Disavowal signed & verified' : 'Disavowal signature did not verify'"
+            :description="`Disavows ${disavowedKeys.length} key(s) — a signature-disavowal edge signed by the new replacement key.`"
+          />
+          <pre class="font-mono text-xs bg-gray-950 text-gray-200 p-3 rounded-md overflow-auto max-h-72">{{ disavowalTree }}</pre>
+        </div>
+      </div>
+
       <div v-if="canFinish" class="rounded-lg border border-green-200 dark:border-green-900 p-4 bg-green-50/30 dark:bg-green-950/10">
         <h3 class="text-sm font-semibold text-green-700 dark:text-green-300">Chapter 5 complete 🎉</h3>
         <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
           You've generated operational keys, updated and rotated them, backed up your inception and
-          SSH keys with SSKR, and recovered from a compromise — all without changing your XID.
+          SSH keys with SSKR, recovered from a compromise, and published a signed disavowal — all
+          without changing your XID.
         </p>
       </div>
 

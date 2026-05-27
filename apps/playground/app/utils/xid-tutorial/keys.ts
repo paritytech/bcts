@@ -1,7 +1,16 @@
 import { Key, type Privilege, type XIDDocument } from "@bcts/xid";
-import type { PublicKeys } from "@bcts/components";
+import type { PublicKeys, Digest } from "@bcts/components";
 import { generateSideKey, type TutorialScheme } from "./identity";
 import type { SideKey } from "./types";
+
+/** Identifying material for a key being disavowed (§5.5 Step 9). The
+ *  `assertionDigest` is the digest of the key's envelope as it appeared in the
+ *  XID — mirrors upstream `envelope digest $(envelope xid key find name …)`. */
+export interface DisavowedKey {
+  nickname: string;
+  pubKeys: PublicKeys;
+  assertionDigest: Digest;
+}
 
 /** Read-model for the key-inventory panel (§5.1). */
 export interface KeyInventoryEntry {
@@ -71,6 +80,22 @@ export function rotateKey(
   const side = addOperationalKey(doc, newNickname, scheme, allow);
   doc.removeKey(oldPubKeys);
   return side;
+}
+
+/**
+ * Capture a key's disavowal info (nickname + public keys + the digest of its
+ * envelope in the XID) BEFORE it's revoked, so §5.5 can name it in a signed
+ * disavowal statement. Mirrors the upstream pattern of running
+ * `xid key find name` + `digest` ahead of `key remove`.
+ */
+export function keyDisavowalInfo(doc: XIDDocument, nickname: string): DisavowedKey | undefined {
+  const key = findKeyByNickname(doc, nickname);
+  if (!key) return undefined;
+  return {
+    nickname,
+    pubKeys: key.publicKeys(),
+    assertionDigest: key.intoEnvelope().digest(),
+  };
 }
 
 /** Remove a key by nickname; returns its public keys if it existed (§5.5). */
