@@ -914,6 +914,55 @@ program
   });
 
 // ============================================================================
+// SSKR
+// ============================================================================
+
+const sskrCmd = program
+  .command("sskr")
+  .description("Sharded Secret Key Reconstruction (SSKR)");
+
+sskrCmd
+  .command("split")
+  .description("Split an envelope into several shares using SSKR")
+  .argument("[envelope]")
+  .option(
+    "-t, --group-threshold <n>",
+    "Number of groups that must meet their threshold (1-16)",
+    intArg,
+    1,
+  )
+  .option("-g, --group <spec>", "Group specification, e.g. 2-of-3 (may repeat)", collect, [])
+  .option("-k, --key <ur>", "Symmetric key to use for encryption (ur:crypto-key)")
+  .option(
+    "-r, --recipient <ur>",
+    "Public keys (ur:crypto-pubkeys) to also encrypt to (may repeat)",
+    collect,
+    [],
+  )
+  .action((envelope: string | undefined, opts: AnyArgs) => {
+    const groups = opts["group"] as string[] | undefined;
+    run(() =>
+      cmd.sskr.split.exec(
+        compact({
+          groupThreshold: (opts["groupThreshold"] as number | undefined) ?? 1,
+          groups: groups && groups.length > 0 ? groups : ["1-of-1"],
+          key: opts["key"],
+          recipients: (opts["recipient"] as string[] | undefined) ?? [],
+          envelope,
+        }),
+      ),
+    );
+  });
+
+sskrCmd
+  .command("join")
+  .description("Join a set of SSKR shares back into the original envelope")
+  .argument("[shares...]", "The shares to join (ur:envelope)")
+  .action((shares: string[] | undefined) => {
+    run(() => cmd.sskr.join.exec(compact({ shares: shares ?? [] })));
+  });
+
+// ============================================================================
 // XID
 // ============================================================================
 
