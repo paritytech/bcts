@@ -1,5 +1,6 @@
 import { XIDPrivateKeyOptions, XIDGeneratorOptions, Service, Privilege, type Key } from "@bcts/xid";
 import type { Envelope } from "@bcts/envelope";
+import type { PublicKeys } from "@bcts/components";
 import type { IdentityName, IdentitySlot } from "@/utils/xid-tutorial/types";
 import { TUTORIAL_SECTIONS } from "@/utils/xid-tutorial/sections";
 import {
@@ -14,6 +15,13 @@ import {
   sshPublicKeyText,
   type TutorialScheme,
 } from "@/utils/xid-tutorial/identity";
+import {
+  addOperationalKey,
+  setKeyPermissions,
+  rotateKey,
+  removeKeyByNickname,
+  keyInventory as buildKeyInventory,
+} from "@/utils/xid-tutorial/keys";
 
 type AttachmentEnvelope = Envelope & {
   attachmentVendor(): string;
@@ -21,7 +29,8 @@ type AttachmentEnvelope = Envelope & {
   attachmentPayload(): Envelope;
 };
 
-const STORAGE_KEY = "xid-tutorial-state-v2";
+const STORAGE_KEY = "xid-tutorial-state-v3";
+const LEGACY_STORAGE_KEY_V2 = "xid-tutorial-state-v2";
 const LEGACY_STORAGE_KEY = "xid-tutorial-state";
 
 /** Each identity is a full workspace slot — active identity is the one step components operate on. */
@@ -154,6 +163,11 @@ export function useXidTutorial() {
   const provenanceMark = computed(() => {
     void docVersion.value;
     return activeDoc.value?.provenance() ?? null;
+  });
+  const keyInventory = computed(() => {
+    void docVersion.value;
+    const doc = activeDoc.value;
+    return doc ? buildKeyInventory(doc) : [];
   });
   const currentSectionMeta = computed(() => TUTORIAL_SECTIONS[currentSection.value] ?? null);
   const progress = computed(() => {
@@ -338,6 +352,106 @@ export function useXidTutorial() {
       return side;
     } catch (e) {
       error.value = e instanceof Error ? e.message : "Failed to generate SSH key";
+      return null;
+    }
+  }
+
+  // ---- Operational keys, rotation & revocation (Chapter 5) ----
+  /** §5.1 — add an operational key (laptop/portable) with scoped permissions. */
+  function addOperationalKeyToActive(nickname: string, scheme: TutorialScheme, allow: Privilege[]) {
+    const doc = activeDoc.value;
+    if (!doc) return null;
+    try {
+      error.value = null;
+      const side = addOperationalKey(doc, nickname, scheme, allow);
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+      return side;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to add operational key";
+      return null;
+    }
+  }
+
+  /** §5.2 — replace a key's allowed-permission set (e.g. drop `access`). */
+  function updateActiveKeyPermissions(pubKeys: PublicKeys, allow: Privilege[]): boolean {
+    const doc = activeDoc.value;
+    if (!doc) return false;
+    try {
+      error.value = null;
+      const ok = setKeyPermissions(doc, pubKeys, allow);
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+      return ok;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to update key permissions";
+      return false;
+    }
+  }
+
+  /** §5.2 — rotate a key: add a new one, remove the old. */
+  function rotateActiveKey(
+    oldPubKeys: PublicKeys,
+    nickname: string,
+    scheme: TutorialScheme,
+    allow: Privilege[],
+  ) {
+    const doc = activeDoc.value;
+    if (!doc) return null;
+    try {
+      error.value = null;
+      const side = rotateKey(doc, oldPubKeys, nickname, scheme, allow);
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+      return side;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to rotate key";
+      return null;
+    }
+  }
+
+  /** §5.5 — revoke (remove) a key by nickname; returns its public keys. */
+  function removeActiveKeyByNickname(name: string): PublicKeys | undefined {
+    const doc = activeDoc.value;
+    if (!doc) return undefined;
+    try {
+      error.value = null;
+      const removed = removeKeyByNickname(doc, name);
+      invalidatePrivateEnvelope(activeIdentity.value);
+      bumpDoc();
+      saveState();
+      return removed;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to remove key";
+      return undefined;
+    }
+  }
+
+  /**
+   * §5.1 / §5.5 — derive an "operational XID": an elided-private copy of the
+   * master with the inception (master) key — and optionally other named keys —
+   * removed. Built from a reloaded copy so the active slot keeps its full
+   * master (§5.3/§5.5 still need the inception key). Returns the envelope; does
+   * NOT mutate the active document.
+   */
+  function buildOperationalEnvelope(alsoRemoveNicknames: string[] = []): Envelope | null {
+    const slot = activeSlot.value;
+    if (!slot.document) return null;
+    try {
+      error.value = null;
+      const persist = getPersistEnvelope();
+      if (!persist) return null;
+      const copy = loadXidFromUr(persist.urString(), slot.password || undefined);
+      copy.removeInceptionKey();
+      for (const name of alsoRemoveNicknames) removeKeyByNickname(copy, name);
+      return copy.toEnvelope(XIDPrivateKeyOptions.Elide, XIDGeneratorOptions.Elide, {
+        type: "none",
+      });
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : "Failed to build operational XID";
       return null;
     }
   }
@@ -528,6 +642,7 @@ export function useXidTutorial() {
         saveTimer = null;
       }
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY_V2);
       localStorage.removeItem(LEGACY_STORAGE_KEY);
     }
     bumpDoc();
@@ -536,13 +651,24 @@ export function useXidTutorial() {
   // ---- Persistence ----
   type PersistedSlot = { ur?: string; password?: string };
   type Persisted = {
-    version: 2;
+    version: 2 | 3;
     currentSection: number;
     sectionsCompleted: boolean[];
     activeIdentity: IdentityName;
     identities: Partial<Record<IdentityName, PersistedSlot>>;
     artifacts?: Record<string, string>;
   };
+
+  /** Pad/truncate a stored completion array to the current section count.
+   *  Chapter 5 grew the registry from 14 → 19 sections; a v2 array of length
+   *  14 must be widened so indices 14–18 default to `false`. */
+  function normalizeCompleted(arr?: boolean[]): boolean[] {
+    const out = new Array<boolean>(TUTORIAL_SECTIONS.length).fill(false);
+    if (Array.isArray(arr)) {
+      for (let i = 0; i < Math.min(arr.length, out.length); i++) out[i] = !!arr[i];
+    }
+    return out;
+  }
 
   function saveState() {
     if (!import.meta.client) return;
@@ -556,7 +682,7 @@ export function useXidTutorial() {
   function persistNow() {
     try {
       const persisted: Persisted = {
-        version: 2,
+        version: 3,
         currentSection: currentSection.value,
         sectionsCompleted: sectionsCompleted.value,
         activeIdentity: activeIdentity.value,
@@ -582,13 +708,17 @@ export function useXidTutorial() {
   function restoreState() {
     if (!import.meta.client) return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      // v3 (current) and v2 share an identical on-disk shape — Chapter 5 only
+      // appended sections. Read either; a v2 payload is migrated forward (its
+      // shorter `sectionsCompleted` is padded) and re-persisted under v3.
+      const rawV3 = localStorage.getItem(STORAGE_KEY);
+      const rawV2 = rawV3 ? null : localStorage.getItem(LEGACY_STORAGE_KEY_V2);
+      const raw = rawV3 ?? rawV2;
       if (raw) {
         const p = JSON.parse(raw) as Persisted;
-        if (p.version !== 2) return;
+        if (p.version !== 2 && p.version !== 3) return;
         currentSection.value = p.currentSection ?? 0;
-        sectionsCompleted.value =
-          p.sectionsCompleted ?? new Array(TUTORIAL_SECTIONS.length).fill(false);
+        sectionsCompleted.value = normalizeCompleted(p.sectionsCompleted);
         activeIdentity.value = p.activeIdentity ?? "amira";
         artifacts.value = p.artifacts ?? {};
         for (const [name, data] of Object.entries(p.identities)) {
@@ -602,6 +732,11 @@ export function useXidTutorial() {
           }
         }
         bumpDoc();
+        if (rawV2) {
+          // Migrate forward: write under v3 and drop the v2 key.
+          persistNow();
+          localStorage.removeItem(LEGACY_STORAGE_KEY_V2);
+        }
         return;
       }
       // Legacy v1 migration
@@ -666,6 +801,7 @@ export function useXidTutorial() {
     serviceList,
     edgeList,
     provenanceMark,
+    keyInventory,
     // identity lifecycle
     setActive,
     createIdentity,
@@ -674,6 +810,12 @@ export function useXidTutorial() {
     // keys
     addSideKey,
     generateSshKey,
+    // operational keys / rotation / revocation (Chapter 5)
+    addOperationalKeyToActive,
+    updateActiveKeyPermissions,
+    rotateActiveKey,
+    removeActiveKeyByNickname,
+    buildOperationalEnvelope,
     // resolution
     addResolutionMethod,
     removeResolutionMethodUri,

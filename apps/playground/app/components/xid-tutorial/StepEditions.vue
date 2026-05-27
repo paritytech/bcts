@@ -164,9 +164,9 @@ function useCurrent(slot: 'paste1' | 'paste2') {
 
       <div class="flex justify-end">
         <UButton
-          label="Finish tutorial"
-          trailing-icon="i-heroicons-check-circle"
-          color="success" size="lg"
+          label="Continue to Chapter 5 · Managing Your Keys"
+          trailing-icon="i-heroicons-arrow-right"
+          color="primary" size="lg"
           @click="completeAndAdvance(13)"
         />
       </div>

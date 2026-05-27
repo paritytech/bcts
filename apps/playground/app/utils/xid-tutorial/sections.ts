@@ -130,6 +130,51 @@ export const TUTORIAL_SECTIONS: SectionMeta[] = [
     component: "StepEditions",
     needsIdentity: true,
   },
+  {
+    id: "5.1",
+    chapter: 5,
+    section: 1,
+    title: "Operational Keys",
+    subtitle: "Scoped keys + operational XID",
+    component: "StepOperationalKeys",
+    needsIdentity: true,
+  },
+  {
+    id: "5.2",
+    chapter: 5,
+    section: 2,
+    title: "Updating Keys",
+    subtitle: "Permissions & rotation",
+    component: "StepUpdatingKeys",
+    needsIdentity: true,
+  },
+  {
+    id: "5.3",
+    chapter: 5,
+    section: 3,
+    title: "Backup Inception",
+    subtitle: "SSKR 2-of-3 split & recover",
+    component: "StepBackupInception",
+    needsIdentity: true,
+  },
+  {
+    id: "5.4",
+    chapter: 5,
+    section: 4,
+    title: "Backup SSH Key",
+    subtitle: "Wrap, encrypt, shard",
+    component: "StepBackupSshKey",
+    needsIdentity: true,
+  },
+  {
+    id: "5.5",
+    chapter: 5,
+    section: 5,
+    title: "Key Compromise",
+    subtitle: "Recover, revoke, re-key",
+    component: "StepKeyCompromise",
+    needsIdentity: true,
+  },
 ];
 
 export const CHAPTERS = [
@@ -137,6 +182,7 @@ export const CHAPTERS = [
   { number: 2, title: "Making Claims" },
   { number: 3, title: "Attesting with Edges" },
   { number: 4, title: "Managing Your XIDs" },
+  { number: 5, title: "Managing Your Keys" },
 ];
 
 export function sectionIndex(id: string): number {

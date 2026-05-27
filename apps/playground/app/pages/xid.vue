@@ -373,6 +373,11 @@ function globalIndex(sectionId: string): number {
               <XidTutorialStepPrivacy v-else-if="currentSectionMeta?.id === '4.2'" />
               <XidTutorialStepViews v-else-if="currentSectionMeta?.id === '4.3'" />
               <XidTutorialStepEditions v-else-if="currentSectionMeta?.id === '4.4'" />
+              <XidTutorialStepOperationalKeys v-else-if="currentSectionMeta?.id === '5.1'" />
+              <XidTutorialStepUpdatingKeys v-else-if="currentSectionMeta?.id === '5.2'" />
+              <XidTutorialStepBackupInception v-else-if="currentSectionMeta?.id === '5.3'" />
+              <XidTutorialStepBackupSshKey v-else-if="currentSectionMeta?.id === '5.4'" />
+              <XidTutorialStepKeyCompromise v-else-if="currentSectionMeta?.id === '5.5'" />
             </div>
           </div>
 
