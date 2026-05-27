@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Signature formatting now renders the scheme for non-default schemes (e.g. `Signature(Ed25519)`); only the default scheme (Schnorr) renders as bare `Signature`. Previously Ed25519 signatures also rendered as bare `Signature`, diverging from Rust `tags_registry.rs` (which compares against `SignatureScheme::default()`).
+- Signature formatting now renders the scheme for non-default schemes (e.g. `Signature(Ed25519)`); only the default scheme (Schnorr) renders as bare `Signature`. Previously Ed25519 signatures also rendered as bare `Signature`, diverging from Rust.
 
 ## [1.0.0-beta.0] - 2026-04-27
 
