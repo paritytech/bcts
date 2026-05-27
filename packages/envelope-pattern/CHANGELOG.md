@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.1] - 2026-05-27
+
+### Changed
+
+- Updated Rust reference to `bc-envelope-pattern` v0.14.0 (dependency alignment to `bc-envelope` v0.43.0; no functional change).
+
 ## [1.0.0-beta.0] - 2026-04-27
 
 ### Changed

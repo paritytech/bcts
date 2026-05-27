@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.1] - 2026-05-27
+
+### Changed
+
+- Synced edge validation with `bc-envelope` v0.43.0 (BCR-2026-003): `Envelope.validateEdge()` now strictly rejects any assertion on an edge subject other than `'isA'`, `'source'`, and `'target'`, throwing `EDGE_UNEXPECTED_ASSERTION`. Previously extra assertions on the edge subject were silently ignored. Validation was rewritten from count-based to a single pass with inline duplicate detection to mirror the Rust implementation.
+
 ## [1.0.0-beta.0] - 2026-04-27
 
 ### Changed

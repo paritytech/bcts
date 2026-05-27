@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.1] - 2026-05-27
+
+### Changed
+
+- Synced Rust reference to the latest `gstp-rust` commit (upstream dependency-version alignment only; no functional change).
+
 ## [1.0.0-beta.0] - 2026-04-27
 
 ### Changed
