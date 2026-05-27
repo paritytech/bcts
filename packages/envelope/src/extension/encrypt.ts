@@ -33,8 +33,7 @@ import {
   SYMMETRIC_NONCE_SIZE,
 } from "@bcts/crypto";
 import { SecureRandomNumberGenerator, rngRandomData } from "@bcts/rand";
-import { EncryptedMessage, Nonce, AuthenticationTag } from "@bcts/components";
-import type { SymmetricKey } from "@bcts/components";
+import { EncryptedMessage, Nonce, AuthenticationTag, SymmetricKey } from "@bcts/components";
 
 /**
  * Re-export the canonical SymmetricKey and EncryptedMessage from
@@ -45,8 +44,14 @@ import type { SymmetricKey } from "@bcts/components";
  * with full CBOR support, UR support, and complete factory methods. Using it
  * here removes duplication and guarantees the AAD encoding stays in lockstep
  * with the rest of the suite.
+ *
+ * Note: these re-export the value bindings imported above rather than using
+ * `export { ... } from "@bcts/components"`. A separate `export ... from` would
+ * let the declaration bundler treat `SymmetricKey` (only referenced in type
+ * positions within this module) as a type-only re-export, breaking downstream
+ * value usage like `SymmetricKey.new()`.
  */
-export { SymmetricKey, EncryptedMessage } from "@bcts/components";
+export { SymmetricKey, EncryptedMessage };
 
 /**
  * Builds the AAD bytes for a digest, mirroring Rust

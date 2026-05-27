@@ -168,6 +168,15 @@ const EMPTY_OPT: Record<string, never> = {};
 // Program setup
 // ============================================================================
 
+// Exit cleanly when a downstream consumer closes the pipe early (e.g.
+// `envelope format … | grep -q …` or `| head`). Without this, the EPIPE
+// surfaces as an unhandled stream 'error' event and Node aborts with a stack
+// trace and a non-zero exit code, which breaks `set -e` shell pipelines.
+process.stdout.on("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EPIPE") process.exit(0);
+  throw err;
+});
+
 const program = new Command();
 program
   .name("envelope")
@@ -1059,9 +1068,14 @@ xidCmd
   )
   .action((envelope: string | undefined, opts: AnyArgs) => {
     run(() => {
-      const formats = (opts["format"] as string[] | undefined)?.map((f) =>
-        parseEnumValue(XidIDFormat, f, "format"),
-      ) ?? [XidIDFormat.Ur];
+      // Mirror Rust `#[arg(long, default_value = "ur")]`: when no `--format`
+      // is supplied (commander's `collect` default is an empty array), fall
+      // back to `ur` rather than emitting nothing.
+      const rawFormats = (opts["format"] as string[] | undefined) ?? [];
+      const formats =
+        rawFormats.length > 0
+          ? rawFormats.map((f) => parseEnumValue(XidIDFormat, f, "format"))
+          : [XidIDFormat.Ur];
       return cmd.xid.id.exec(
         compact({
           format: formats,
