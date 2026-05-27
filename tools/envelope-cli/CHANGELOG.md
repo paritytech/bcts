@@ -4,12 +4,12 @@
 
 ### Added
 
-- Registered the `sskr split` / `sskr join` commands. They were implemented but never wired into the CLI program, so `envelope sskr …` was unavailable.
+- Registered the `sskr split` / `sskr join` commands.
 
 ### Fixed
 
 - `xid id` now defaults `--format` to `ur` (mirrors Rust `default_value = "ur"`); previously it emitted nothing when no `--format` was supplied.
-- `encrypt --recipient` and `decrypt --recipient` now pass the full `PublicKeys` / `PrivateKeys` (and `PrivateKeyBase`) directly — which implement `Encrypter` / `Decrypter`, mirroring Rust — instead of flattening to raw X25519 bytes. The previous flattening put key bytes in the scheme slot (`Unsupported scheme`) and lost the encapsulation scheme, breaking public-key encryption/decryption.
+- `encrypt --recipient` and `decrypt --recipient` now pass the full `PublicKeys` / `PrivateKeys` (and `PrivateKeyBase`) directly — which implement `Encrypter` / `Decrypter`, instead of flattening to raw X25519 bytes. The previous flattening put key bytes in the scheme slot (`Unsupported scheme`) and lost the encapsulation scheme, breaking public-key encryption/decryption.
 - Exit cleanly on `EPIPE` when a downstream consumer closes stdout early (e.g. `envelope … | grep -q`/`| head`); previously this surfaced as an unhandled stream error and a non-zero exit, breaking `set -e` pipelines.
 
 ## [1.0.0-beta.0] - 2026-04-27
