@@ -4,11 +4,11 @@
 
 ### Fixed
 
-- `SigningPublicKey`/`SigningPrivateKey` UR encoding now carries the **untagged** CBOR content (the `ur:signing-public-key` / `ur:signing-private-key` type already implies the tag). Previously `ur()` embedded the tagged form, double-tagging the content (`tag(40022, …)` inside the UR), which diverged from Rust and prevented TS from parsing Rust-produced URs — notably SSH-backed signing keys (`tag(40801)`). Now byte-identical with Rust and consistent with the canonical `toUR`/`fromUR` pattern.
+- `SigningPublicKey`/`SigningPrivateKey` UR encoding now carries the **untagged** CBOR content (the `ur:signing-public-key` / `ur:signing-private-key` type already implies the tag). Previously `ur()` embedded the tagged form, double-tagging the content (`tag(40022, …)` inside the UR), which diverged from Rust.
 
 ### Added
 
-- `PrivateKeyBase` now implements the `Decrypter` interface (`decapsulateSharedSecret`), mirroring Rust `impl Decrypter for PrivateKeyBase`, so it can be used directly as a recipient key for public-key decryption.
+- `PrivateKeyBase` now implements the `Decrypter` interface (`decapsulateSharedSecret`), so it can be used directly as a recipient key for public-key decryption.
 
 ## [1.0.0-beta.0] - 2026-04-27
 
