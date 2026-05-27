@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Synced Rust reference to the latest `frost-hubert-rust` commit (upstream dependency-version alignment only; no functional change).
+- Workspace version bump
 
 ## [1.0.0-beta.0] - 2026-04-27
 
