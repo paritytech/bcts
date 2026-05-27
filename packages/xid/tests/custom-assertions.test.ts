@@ -11,12 +11,7 @@ import { PrivateKeyBase } from "@bcts/components";
 import { cbor } from "@bcts/dcbor";
 import { ProvenanceMarkResolution } from "@bcts/provenance-mark";
 import { makeFakeRandomNumberGenerator } from "@bcts/rand";
-import {
-  Key,
-  XIDDocument,
-  XIDGeneratorOptions,
-  XIDPrivateKeyOptions,
-} from "../src";
+import { Key, XIDDocument, XIDGeneratorOptions, XIDPrivateKeyOptions } from "../src";
 
 /**
  * Builds a XID document, serializes it, tacks on a custom top-level
@@ -42,11 +37,9 @@ function xidDocumentWithCustomAssertion(): XIDDocument {
 describe("Custom assertion preservation", () => {
   it("xid_document_parses_and_preserves_custom_assertions", () => {
     const xidDocument = xidDocumentWithCustomAssertion();
-    const envelope = xidDocument.toEnvelope(
-      XIDPrivateKeyOptions.Omit,
-      XIDGeneratorOptions.Omit,
-      { type: "none" },
-    );
+    const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+      type: "none",
+    });
 
     const expected = [
       "XID(71274df1) [",
@@ -70,11 +63,9 @@ describe("Custom assertion preservation", () => {
     const secondBase = PrivateKeyBase.newUsing(rng);
     xidDocument.addKey(Key.newAllowAll(secondBase.schnorrPublicKeys()));
 
-    const envelope = xidDocument.toEnvelope(
-      XIDPrivateKeyOptions.Omit,
-      XIDGeneratorOptions.Omit,
-      { type: "none" },
-    );
+    const envelope = xidDocument.toEnvelope(XIDPrivateKeyOptions.Omit, XIDGeneratorOptions.Omit, {
+      type: "none",
+    });
 
     expect(envelope.format()).toContain('"customField": "customValue"');
     expect(xidDocument.keys().length).toBe(2);
