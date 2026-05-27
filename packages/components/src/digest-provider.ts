@@ -58,6 +58,6 @@ export interface DigestProvider {
  * @param data - The byte array to hash
  * @returns A Promise resolving to a Digest of the data
  */
-export async function digestFromBytes(data: Uint8Array): Promise<Digest> {
-  return Digest.fromImage(data);
+export function digestFromBytes(data: Uint8Array): Promise<Digest> {
+  return Promise.resolve(Digest.fromImage(data));
 }

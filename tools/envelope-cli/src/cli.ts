@@ -917,9 +917,7 @@ program
 // SSKR
 // ============================================================================
 
-const sskrCmd = program
-  .command("sskr")
-  .description("Sharded Secret Key Reconstruction (SSKR)");
+const sskrCmd = program.command("sskr").description("Sharded Secret Key Reconstruction (SSKR)");
 
 sskrCmd
   .command("split")
