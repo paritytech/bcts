@@ -172,7 +172,7 @@ const EMPTY_OPT: Record<string, never> = {};
 // `envelope format … | grep -q …` or `| head`). Without this, the EPIPE
 // surfaces as an unhandled stream 'error' event and Node aborts with a stack
 // trace and a non-zero exit code, which breaks `set -e` shell pipelines.
-process.stdout.on("error", (err: NodeJS.ErrnoException) => {
+process.stdout.on("error", (err: Error & { code?: string }) => {
   if (err.code === "EPIPE") process.exit(0);
   throw err;
 });

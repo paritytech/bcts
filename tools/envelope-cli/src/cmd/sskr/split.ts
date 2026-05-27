@@ -11,7 +11,7 @@
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";
 import { SymmetricKey, PublicKeys, SSKRGroupSpec, SSKRSpec } from "@bcts/components";
-import { type Envelope, PublicKeyBase as EnvelopePublicKeyBase } from "@bcts/envelope";
+import { type Envelope } from "@bcts/envelope";
 
 /**
  * Command arguments for the split command.
@@ -91,15 +91,12 @@ export class SplitCommand implements Exec {
     // Flatten the grouped shares
     let flatShares: Envelope[] = groupedShares.flat();
 
-    // If recipients are specified, encrypt each share to those recipients
+    // If recipients are specified, encrypt each share to those recipients.
+    // `PublicKeys` implements `Encrypter` (mirrors Rust `impl Encrypter for
+    // PublicKeys`), so it is passed directly to `addRecipient` — preserving the
+    // encapsulation scheme rather than flattening to raw X25519 bytes.
     if (this.args.recipients.length > 0) {
-      const recipients = this.args.recipients.map((r) => {
-        const pk = PublicKeys.fromURString(r);
-        const encKey = pk.encapsulationPublicKey();
-        const publicData = encKey.x25519PublicKey().data();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
-        return new (EnvelopePublicKeyBase as any)(publicData) as EnvelopePublicKeyBase;
-      });
+      const recipients = this.args.recipients.map((r) => PublicKeys.fromURString(r));
       flatShares = flatShares.map((share) => {
         let s = share;
         for (const recipient of recipients) {

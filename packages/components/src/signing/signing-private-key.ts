@@ -953,6 +953,13 @@ export class SigningPrivateKey
    */
   static fromUntaggedCborData(data: Uint8Array): SigningPrivateKey {
     const cborValue = decodeCbor(data);
+    return SigningPrivateKey.fromUntaggedCbor(cborValue);
+  }
+
+  /**
+   * Static method to decode from untagged CBOR.
+   */
+  static fromUntaggedCbor(cborValue: Cbor): SigningPrivateKey {
     const dummy = new SigningPrivateKey(
       SignatureScheme.Ed25519,
       undefined, // ecKey
@@ -974,7 +981,11 @@ export class SigningPrivateKey
    * Returns the UR representation of the signing private key.
    */
   ur(): UR {
-    return UR.new(SigningPrivateKey.UR_TYPE, this.taggedCbor());
+    // A UR's content is the *untagged* CBOR; the `signing-private-key` type
+    // string already implies the tag. Using `taggedCbor()` here would
+    // double-tag the content, diverging from Rust and breaking interop.
+    // Mirrors the canonical `toUR` pattern (`ur-encodable.ts`).
+    return UR.new(SigningPrivateKey.UR_TYPE, this.untaggedCbor());
   }
 
   /**
@@ -989,7 +1000,10 @@ export class SigningPrivateKey
    */
   static fromUR(ur: UR): SigningPrivateKey {
     ur.checkType(SigningPrivateKey.UR_TYPE);
-    return SigningPrivateKey.fromTaggedCbor(ur.cbor());
+    // The UR content is untagged (the type implies the tag), so decode it
+    // directly as untagged CBOR. Mirrors the canonical `fromUR` pattern
+    // (`ur-decodable.ts`).
+    return SigningPrivateKey.fromUntaggedCbor(ur.cbor());
   }
 
   /**

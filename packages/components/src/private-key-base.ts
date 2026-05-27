@@ -48,6 +48,9 @@ import { EncapsulationPrivateKey } from "./encapsulation/encapsulation-private-k
 import { bytesToHex } from "./utils.js";
 import { PrivateKeys } from "./private-keys.js";
 import type { PublicKeys } from "./public-keys.js";
+import type { Decrypter } from "./encrypter.js";
+import type { SymmetricKey } from "./symmetric/symmetric-key.js";
+import type { EncapsulationCiphertext } from "./encapsulation/encapsulation-ciphertext.js";
 import { HKDFRng } from "./hkdf-rng.js";
 import { SSHPrivateKey, type SshPrivateKeyData } from "./ssh/ssh-private-key.js";
 import {
@@ -72,7 +75,7 @@ const SALT_SIGNING = "signing";
  * deterministically derived using HKDF.
  */
 export class PrivateKeyBase
-  implements CborTaggedEncodable, CborTaggedDecodable<PrivateKeyBase>, UREncodable
+  implements CborTaggedEncodable, CborTaggedDecodable<PrivateKeyBase>, UREncodable, Decrypter
 {
   private readonly _data: Uint8Array;
 
@@ -161,6 +164,17 @@ export class PrivateKeyBase
    */
   encapsulationPrivateKey(): EncapsulationPrivateKey {
     return EncapsulationPrivateKey.fromX25519PrivateKey(this.x25519PrivateKey());
+  }
+
+  /**
+   * Decapsulate a shared secret from a ciphertext.
+   *
+   * Implements the `Decrypter` interface so a `PrivateKeyBase` can be used
+   * directly as a recipient key, mirroring Rust `impl Decrypter for
+   * PrivateKeyBase`.
+   */
+  decapsulateSharedSecret(ciphertext: EncapsulationCiphertext): SymmetricKey {
+    return this.encapsulationPrivateKey().decapsulateSharedSecret(ciphertext);
   }
 
   /**
