@@ -50,16 +50,21 @@ function buildSubEnvelope(input: EdgeTargetInput): Envelope {
  */
 export function buildSignedEdge(input: EdgeBuildInput, signer: PrivateKeys): Envelope {
   const src = buildSubEnvelope(input.source);
-  const tgt = buildSubEnvelope(input.target);
+  let tgt = buildSubEnvelope(input.target);
 
-  let edge = Envelope.new(input.subject)
+  // BCR-2026-003 (synced in @bcts/envelope v0.43.0): an edge subject may carry
+  // *only* `isA`, `source`, and `target`. Any additional claim detail
+  // (`conformsTo`, `date`, `verifiableAt`) belongs on the target sub-envelope —
+  // exactly as upstream XID-Quickstart §3.1 builds it. Placing them here keeps
+  // `Envelope.validateEdge()` happy and matches the Rust reference structure.
+  if (input.conformsTo) tgt = tgt.addAssertion(CONFORMS_TO, input.conformsTo);
+  if (input.date) tgt = tgt.addAssertion(DATE, input.date.toISOString());
+  if (input.verifiableAt) tgt = tgt.addAssertion(VERIFIABLE_AT, input.verifiableAt);
+
+  const edge = Envelope.new(input.subject)
     .addAssertion(IS_A, input.isA)
     .addAssertionEnvelope(Envelope.newAssertion(SOURCE, src))
     .addAssertionEnvelope(Envelope.newAssertion(TARGET, tgt));
-
-  if (input.conformsTo) edge = edge.addAssertion(CONFORMS_TO, input.conformsTo);
-  if (input.date) edge = edge.addAssertion(DATE, input.date.toISOString());
-  if (input.verifiableAt) edge = edge.addAssertion(VERIFIABLE_AT, input.verifiableAt);
 
   const options: SigningOptions | undefined = signer.signingPrivateKey().isSsh()
     ? { type: "Ssh", namespace: "envelope", hashAlg: "sha256" }
