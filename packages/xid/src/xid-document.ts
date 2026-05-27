@@ -131,6 +131,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   private _provenance: Provenance | undefined;
   private _attachments: Attachments;
   private _edges: Edges;
+  private _extraAssertions: Envelope[];
 
   private constructor(
     xid: XID,
@@ -141,6 +142,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     provenance?: Provenance,
     attachments?: Attachments,
     edges?: Edges,
+    extraAssertions: Envelope[] = [],
   ) {
     this._xid = xid;
     this._resolutionMethods = resolutionMethods;
@@ -150,6 +152,7 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     this._provenance = provenance;
     this._attachments = attachments ?? new Attachments();
     this._edges = edges ?? new Edges();
+    this._extraAssertions = extraAssertions;
   }
 
   /**
@@ -544,15 +547,32 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
   }
 
   /**
-   * Check if the document is empty (no keys, delegates, services, or provenance).
+   * Check if the document is empty: no resolution methods, keys, delegates,
+   * services, provenance, attachments, edges, or extension assertions.
+   *
+   * Mirrors Rust `XIDDocument::is_empty`.
    */
   isEmpty(): boolean {
     return (
       this._resolutionMethods.size === 0 &&
       this._keys.size === 0 &&
       this._delegates.size === 0 &&
-      this._provenance === undefined
+      this._provenance === undefined &&
+      this._services.size === 0 &&
+      !this.hasAttachments() &&
+      !this.hasEdges() &&
+      this._extraAssertions.length === 0
     );
+  }
+
+  /**
+   * Get the preserved extension assertions — top-level assertions that are
+   * not recognized as XID document fields and round-trip unchanged.
+   *
+   * Mirrors Rust `XIDDocument::extra_assertions(&self) -> &[Envelope]`.
+   */
+  extraAssertions(): Envelope[] {
+    return this._extraAssertions;
   }
 
   /**
@@ -864,6 +884,10 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
       );
     }
 
+    // Re-emit preserved extension assertions (Rust:
+    // `envelope.add_assertion_envelopes(&self.extra_assertions)?`).
+    envelope = envelope.addAssertionEnvelopes(this._extraAssertions);
+
     // Add attachments before signing so they are included in the signature
     envelope = this._attachments.addToEnvelope(envelope);
 
@@ -1088,26 +1112,34 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     const xid = XID.fromTaggedCbor(leaf);
     const doc = XIDDocument.fromXid(xid);
 
-    // Process assertions
+    // Process assertions. Unrecognized assertions are preserved on
+    // `_extraAssertions` and round-trip unchanged (Rust `from_envelope`
+    // pushes them to `extra_assertions` rather than erroring).
     for (const assertion of envelopeExt.assertions()) {
       const assertionCase = assertion.case();
       if (assertionCase.type !== "assertion") {
+        // Rust: `let Ok(predicate) = assertion.try_predicate() else
+        // { extra_assertions.push(assertion); continue; }`.
+        doc._extraAssertions.push(assertion);
         continue;
       }
 
       const predicateEnv = assertionCase.assertion.predicate();
       const predicateCase = predicateEnv.case();
       if (predicateCase.type !== "knownValue") {
+        // Rust: `let Ok(predicate) = predicate.try_known_value() else
+        // { extra_assertions.push(assertion); continue; }`.
+        doc._extraAssertions.push(assertion);
         continue;
       }
 
       const predicate = predicateCase.value.value();
-      const object = assertionCase.assertion.object();
 
       switch (predicate) {
         case DEREFERENCE_VIA_RAW: {
           // Mirrors Rust `URI::try_from(assertion.try_object()?.subject().try_leaf()?)`:
           // the value is always a tagged URI, never bare text.
+          const object = assertionCase.assertion.object();
           const objectExt = object as unknown as { tryLeaf(): Cbor };
           let uri: URI;
           try {
@@ -1119,21 +1151,25 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
           break;
         }
         case KEY_RAW: {
+          const object = assertionCase.assertion.object();
           const key = Key.tryFromEnvelope(object, password);
           doc.addKey(key);
           break;
         }
         case DELEGATE_RAW: {
+          const object = assertionCase.assertion.object();
           const delegate = Delegate.tryFromEnvelope(object);
           doc.addDelegate(delegate);
           break;
         }
         case SERVICE_RAW: {
+          const object = assertionCase.assertion.object();
           const service = Service.tryFromEnvelope(object);
           doc.addService(service);
           break;
         }
         case PROVENANCE_RAW: {
+          const object = assertionCase.assertion.object();
           if (doc._provenance !== undefined) {
             throw XIDError.multipleProvenanceMarks();
           }
@@ -1147,7 +1183,9 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
           // Handled separately by Edges.fromEnvelope()
           break;
         default:
-          throw XIDError.unexpectedPredicate(String(predicate));
+          // Unrecognized predicate — preserve as an extension assertion.
+          doc._extraAssertions.push(assertion);
+          break;
       }
     }
 
@@ -1234,6 +1272,13 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     // Compare edges
     if (!this._edges.equals(other._edges)) return false;
 
+    // Compare extension assertions (order-sensitive, mirrors Rust's
+    // derived `Vec<Envelope>` PartialEq; envelopes compare by digest).
+    if (this._extraAssertions.length !== other._extraAssertions.length) return false;
+    for (let i = 0; i < this._extraAssertions.length; i++) {
+      if (!this._extraAssertions[i].isEquivalentTo(other._extraAssertions[i])) return false;
+    }
+
     return true;
   }
 
@@ -1259,6 +1304,10 @@ export class XIDDocument implements EnvelopeEncodable, Edgeable {
     for (const [, env] of this._edges.iter()) {
       doc._edges.add(env);
     }
+
+    // Copy preserved extension assertions (Envelopes are immutable value
+    // types, so a shallow array copy suffices).
+    doc._extraAssertions = [...this._extraAssertions];
 
     return doc;
   }

@@ -77,14 +77,14 @@ packages:
   envelope:
     npm: "@bcts/envelope"
     repo: "BlockchainCommons/bc-envelope-rust"
-    version: "0.42.0"
-    commit: "c39b5a30b4a03ab604ba62dfa82eef6c7192426e"
+    version: "0.43.0"
+    commit: "bae6880035bcd14c0d149d4eb42082b0069edb83"
 
   envelope-pattern:
     npm: "@bcts/envelope-pattern"
     repo: "BlockchainCommons/bc-envelope-pattern-rust"
-    version: "0.13.0"
-    commit: "0be775ec5c954a29f7cf842c80da36bc8be91b43"
+    version: "0.14.0"
+    commit: "44fe39832e9321445dc5d6a10b0e1f852d28f982"
 
   provenance-mark:
     npm: "@bcts/provenance-mark"
@@ -95,14 +95,14 @@ packages:
   xid:
     npm: "@bcts/xid"
     repo: "BlockchainCommons/bc-xid-rust"
-    version: "0.21.0"
-    commit: "f0dc62187fc728d92063ee0ff456a9552a4698cf"
+    version: "0.23.0"
+    commit: "e64924eb04e7af3303674663f217768095d73475"
 
   gstp:
     npm: "@bcts/gstp"
     repo: "BlockchainCommons/gstp-rust"
     version: "0.13.0"
-    commit: "020a85fe101e24eaced2f830d53a43af29f9cd89"
+    commit: "b1296017dd31a6845e1fdbd4ea9a0cad17047eb7"
 
   hubert:
     npm: "@bcts/hubert"
@@ -114,7 +114,7 @@ packages:
     npm: "@bcts/frost-hubert"
     repo: "BlockchainCommons/frost-hubert-rust"
     version: "0.1.0"
-    commit: "d04850aea6d84f751920a86f867ca7d0defdad7e"
+    commit: "f9ec5232d7ebaa6d425e8ff378c5ce0a05900368"
 
   lifehash:
     npm: "@bcts/lifehash"
@@ -145,7 +145,7 @@ tools:
     npm: "@bcts/seedtool-cli"
     repo: "BlockchainCommons/seedtool-cli-rust"
     version: "0.4.0"
-    commit: "3d4e8d203a7db928713e731d416b71993dd45c28"
+    commit: "9888d7daadbdec80f897e77d108c2b590f666d7b"
 
   lifehash-cli:
     npm: "@bcts/lifehash-cli"
