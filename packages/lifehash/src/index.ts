@@ -5,3 +5,4 @@
  */
 
 export { Version, makeFromUtf8, makeFromData, makeFromDigest, type Image } from "./lib";
+export type { Data } from "./data";
