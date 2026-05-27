@@ -377,23 +377,23 @@ const setupComponentSummarizers = (context: FormatContext): void => {
     }
   });
 
-  // Signature: "Signature" for Ed25519/Schnorr (defaults), "Signature(scheme)" otherwise.
+  // Signature: bare "Signature" only for the *default* scheme (Schnorr),
+  // "Signature(scheme)" for every other scheme (Ed25519, MLDSA44, …).
   //
-  // Mirrors Rust `bc-components-rust/src/tags_registry.rs:149-170`:
-  //   format!("Signature({scheme:?})")
-  // where Rust's `Debug` for the `SignatureScheme` enum emits the
-  // variant name verbatim (e.g. `MLDSA44`, `Sr25519`). The TS enum
-  // string values match Rust's variant names exactly (`"MLDSA44"`,
-  // not the human-friendly `"MLDSA-44"` returned by
-  // `Signature.signatureType()`), so we use the raw scheme value
-  // here. Using `signatureType()` would render `MLDSA-44` and drift
-  // from Rust.
+  // Mirrors Rust `bc-components-rust/src/tags_registry.rs:152-166`, which
+  // compares against `SignatureScheme::default()` (Schnorr, with the
+  // `secp256k1` feature) and only then emits bare "Signature"; otherwise
+  // `format!("Signature({scheme:?})")`. Rust's `Debug` for the enum emits the
+  // variant name verbatim (e.g. `Ed25519`, `MLDSA44`, `Sr25519`). The TS enum
+  // string values match Rust's variant names exactly, so we use the raw scheme
+  // value here. (Previously this also bared Ed25519, which diverged from Rust —
+  // an Ed25519 signature must render `Signature(Ed25519)`.)
   tags.setSummarizer(TAG_SIGNATURE.value, (cbor, _flat) => {
     try {
       const tagged = toTaggedValue(TAG_SIGNATURE.value, cbor);
       const sig = Signature.fromTaggedCbor(tagged);
       const scheme = sig.scheme();
-      if (scheme === SignatureScheme.Ed25519 || scheme === SignatureScheme.Schnorr) {
+      if (scheme === SignatureScheme.Schnorr) {
         return { ok: true, value: "Signature" };
       }
       return { ok: true, value: `Signature(${String(scheme)})` };
