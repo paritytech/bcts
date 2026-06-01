@@ -62,7 +62,7 @@
   },
   "dependencies": {
     "@bcts/lifehash": "workspace:*",
-    "commander": "^14.0.3",
+    "commander": "^15.0.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {

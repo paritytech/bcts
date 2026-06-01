@@ -78,6 +78,6 @@
     "@bcts/tags": "workspace:*",
     "@bcts/uniform-resources": "workspace:*",
     "@bcts/xid": "workspace:*",
-    "commander": "^14.0.3"
+    "commander": "^15.0.0"
   }
 }
