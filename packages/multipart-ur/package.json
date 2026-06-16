@@ -43,7 +43,7 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "docs": "typedoc",
-    "prepublishOnly": "bun run clean && bun run build && bun test"
+    "prepublishOnly": "npm run clean && npm run build && npm test"
   },
   "keywords": [
     "multipart-ur",
