@@ -129,7 +129,7 @@ export function useXidTutorial() {
     const out: { digestHex: string; vendor: string; payloadPreview: string }[] = [];
     for (const [digestHex, envelope] of doc.getAttachments().iter()) {
       let vendor = "(unknown)";
-      let payloadPreview = "";
+      let payloadPreview = "(binary data)";
       try {
         vendor = (envelope as AttachmentEnvelope).attachmentVendor();
       } catch {
@@ -140,7 +140,7 @@ export function useXidTutorial() {
         const text = (payload as unknown as { asText(): string | undefined }).asText();
         payloadPreview = text ?? "(binary data)";
       } catch {
-        payloadPreview = "(binary data)";
+        /* keep fallback */
       }
       out.push({ digestHex, vendor, payloadPreview });
     }

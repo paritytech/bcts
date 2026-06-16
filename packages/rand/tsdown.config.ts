@@ -9,4 +9,13 @@ export default defineConfig({
   clean: true,
   target: "es2022",
   globalName: "bctsRand",
+  inputOptions: {
+    // The rolldown-plugin-dts "fake-js" pass transforms .d.ts content without
+    // emitting a sourcemap, producing a spurious SOURCEMAP_BROKEN warning even
+    // though the real JS sourcemaps are correct. Filter only that case.
+    onwarn(warning, defaultHandler) {
+      if (warning.code === "SOURCEMAP_BROKEN") return;
+      defaultHandler(warning);
+    },
+  },
 });
