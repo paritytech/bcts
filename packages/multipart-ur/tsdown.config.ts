@@ -16,6 +16,10 @@ export default defineConfig([
       // is harmless dead code.
       onwarn(warning, defaultHandler) {
         if (warning.code === "EMPTY_IMPORT_META") return;
+        // The rolldown-plugin-dts "fake-js" pass transforms .d.ts content
+        // without emitting a sourcemap, producing a spurious SOURCEMAP_BROKEN
+        // warning even though the real JS sourcemaps are correct.
+        if (warning.code === "SOURCEMAP_BROKEN") return;
         defaultHandler(warning);
       },
     },
@@ -35,6 +39,7 @@ export default defineConfig([
     entry: ["src/bin/mur.ts"],
     outDir: "dist/bin",
     format: ["cjs"],
+    dts: false,
     target: "node18",
     platform: "node",
     sourcemap: true,
