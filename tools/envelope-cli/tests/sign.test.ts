@@ -10,7 +10,12 @@ import * as verify from "../src/cmd/verify.js";
 import * as format from "../src/cmd/format.js";
 import * as generate from "../src/cmd/generate/index.js";
 import * as subject from "../src/cmd/subject/index.js";
-import { ALICE_KNOWS_BOB_EXAMPLE, ALICE_PRVKEYS, ALICE_PRVKEY_BASE, CAROL_PRVKEYS } from "./common.js";
+import {
+  ALICE_KNOWS_BOB_EXAMPLE,
+  ALICE_PRVKEYS,
+  ALICE_PRVKEY_BASE,
+  CAROL_PRVKEYS,
+} from "./common.js";
 import { DataType } from "../src/data-types.js";
 
 describe("sign command", () => {
