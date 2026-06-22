@@ -6,7 +6,7 @@
  * XID utilities - 1:1 port of cmd/xid/xid_utils.rs
  */
 
-import { PrivateKeyBase, PrivateKeys, PublicKeys, URI } from "@bcts/components";
+import { PrivateKeyBase, PrivateKeys, PublicKeys, URI, XID } from "@bcts/components";
 import type { Envelope } from "@bcts/envelope";
 import { UR } from "@bcts/uniform-resources";
 import {
@@ -215,6 +215,25 @@ export async function readXidDocumentWithPassword(
   return XIDDocument.fromEnvelope(env, password, verify);
 }
 
+/**
+ * Get the inner XID document envelope: unwrap the subject if it is wrapped
+ * (e.g. a signed XID document), otherwise return the envelope as-is.
+ *
+ * Unlike `XIDDocument.fromEnvelope`, this does no strict validation, so it
+ * works on enriched documents (extra assertions, elisions, or signatures).
+ */
+export function xidDocumentEnvelope(envelope: Envelope): Envelope {
+  return envelope.subject().isWrapped() ? envelope.subject().tryUnwrap() : envelope;
+}
+
+/**
+ * Extract the XID from a (possibly wrapped/enriched) XID document envelope,
+ * validating only that the document carries a XID as its subject leaf.
+ */
+export function xidFromDocumentEnvelope(envelope: Envelope): XID {
+  return xidDocumentEnvelope(envelope).extractSubject((cbor) => XID.fromTaggedCbor(cbor));
+}
+
 // ============================================================================
 // Private key UR extraction
 // ============================================================================
@@ -355,6 +374,20 @@ export async function xidDocumentToUrString(
     } satisfies XIDGeneratorEncryptConfig;
   } else {
     generatorOptions = toXIDGeneratorOptions(generatorOpts);
+  }
+
+  // If signing with the inception key but the inception key's private keys are
+  // encrypted and could not be decrypted, fail with a clear, actionable message
+  // instead of a cryptic downstream "missing inception key" error.
+  if (signingOptions.type === "inception") {
+    const inceptionKey = xidDocument.inceptionKey();
+    if (
+      inceptionKey !== undefined &&
+      inceptionKey.privateKeys() === undefined &&
+      inceptionKey.hasEncryptedPrivateKeys()
+    ) {
+      throw new Error("could not decrypt the inception key; check the decryption password");
+    }
   }
 
   const envelope = xidDocument.toEnvelope(privateKeyOptions, generatorOptions, signingOptions);

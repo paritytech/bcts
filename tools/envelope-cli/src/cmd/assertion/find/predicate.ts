@@ -42,7 +42,7 @@ export class FindPredicateCommand implements Exec {
     const assertions = envelope.assertions();
     const result = assertions
       .filter((a) => {
-        const pred = a.predicate();
+        const pred = a.asPredicate();
         return pred?.digest().equals(predicate.digest()) ?? false;
       })
       .map((a) => a.urString())

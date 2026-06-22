@@ -8,11 +8,12 @@
  * Validate the XID document and return its XID identifier.
  */
 
-import { XIDDocument } from "@bcts/xid";
+import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
 import type { Exec } from "../../exec.js";
 import { readEnvelope } from "../../utils.js";
 import type { VerifyArgs } from "./verify-args.js";
 import { verifySignature } from "./verify-args.js";
+import { xidFromDocumentEnvelope } from "./xid-utils.js";
 
 /**
  * Output format for the XID identifier.
@@ -58,18 +59,23 @@ export class IdCommand implements Exec {
   exec(): string {
     const envelope = readEnvelope(this.args.envelope);
     const verify = verifySignature(this.args.verifyArgs);
-    const xidDocument = XIDDocument.fromEnvelope(envelope, undefined, verify);
+    // In no-verify mode, read the XID directly off the envelope so the command
+    // works on enriched documents; otherwise strict-parse to verify signatures.
+    const xid =
+      verify === XIDVerifySignature.None
+        ? xidFromDocumentEnvelope(envelope)
+        : XIDDocument.fromEnvelope(envelope, undefined, verify).xid();
 
     const results = this.args.format.map((format) => {
       switch (format) {
         case IDFormat.Ur:
-          return xidDocument.xid().urString();
+          return xid.urString();
         case IDFormat.Hex:
-          return xidDocument.xid().toString();
+          return xid.toString();
         case IDFormat.Bytewords:
-          return xidDocument.xid().bytewordsIdentifier(true);
+          return xid.bytewordsIdentifier(true);
         case IDFormat.Bytemoji:
-          return xidDocument.xid().bytemojisIdentifier(true);
+          return xid.bytemojisIdentifier(true);
       }
     });
 

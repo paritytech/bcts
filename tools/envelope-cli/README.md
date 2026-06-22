@@ -17,7 +17,7 @@ Features:
 
 ## Rust Reference Implementation
 
-This TypeScript implementation is based on [bc-envelope-cli-rust](https://github.com/BlockchainCommons/bc-envelope-cli-rust) **v0.34.1** ([commit](https://github.com/BlockchainCommons/bc-envelope-cli-rust/tree/a93a39675de44ace33b73718f5c6346af22dc25f)).
+This TypeScript implementation is based on [bc-envelope-cli-rust](https://github.com/BlockchainCommons/bc-envelope-cli-rust) **v0.35.0** ([commit](https://github.com/BlockchainCommons/bc-envelope-cli-rust/tree/fddbca08af0ca9131f428ea600f6f913529ac02a)).
 
 ## Installation
 

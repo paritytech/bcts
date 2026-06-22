@@ -13,7 +13,13 @@
 
 import type { Exec } from "../exec.js";
 import { readEnvelope } from "../utils.js";
-import { PrivateKeys, SigningPrivateKey, type Signer, type SigningOptions } from "@bcts/components";
+import {
+  PrivateKeyBase,
+  PrivateKeys,
+  SigningPrivateKey,
+  type Signer,
+  type SigningOptions,
+} from "@bcts/components";
 import { SignatureMetadata, NOTE } from "@bcts/envelope";
 
 /**
@@ -58,11 +64,18 @@ export class SignCommand implements Exec {
   constructor(private readonly args: CommandArgs) {}
 
   exec(): string {
-    const envelope = readEnvelope(this.args.envelope);
-
     if (this.args.signers.length === 0) {
+      // If the positional envelope argument is itself a signer key UR, the user
+      // most likely meant to pass it with --signer/-s. Give a helpful hint.
+      if (this.args.envelope !== undefined && looksLikeSigner(this.args.envelope)) {
+        throw new Error(
+          "signer keys must be passed with --signer/-s; did you mean: envelope sign --signer <key> [ENVELOPE]?",
+        );
+      }
       throw new Error("at least one signer must be provided");
     }
+
+    const envelope = readEnvelope(this.args.envelope);
 
     const allSigners: Signer[] = [];
     const signersWithOptions: { signer: Signer; options?: SigningOptions }[] = [];
@@ -117,6 +130,26 @@ export class SignCommand implements Exec {
     // Add all signatures with their per-signer options (SSH gets namespace + hashAlg).
     return envelope.addSignaturesOpt(signersWithOptions).urString();
   }
+}
+
+/**
+ * Returns true if the value parses as any private-key UR type
+ * (PrivateKeyBase, PrivateKeys, or SigningPrivateKey).
+ */
+function looksLikeSigner(value: string): boolean {
+  for (const parse of [
+    () => PrivateKeyBase.fromURString(value),
+    () => PrivateKeys.fromURString(value),
+    () => SigningPrivateKey.fromURString(value),
+  ]) {
+    try {
+      parse();
+      return true;
+    } catch {
+      // not this type
+    }
+  }
+  return false;
 }
 
 /**
