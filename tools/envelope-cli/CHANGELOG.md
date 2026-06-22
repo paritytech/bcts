@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.0-beta.3] - 2026-06-22
+
+### Added
+
+- `envelope sign` now reports a helpful hint when a signer key is passed as the positional `ENVELOPE` argument without `--signer`/`-s`, instead of a generic parse error. (upstream #9)
+- Full XID document URs (`ur:xid`) are accepted wherever envelope data is expected — `subject type envelope`, `subject type wrapped`, and `subject type ur`. (upstream #10, #20)
+
+### Fixed
+
+- `assertion find object` and `assertion find predicate` no longer error on envelopes that contain elided assertions; such assertions are skipped instead of throwing. (upstream #19)
+- Read-only XID commands work on enriched or signed XID documents in no-verify mode (instead of failing strict validation): `xid id`, `xid key all`/`at`/`count`, `xid provenance get`, and `xid resolution all`. (upstream #11, #13, #18, #21, #14)
+- `xid export` now honors requested signing options (`--sign`/`--signing-key`) when exporting with elision; previously the signature was silently dropped. (upstream #17)
+- Signing with an encrypted inception key that cannot be decrypted now fails with a clear message — `could not decrypt the inception key; check the decryption password` — instead of a cryptic "missing inception key" error. (upstream #16)
+
+### Changed
+
+- Reference dependencies bumped to match upstream: `bc-xid` ^0.22 → ^0.23 and `provenance-mark` ^0.23 → ^0.24 (both already satisfied by the TypeScript `@bcts/xid` 0.23 and `@bcts/provenance-mark` 0.24 packages).
+
 ## [1.0.0-beta.2] - 2026-06-16
 
 ### Changed
