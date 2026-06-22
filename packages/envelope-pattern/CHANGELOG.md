@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.3] - 2026-06-22
+
+### Changed
+
+- Dependencies bump
+
 ## [1.0.0-beta.2] - 2026-06-16
 
 ### Changed

@@ -1,5 +1,11 @@
 # @bcts/multipart-ur
 
+## 1.0.0-beta.3
+
+### Changed
+
+- Dependencies bump
+
 ## 1.0.0-beta.2
 
 ### Changed
