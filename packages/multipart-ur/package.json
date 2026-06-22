@@ -72,7 +72,7 @@
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "@types/omggif": "^1.0.5",
     "@types/qrcode-generator": "^1.0.6",
     "commander": "^15.0.0",

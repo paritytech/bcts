@@ -39,7 +39,7 @@
     "@nuxt/eslint": "^1.16.0",
     "@nuxthub/core": "0.10.7",
     "@nuxtjs/seo": "5.3.0",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "eslint": "^10.5.0",
     "nuxt": "^4.4.8",
     "nuxt-gtag": "4.1.0",
