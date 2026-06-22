@@ -9,14 +9,14 @@
  */
 
 import { KEY } from "@bcts/known-values";
-import { XIDDocument } from "@bcts/xid";
+import { XIDDocument, XIDVerifySignature } from "@bcts/xid";
 import type { ExecAsync } from "../../../exec.js";
 import { readEnvelope } from "../../../utils.js";
 import type { ReadPasswordArgs } from "../password-args.js";
 import type { VerifyArgs } from "../verify-args.js";
 import { verifySignature } from "../verify-args.js";
 import { getPrivateKeyUr } from "../xid-utils.js";
-import { readXidDocument } from "../xid-utils.js";
+import { readXidDocument, xidDocumentEnvelope, xidFromDocumentEnvelope } from "../xid-utils.js";
 
 /**
  * Command arguments for the key at command.
@@ -51,14 +51,21 @@ export class KeyAtCommand implements ExecAsync {
     } else {
       // Return public key (original behavior)
       const envelope = readEnvelope(this.args.envelope);
-      XIDDocument.fromEnvelope(envelope, undefined, verifySignature(this.args.verifyArgs)); // Validation only
+      const verify = verifySignature(this.args.verifyArgs);
+      // Validation only: in no-verify mode just confirm a XID is present (works
+      // on enriched docs); otherwise strict-parse to verify the signature.
+      if (verify === XIDVerifySignature.None) {
+        xidFromDocumentEnvelope(envelope);
+      } else {
+        XIDDocument.fromEnvelope(envelope, undefined, verify);
+      }
       // Unwrap if signed to get at the KEY assertions
-      const innerEnvelope = envelope.subject().isWrapped() ? envelope.subject().unwrap() : envelope;
+      const innerEnvelope = xidDocumentEnvelope(envelope);
       const keyAssertions = innerEnvelope.assertionsWithPredicate(KEY);
       if (this.args.index >= keyAssertions.length) {
         throw new Error("Index out of bounds");
       }
-      const keyEnvelope = keyAssertions[this.args.index].object();
+      const keyEnvelope = keyAssertions[this.args.index].tryObject();
       return keyEnvelope.urString();
     }
   }

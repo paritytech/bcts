@@ -42,7 +42,7 @@ export class FindObjectCommand implements Exec {
     const assertions = envelope.assertions();
     const result = assertions
       .filter((a) => {
-        const obj = a.object();
+        const obj = a.asObject();
         return obj?.digest().equals(object.digest()) ?? false;
       })
       .map((a) => a.urString())

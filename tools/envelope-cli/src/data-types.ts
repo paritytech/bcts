@@ -14,6 +14,7 @@ import { ARID, Digest, URI, UUID } from "@bcts/components";
 import { UR } from "@bcts/uniform-resources";
 import { KnownValue, KNOWN_VALUES } from "@bcts/known-values";
 import { getGlobalTagsStore } from "@bcts/tags";
+import { readEnvelope } from "./utils.js";
 
 /**
  * Supported data types for envelope values.
@@ -174,7 +175,7 @@ function parseDigest(s: string): Envelope {
  * Parse an Envelope from a ur:envelope string.
  */
 function parseEnvelope(s: string): Envelope {
-  return Envelope.fromUrString(s);
+  return readEnvelope(s);
 }
 
 /**
@@ -236,6 +237,14 @@ function parseUr(s: string, cborTagValue?: number | bigint): Envelope {
     return envelope.wrap();
   }
 
+  // A non-envelope UR (e.g. a ur:xid document) whose tagged CBOR is itself a
+  // valid envelope is accepted directly as envelope data (returned unwrapped).
+  try {
+    return Envelope.fromTaggedCbor(ur.cbor());
+  } catch {
+    // Not a tagged-CBOR envelope — fall through to the tag-store lookup.
+  }
+
   // Look up the CBOR tag for this UR type
   const tagsStore = getGlobalTagsStore();
   const tag = tagsStore.tagForName(ur.urTypeStr());
@@ -270,7 +279,7 @@ function parseUuid(s: string): Envelope {
  * Parse a wrapped envelope from a ur:envelope string.
  */
 function parseWrappedEnvelope(s: string): Envelope {
-  const envelope = Envelope.fromUrString(s);
+  const envelope = readEnvelope(s);
   return envelope.wrap();
 }
 

@@ -108,7 +108,9 @@ packages:
     npm: "@bcts/hubert"
     repo: "BlockchainCommons/hubert-rust"
     version: "0.5.0"
-    commit: "01dcffe708a88ad4a7c9091a3c99fcfee9b550ab"
+    # Untagged master commit beyond the 0.5.0 tag: "Align to dependencies."
+    # (bc-xid ^0.22 -> ^0.23). No TS code impact; @bcts/xid already at 0.23.0.
+    commit: "ef8d05b4486e569ccfe9a747c274f1f2c525afc9"
 
   frost-hubert:
     npm: "@bcts/frost-hubert"
@@ -132,14 +134,16 @@ tools:
   envelope-cli:
     npm: "@bcts/envelope-cli"
     repo: "BlockchainCommons/bc-envelope-cli-rust"
-    version: "0.34.1"
-    commit: "a93a39675de44ace33b73718f5c6346af22dc25f"
+    version: "0.35.0"
+    commit: "fddbca08af0ca9131f428ea600f6f913529ac02a"
 
   provenance-mark-cli:
     npm: "@bcts/provenance-mark-cli"
     repo: "BlockchainCommons/provenance-mark-cli-rust"
     version: "0.7.0"
-    commit: "167495aa19b1af66838f04fa8c74af2feef64fd6"
+    # Untagged master commit beyond the 0.7.0 tag: "Align to dependencies."
+    # (provenance-mark ^0.23 -> ^0.24). No TS code impact; @bcts/provenance-mark already at 0.24.0.
+    commit: "76cab37b6df0877b64ec1d58dc549d6699e465d8"
 
   seedtool-cli:
     npm: "@bcts/seedtool-cli"

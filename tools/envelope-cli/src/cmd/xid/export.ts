@@ -108,7 +108,13 @@ export class ExportCommand implements ExecAsync {
       (privateOpts === PrivateOptions.Elide || privateOpts === PrivateOptions.Include) &&
       (generatorOpts === GeneratorOptions.Elide || generatorOpts === GeneratorOptions.Include);
 
-    if (canUseEnvelopeElision) {
+    // Only take the envelope-elision fast path when no signing is requested;
+    // otherwise fall through to reconstruction, which actually applies signing.
+    if (
+      canUseEnvelopeElision &&
+      this.args.signingArgs.sign === SigningOption.None &&
+      this.args.signingArgs.signingKey === undefined
+    ) {
       return this.elideAtEnvelopeLevel(privateOpts, generatorOpts);
     }
 
