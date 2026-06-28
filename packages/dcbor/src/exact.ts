@@ -25,6 +25,38 @@ const hasFract = (n: number): boolean => {
   return n % 1 !== 0;
 };
 
+const U64_MAX_BIG = 0xffffffffffffffffn;
+const I64_MAX_BIG = 0x7fffffffffffffffn;
+const I64_MIN_BIG = -0x8000000000000000n;
+
+/**
+ * Truncate a finite float to `u64` with Rust `as u64` SATURATING semantics:
+ * NaN and negatives clamp to 0, values at/above 2^64 clamp to `u64::MAX`.
+ * Used to reproduce Rust's `(f as u64) == source` round-trip check (e.g.
+ * `u64::MAX as f64` rounds to 2^64, which saturates back to `u64::MAX`).
+ */
+const saturateFloatToU64 = (f: number): bigint => {
+  if (Number.isNaN(f)) return 0n;
+  const t = Math.trunc(f);
+  if (t <= 0) return 0n;
+  const big = BigInt(t);
+  return big > U64_MAX_BIG ? U64_MAX_BIG : big;
+};
+
+/**
+ * Truncate a finite float to `i64` with Rust `as i64` SATURATING semantics:
+ * NaN clamps to 0, values above `i64::MAX` clamp to `i64::MAX`, values below
+ * `i64::MIN` clamp to `i64::MIN`.
+ */
+const saturateFloatToI64 = (f: number): bigint => {
+  if (Number.isNaN(f)) return 0n;
+  const t = Math.trunc(f);
+  const big = BigInt(t);
+  if (big > I64_MAX_BIG) return I64_MAX_BIG;
+  if (big < I64_MIN_BIG) return I64_MIN_BIG;
+  return big;
+};
+
 /**
  * Exact conversions for i16 (-32768 to 32767).
  */
@@ -529,19 +561,19 @@ export class ExactF32 {
   }
 
   static exactFromU64(source: number | bigint): number | undefined {
-    const n = typeof source === "bigint" ? Number(source) : source;
-    const f32Bytes = numberToBinary32(n);
-    const f = binary32ToNumber(f32Bytes);
-    const roundTrip = typeof source === "bigint" ? BigInt(Math.trunc(f)) : Math.trunc(f);
-    return roundTrip === source ? f : undefined;
+    const srcBig = typeof source === "bigint" ? source : BigInt(source);
+    const f = binary32ToNumber(numberToBinary32(Number(srcBig)));
+    if (!Number.isFinite(f)) return undefined;
+    // Saturating round-trip mirrors Rust `(f as u64) == source`, so e.g.
+    // u64::MAX (which rounds to 2^64 in f32) round-trips via saturation.
+    return saturateFloatToU64(f) === srcBig ? f : undefined;
   }
 
   static exactFromI64(source: number | bigint): number | undefined {
-    const n = typeof source === "bigint" ? Number(source) : source;
-    const f32Bytes = numberToBinary32(n);
-    const f = binary32ToNumber(f32Bytes);
-    const roundTrip = typeof source === "bigint" ? BigInt(Math.trunc(f)) : Math.trunc(f);
-    return roundTrip === source ? f : undefined;
+    const srcBig = typeof source === "bigint" ? source : BigInt(source);
+    const f = binary32ToNumber(numberToBinary32(Number(srcBig)));
+    if (!Number.isFinite(f)) return undefined;
+    return saturateFloatToI64(f) === srcBig ? f : undefined;
   }
 
   static exactFromU128(source: bigint): number | undefined {
@@ -594,15 +626,19 @@ export class ExactF64 {
   }
 
   static exactFromU64(source: number | bigint): number | undefined {
-    const n = typeof source === "bigint" ? Number(source) : source;
-    const roundTrip = typeof source === "bigint" ? BigInt(Math.trunc(n)) : Math.trunc(n);
-    return roundTrip === source ? n : undefined;
+    const srcBig = typeof source === "bigint" ? source : BigInt(source);
+    const n = Number(srcBig);
+    if (!Number.isFinite(n)) return undefined;
+    // Saturating round-trip mirrors Rust `(f as u64) == source`, so e.g.
+    // u64::MAX (which rounds to 2^64 in f64) round-trips via saturation.
+    return saturateFloatToU64(n) === srcBig ? n : undefined;
   }
 
   static exactFromI64(source: number | bigint): number | undefined {
-    const n = typeof source === "bigint" ? Number(source) : source;
-    const roundTrip = typeof source === "bigint" ? BigInt(Math.trunc(n)) : Math.trunc(n);
-    return roundTrip === source ? n : undefined;
+    const srcBig = typeof source === "bigint" ? source : BigInt(source);
+    const n = Number(srcBig);
+    if (!Number.isFinite(n)) return undefined;
+    return saturateFloatToI64(n) === srcBig ? n : undefined;
   }
 
   static exactFromU128(source: bigint): number | undefined {

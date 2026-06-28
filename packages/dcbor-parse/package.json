@@ -1,6 +1,6 @@
 {
   "name": "@bcts/dcbor-parse",
-  "version": "1.0.0-beta.3",
+  "version": "1.0.0-beta.4",
   "type": "module",
   "description": "dCBOR Diagnostic Parser and Composer for TypeScript",
   "license": "BSD-2-Clause-Patent",
@@ -56,8 +56,8 @@
   "devDependencies": {
     "@bcts/eslint": "workspace:*",
     "@bcts/tsconfig": "workspace:*",
-    "@types/node": "^25.9.3",
-    "eslint": "^10.5.0",
+    "@types/node": "^26.0.1",
+    "eslint": "^10.6.0",
     "tsdown": "^0.22.3",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3",

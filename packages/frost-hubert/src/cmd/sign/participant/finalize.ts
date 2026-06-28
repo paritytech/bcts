@@ -574,8 +574,7 @@ function loadPublicKeyPackage(registryPath: string, groupId: ARID): LoadedPublic
       throw new Error("collected_finalize.json is empty");
     }
     const publicKeyValue = firstEntry["public_key_package"] as
-      | SerializedPublicKeyPackage
-      | undefined;
+      SerializedPublicKeyPackage | undefined;
     if (publicKeyValue === undefined) {
       throw new Error("public_key_package missing in collected_finalize.json");
     }

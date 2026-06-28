@@ -10,9 +10,18 @@
  */
 
 import type { Cbor, CborInput } from "../src";
-import { cbor, CborMap, summary, registerTags, CborDate } from "../src";
+import { cbor, CborMap, summary, registerTags, CborDate, decodeCbor } from "../src";
 import { getGlobalTagsStore } from "../src/tags-store";
 import type { MapEntry } from "../src/map";
+
+/** Helper to convert a hex string to a Uint8Array. */
+function hexToBytes(hexStr: string): Uint8Array {
+  const bytes = new Uint8Array(hexStr.length / 2);
+  for (let i = 0; i < hexStr.length; i += 2) {
+    bytes[i / 2] = parseInt(hexStr.substr(i, 2), 16);
+  }
+  return bytes;
+}
 
 // Helper function to get description (matches Rust's format!("{}", cbor))
 function cborDescription(value: CborInput): string {
@@ -657,16 +666,141 @@ describe("format tests", () => {
   });
 
   test("format_structure", () => {
-    // For this test, we would need to decode from hex first
-    // Example hex: 'd83183015829536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e82d902c3820158402b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710ad902c3820158400f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900'
-    // const cborValue = decodeCbor(hexToBytes(encodedCborHex));
-    // For now, skip complex structure test
-    // This would require full hex decoding and structure testing
+    const encodedCborHex =
+      "d83183015829536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e82d902c3820158402b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710ad902c3820158400f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900";
+    const cborValue = decodeCbor(hexToBytes(encodedCborHex));
+
+    const description =
+      "49([1, h'536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e', [707([1, h'2b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710a']), 707([1, h'0f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900'])]])";
+    const debugDescription =
+      "tagged(49, array([unsigned(1), bytes(536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e), array([tagged(707, array([unsigned(1), bytes(2b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710a)])), tagged(707, array([unsigned(1), bytes(0f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900)]))])]))";
+    const diagnostic = `49(
+    [
+        1,
+        h'536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e',
+        [
+            707(
+                [
+                    1,
+                    h'2b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710a'
+                ]
+            ),
+            707(
+                [
+                    1,
+                    h'0f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900'
+                ]
+            )
+        ]
+    ]
+)`;
+    const diagnosticFlat =
+      "49([1, h'536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e', [707([1, h'2b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710a']), 707([1, h'0f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900'])]])";
+    const hex =
+      "d83183015829536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e82d902c3820158402b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710ad902c3820158400f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900";
+    const hexAnnotated = `d8 31                                   # tag(49)
+    83                                  # array(3)
+        01                              # unsigned(1)
+        5829                            # bytes(41)
+            536f6d65206d7973746572696573206172656e2774206d65616e7420746f20626520736f6c7665642e # "Some mysteries aren't meant to be solved."
+        82                              # array(2)
+            d9 02c3                     # tag(707)
+                82                      # array(2)
+                    01                  # unsigned(1)
+                    5840                # bytes(64)
+                        2b9238e19eafbc154b49ec89edd4e0fb1368e97332c6913b4beb637d1875824f3e43bd7fb0c41fb574f08ce00247413d3ce2d9466e0ccfa4a89b92504982710a
+            d9 02c3                     # tag(707)
+                82                      # array(2)
+                    01                  # unsigned(1)
+                    5840                # bytes(64)
+                        0f9c7af36804ffe5313c00115e5a31aa56814abaa77ff301da53d48613496e9c51a98b36d55f6fb5634fdb0123910cfa4904f1c60523df41013dc3749b377900`;
+
+    run(
+      "format_structure",
+      cborValue,
+      description,
+      debugDescription,
+      diagnostic,
+      diagnostic,
+      diagnosticFlat,
+      diagnosticFlat,
+      hex,
+      hexAnnotated,
+    );
   });
 
   test("format_structure_2", () => {
-    // Similar to format_structure - skip for now
-    // Requires full hex decoding and complex structure testing
+    registerTags();
+    const encodedCborHex =
+      "d9012ca4015059f2293a5bce7d4de59e71b4207ac5d202c11a6035970003754461726b20507572706c652041717561204c6f766504787b4c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e73656374657475722061646970697363696e6720656c69742c2073656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f726520657420646f6c6f7265206d61676e6120616c697175612e";
+    const cborValue = decodeCbor(hexToBytes(encodedCborHex));
+
+    const description =
+      '300({1: h\'59f2293a5bce7d4de59e71b4207ac5d2\', 2: 1(1614124800), 3: "Dark Purple Aqua Love", 4: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."})';
+    const debugDescription =
+      'tagged(300, map({0x01: (unsigned(1), bytes(59f2293a5bce7d4de59e71b4207ac5d2)), 0x02: (unsigned(2), tagged(1, unsigned(1614124800))), 0x03: (unsigned(3), text("Dark Purple Aqua Love")), 0x04: (unsigned(4), text("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."))}))';
+    const diagnostic = `300(
+    {
+        1:
+        h'59f2293a5bce7d4de59e71b4207ac5d2',
+        2:
+        1(1614124800),
+        3:
+        "Dark Purple Aqua Love",
+        4:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    }
+)`;
+    const diagnosticAnnotated = `300(
+    {
+        1:
+        h'59f2293a5bce7d4de59e71b4207ac5d2',
+        2:
+        1(1614124800),   / date /
+        3:
+        "Dark Purple Aqua Love",
+        4:
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    }
+)`;
+    const diagnosticFlat =
+      '300({1: h\'59f2293a5bce7d4de59e71b4207ac5d2\', 2: 1(1614124800), 3: "Dark Purple Aqua Love", 4: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."})';
+    const summaryStr =
+      '300({1: h\'59f2293a5bce7d4de59e71b4207ac5d2\', 2: 2021-02-24, 3: "Dark Purple Aqua Love", 4: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."})';
+    const hex =
+      "d9012ca4015059f2293a5bce7d4de59e71b4207ac5d202c11a6035970003754461726b20507572706c652041717561204c6f766504787b4c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e73656374657475722061646970697363696e6720656c69742c2073656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f726520657420646f6c6f7265206d61676e6120616c697175612e";
+    const hexAnnotated = `d9 012c                                 # tag(300)
+    a4                                  # map(4)
+        01                              # unsigned(1)
+        50                              # bytes(16)
+            59f2293a5bce7d4de59e71b4207ac5d2
+        02                              # unsigned(2)
+        c1                              # tag(1) date
+            1a60359700                  # unsigned(1614124800)
+        03                              # unsigned(3)
+        75                              # text(21)
+            4461726b20507572706c652041717561204c6f7665 # "Dark Purple Aqua Love"
+        04                              # unsigned(4)
+        78 7b                           # text(123)
+            4c6f72656d20697073756d20646f6c6f722073697420616d65742c20636f6e73656374657475722061646970697363696e6720656c69742c2073656420646f20656975736d6f642074656d706f7220696e6369646964756e74207574206c61626f726520657420646f6c6f7265206d61676e6120616c697175612e # "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."`;
+
+    // Assert the LIBRARY outputs directly. The value is decoded (its tags carry
+    // no name), so — exactly like Rust — the plain diagnostic/Display path
+    // renders tag numbers (`1(...)`), while only the annotated path resolves
+    // `/ date /` and the summary renders `2021-02-24`. (The shared `run()`
+    // helper's test-local Display reimplementation resolves names from the
+    // global store and so can't model the unnamed-decoded-tag case faithfully.)
+    expect(cborValue.toDiagnostic()).toBe(diagnostic);
+    expect(cborValue.toDiagnosticAnnotated()).toBe(diagnosticAnnotated);
+    expect(cborValue.toString()).toBe(diagnosticFlat);
+    expect(summary(cborValue)).toBe(summaryStr);
+    expect(cborValue.toHex()).toBe(hex);
+    expect(cborValue.toHexAnnotated()).toBe(hexAnnotated);
+    // Debug rendering (numbers for decoded tags) matches Rust's debug string.
+    expect(cborDebugDescription(cborValue)).toBe(debugDescription);
+    // `description` here equals the flat diagnostic for a decoded (unnamed-tag)
+    // value, mirroring Rust's `format!("{}", cbor)`.
+    void description;
   });
 
   test("format_key_order", () => {

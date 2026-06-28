@@ -1,5 +1,11 @@
 # @bcts/multipart-ur
 
+## 1.0.0-beta.4
+
+### Changed
+
+- Dependency sync
+
 ## 1.0.0-beta.3
 
 ### Changed

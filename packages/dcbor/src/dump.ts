@@ -14,6 +14,7 @@
 
 import { type Cbor, MajorType, cborData } from "./cbor";
 import { encodeVarInt } from "./varint";
+import { floatDisplayString } from "./float";
 import { flanked, sanitized } from "./string-util";
 import type { TagsStore } from "./tags-store";
 import { getGlobalTagsStore } from "./tags-store";
@@ -274,7 +275,9 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
       } else if (simple.type === "Null") {
         note = "null";
       } else if (simple.type === "Float") {
-        note = `${simple.value}`;
+        // Match Rust's hex-dump note, which formats the float via its Display
+        // impl (`{:?}` for finite values), not raw JS coercion.
+        note = floatDisplayString(simple.value);
       } else {
         note = "simple";
       }

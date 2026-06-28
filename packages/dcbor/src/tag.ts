@@ -80,15 +80,24 @@ export const tagWithValue = (value: TagValue): Tag => ({ value });
 export const tagWithStaticName = (value: TagValue, name: string): Tag => ({ value, name });
 
 /**
+ * Compare two tag VALUES for equality, normalizing across the `number`/`bigint`
+ * divide. Rust's `Tag` equality is purely value-based over `u64`; in JavaScript
+ * `100n === 100` is `false`, so a raw `===` would spuriously reject a legal u64
+ * tag that decoded to a `bigint` (value > 2^53-1) when matched against a
+ * `number` literal (and vice-versa). This helper mirrors Rust's `u64` compare.
+ */
+export const tagValuesEqual = (a: TagValue, b: TagValue): boolean => {
+  if (typeof a === "bigint" || typeof b === "bigint") {
+    return BigInt(a) === BigInt(b);
+  }
+  return a === b;
+};
+
+/**
  * Compare two tags for equality. Mirrors Rust's `PartialEq for Tag`, which
  * compares by `value` only and ignores the optional `name`.
  */
-export const tagsEqual = (a: Tag, b: Tag): boolean => {
-  if (typeof a.value === "bigint" || typeof b.value === "bigint") {
-    return BigInt(a.value) === BigInt(b.value);
-  }
-  return a.value === b.value;
-};
+export const tagsEqual = (a: Tag, b: Tag): boolean => tagValuesEqual(a.value, b.value);
 
 /**
  * Get the string representation of a tag.

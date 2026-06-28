@@ -13,9 +13,11 @@ import { decodeCbor } from "../src/decode";
 import { hex } from "../src/dump";
 import { ByteString } from "../src/byte-string";
 import { CborMap } from "../src/map";
+import { CborSet } from "../src/set";
 import { CborDate } from "../src/date";
 import { createTag } from "../src/tag";
-import { extractCbor } from "../src/conveniences";
+import { extractCbor, asNumber, asInteger, expectInteger } from "../src/conveniences";
+import { floatDisplayString } from "../src/float";
 
 /** Helper to convert hex string to Uint8Array */
 function hexToBytes(hex: string): Uint8Array {
@@ -78,14 +80,17 @@ function cborDebug(cborValue: Cbor): string {
           case "Null":
             return "simple(null)";
           case "Float": {
-            // Format float values properly (inf, -inf, NaN)
+            // Matches Rust's Debug for Simple::Float = `format!("{:?}", v)`:
+            // inf/-inf/NaN render as those words; finite values use Rust's
+            // shortest `{:?}` form (decimal/scientific crossover), which
+            // floatDisplayString reproduces.
             const f = simple.value;
             if (isNaN(f)) {
               return "simple(NaN)";
             } else if (!isFinite(f)) {
               return f > 0 ? "simple(inf)" : "simple(-inf)";
             } else {
-              return `simple(${f})`;
+              return `simple(${floatDisplayString(f)})`;
             }
           }
         }
@@ -578,45 +583,171 @@ describe("encode tests", () => {
     expect(cborData(envelope)).toEqual(cborData(decodedCbor));
   });
 
-  // Test 16: encode_float
+  // Test 16: encode_float — full 1:1 port of Rust encode.rs `encode_float`
+  // (all ~30 vectors, including the numeric-reduction boundary cliffs).
   describe("encode_float", () => {
-    test("floating point numbers get serialized as shortest accurate representation", () => {
+    test("shortest accurate representation", () => {
       testCbor(1.5, "simple(1.5)", "1.5", "f93e00");
       testCbor(2345678.25, "simple(2345678.25)", "2345678.25", "fa4a0f2b39");
       testCbor(1.2, "simple(1.2)", "1.2", "fb3ff3333333333333");
       testCbor(Infinity, "simple(inf)", "Infinity", "f97c00");
     });
 
-    test("float reduction to integers", () => {
+    test("floats representable as integers are serialized as integers", () => {
       testCbor(42.0, "unsigned(42)", "42", "182a");
       testCbor(2345678.0, "unsigned(2345678)", "2345678", "1a0023cace");
       testCbor(-2345678.0, "negative(-2345678)", "-2345678", "3a0023cacd");
-      testCbor(-0.0, "unsigned(0)", "0", "00"); // Negative zero becomes integer zero
     });
 
-    test("subnormals and special values", () => {
+    test("negative zero serializes as integer zero", () => {
+      testCbor(-0.0, "unsigned(0)", "0", "00");
+    });
+
+    test("subnormals and width boundaries", () => {
+      // Smallest half-precision subnormal.
       testCbor(
         5.960464477539063e-8,
         "simple(5.960464477539063e-8)",
         "5.960464477539063e-8",
         "f90001",
       );
+      // Smallest single subnormal.
+      testCbor(
+        1.401298464324817e-45,
+        "simple(1.401298464324817e-45)",
+        "1.401298464324817e-45",
+        "fa00000001",
+      );
+      // Smallest double subnormal.
       testCbor(5e-324, "simple(5e-324)", "5e-324", "fb0000000000000001");
+      // Smallest double normal.
+      testCbor(
+        2.2250738585072014e-308,
+        "simple(2.2250738585072014e-308)",
+        "2.2250738585072014e-308",
+        "fb0010000000000000",
+      );
+      // Smallest half-precision normal.
+      testCbor(6.103515625e-5, "simple(6.103515625e-5)", "6.103515625e-5", "f90400");
+      // Largest possible half-precision.
       testCbor(65504.0, "unsigned(65504)", "65504", "19ffe0");
+      // Exponent 24 to test single exponent boundary.
       testCbor(33554430.0, "unsigned(33554430)", "33554430", "1a01fffffe");
     });
 
-    test("large negative conversions", () => {
+    test("int64 / uint64 reduction cliffs", () => {
+      // Most negative double that converts to int64.
+      testCbor(
+        -9223372036854774784.0,
+        "negative(-9223372036854774784)",
+        "-9223372036854774784",
+        "3b7ffffffffffffbff",
+      );
+      // Int64 with too much precision to be a float.
+      testCbor(
+        -9223372036854775807n,
+        "negative(-9223372036854775807)",
+        "-9223372036854775807",
+        "3b7ffffffffffffffe",
+      );
+      // Most negative encoded as 65-bit neg; can only be decoded as bignum.
       testCborDecode(
         "3b8000000000000000",
         "negative(-9223372036854775809)",
         "-9223372036854775809",
       );
+      // Largest double that can convert to uint64, almost UINT64_MAX.
+      // (Written in shortest exponential form; === 18446744073709550000.0.)
+      testCbor(
+        1.844674407370955e19,
+        "unsigned(18446744073709549568)",
+        "18446744073709549568",
+        "1bfffffffffffff800",
+      );
+      // Just too large to convert to uint64, but converts to a single, just
+      // over UINT64_MAX.
+      testCbor(
+        1.8446744073709552e19,
+        "simple(1.8446744073709552e19)",
+        "1.8446744073709552e19",
+        "fa5f800000",
+      );
+      // Least negative float not representable as Int64.
+      testCbor(
+        -9223372036854777856.0,
+        "negative(-9223372036854777856)",
+        "-9223372036854777856",
+        "3b80000000000007ff",
+      );
+      // Next to most negative float encodable as 65-bit neg.
+      testCbor(
+        -18446744073709549568.0,
+        "negative(-18446744073709549568)",
+        "-18446744073709549568",
+        "3bfffffffffffff7ff",
+      );
+      // 65-bit neg encoded, not representable as double.
       testCborDecode(
         "3bfffffffffffffffe",
         "negative(-18446744073709551615)",
         "-18446744073709551615",
       );
+      // Most negative encodable as a 65-bit neg.
+      testCbor(
+        -18446744073709551616.0,
+        "negative(-18446744073709551616)",
+        "-18446744073709551616",
+        "3bffffffffffffffff",
+      );
+      // Least negative whole integer that must be encoded as float in dCBOR.
+      testCbor(
+        -18446744073709555712.0,
+        "simple(-1.8446744073709556e19)",
+        "-1.8446744073709556e19",
+        "fbc3f0000000000001",
+      );
+      // Large negative that converts to negative int.
+      // (Shortest exponential form; === -18446742974197924000.0.)
+      testCbor(
+        -1.8446742974197924e19,
+        "negative(-18446742974197923840)",
+        "-18446742974197923840",
+        "3bfffffeffffffffff",
+      );
+    });
+
+    test("single/double width extremes", () => {
+      // Largest possible single.
+      testCbor(
+        3.4028234663852886e38,
+        "simple(3.4028234663852886e38)",
+        "3.4028234663852886e38",
+        "fa7f7fffff",
+      );
+      // Slightly larger than largest possible single.
+      testCbor(
+        3.402823466385289e38,
+        "simple(3.402823466385289e38)",
+        "3.402823466385289e38",
+        "fb47efffffe0000001",
+      );
+      // Largest double.
+      testCbor(
+        1.7976931348623157e308,
+        "simple(1.7976931348623157e308)",
+        "1.7976931348623157e308",
+        "fb7fefffffffffffff",
+      );
+    });
+
+    test("large whole-valued JS numbers reduce to integers like the bigint path (C1)", () => {
+      // Regression for C1: a whole `number` beyond the JS safe-integer range
+      // must encode as an integer (matching Rust `From<f64>` and the bigint
+      // path), not as a float.
+      expect(hex(cbor(2 ** 53))).toBe("1b0020000000000000");
+      expect(hex(cbor(2 ** 53))).toBe(hex(cbor(9007199254740992n)));
+      expect(hex(cbor(2 ** 63))).toBe("1b8000000000000000");
+      expect(hex(cbor(2 ** 63))).toBe(hex(cbor(9223372036854775808n)));
     });
   });
 
@@ -634,13 +765,15 @@ describe("encode tests", () => {
 
   // Test 18: fail_float_coerced_to_int
   test("fail_float_coerced_to_int", () => {
-    // Floating point values cannot be coerced to integer types.
+    // Floating point values cannot be coerced to integer types (mirrors Rust
+    // `i32::try_from(c)` returning Err for a fractional float).
     const n = 42.5;
     const c = cbor(n);
-    const f = extractCbor(c);
-    expect(f).toBe(n);
-    // In TypeScript, extractCbor will return the float value, not throw
-    // The Rust version has strict type checking, TypeScript is more lenient
+    // It is still a float when read as a number.
+    expect(asNumber(c)).toBe(n);
+    // But it is NOT an integer: asInteger yields undefined, expectInteger throws.
+    expect(asInteger(c)).toBeUndefined();
+    expect(() => expectInteger(c)).toThrow();
   });
 
   // Test 19: non_canonical_float_1
@@ -793,9 +926,11 @@ describe("encode tests", () => {
   test("encode_nan", () => {
     const canonicalNanData = hexToBytes("f97e00");
 
-    // All NaN representations should encode to canonical form
-    const nonstandardF64Nan = NaN;
-    expect(cborData(cbor(nonstandardF64Nan))).toEqual(canonicalNanData);
+    // JS has a single (f64) float type, so we cannot construct distinct
+    // f32/f16 NaN bit patterns the way Rust's encode_nan does. Any JS NaN must
+    // canonicalize to f97e00. The f32/f16 non-canonical NaN *decode* rejections
+    // (see decode_nan below) are the primary cross-width guard.
+    expect(cborData(cbor(NaN))).toEqual(canonicalNanData);
   });
 
   // Test 33: decode_nan
@@ -842,41 +977,49 @@ describe("encode tests", () => {
     expect(() => decodeCbor(hexToBytes("fbfff0000000000000"))).toThrow();
   });
 
-  // Tag 258 (set) decode parity — mirrors Rust `Set::insert_next`
-  // semantics: a tag-258 wire encoding must already be in strict ascending
-  // CBOR-byte order with no duplicates.
-  describe("tag 258 (set) decode", () => {
-    test("decodes a canonically-ordered tag-258 array as a set", async () => {
-      const { CborSet } = await import("../src/set");
-      // d9 01 02      tag(258)
-      //   83          array(3)
-      //     01        unsigned(1)
-      //     02        unsigned(2)
-      //     03        unsigned(3)
-      const data = hexToBytes("d9010283010203");
-      const c = decodeCbor(data);
-      const set = CborSet.fromTaggedCborStatic(c);
+  // Set parity with Rust `dcbor` (C5): a Set is a PLAIN UNTAGGED ARRAY in
+  // strict ascending CBOR-byte order with no duplicates — NOT tag-258.
+  describe("set (untagged array, Rust parity)", () => {
+    test("encodes as an untagged array through every path", () => {
+      const set = CborSet.fromArray([3, 1, 2]);
+      // Rust `Set::cbor_data()` of {1,2,3} -> 83010203 (untagged, sorted).
+      expect(hex(set.toCbor())).toBe("83010203");
+      expect(bytesToHex(set.toBytes())).toBe("83010203");
+      expect(bytesToHex(cborData(set))).toBe("83010203");
+      // Nested inside an array: 81 (array(1)) + 83010203.
+      expect(bytesToHex(cborData([set]))).toBe("8183010203");
+    });
+
+    test("decodes from an untagged array", () => {
+      const c = decodeCbor(hexToBytes("83010203"));
+      const set = CborSet.fromCbor(c);
       expect(set.size).toBe(3);
       expect(set.contains(1)).toBe(true);
       expect(set.contains(2)).toBe(true);
       expect(set.contains(3)).toBe(true);
     });
 
-    test("rejects misordered inner-array elements", async () => {
-      const { CborSet } = await import("../src/set");
-      // tag(258) array(3) [3, 1, 2] — `3` would precede `1`/`2` in canonical
-      // CBOR-byte order, violating Set::insert_next.
-      const data = hexToBytes("d9010283030102");
-      const c = decodeCbor(data);
-      expect(() => CborSet.fromTaggedCborStatic(c)).toThrow();
+    test("rejects misordered array elements", () => {
+      // array(3) [3, 1, 2] — `3` precedes `1` in canonical CBOR-byte order.
+      const c = decodeCbor(hexToBytes("83030102"));
+      expect(() => CborSet.fromCbor(c)).toThrow(/canonical order|misordered/i);
     });
 
-    test("rejects duplicate inner-array elements", async () => {
-      const { CborSet } = await import("../src/set");
-      // tag(258) array(3) [1, 1, 2]
-      const data = hexToBytes("d9010283010102");
-      const c = decodeCbor(data);
-      expect(() => CborSet.fromTaggedCborStatic(c)).toThrow();
+    test("rejects duplicate array elements", () => {
+      // array(3) [1, 1, 2].
+      const c = decodeCbor(hexToBytes("83010102"));
+      expect(() => CborSet.fromCbor(c)).toThrow(/duplicate/i);
+    });
+
+    test("rejects a non-array", () => {
+      const c = decodeCbor(hexToBytes("01")); // unsigned(1)
+      expect(() => CborSet.fromCbor(c)).toThrow();
+    });
+
+    test("does NOT emit a tag-258 wrapper", () => {
+      const set = CborSet.fromArray([1, 2, 3]);
+      // The old (incorrect) tag-258 encoding was d9010283010203.
+      expect(bytesToHex(set.toBytes())).not.toContain("d90102");
     });
   });
 });

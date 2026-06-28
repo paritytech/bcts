@@ -56,9 +56,9 @@ export { CborDate } from "./date";
 
 // Tag handling
 export type { Tag, TagValue } from "./tag";
-export { createTag, tagWithValue, tagWithStaticName, tagsEqual } from "./tag";
+export { createTag, tagWithValue, tagWithStaticName, tagsEqual, tagValuesEqual } from "./tag";
 export { TagsStore, getGlobalTagsStore, withTags, withTagsMut } from "./tags-store";
-export type { TagsStoreTrait } from "./tags-store";
+export type { TagsStoreTrait, CborSummarizer, SummarizerResult, TagsStoreOpt } from "./tags-store";
 export { tagsForValues } from "./tags";
 
 // Format options

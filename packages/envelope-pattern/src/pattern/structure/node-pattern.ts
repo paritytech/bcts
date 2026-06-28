@@ -34,8 +34,7 @@ export function registerNodePatternFactory(factory: (pattern: NodePattern) => Pa
  *   the given interval (e.g., `node({2,5})`).
  */
 export type NodePatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "AssertionsInterval"; readonly interval: Interval };
+  { readonly type: "Any" } | { readonly type: "AssertionsInterval"; readonly interval: Interval };
 
 /**
  * Pattern for matching node envelopes.

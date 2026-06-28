@@ -29,8 +29,7 @@ export function registerObjectPatternFactory(factory: (pattern: ObjectPattern) =
  * Corresponds to the Rust `ObjectPattern` enum in object_pattern.rs
  */
 export type ObjectPatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "Pattern"; readonly pattern: Pattern };
+  { readonly type: "Any" } | { readonly type: "Pattern"; readonly pattern: Pattern };
 
 /**
  * Pattern for matching objects in envelopes.

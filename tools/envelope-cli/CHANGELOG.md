@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.4] - 2026-06-28
+
+### Changed
+
+- Dependency sync
+
 ## [1.0.0-beta.3] - 2026-06-22
 
 ### Added
