@@ -12,7 +12,7 @@ import { encodeVarInt } from "./varint";
 import { concatBytes } from "./stdlib";
 import { bytesToHex, hexOpt } from "./dump";
 import { hexToBytes } from "./dump";
-import type { Tag } from "./tag";
+import { tagValuesEqual, type Tag } from "./tag";
 import type { ByteString } from "./byte-string";
 import type { CborDate } from "./date";
 import { diagnosticOpt } from "./diag";
@@ -104,6 +104,10 @@ export type CborInput =
   | CborInput[]
   | Map<unknown, unknown>
   | Set<unknown>
+  // Values that convert themselves to CBOR (e.g. untagged CborSet or a
+  // tagged-encodable type); `cbor()` dispatches to these at runtime.
+  | ToCbor
+  | TaggedCborEncodable
   | Record<string, unknown>;
 
 export const isCborNumber = (value: unknown): value is CborNumber => {
@@ -377,12 +381,19 @@ export const cbor = (value: CborInput): Cbor => {
     } else if (value == -Infinity) {
       result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: -Infinity } };
     } else if (typeof value === "number" && !Number.isSafeInteger(value)) {
-      // Mirrors Rust `f64::exact_from_f64`: any finite, integer-valued
-      // float that exceeds the safe-integer range (so adjacent integers
-      // can't be distinguished, e.g. `1e21`) cannot be encoded as a
-      // canonical integer. Route to Float instead — Rust's `From<f64>
-      // for CBOR` does the same fallback.
-      result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: value } };
+      // A finite, whole-valued `number` beyond the safe-integer range (NaN,
+      // ±Infinity, and fractional values are handled above). Like Rust's
+      // `From<f64> for CBOR`, reduce any whole value in `[-(2^64), 2^64)` to a
+      // CBOR integer; values outside that range (e.g. `1e21`) stay floats.
+      // Go through BigInt so we don't lose precision above 2^53.
+      const big = BigInt(value);
+      if (big >= 0n && big <= 0xffffffffffffffffn) {
+        result = { isCbor: true, type: MajorType.Unsigned, value: big };
+      } else if (big < 0n && big >= -0x10000000000000000n) {
+        result = { isCbor: true, type: MajorType.Negative, value: -big - 1n };
+      } else {
+        result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: value } };
+      }
     } else if (
       typeof value === "bigint" &&
       (value > 0xffffffffffffffffn || value < -0x10000000000000000n)
@@ -817,7 +828,7 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
         typeof expectedTag === "object" && "value" in expectedTag
           ? expectedTag
           : { value: expectedTag };
-      if (this.tag !== expected.value) {
+      if (!tagValuesEqual(this.tag, expected.value)) {
         // Mirror Rust `Error::WrongTag(expected, actual)`.
         throw new CborError({
           type: "WrongTag",
@@ -837,7 +848,7 @@ export const attachMethods = <T extends Omit<Cbor, keyof CborMethods>>(obj: T): 
         throw new CborError({ type: "WrongType" });
       }
       const tagValue = this.tag;
-      const matchingTag = expectedTags.find((t) => t.value === tagValue);
+      const matchingTag = expectedTags.find((t) => tagValuesEqual(t.value, tagValue));
       if (matchingTag === undefined) {
         // Mirror Rust `Error::WrongTag(expected, actual)`.
         throw new CborError({

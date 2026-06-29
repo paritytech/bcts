@@ -217,19 +217,19 @@ export class CborMap {
    * Matches Rust's Map::insert_next().
    */
   setNext<K extends CborInput, V extends CborInput>(key: K, value: V): void {
-    const lastEntry = this._dict.max();
-    if (lastEntry === undefined) {
-      this.set(key, value);
-      return;
-    }
     const keyCbor = cbor(key);
     const newKey = cborData(keyCbor);
     if (this._dict.has(newKey)) {
       throw new CborError({ type: "DuplicateMapKey" });
     }
-    const lastEntryKey = this._makeKey(lastEntry.key);
-    if (lexicographicallyCompareBytes(newKey, lastEntryKey) <= 0) {
-      throw new CborError({ type: "MisorderedMapKey" });
+    // Enforce strict ascending order by comparing the new key against the
+    // greatest existing encoded key, read from the sorted store's last item.
+    // Mirrors Rust's insert_next/last_key_value.
+    const greatest = this._dict.store.max();
+    if (greatest !== undefined) {
+      if (lexicographicallyCompareBytes(newKey, greatest.key) <= 0) {
+        throw new CborError({ type: "MisorderedMapKey" });
+      }
     }
     this._dict.set(newKey, { key: keyCbor, value: cbor(value) });
   }

@@ -34,6 +34,34 @@ import {
 import { CborError } from "./error";
 
 /**
+ * Normalize a timestamp (seconds since the Unix epoch) to whole seconds plus a
+ * non-negative, sub-second nanosecond part, matching Rust's
+ * `Date::from_timestamp` so dates round-trip byte-identically with the reference.
+ *
+ * The nanosecond part is computed like Rust's `as u32` cast: truncated toward
+ * zero and clamped to [0, u32::MAX]. So a negative fraction floors the value
+ * (`-1.5` becomes `-1.0`) and sub-nanosecond precision is dropped
+ * (`1.0000000005` becomes `1.0`).
+ *
+ * @internal
+ */
+function normalizeTimestampSeconds(seconds: number): number {
+  if (!Number.isFinite(seconds)) {
+    // chrono has no representation for a non-finite instant; reject with a
+    // typed error.
+    throw new CborError({ type: "InvalidDate", message: "non-finite timestamp" });
+  }
+  const whole = Math.trunc(seconds);
+  let nsecs = Math.trunc((seconds - whole) * 1_000_000_000);
+  if (nsecs < 0) {
+    nsecs = 0;
+  } else if (nsecs > 0xffffffff) {
+    nsecs = 0xffffffff;
+  }
+  return whole + nsecs / 1_000_000_000;
+}
+
+/**
  * A CBOR-friendly representation of a date and time.
  *
  * The `CborDate` type provides a wrapper around JavaScript's native `Date` that
@@ -192,7 +220,9 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    */
   static fromTimestamp(secondsSinceUnixEpoch: number): CborDate {
     const instance = new CborDate();
-    instance._seconds = secondsSinceUnixEpoch;
+    // Normalize on construction so the stored value (and thus its encoding,
+    // equality, and ordering) matches the reference.
+    instance._seconds = normalizeTimestampSeconds(secondsSinceUnixEpoch);
     return instance;
   }
 
@@ -222,12 +252,40 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   static fromString(value: string): CborDate {
-    // Try parsing as ISO 8601 date string
-    const dt = new Date(value);
-    if (isNaN(dt.getTime())) {
-      throw new CborError({ type: "InvalidDate", message: "Invalid date string" });
+    // Accept only strict RFC-3339 date-times (with seconds and an explicit
+    // `Z`/±HH:MM offset) or bare `YYYY-MM-DD` dates (read as UTC midnight),
+    // matching Rust's `Date::from_string`. The plain `new Date()` parser is far
+    // more lenient (and engine-dependent), so we gate it behind explicit regexes.
+    const invalidDate = new CborError({ type: "InvalidDate", message: "Invalid date string" });
+
+    // RFC-3339 date-time: `YYYY-MM-DDThh:mm:ss[.frac](Z|±hh:mm)`.
+    const rfc3339 = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+    // Date-only: `YYYY-MM-DD`.
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+
+    let parsed: Date;
+    if (rfc3339.test(value)) {
+      parsed = new Date(value);
+    } else if (dateOnly.test(value)) {
+      // Treat a bare date as UTC midnight (chrono uses 00:00:00 UTC).
+      parsed = new Date(`${value}T00:00:00Z`);
+    } else {
+      throw invalidDate;
     }
-    return CborDate.fromDatetime(dt);
+
+    // `new Date` rolls impossible dates over (`2023-02-30` becomes Mar 2)
+    // rather than failing, so check the `YYYY-MM-DD` portion is a real calendar
+    // date. The first 10 chars are always `YYYY-MM-DD` given the regexes above.
+    const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+    const probe = new Date(Date.UTC(y, m - 1, d));
+    const calendarValid =
+      probe.getUTCFullYear() === y && probe.getUTCMonth() === m - 1 && probe.getUTCDate() === d;
+
+    // ...and reject any residual unparseable input (e.g. an out-of-range time).
+    if (!calendarValid || isNaN(parsed.getTime())) {
+      throw invalidDate;
+    }
+    return CborDate.fromDatetime(parsed);
   }
 
   /**
@@ -439,7 +497,9 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
         throw new CborError({ type: "WrongType" });
     }
 
-    this._seconds = timestamp;
+    // Normalize the decoded value so it re-encodes to the same bytes as the
+    // reference (e.g. a tag-1 float of -1.5 decodes and re-encodes as integer -1).
+    this._seconds = normalizeTimestampSeconds(timestamp);
     return this;
   }
 

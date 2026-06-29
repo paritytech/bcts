@@ -40,7 +40,12 @@ function at(data: DataView, index: number): number {
 }
 
 function from(data: DataView, index: number): DataView {
-  return new DataView(data.buffer, data.byteOffset + index);
+  // Bound the sub-view to the remaining logical bytes; without a length it
+  // would span the whole backing ArrayBuffer, letting a nested decode read
+  // past the input's end when the input is itself a slice of a larger buffer.
+  // This matches Rust's `&data[index..]`, so an over-long inner item fails as
+  // an Underrun at its source instead of only at the top-level length check.
+  return new DataView(data.buffer, data.byteOffset + index, data.byteLength - index);
 }
 
 function range(data: DataView, start: number, end: number): DataView {
@@ -165,7 +170,18 @@ function decodeCborInternal(data: DataView): { cbor: Cbor; len: number } {
         throw new CborError({ type: "OutOfRange" });
       }
       const textBuf = parseBytes(from(data, varIntLen), textLen);
-      const text = new TextDecoder().decode(textBuf);
+      // dCBOR text strings must be valid UTF-8 (RFC 8949). Use a fatal decoder
+      // so invalid bytes throw rather than getting replaced with U+FFFD and
+      // silently accepted, matching the Rust reference's InvalidUtf8 rejection.
+      let text: string;
+      try {
+        text = new TextDecoder("utf-8", { fatal: true }).decode(textBuf);
+      } catch (e) {
+        throw new CborError({
+          type: "InvalidUtf8",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
       // dCBOR requires all text strings to be in Unicode Normalization Form C (NFC)
       // Reject any strings that are not already in NFC form
       if (text.normalize("NFC") !== text) {

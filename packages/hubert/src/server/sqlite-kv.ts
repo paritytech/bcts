@@ -226,8 +226,7 @@ export class SqliteKv implements KvStore {
           "SELECT envelope, expires_at FROM hubert_store WHERE arid = ?",
         );
         const row = stmt.get(aridStr) as
-          | { envelope: string; expires_at: number | null }
-          | undefined;
+          { envelope: string; expires_at: number | null } | undefined;
 
         if (row) {
           // Check if expired

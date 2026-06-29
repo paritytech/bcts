@@ -16,8 +16,10 @@
 
 import { type Cbor, MajorType, type Simple } from "./cbor";
 import { bytesToHex } from "./dump";
+import { errorToString } from "./error";
+import { floatDisplayString } from "./float";
 import type { CborMap } from "./map";
-import { getGlobalTagsStore, type TagsStore } from "./tags-store";
+import { getGlobalTagsStore, type TagsStore, type TagsStoreOpt } from "./tags-store";
 import type { Tag } from "./tag";
 import type { WalkElement } from "./walk";
 import { flanked } from "./string-util";
@@ -63,7 +65,7 @@ export interface DiagFormatOpts {
    *
    * @default 'global'
    */
-  tags?: TagsStore | "global" | "none";
+  tags?: TagsStoreOpt;
 
   /**
    * Current indentation level (internal use for recursion).
@@ -412,13 +414,9 @@ function item_tagged(tag: number | bigint, content: Cbor, opts: DiagFormatOpts):
       if (result.ok) {
         return item(result.value);
       }
-      const errorMsg =
-        result.error.type === "Custom"
-          ? result.error.message
-          : result.error.type === "WrongTag"
-            ? `expected CBOR tag ${result.error.expected.value}, but got ${result.error.actual.value}`
-            : result.error.type;
-      return item(`<error: ${errorMsg}>`);
+      // Use the shared error formatter so every variant gets its full message,
+      // including name-aware tag rendering for WrongTag (matches Rust).
+      return item(`<error: ${errorToString(result.error)}>`);
     }
   }
 
@@ -450,12 +448,9 @@ function formatBytes(value: Uint8Array): string {
 }
 
 function formatText(value: string): string {
-  const escaped = value
-    .replace(/\\/g, "\\\\")
-    .replace(/"/g, '\\"')
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r")
-    .replace(/\t/g, "\\t");
+  // Match Rust `format_string` (cbor.rs): only the double-quote is escaped;
+  // backslash, tab, newline, and carriage return are emitted verbatim.
+  const escaped = value.replace(/"/g, '\\"');
   return `"${escaped}"`;
 }
 
@@ -473,26 +468,14 @@ function formatSimple(value: Simple): string {
 }
 
 /**
- * Format a finite CBOR float to match Rust `Simple::format!("{:?}", v)`.
- *
- * - `1.0` → `"1.0"` (Rust Debug). JS `String(1.0)` gives `"1"` so we append `.0`.
- * - `1.5` → `"1.5"`.
- * - `1e100` → `"1e100"` (Rust uses no `+` sign in the exponent). JS uses `1e+100`.
- * - Specials (NaN / ±Infinity) produce the exact Rust strings.
+ * Format a CBOR float for diagnostic output. Shared with the hex-dump
+ * annotation path; see {@link floatDisplayString}.
  */
 function formatFloat(value: number): string {
-  if (Number.isNaN(value)) return "NaN";
-  if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
-  let str = String(value);
-  // Strip the JS-only `+` in scientific exponents to match Rust Debug format.
-  str = str.replace(/e\+/, "e");
-  if (!str.includes(".") && !str.includes("e")) {
-    str = `${str}.0`;
-  }
-  return str;
+  return floatDisplayString(value);
 }
 
-function resolveTagsStore(tags?: TagsStore | "global" | "none"): TagsStore | undefined {
+function resolveTagsStore(tags?: TagsStoreOpt): TagsStore | undefined {
   if (tags === "none") return undefined;
   if (tags === "global" || tags === undefined) return getGlobalTagsStore();
   return tags;

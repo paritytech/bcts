@@ -17,7 +17,7 @@
 
 import { type Cbor, MajorType } from "./cbor";
 import type { CborTagged } from "./cbor-tagged";
-import type { Tag } from "./tag";
+import { tagValuesEqual, type Tag } from "./tag";
 import { CborError } from "./error";
 import { decodeCbor } from "./decode";
 
@@ -160,7 +160,7 @@ export const validateTag = (cbor: Cbor, expectedTags: Tag[]): Tag => {
   }
 
   const tagValue = cbor.tag;
-  const matchingTag = expectedTags.find((t) => t.value === tagValue);
+  const matchingTag = expectedTags.find((t) => tagValuesEqual(t.value, tagValue));
   if (matchingTag === undefined) {
     // Mirror Rust's `Error::WrongTag(expected, actual)` — produce the
     // structured WrongTag variant rather than a stringly-typed Custom

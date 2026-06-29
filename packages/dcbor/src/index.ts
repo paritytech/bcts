@@ -25,6 +25,9 @@ export {
   type CborMapType,
   type CborTaggedType,
   type CborSimpleType,
+  // Conversion interfaces accepted by `cbor()` / referenced by `CborInput`.
+  type ToCbor,
+  type TaggedCborEncodable,
 } from "./cbor";
 
 // Simple value types
@@ -59,6 +62,7 @@ export {
   tagWithValue,
   tagWithStaticName,
   tagsEqual,
+  tagValuesEqual,
 } from "./tag";
 export {
   type CborTagged,
@@ -77,7 +81,10 @@ export {
   type TagsStoreTrait,
   type CborSummarizer,
   type SummarizerResult,
+  type TagsStoreOpt,
   getGlobalTagsStore,
+  withTags,
+  withTagsMut,
 } from "./tags-store";
 export * from "./tags";
 export { registerTags, registerTagsIn, tagsForValues } from "./tags";

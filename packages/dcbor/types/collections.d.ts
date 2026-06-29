@@ -1,4 +1,15 @@
 declare module "collections/sorted-map" {
+  /**
+   * Backing sorted set of a SortedMap. Its elements are `{ key, value }`
+   * items ordered by `key` via the SortedMap's compare function.
+   */
+  export interface SortedMapStore<K, V> {
+    /** Greatest item by key, or undefined if empty. */
+    max(): { key: K; value: V } | undefined;
+    /** Least item by key, or undefined if empty. */
+    min(): { key: K; value: V } | undefined;
+  }
+
   export class SortedMap<K = any, V = any> {
     constructor(
       entries?: ReadonlyArray<[K, V]> | null,
@@ -14,5 +25,7 @@ declare module "collections/sorted-map" {
     map<T>(callbackfn: (value: V, index: K, map: SortedMap<K, V>) => T, thisArg?: any): T[];
     length: number;
     max(): V | undefined;
+    /** Underlying sorted set of `{ key, value }` items, ordered by key. */
+    readonly store: SortedMapStore<K, V>;
   }
 }

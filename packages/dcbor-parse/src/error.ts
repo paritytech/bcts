@@ -337,8 +337,7 @@ export function defaultParseError(): ParseError {
  * Corresponds to Rust `Result<T, Error>`
  */
 export type ParseResult<T> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly error: ParseError };
+  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: ParseError };
 
 /**
  * Creates a successful result.

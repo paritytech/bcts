@@ -3,10 +3,11 @@
  * Copyright © 2025-2026 Parity Technologies
  *
  *
- * Set data structure for CBOR with tag(258) encoding.
+ * Set data structure for CBOR.
  *
- * A Set is encoded as an array with no duplicate elements,
- * tagged with tag(258) to indicate set semantics.
+ * A Set encodes to a plain (untagged) array of unique elements in canonical
+ * ascending CBOR-byte order. There's no tag-258 here: this matches Rust
+ * dcbor's `From<Set> for CBOR`, which emits an untagged array.
  *
  * @module set
  */
@@ -14,20 +15,11 @@
 import { type Cbor, MajorType, type CborInput } from "./cbor";
 import { cbor, cborData } from "./cbor";
 import { CborMap } from "./map";
-import { createTag, type Tag } from "./tag";
-import { TAG_SET } from "./tags";
-import {
-  type CborTaggedEncodable,
-  type CborTaggedDecodable,
-  createTaggedCbor,
-  validateTag,
-  extractTaggedContent,
-} from "./cbor-tagged";
 import { extractCbor } from "./conveniences";
 import { CborError } from "./error";
 
 /**
- * CBOR Set type with tag(258) encoding.
+ * CBOR Set type, encoded as a plain (untagged) array.
  *
  * Internally uses a CborMap to ensure unique elements with deterministic ordering.
  * Elements are ordered by their CBOR encoding (lexicographic byte order).
@@ -46,11 +38,11 @@ import { CborError } from "./error";
  * console.log(set.contains(2)); // true
  * console.log(set.contains(99)); // false
  *
- * // Encode to CBOR
- * const tagged = set.taggedCbor();
+ * // Encode to CBOR (untagged array)
+ * const c = set.toCbor();
  * ```
  */
-export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet> {
+export class CborSet {
   private readonly _map: CborMap;
 
   constructor() {
@@ -135,13 +127,12 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
   }
 
   /**
-   * Insert an element into the set, requiring it to be strictly greater
-   * (in canonical CBOR-encoded byte order) than every previously-inserted
-   * element. Used by the decoder to reject misordered or duplicate
-   * elements in tag-258 set encodings.
+   * Insert an element that must sort strictly after every element inserted so
+   * far (canonical CBOR-byte order). The decoder uses this to reject
+   * misordered or duplicate elements.
    *
    * Mirrors Rust `Set::insert_next` (`pub(crate)`); exposed here because
-   * TypeScript doesn't have a crate-private visibility level.
+   * TypeScript has no crate-private visibility.
    *
    * @throws CborError of type `MisorderedMap` if `value` would not preserve
    *   strict ascending CBOR-byte order, or `DuplicateMapKey` for an exact
@@ -377,32 +368,38 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
   }
 
   // =========================================================================
-  // CborTagged Implementation
+  // CBOR Encoding / Decoding (untagged array — Rust parity)
   // =========================================================================
 
-  cborTags(): Tag[] {
-    return [createTag(TAG_SET, "set")];
-  }
-
+  /**
+   * Encode the set as an (untagged) CBOR array of its elements, in canonical
+   * ascending CBOR-byte order. Matches Rust `From<Set> for CBOR`.
+   *
+   * @returns CBOR array
+   */
   untaggedCbor(): Cbor {
     // Encode as an array of values
     const values = this.values();
     return cbor(values);
   }
 
-  taggedCbor(): Cbor {
-    return createTaggedCbor(this);
-  }
-
+  /**
+   * Decode a CborSet from a CBOR array into this instance.
+   *
+   * Mirrors Rust `Set::try_from_vec`, calling `insert_next` per item, so the
+   * array must already be in strict ascending CBOR-byte order with no
+   * duplicates (else `MisorderedMapKey`/`DuplicateMapKey`).
+   *
+   * @param c - CBOR array value
+   * @returns this
+   * @throws CborError of type `WrongType` if `c` is not an array.
+   */
   fromUntaggedCbor(c: Cbor): CborSet {
     if (c.type !== MajorType.Array) {
       throw new CborError({ type: "WrongType" });
     }
 
     this.clear();
-    // Mirrors Rust `Set::try_from_vec` which calls `insert_next` per item:
-    // a tag-258 wire encoding must already be in strict ascending CBOR-byte
-    // order with no duplicates.
     for (const value of c.value) {
       this.insertNext(extractCbor(value) as CborInput);
     }
@@ -410,21 +407,14 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
     return this;
   }
 
-  fromTaggedCbor(c: Cbor): CborSet {
-    const expectedTags = this.cborTags();
-    validateTag(c, expectedTags);
-    const content = extractTaggedContent(c);
-    return this.fromUntaggedCbor(content);
-  }
-
   /**
-   * Decode a CborSet from tagged CBOR (static method).
+   * Decode a CborSet from a CBOR array.
    *
-   * @param cbor - Tagged CBOR value with tag(258)
+   * @param c - CBOR array value
    * @returns Decoded CborSet instance
    */
-  static fromTaggedCborStatic(cbor: Cbor): CborSet {
-    return new CborSet().fromTaggedCbor(cbor);
+  static fromCbor(c: Cbor): CborSet {
+    return new CborSet().fromUntaggedCbor(c);
   }
 
   // =========================================================================
@@ -441,12 +431,12 @@ export class CborSet implements CborTaggedEncodable, CborTaggedDecodable<CborSet
   }
 
   /**
-   * Convert to CBOR bytes (tagged).
+   * Convert to encoded CBOR bytes.
    *
    * @returns Encoded CBOR bytes
    */
   toBytes(): Uint8Array {
-    return cborData(this.taggedCbor());
+    return cborData(this.untaggedCbor());
   }
 
   /**

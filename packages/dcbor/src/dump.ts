@@ -14,6 +14,7 @@
 
 import { type Cbor, MajorType, cborData } from "./cbor";
 import { encodeVarInt } from "./varint";
+import { floatDisplayString } from "./float";
 import { flanked, sanitized } from "./string-util";
 import type { TagsStore } from "./tags-store";
 import { getGlobalTagsStore } from "./tags-store";
@@ -274,7 +275,8 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
       } else if (simple.type === "Null") {
         note = "null";
       } else if (simple.type === "Float") {
-        note = `${simple.value}`;
+        // Use the same float formatting as diagnostic output, not raw JS coercion.
+        note = floatDisplayString(simple.value);
       } else {
         note = "simple";
       }

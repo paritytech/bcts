@@ -28,7 +28,6 @@ import * as byteData from "byte-data";
 import { encodeVarInt } from "./varint";
 import { MajorType } from "./cbor";
 import { ExactU64, ExactU32, ExactU16, ExactI128 } from "./exact";
-import { CborError } from "./error";
 
 /**
  * Canonical NaN representation in CBOR: 0xf97e00
@@ -102,9 +101,10 @@ export const f64CborData = (value: number): Uint8Array => {
     if (i128 !== undefined) {
       const i = ExactU64.exactFromI128(-1n - i128);
       if (i !== undefined) {
-        // Encode as a negative integer
-        const num = typeof i === "bigint" ? Number(i) : i;
-        return encodeVarInt(num, MajorType.Negative);
+        // Encode as a negative integer. Pass the bigint straight through:
+        // encodeVarInt handles u64 losslessly via setBigUint64, whereas
+        // narrowing through Number() would round magnitudes above 2^53.
+        return encodeVarInt(i, MajorType.Negative);
       }
     }
   }
@@ -112,8 +112,7 @@ export const f64CborData = (value: number): Uint8Array => {
   // Try numeric reduction to unsigned integer
   const u = ExactU64.exactFromF64(n);
   if (u !== undefined) {
-    const num = typeof u === "bigint" ? Number(u) : u;
-    return encodeVarInt(num, MajorType.Unsigned);
+    return encodeVarInt(u, MajorType.Unsigned);
   }
 
   // Canonical NaN
@@ -128,32 +127,6 @@ export const f64CborData = (value: number): Uint8Array => {
   const bytes = new Uint8Array(buffer);
   const majorByte = 0xfb; // 0x1b | (MajorType.Simple << 5) = 0x1b | 0xe0 = 0xfb
   return new Uint8Array([majorByte, ...bytes]);
-};
-
-/**
- * Validate canonical encoding for f64.
- *
- * Counterpart to Rust's `validate_canonical_f64`. **NOT used by the
- * decoder.** JavaScript's `Number` type does not preserve NaN payload
- * bits — every NaN collapses to a single value — which means the
- * Rust-style `n.to_bits() != 0x7e00` distinction can't be made on a
- * post-decoded `number`. The TS decoder uses
- * {@link checkCanonicalEncoding} (re-encode-and-compare) instead, which
- * handles every same-failure case including non-canonical NaNs because
- * the canonicalising encoder always re-emits the canonical bit pattern.
- *
- * Kept for API parity with Rust's `pub(crate)` helper, plus as a
- * documentation anchor; not recommended for callers.
- *
- * @internal
- */
-export const validateCanonicalF64 = (n: number): void => {
-  const f32Bytes = numberToBinary32(n);
-  const f32 = binary32ToNumber(f32Bytes);
-
-  if (n === f32 || n === Math.trunc(n) || Number.isNaN(n)) {
-    throw new CborError({ type: "NonCanonicalNumeric" });
-  }
 };
 
 /**
@@ -172,12 +145,12 @@ export const f32CborData = (value: number): Uint8Array => {
     return f16CborData(f);
   }
 
-  // Try numeric reduction to negative integer
+  // Try numeric reduction to negative integer. Math.fround keeps `-1 - n` in
+  // f32 precision to match Rust's `-1f32 - n`.
   if (n < 0.0) {
-    const u = ExactU64.exactFromF32(-1.0 - n);
+    const u = ExactU64.exactFromF32(Math.fround(-1.0 - n));
     if (u !== undefined) {
-      const num = typeof u === "bigint" ? Number(u) : u;
-      return encodeVarInt(num, MajorType.Negative);
+      return encodeVarInt(u, MajorType.Negative);
     }
   }
 
@@ -198,23 +171,6 @@ export const f32CborData = (value: number): Uint8Array => {
 };
 
 /**
- * Validate canonical encoding for f32.
- *
- * @see {@link validateCanonicalF64} — same caveat about JS NaN bit
- *   preservation. The decoder relies on {@link checkCanonicalEncoding}.
- *
- * @internal
- */
-export const validateCanonicalF32 = (n: number): void => {
-  const f16Bytes = numberToBinary16(n);
-  const f16 = binary16ToNumber(f16Bytes);
-
-  if (n === f16 || n === Math.trunc(n) || Number.isNaN(n)) {
-    throw new CborError({ type: "NonCanonicalNumeric" });
-  }
-};
-
-/**
  * Encode f16 value to CBOR data bytes.
  * Implements numeric reduction and canonical encoding rules.
  * Matches Rust's f16_cbor_data function.
@@ -227,8 +183,7 @@ export const f16CborData = (value: number): Uint8Array => {
   if (n < 0.0) {
     const u = ExactU64.exactFromF64(-1.0 - n);
     if (u !== undefined) {
-      const num = typeof u === "bigint" ? Number(u) : u;
-      return encodeVarInt(num, MajorType.Negative);
+      return encodeVarInt(u, MajorType.Negative);
     }
   }
 
@@ -249,23 +204,37 @@ export const f16CborData = (value: number): Uint8Array => {
 };
 
 /**
- * Validate canonical encoding for f16.
+ * Render a float to its diagnostic string, matching Rust's `Simple` Display.
  *
- * @see {@link validateCanonicalF64} — same caveat about JS NaN bit
- *   preservation. The decoder relies on {@link checkCanonicalEncoding}.
+ * Finite non-zero values with magnitude in [1e-4, 1e16) print in decimal with
+ * at least one fractional digit (whole values get a trailing `.0`); everything
+ * else prints in exponential form. Zero prints as `0.0`/`-0.0`.
  *
- * @internal
+ * JS already produces the same shortest round-tripping digits; we only fix up
+ * the notation threshold, the `e+` → `e` exponent, and the `.0` suffix.
+ *
+ * @param value - The float value
+ * @returns Rust-`Display`-compatible string
  */
-export const validateCanonicalF16 = (value: number): void => {
-  const n = value;
-  const f = n;
+export const floatDisplayString = (value: number): string => {
+  if (Number.isNaN(value)) return "NaN";
+  if (!Number.isFinite(value)) return value > 0 ? "Infinity" : "-Infinity";
+  if (value === 0) return Object.is(value, -0) ? "-0.0" : "0.0";
 
-  const f16Bytes = numberToBinary16(value);
-  const bits = new DataView(f16Bytes.buffer).getUint16(0, false);
-
-  if (f === Math.trunc(f) || (Number.isNaN(value) && bits !== 0x7e00)) {
-    throw new CborError({ type: "NonCanonicalNumeric" });
+  const abs = Math.abs(value);
+  if (abs >= 1e-4 && abs < 1e16) {
+    // In this range String() never switches to exponential. Ensure at least
+    // one fractional digit.
+    let str = String(value);
+    if (!str.includes(".")) {
+      str = `${str}.0`;
+    }
+    return str;
   }
+
+  // Drop the `+` in the exponent to match Rust (`1.5e+20` → `1.5e20`);
+  // negative exponents keep their sign.
+  return value.toExponential().replace("e+", "e");
 };
 
 /**

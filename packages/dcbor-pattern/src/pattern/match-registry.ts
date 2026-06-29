@@ -42,16 +42,14 @@ export let pathsFn: ((pattern: Pattern, haystack: Cbor) => Path[]) | undefined;
  * This gets set by pattern/index.ts after all modules are loaded.
  */
 export let pathsWithCapturesFn:
-  | ((pattern: Pattern, haystack: Cbor) => MatchResultInternal)
-  | undefined;
+  ((pattern: Pattern, haystack: Cbor) => MatchResultInternal) | undefined;
 
 /**
  * Registry for the direct pattern paths with captures function (non-VM).
  * This is used by the VM to avoid infinite recursion.
  */
 export let pathsWithCapturesDirectFn:
-  | ((pattern: Pattern, haystack: Cbor) => MatchResultInternal)
-  | undefined;
+  ((pattern: Pattern, haystack: Cbor) => MatchResultInternal) | undefined;
 
 /**
  * Sets the pattern matching function.

@@ -18,6 +18,15 @@ import { decodeCbor } from "../src/decode";
 import { createTag } from "../src/tag";
 import { CborMap } from "../src/map";
 
+/** Helper to convert a hex string to a Uint8Array. */
+function hexToBytes(hexStr: string): Uint8Array {
+  const bytes = new Uint8Array(hexStr.length / 2);
+  for (let i = 0; i < hexStr.length; i += 2) {
+    bytes[i / 2] = parseInt(hexStr.substr(i, 2), 16);
+  }
+  return bytes;
+}
+
 describe("CborError", () => {
   describe("CborError class", () => {
     test("creates error with Custom type", () => {
@@ -256,6 +265,80 @@ describe("CborError", () => {
           expect(e.errorType.type).toBe("NonCanonicalNumeric");
         }
       }
+    });
+
+    // Regression for C3: a text string with invalid UTF-8 must be rejected
+    // (Rust `str::from_utf8(buf)?`), not silently decoded to U+FFFD.
+    test("throws InvalidUtf8 for invalid UTF-8 text strings (C3)", () => {
+      // 0x62 = text(2), bytes 0xc3 0x28 are not valid UTF-8.
+      const badUtf8 = new Uint8Array([0x62, 0xc3, 0x28]);
+      expect(() => decodeCbor(badUtf8)).toThrow(CborError);
+      try {
+        decodeCbor(badUtf8);
+      } catch (e) {
+        if (CborError.isCborError(e)) {
+          expect(e.errorType.type).toBe("InvalidUtf8");
+        }
+      }
+      // 0x61 = text(1), byte 0xff is invalid UTF-8.
+      expect(() => decodeCbor(new Uint8Array([0x61, 0xff]))).toThrow(CborError);
+    });
+
+    test("accepts valid UTF-8 (incl. multibyte) text strings", () => {
+      // "é" (U+00E9) NFC = 0xc3 0xa9; text(2).
+      const ok = new Uint8Array([0x62, 0xc3, 0xa9]);
+      const c = decodeCbor(ok);
+      expect(c.type).toBe(3);
+      expect(c.value).toBe("é");
+    });
+
+    // Regression for C4: a map whose keys are interleaved-misordered (a key
+    // landing BETWEEN two existing keys) must be rejected. The earlier
+    // single-prior-key setNext test masked this because SortedMap.max()
+    // degenerated to the smallest key.
+    test("throws MisorderedMapKey for interleaved-misordered map keys (C4)", () => {
+      // a3  map(3)  01 01 (1:1)  03 03 (3:3)  02 02 (2:2)
+      // The `2` key arrives after `3`, so it is out of canonical order.
+      const interleaved = hexToBytes("a3010103030202");
+      expect(() => decodeCbor(interleaved)).toThrow(CborError);
+      try {
+        decodeCbor(interleaved);
+      } catch (e) {
+        if (CborError.isCborError(e)) {
+          expect(e.errorType.type).toBe("MisorderedMapKey");
+        }
+      }
+    });
+
+    test("accepts a canonically-ordered 3-key map (C4 control)", () => {
+      const ordered = hexToBytes("a3010102020303");
+      const c = decodeCbor(ordered);
+      expect(c.type).toBe(5);
+    });
+
+    // Regression for M3: a truncated inner item must surface as Underrun even
+    // when the input is a sub-array of a larger ArrayBuffer (the decode
+    // sub-view is now length-clamped, so it can't read into the trailing bytes
+    // of the backing buffer).
+    test("does not read past the logical end of a sub-array input (M3)", () => {
+      // Backing buffer: 82 01 (array(2) missing its 2nd item) then junk ffff.
+      const backing = hexToBytes("8201ffff");
+      const logical = backing.subarray(0, 2); // only `82 01`
+      expect(() => decodeCbor(logical)).toThrow(CborError);
+      try {
+        decodeCbor(logical);
+      } catch (e) {
+        if (CborError.isCborError(e)) {
+          expect(e.errorType.type).toBe("Underrun");
+        }
+      }
+    });
+
+    test("decodes a valid item that is a sub-array of a larger buffer (M3 control)", () => {
+      const backing = hexToBytes("820102ffff"); // array(2)=[1,2] then junk
+      const logical = backing.subarray(0, 3); // `82 01 02`
+      const c = decodeCbor(logical);
+      expect(c.type).toBe(4); // Array
     });
   });
 

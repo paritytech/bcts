@@ -29,6 +29,7 @@ import {
 import type { CborMap } from "./map";
 import { isFloat as isSimpleFloat } from "./simple";
 import { decodeCbor } from "./decode";
+import { ExactF64 } from "./exact";
 import { CborError } from "./error";
 
 // ============================================================================
@@ -358,12 +359,20 @@ export const asBoolean = (cbor: Cbor): boolean | undefined => {
  * @returns Float or undefined
  */
 export const asFloat = (cbor: Cbor): number | undefined => {
-  if (cbor.type !== MajorType.Simple) {
-    return undefined;
+  // Integers coerce to float too, matching Rust's `TryFrom<CBOR> for f64`.
+  // dCBOR reduces whole-valued floats to integers (42.0 encodes as 42), so a
+  // float-only accessor would wrongly reject them. Returns undefined for
+  // non-numeric types and for integers not exactly representable as f64.
+  if (cbor.type === MajorType.Unsigned) {
+    return ExactF64.exactFromU64(cbor.value);
   }
-  const simple = cbor.value;
-  if (isSimpleFloat(simple)) {
-    return simple.value;
+  if (cbor.type === MajorType.Negative) {
+    // cbor.value holds the raw magnitude n; the actual value is -1 - n.
+    const f = ExactF64.exactFromU64(cbor.value);
+    return f === undefined ? undefined : -1 - f;
+  }
+  if (cbor.type === MajorType.Simple) {
+    return isSimpleFloat(cbor.value) ? cbor.value.value : undefined;
   }
   return undefined;
 };
@@ -527,11 +536,20 @@ export const expectBoolean = (cbor: Cbor): boolean => {
  * @throws {CborError} With type 'WrongType' if cbor is not a float
  */
 export const expectFloat = (cbor: Cbor): number => {
-  const value = asFloat(cbor);
-  if (value === undefined) {
-    throw new CborError({ type: "WrongType" });
+  // Numeric types coerce to float (OutOfRange if an integer isn't exactly
+  // representable as f64); anything else is WrongType. Matches Rust's
+  // `TryFrom<CBOR> for f64`.
+  if (cbor.type === MajorType.Unsigned || cbor.type === MajorType.Negative) {
+    const value = asFloat(cbor);
+    if (value === undefined) {
+      throw new CborError({ type: "OutOfRange" });
+    }
+    return value;
   }
-  return value;
+  if (cbor.type === MajorType.Simple && isSimpleFloat(cbor.value)) {
+    return cbor.value.value;
+  }
+  throw new CborError({ type: "WrongType" });
 };
 
 /**
@@ -722,7 +740,7 @@ export const hasTag = (cbor: Cbor, tag: number | bigint): boolean => {
   if (cbor.type !== MajorType.Tagged) {
     return false;
   }
-  return cbor.tag === tag;
+  return tagValuesEqual(cbor.tag, tag);
 };
 
 /**
@@ -733,7 +751,7 @@ export const hasTag = (cbor: Cbor, tag: number | bigint): boolean => {
  * @returns Tagged content or undefined
  */
 export const getTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor | undefined => {
-  if (cbor.type === MajorType.Tagged && cbor.tag === tag) {
+  if (cbor.type === MajorType.Tagged && tagValuesEqual(cbor.tag, tag)) {
     return cbor.value;
   }
   return undefined;
@@ -754,7 +772,7 @@ export const expectTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor => {
   if (cbor.type !== MajorType.Tagged) {
     throw new CborError({ type: "WrongType" });
   }
-  if (cbor.tag !== tag) {
+  if (!tagValuesEqual(cbor.tag, tag)) {
     throw new CborError({
       type: "WrongTag",
       expected: { value: tag },
@@ -769,7 +787,7 @@ export const expectTaggedContent = (cbor: Cbor, tag: number | bigint): Cbor => {
 // These functions provide the API expected by the envelope package
 // ============================================================================
 
-import type { Tag } from "./tag";
+import { tagValuesEqual, type Tag } from "./tag";
 import { getGlobalTagsStore } from "./tags-store";
 
 /**
