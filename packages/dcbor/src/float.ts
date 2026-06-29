@@ -101,10 +101,9 @@ export const f64CborData = (value: number): Uint8Array => {
     if (i128 !== undefined) {
       const i = ExactU64.exactFromI128(-1n - i128);
       if (i !== undefined) {
-        // Encode as a negative integer. Pass the value straight to
-        // encodeVarInt (which encodes u64 losslessly via setBigUint64);
-        // narrowing a bigint through Number() rounds magnitudes > 2^53 and
-        // emits off-by-one bytes that diverge from Rust.
+        // Encode as a negative integer. Pass the bigint straight through:
+        // encodeVarInt handles u64 losslessly via setBigUint64, whereas
+        // narrowing through Number() would round magnitudes above 2^53.
         return encodeVarInt(i, MajorType.Negative);
       }
     }
@@ -146,10 +145,8 @@ export const f32CborData = (value: number): Uint8Array => {
     return f16CborData(f);
   }
 
-  // Try numeric reduction to negative integer. Compute `-1 - n` in f32
-  // precision (Math.fround) to mirror Rust's `-1f32 - n`, and pass the
-  // resulting bigint/number straight to encodeVarInt without a lossy
-  // Number() narrowing.
+  // Try numeric reduction to negative integer. Math.fround keeps `-1 - n` in
+  // f32 precision to match Rust's `-1f32 - n`.
   if (n < 0.0) {
     const u = ExactU64.exactFromF32(Math.fround(-1.0 - n));
     if (u !== undefined) {
@@ -207,19 +204,14 @@ export const f16CborData = (value: number): Uint8Array => {
 };
 
 /**
- * Render a float to its diagnostic/Display string, matching Rust's
- * `Simple` Display impl (which delegates to `format!("{:?}", v)` for finite
- * values).
+ * Render a float to its diagnostic string, matching Rust's `Simple` Display.
  *
- * Rust's float `{:?}` (`float_to_general_debug`) chooses notation by magnitude:
- * for a finite, non-zero `v`, if `abs(v)` is in `[1e-4, 1e16)` it prints the
- * shortest **decimal** form with at least one fractional digit (so whole
- * values get a trailing `.0`); otherwise it prints the shortest **exponential**
- * form. `0.0`/`-0.0` print as `"0.0"`/`"-0.0"`.
+ * Finite non-zero values with magnitude in [1e-4, 1e16) print in decimal with
+ * at least one fractional digit (whole values get a trailing `.0`); everything
+ * else prints in exponential form. Zero prints as `0.0`/`-0.0`.
  *
- * JavaScript's `Number#toString`/`toExponential` already emit the same shortest
- * round-tripping digits; only the notation threshold, the `e+` → `e` exponent
- * sign, and the `.0` suffix differ — which this function reconciles.
+ * JS already produces the same shortest round-tripping digits; we only fix up
+ * the notation threshold, the `e+` → `e` exponent, and the `.0` suffix.
  *
  * @param value - The float value
  * @returns Rust-`Display`-compatible string
@@ -231,8 +223,8 @@ export const floatDisplayString = (value: number): string => {
 
   const abs = Math.abs(value);
   if (abs >= 1e-4 && abs < 1e16) {
-    // Shortest decimal. In [1e-4, 1e16) JS never switches to exponential, so
-    // String() gives a plain decimal; ensure at least one fractional digit.
+    // In this range String() never switches to exponential. Ensure at least
+    // one fractional digit.
     let str = String(value);
     if (!str.includes(".")) {
       str = `${str}.0`;
@@ -240,8 +232,8 @@ export const floatDisplayString = (value: number): string => {
     return str;
   }
 
-  // Shortest exponential. Strip JS's `+` in the exponent to match Rust
-  // (`1.5e+20` → `1.5e20`); negative exponents keep their sign.
+  // Drop the `+` in the exponent to match Rust (`1.5e+20` → `1.5e20`);
+  // negative exponents keep their sign.
   return value.toExponential().replace("e+", "e");
 };
 

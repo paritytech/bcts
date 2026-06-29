@@ -30,10 +30,10 @@ const I64_MAX_BIG = 0x7fffffffffffffffn;
 const I64_MIN_BIG = -0x8000000000000000n;
 
 /**
- * Truncate a finite float to `u64` with Rust `as u64` SATURATING semantics:
- * NaN and negatives clamp to 0, values at/above 2^64 clamp to `u64::MAX`.
- * Used to reproduce Rust's `(f as u64) == source` round-trip check (e.g.
- * `u64::MAX as f64` rounds to 2^64, which saturates back to `u64::MAX`).
+ * Truncate a float to u64 with Rust's saturating `as u64` semantics: NaN and
+ * negatives clamp to 0, values at or above 2^64 clamp to u64::MAX. This lets the
+ * exact-float checks below mirror Rust's `(f as u64) == source` round-trip, where
+ * u64::MAX rounds to 2^64 in float but saturates back to u64::MAX.
  */
 const saturateFloatToU64 = (f: number): bigint => {
   if (Number.isNaN(f)) return 0n;
@@ -44,9 +44,8 @@ const saturateFloatToU64 = (f: number): bigint => {
 };
 
 /**
- * Truncate a finite float to `i64` with Rust `as i64` SATURATING semantics:
- * NaN clamps to 0, values above `i64::MAX` clamp to `i64::MAX`, values below
- * `i64::MIN` clamp to `i64::MIN`.
+ * Truncate a float to i64 with Rust's saturating `as i64` semantics: NaN clamps
+ * to 0, values clamp to i64::MAX or i64::MIN at the bounds.
  */
 const saturateFloatToI64 = (f: number): bigint => {
   if (Number.isNaN(f)) return 0n;
@@ -564,8 +563,7 @@ export class ExactF32 {
     const srcBig = typeof source === "bigint" ? source : BigInt(source);
     const f = binary32ToNumber(numberToBinary32(Number(srcBig)));
     if (!Number.isFinite(f)) return undefined;
-    // Saturating round-trip mirrors Rust `(f as u64) == source`, so e.g.
-    // u64::MAX (which rounds to 2^64 in f32) round-trips via saturation.
+    // Saturating round-trip so u64::MAX (which rounds up to 2^64 here) still matches.
     return saturateFloatToU64(f) === srcBig ? f : undefined;
   }
 
@@ -629,8 +627,7 @@ export class ExactF64 {
     const srcBig = typeof source === "bigint" ? source : BigInt(source);
     const n = Number(srcBig);
     if (!Number.isFinite(n)) return undefined;
-    // Saturating round-trip mirrors Rust `(f as u64) == source`, so e.g.
-    // u64::MAX (which rounds to 2^64 in f64) round-trips via saturation.
+    // Saturating round-trip so u64::MAX (which rounds up to 2^64 here) still matches.
     return saturateFloatToU64(n) === srcBig ? n : undefined;
   }
 

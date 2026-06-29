@@ -359,13 +359,10 @@ export const asBoolean = (cbor: Cbor): boolean | undefined => {
  * @returns Float or undefined
  */
 export const asFloat = (cbor: Cbor): number | undefined => {
-  // Mirror Rust `TryFrom<CBOR> for f64`, which coerces integers as well as
-  // floats: an Unsigned/Negative is converted to the equivalent float when it
-  // is exactly representable (dCBOR numeric reduction means a value the
-  // producer intended as a float — e.g. 42.0 — is encoded as the integer 42,
-  // so a float-only accessor would wrongly reject it). Returns undefined for
-  // non-numeric types and for integers that can't be represented exactly
-  // (Rust's OutOfRange).
+  // Integers coerce to float too, matching Rust's `TryFrom<CBOR> for f64`.
+  // dCBOR reduces whole-valued floats to integers (42.0 encodes as 42), so a
+  // float-only accessor would wrongly reject them. Returns undefined for
+  // non-numeric types and for integers not exactly representable as f64.
   if (cbor.type === MajorType.Unsigned) {
     return ExactF64.exactFromU64(cbor.value);
   }
@@ -539,9 +536,9 @@ export const expectBoolean = (cbor: Cbor): boolean => {
  * @throws {CborError} With type 'WrongType' if cbor is not a float
  */
 export const expectFloat = (cbor: Cbor): number => {
-  // Mirror Rust `TryFrom<CBOR> for f64`: numeric types coerce (throwing
-  // OutOfRange when an integer isn't exactly representable as f64), all other
-  // types throw WrongType.
+  // Numeric types coerce to float (OutOfRange if an integer isn't exactly
+  // representable as f64); anything else is WrongType. Matches Rust's
+  // `TryFrom<CBOR> for f64`.
   if (cbor.type === MajorType.Unsigned || cbor.type === MajorType.Negative) {
     const value = asFloat(cbor);
     if (value === undefined) {

@@ -5,11 +5,9 @@
  *
  * Set data structure for CBOR.
  *
- * A Set is encoded as a plain (untagged) CBOR array with no duplicate
- * elements, whose elements are in canonical ascending CBOR-byte order. This
- * matches the authoritative Rust `dcbor` reference, whose `Set` serializes via
- * `From<Set> for CBOR` to an untagged array — it carries NO tag (the IANA
- * tag-258 "set" tag is intentionally not used by dcbor itself).
+ * A Set encodes to a plain (untagged) array of unique elements in canonical
+ * ascending CBOR-byte order. There's no tag-258 here: this matches Rust
+ * dcbor's `From<Set> for CBOR`, which emits an untagged array.
  *
  * @module set
  */
@@ -129,13 +127,12 @@ export class CborSet {
   }
 
   /**
-   * Insert an element into the set, requiring it to be strictly greater
-   * (in canonical CBOR-encoded byte order) than every previously-inserted
-   * element. Used by the decoder to reject misordered or duplicate
-   * elements in the (untagged) array set encoding.
+   * Insert an element that must sort strictly after every element inserted so
+   * far (canonical CBOR-byte order). The decoder uses this to reject
+   * misordered or duplicate elements.
    *
    * Mirrors Rust `Set::insert_next` (`pub(crate)`); exposed here because
-   * TypeScript doesn't have a crate-private visibility level.
+   * TypeScript has no crate-private visibility.
    *
    * @throws CborError of type `MisorderedMap` if `value` would not preserve
    *   strict ascending CBOR-byte order, or `DuplicateMapKey` for an exact
@@ -387,12 +384,11 @@ export class CborSet {
   }
 
   /**
-   * Decode a CborSet from a CBOR (untagged) array into this instance.
+   * Decode a CborSet from a CBOR array into this instance.
    *
-   * Mirrors Rust `Set::try_from_vec`, which calls `insert_next` per item: the
+   * Mirrors Rust `Set::try_from_vec`, calling `insert_next` per item, so the
    * array must already be in strict ascending CBOR-byte order with no
-   * duplicates, otherwise a `MisorderedMapKey`/`DuplicateMapKey` error is
-   * thrown.
+   * duplicates (else `MisorderedMapKey`/`DuplicateMapKey`).
    *
    * @param c - CBOR array value
    * @returns this
@@ -412,7 +408,7 @@ export class CborSet {
   }
 
   /**
-   * Decode a CborSet from a CBOR (untagged) array.
+   * Decode a CborSet from a CBOR array.
    *
    * @param c - CBOR array value
    * @returns Decoded CborSet instance
@@ -435,7 +431,7 @@ export class CborSet {
   }
 
   /**
-   * Convert to CBOR bytes (untagged array).
+   * Convert to encoded CBOR bytes.
    *
    * @returns Encoded CBOR bytes
    */

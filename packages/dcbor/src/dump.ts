@@ -275,8 +275,7 @@ function dumpItems(cbor: Cbor, level: number, opts: HexFormatOpts): DumpItem[] {
       } else if (simple.type === "Null") {
         note = "null";
       } else if (simple.type === "Float") {
-        // Match Rust's hex-dump note, which formats the float via its Display
-        // impl (`{:?}` for finite values), not raw JS coercion.
+        // Use the same float formatting as diagnostic output, not raw JS coercion.
         note = floatDisplayString(simple.value);
       } else {
         note = "simple";

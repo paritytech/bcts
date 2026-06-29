@@ -36,11 +36,11 @@ export type CborSummarizer = (cbor: Cbor, flat: boolean) => SummarizerResult;
 
 /**
  * Selects which tag store the diagnostic/hex formatters consult when resolving
- * tag names and summarizers. Mirrors Rust's `TagsStoreOpt` enum:
+ * tag names and summarizers (mirrors Rust's `TagsStoreOpt`):
  *
- * - a concrete {@link TagsStore} → Rust `TagsStoreOpt::Custom`
- * - `"global"` → Rust `TagsStoreOpt::Global` (the process-wide store)
- * - `"none"` → Rust `TagsStoreOpt::None` (no name/summary resolution)
+ * - a concrete {@link TagsStore} to use
+ * - `"global"` for the process-wide store
+ * - `"none"` to skip name/summary resolution
  */
 export type TagsStoreOpt = TagsStore | "global" | "none";
 

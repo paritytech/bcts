@@ -104,8 +104,8 @@ export type CborInput =
   | CborInput[]
   | Map<unknown, unknown>
   | Set<unknown>
-  // Any value that can convert itself to CBOR, e.g. CborSet (untagged) or a
-  // tagged-encodable type. `cbor()` dispatches to these at runtime.
+  // Values that convert themselves to CBOR (e.g. untagged CborSet or a
+  // tagged-encodable type); `cbor()` dispatches to these at runtime.
   | ToCbor
   | TaggedCborEncodable
   | Record<string, unknown>;
@@ -381,15 +381,11 @@ export const cbor = (value: CborInput): Cbor => {
     } else if (value == -Infinity) {
       result = { isCbor: true, type: MajorType.Simple, value: { type: "Float", value: -Infinity } };
     } else if (typeof value === "number" && !Number.isSafeInteger(value)) {
-      // A finite, whole-valued `number` beyond the JS safe-integer range
-      // (NaN, ±Infinity, and fractional values were already handled above).
-      // Rust's `From<f64> for CBOR` numerically reduces ANY whole f64 in
-      // `[-(2^64), 2^64)` to a CBOR integer; only values outside that range
-      // (e.g. `1e21`) stay floats. Mirror that here using BigInt so no
-      // precision is lost — narrowing through `number` would mis-encode
-      // values above 2^53. The earlier reduction-only-when-`isSafeInteger`
-      // behavior diverged from Rust and emitted float bytes where Rust (and
-      // the bigint path below) emit integers.
+      // A finite, whole-valued `number` beyond the safe-integer range (NaN,
+      // ±Infinity, and fractional values are handled above). Like Rust's
+      // `From<f64> for CBOR`, reduce any whole value in `[-(2^64), 2^64)` to a
+      // CBOR integer; values outside that range (e.g. `1e21`) stay floats.
+      // Go through BigInt so we don't lose precision above 2^53.
       const big = BigInt(value);
       if (big >= 0n && big <= 0xffffffffffffffffn) {
         result = { isCbor: true, type: MajorType.Unsigned, value: big };

@@ -414,11 +414,8 @@ function item_tagged(tag: number | bigint, content: Cbor, opts: DiagFormatOpts):
       if (result.ok) {
         return item(result.value);
       }
-      // Render via the shared Error Display formatter (mirrors Rust's
-      // `format!("<error: {}>", error)`). This covers every error variant with
-      // its full message — including the name-aware tag rendering for WrongTag
-      // (via tagToString) — instead of the previous hand-rolled switch that
-      // emitted the bare variant id for anything but Custom/WrongTag.
+      // Use the shared error formatter so every variant gets its full message,
+      // including name-aware tag rendering for WrongTag (matches Rust).
       return item(`<error: ${errorToString(result.error)}>`);
     }
   }
@@ -471,9 +468,7 @@ function formatSimple(value: Simple): string {
 }
 
 /**
- * Format a CBOR float to match Rust's `Simple` Display impl, which delegates
- * to `format!("{:?}", v)` for finite values and prints
- * `NaN`/`Infinity`/`-Infinity` for the specials. Shared with the hex-dump
+ * Format a CBOR float for diagnostic output. Shared with the hex-dump
  * annotation path; see {@link floatDisplayString}.
  */
 function formatFloat(value: number): string {

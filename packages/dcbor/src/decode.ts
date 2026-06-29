@@ -40,12 +40,11 @@ function at(data: DataView, index: number): number {
 }
 
 function from(data: DataView, index: number): DataView {
-  // Clamp the sub-view to the caller's LOGICAL remaining bytes. Omitting the
-  // length would span to the end of the underlying ArrayBuffer, so when the
-  // input is a sub-array of a larger buffer, nested decodes could read past
-  // the logical end. Bounding it here mirrors Rust's `&data[index..]` slices,
-  // so an over-long inner item surfaces as `Underrun` where it occurs rather
-  // than relying on the top-level trailing-bytes backstop.
+  // Bound the sub-view to the remaining logical bytes; without a length it
+  // would span the whole backing ArrayBuffer, letting a nested decode read
+  // past the input's end when the input is itself a slice of a larger buffer.
+  // This matches Rust's `&data[index..]`, so an over-long inner item fails as
+  // an Underrun at its source instead of only at the top-level length check.
   return new DataView(data.buffer, data.byteOffset + index, data.byteLength - index);
 }
 
@@ -171,11 +170,9 @@ function decodeCborInternal(data: DataView): { cbor: Cbor; len: number } {
         throw new CborError({ type: "OutOfRange" });
       }
       const textBuf = parseBytes(from(data, varIntLen), textLen);
-      // dCBOR requires all text strings to be valid UTF-8 (RFC 8949). A
-      // non-fatal TextDecoder would silently substitute U+FFFD for invalid
-      // byte sequences and accept the input; Rust rejects via
-      // `str::from_utf8(buf)?`. Use a fatal decoder so invalid UTF-8 throws,
-      // matching the reference's InvalidUtf8 rejection.
+      // dCBOR text strings must be valid UTF-8 (RFC 8949). Use a fatal decoder
+      // so invalid bytes throw rather than getting replaced with U+FFFD and
+      // silently accepted, matching the Rust reference's InvalidUtf8 rejection.
       let text: string;
       try {
         text = new TextDecoder("utf-8", { fatal: true }).decode(textBuf);

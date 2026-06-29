@@ -34,27 +34,21 @@ import {
 import { CborError } from "./error";
 
 /**
- * Normalize a raw f64 timestamp (seconds since the Unix epoch) the way Rust's
- * `Date::from_timestamp` does, so constructed/decoded dates round-trip
- * byte-identically with the reference.
+ * Normalize a timestamp (seconds since the Unix epoch) to whole seconds plus a
+ * non-negative, sub-second nanosecond part, matching Rust's
+ * `Date::from_timestamp` so dates round-trip byte-identically with the reference.
  *
- * Rust computes:
- * ```rust
- * let whole = seconds.trunc() as i64;
- * let nsecs = (seconds.fract() * 1_000_000_000.0) as u32;  // saturating cast
- * Utc.timestamp_opt(whole, nsecs)  // -> timestamp() == whole + nsecs / 1e9
- * ```
- * The `as u32` cast truncates toward zero and SATURATES: a negative fractional
- * part becomes 0 (so e.g. `-1.5` normalizes to `-1.0`), and any value at/above
- * 2^32 nanoseconds saturates to `u32::MAX`. Sub-nanosecond precision is dropped
- * (so `1.0000000005` normalizes to `1.0`).
+ * The nanosecond part is computed like Rust's `as u32` cast: truncated toward
+ * zero and clamped to [0, u32::MAX]. So a negative fraction floors the value
+ * (`-1.5` becomes `-1.0`) and sub-nanosecond precision is dropped
+ * (`1.0000000005` becomes `1.0`).
  *
  * @internal
  */
 function normalizeTimestampSeconds(seconds: number): number {
   if (!Number.isFinite(seconds)) {
-    // Mirrors chrono rejecting a non-finite instant; Rust would panic on the
-    // `timestamp_opt(...).unwrap()`. Surface a typed error instead.
+    // chrono has no representation for a non-finite instant; reject with a
+    // typed error.
     throw new CborError({ type: "InvalidDate", message: "non-finite timestamp" });
   }
   const whole = Math.trunc(seconds);
@@ -226,9 +220,8 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    */
   static fromTimestamp(secondsSinceUnixEpoch: number): CborDate {
     const instance = new CborDate();
-    // Match Rust `Date::from_timestamp`: truncate to whole seconds plus
-    // saturating-u32 nanoseconds so the in-memory value (and thus encoding,
-    // equality, and comparison) is identical to the reference.
+    // Normalize on construction so the stored value (and thus its encoding,
+    // equality, and ordering) matches the reference.
     instance._seconds = normalizeTimestampSeconds(secondsSinceUnixEpoch);
     return instance;
   }
@@ -259,12 +252,10 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
    * ```
    */
   static fromString(value: string): CborDate {
-    // Mirror Rust `Date::from_string`: accept ONLY strict RFC-3339 date-times
-    // (with seconds and an explicit `Z`/±HH:MM offset) or bare `YYYY-MM-DD`
-    // dates (interpreted as UTC midnight). Anything else is rejected. This is
-    // deliberately far stricter than the lenient, engine-dependent `new Date()`
-    // (which would accept forms like `2023/02/08`, `Feb 8 2023`, or a
-    // zone-less date-time parsed as *local* time).
+    // Accept only strict RFC-3339 date-times (with seconds and an explicit
+    // `Z`/±HH:MM offset) or bare `YYYY-MM-DD` dates (read as UTC midnight),
+    // matching Rust's `Date::from_string`. The plain `new Date()` parser is far
+    // more lenient (and engine-dependent), so we gate it behind explicit regexes.
     const invalidDate = new CborError({ type: "InvalidDate", message: "Invalid date string" });
 
     // RFC-3339 date-time: `YYYY-MM-DDThh:mm:ss[.frac](Z|±hh:mm)`.
@@ -282,10 +273,9 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
       throw invalidDate;
     }
 
-    // Validate the calendar date portion independently of any offset: JS's
-    // `new Date` leniently rolls impossible dates over (e.g. `2023-02-30` →
-    // Mar 2), but chrono rejects them. The leading 10 chars are always
-    // `YYYY-MM-DD` given the regexes; check they form a real calendar date.
+    // `new Date` rolls impossible dates over (`2023-02-30` becomes Mar 2)
+    // rather than failing, so check the `YYYY-MM-DD` portion is a real calendar
+    // date. The first 10 chars are always `YYYY-MM-DD` given the regexes above.
     const [y, m, d] = value.slice(0, 10).split("-").map(Number);
     const probe = new Date(Date.UTC(y, m - 1, d));
     const calendarValid =
@@ -507,11 +497,8 @@ export class CborDate implements CborTagged, CborTaggedEncodable, CborTaggedDeco
         throw new CborError({ type: "WrongType" });
     }
 
-    // Rust `Date::from_untagged_cbor` funnels the decoded number through
-    // `Date::from_timestamp`, which truncates to whole seconds + saturating
-    // nanoseconds. Apply the same normalization so a decoded date re-encodes
-    // to the same bytes as the reference (e.g. a tag-1 float of -1.5 decodes
-    // and re-encodes as the integer -1).
+    // Normalize the decoded value so it re-encodes to the same bytes as the
+    // reference (e.g. a tag-1 float of -1.5 decodes and re-encodes as integer -1).
     this._seconds = normalizeTimestampSeconds(timestamp);
     return this;
   }

@@ -222,15 +222,9 @@ export class CborMap {
     if (this._dict.has(newKey)) {
       throw new CborError({ type: "DuplicateMapKey" });
     }
-    // Compare the incoming key against the LARGEST existing key, matching
-    // Rust's `insert_next` which uses `last_key_value()`. We must NOT use
-    // `SortedMap.max()`: that helper iterates the map's *values* (MapEntry
-    // objects, which have no `.length`), so its byte comparator degenerates to
-    // 0 and it returns the entry with the *smallest* key — letting an
-    // interleaved-misordered key slip through. Instead reach into the
-    // underlying SortedSet `store`, whose items are
-    // `{ key: <encoded bytes>, value: MapEntry }` ordered by the encoded byte
-    // key, and take the greatest item's already-encoded `key`.
+    // Enforce strict ascending order by comparing the new key against the
+    // greatest existing encoded key, read from the sorted store's last item.
+    // Mirrors Rust's insert_next/last_key_value.
     const greatest = this._dict.store.max();
     if (greatest !== undefined) {
       if (lexicographicallyCompareBytes(newKey, greatest.key) <= 0) {
