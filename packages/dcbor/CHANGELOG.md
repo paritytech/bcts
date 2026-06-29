@@ -2,11 +2,6 @@
 
 ## [1.0.0-beta.4] - 2026-06-28
 
-Full byte-for-byte parity pass against the authoritative Rust `bc-dcbor`
-reference (see `DCBOR_RUST_PARITY_AUDIT.md`). Every critical, high, and medium
-audit finding is resolved, dead code removed, and the public surface aligned.
-The test suite now mirrors 100% of the meaningful Rust test vectors (258 tests).
-
 ### Changed
 
 - **BREAKING (wire format):** `CborSet` now serializes as a plain **untagged
