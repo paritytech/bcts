@@ -28,6 +28,7 @@ const hasFract = (n: number): boolean => {
 const U64_MAX_BIG = 0xffffffffffffffffn;
 const I64_MAX_BIG = 0x7fffffffffffffffn;
 const I64_MIN_BIG = -0x8000000000000000n;
+const U128_MAX_BIG = (1n << 128n) - 1n;
 
 /**
  * Truncate a float to u64 with Rust's saturating `as u64` semantics: NaN and
@@ -41,6 +42,20 @@ const saturateFloatToU64 = (f: number): bigint => {
   if (t <= 0) return 0n;
   const big = BigInt(t);
   return big > U64_MAX_BIG ? U64_MAX_BIG : big;
+};
+
+/**
+ * Truncate a float to u128 with Rust's saturating `as u128` semantics: NaN and
+ * negatives clamp to 0, values at or above 2^128 clamp to u128::MAX. Lets the
+ * exact-float checks mirror Rust's `(f as u128) == source` round-trip, where
+ * u128::MAX rounds to 2^128 in f64 but saturates back to u128::MAX.
+ */
+const saturateFloatToU128 = (f: number): bigint => {
+  if (Number.isNaN(f)) return 0n;
+  const t = Math.trunc(f);
+  if (t <= 0) return 0n;
+  const big = BigInt(t);
+  return big > U128_MAX_BIG ? U128_MAX_BIG : big;
 };
 
 /**
@@ -640,8 +655,10 @@ export class ExactF64 {
 
   static exactFromU128(source: bigint): number | undefined {
     const n = Number(source);
-    const roundTrip = BigInt(Math.trunc(n));
-    return roundTrip === source ? n : undefined;
+    if (!Number.isFinite(n)) return undefined;
+    // Saturating round-trip mirroring Rust `f as u128` (matches exactFromU64),
+    // so u128::MAX (which rounds up to 2^128 in f64) still round-trips.
+    return saturateFloatToU128(n) === source ? n : undefined;
   }
 
   static exactFromI128(source: bigint): number | undefined {
