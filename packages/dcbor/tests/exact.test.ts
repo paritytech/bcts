@@ -197,6 +197,16 @@ describe("Exact conversions (port of Rust exact.rs tests)", () => {
     expect(ExactF32.exactFromI64(I64_MAX)).toBe(9223372036854775808.0);
     expect(ExactF32.exactFromI64(I64_MIN)).toBe(-9223372036854775808.0);
     expect(ExactF32.exactFromI64(-9223372036854775807n)).toBeUndefined();
+
+    expect(ExactF32.exactFromU128(21n)).toBe(21.0);
+    expect(ExactF32.exactFromU128(U128_MAX)).toBeUndefined();
+    expect(ExactF32.exactFromU128(9223372036854775809n)).toBeUndefined();
+
+    expect(ExactF32.exactFromI128(21n)).toBe(21.0);
+    expect(ExactF32.exactFromI128(-21n)).toBe(-21.0);
+    expect(ExactF32.exactFromI128(I128_MAX)).toBeUndefined();
+    expect(ExactF32.exactFromI128(I128_MIN)).toBeUndefined();
+    expect(ExactF32.exactFromI128(-9223372036854775807n)).toBeUndefined();
   });
 
   test("exact_from_f64 (ExactF64)", () => {
@@ -213,6 +223,18 @@ describe("Exact conversions (port of Rust exact.rs tests)", () => {
     expect(ExactF64.exactFromI64(21)).toBe(21.0);
     expect(ExactF64.exactFromI64(-21)).toBe(-21.0);
     expect(ExactF64.exactFromI64(-9223372036854775807n)).toBeUndefined();
+
+    expect(ExactF64.exactFromU128(21n)).toBe(21.0);
+    // u128::MAX rounds to 2^128 (finite in f64); the saturating round-trip
+    // clamps 2^128 back to u128::MAX, so this is accepted (matches Rust).
+    expect(ExactF64.exactFromU128(U128_MAX)).toBe(3.402823669209385e38);
+    expect(ExactF64.exactFromU128(9223372036854775809n)).toBeUndefined();
+
+    expect(ExactF64.exactFromI128(21n)).toBe(21.0);
+    expect(ExactF64.exactFromI128(-21n)).toBe(-21.0);
+    expect(ExactF64.exactFromI128(I128_MAX)).toBeUndefined();
+    expect(ExactF64.exactFromI128(I128_MIN)).toBeUndefined();
+    expect(ExactF64.exactFromI128(-9223372036854775807n)).toBeUndefined();
   });
 
   // Detailed port of Rust `test_exact_u64_from_f64`.
@@ -240,6 +262,9 @@ describe("Exact conversions (port of Rust exact.rs tests)", () => {
     expect(ExactU64.exactFromF64(18446744073709551616.0)).toBeUndefined();
     expect(ExactU64.exactFromF64(1.0000000000000002)).toBeUndefined();
     expect(ExactU64.exactFromF64(4503599627370495.5)).toBeUndefined();
+    // Smallest positive normal f64 and largest f64 — neither is an exact u64.
+    expect(ExactU64.exactFromF64(2.2250738585072014e-308)).toBeUndefined(); // f64::MIN_POSITIVE
+    expect(ExactU64.exactFromF64(1.7976931348623157e308)).toBeUndefined(); // f64::MAX
   });
 
   // Detailed port of Rust `test_exact_i64_from_f64_exact`.
@@ -262,5 +287,12 @@ describe("Exact conversions (port of Rust exact.rs tests)", () => {
     // Most negative double that converts to int64 (exceeds the safe range, so
     // returned as a bigint).
     expect(ExactI64.exactFromF64(-9223372036854774784.0)).toBe(-9223372036854774784n);
+    // i64::MAX as f64 rounds up to 2^63 (out of range) -> undefined; i64::MIN
+    // as f64 is exact (-2^63), returned as bigint.
+    expect(ExactI64.exactFromF64(9223372036854775808.0)).toBeUndefined();
+    expect(ExactI64.exactFromF64(-9223372036854775808.0)).toBe(I64_MIN);
+    // Subnormal magnitudes are not exact integers.
+    expect(ExactI64.exactFromF64(1e-308)).toBeUndefined();
+    expect(ExactI64.exactFromF64(-1e-308)).toBeUndefined();
   });
 });

@@ -38,7 +38,8 @@
  */
 
 import type { CborInput, WalkElement, EdgeTypeVariant } from "../src";
-import { cbor, CborMap, toTaggedValue } from "../src";
+import { cbor, CborMap, toTaggedValue, edgeLabel } from "../src";
+import { EdgeType } from "../src/walk";
 
 // Helper function to format WalkElement as diagnostic string
 function formatElement(element: WalkElement): string {
@@ -609,5 +610,82 @@ describe("walk tests", () => {
     expect(strings).toContain("skills");
     expect(strings).toContain("programming");
     expect(strings).toContain("languages");
+  });
+
+  /// Root array: visit count and exact positional edge ordering
+  /// (port of src/walk.rs `test_walk_array`)
+  test("test_walk_array", () => {
+    const edges: EdgeTypeVariant[] = [];
+    let count = 0;
+    const visitor = (
+      _element: WalkElement,
+      _level: number,
+      edge: EdgeTypeVariant,
+      state: void,
+    ): [void, boolean] => {
+      count++;
+      edges.push(edge);
+      return [state, false];
+    };
+
+    cbor([1, 2, 3]).walk(undefined, visitor);
+
+    // Array + 3 elements = 4
+    expect(count).toBe(4);
+    expect(edges[0]?.type).toBe("none"); // Root array
+    for (let i = 0; i < 3; i++) {
+      const edge = edges[i + 1];
+      expect(edge?.type).toBe("array_element");
+      if (edge?.type === "array_element") expect(edge.index).toBe(i);
+    }
+  });
+
+  /// Single-level tagged value: visit count and edge sequence
+  /// (port of src/walk.rs `test_walk_tagged`)
+  test("test_walk_tagged", () => {
+    const tagged = toTaggedValue(0, "2023-01-01T00:00:00Z");
+
+    const edges: EdgeTypeVariant[] = [];
+    let count = 0;
+    const visitor = (
+      _element: WalkElement,
+      _level: number,
+      edge: EdgeTypeVariant,
+      state: void,
+    ): [void, boolean] => {
+      count++;
+      edges.push(edge);
+      return [state, false];
+    };
+
+    tagged.walk(undefined, visitor);
+
+    // Tagged value + content = 2
+    expect(count).toBe(2);
+    expect(edges[0]?.type).toBe("none"); // Root tagged value
+    expect(edges[1]?.type).toBe("tagged_content"); // Content
+  });
+
+  /// Nested map-with-array visit count (port of src/walk.rs
+  /// `test_walk_nested_structure`)
+  test("test_walk_nested_structure", () => {
+    const map = CborMap.new();
+    map.insert("numbers", [1, 2, 3]);
+    map.insert("text", "hello");
+
+    // map + 2 key-value pairs + 4 individual keys/values + array + 3 elements
+    // = 10
+    expect(countVisits(map)).toBe(10);
+  });
+
+  /// Edge-type labels (port of src/walk.rs `test_edge_type_labels`)
+  test("test_edge_type_labels", () => {
+    expect(edgeLabel({ type: EdgeType.None })).toBeUndefined();
+    expect(edgeLabel({ type: EdgeType.ArrayElement, index: 5 })).toBe("arr[5]");
+    expect(edgeLabel({ type: EdgeType.MapKey })).toBe("key");
+    expect(edgeLabel({ type: EdgeType.MapValue })).toBe("val");
+    expect(edgeLabel({ type: EdgeType.TaggedContent })).toBe("content");
+    // Rust's `label()` also maps MapKeyValue -> "kv" (its test omits this case).
+    expect(edgeLabel({ type: EdgeType.MapKeyValue })).toBe("kv");
   });
 });

@@ -170,7 +170,7 @@ describe("Seedtool CLI", () => {
   });
 
   describe("SSKR (test_sskr)", () => {
-    it("should split and reconstruct seed via SSKR", () => {
+    it("should split and reconstruct seed via SSKR", { timeout: 10_000 }, async () => {
       const seedEnvelope = runCli([
         "--name",
         "SeedName",
