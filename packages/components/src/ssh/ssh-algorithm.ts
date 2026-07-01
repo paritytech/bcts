@@ -19,7 +19,9 @@
  */
 
 export type SshAlgorithm =
-  { kind: "ed25519" } | { kind: "dsa" } | { kind: "ecdsa"; curve: SshEcdsaCurve };
+  | { kind: "ed25519" }
+  | { kind: "dsa" }
+  | { kind: "ecdsa"; curve: SshEcdsaCurve };
 
 export type SshEcdsaCurve = "nistp256" | "nistp384";
 

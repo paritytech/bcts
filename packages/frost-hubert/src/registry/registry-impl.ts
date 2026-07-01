@@ -367,7 +367,8 @@ export class Registry {
     }
 
     const participantsJson = json["participants"] as
-      Record<string, Record<string, unknown>> | undefined;
+      | Record<string, Record<string, unknown>>
+      | undefined;
     if (participantsJson !== undefined) {
       for (const [, recordJson] of Object.entries(participantsJson)) {
         const record = ParticipantRecord.fromJSON(recordJson);

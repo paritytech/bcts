@@ -92,7 +92,9 @@ import {
 
 /// Option type for format context, similar to Rust's FormatContextOpt<'a>.
 export type FormatContextOpt =
-  { type: "none" } | { type: "global" } | { type: "custom"; context: FormatContext };
+  | { type: "none" }
+  | { type: "global" }
+  | { type: "custom"; context: FormatContext };
 
 /// Create a FormatContextOpt with no context
 export const formatContextNone = (): FormatContextOpt => ({ type: "none" });

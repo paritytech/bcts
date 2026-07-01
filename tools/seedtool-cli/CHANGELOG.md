@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0-beta.5] - 2026-07-01
+
+### Changed
+
+- Workspace version bump
+
 ## [1.0.0-beta.4] - 2026-06-28
 
 ### Changed

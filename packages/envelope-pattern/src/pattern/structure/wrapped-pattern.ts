@@ -27,9 +27,11 @@ let createAnyPattern: (() => Pattern) | undefined;
 
 // Forward declaration for pattern dispatch (avoids circular imports)
 let dispatchPatternPathsWithCaptures:
-  ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>]) | undefined;
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
 let dispatchPatternCompile:
-  ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void) | undefined;
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
 let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
 
 export function registerWrappedPatternFactory(factory: (pattern: WrappedPattern) => Pattern): void {
@@ -56,7 +58,8 @@ export function registerWrappedPatternDispatch(dispatch: {
  * Corresponds to the Rust `WrappedPattern` enum in wrapped_pattern.rs
  */
 export type WrappedPatternType =
-  { readonly type: "Any" } | { readonly type: "Unwrap"; readonly pattern: Pattern };
+  | { readonly type: "Any" }
+  | { readonly type: "Unwrap"; readonly pattern: Pattern };
 
 /**
  * Represents patterns for matching wrapped envelopes.

@@ -73,7 +73,8 @@ export type XIDPrivateKeyOptionsValue =
  * Private key data that can be either decrypted or encrypted.
  */
 export type PrivateKeyData =
-  { type: "decrypted"; privateKeys: PrivateKeys } | { type: "encrypted"; envelope: Envelope };
+  | { type: "decrypted"; privateKeys: PrivateKeys }
+  | { type: "encrypted"; envelope: Envelope };
 
 /**
  * Represents a key in an XID document.

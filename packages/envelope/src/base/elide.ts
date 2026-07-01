@@ -31,7 +31,9 @@ export enum ObscureType {
 /// Gordian Envelope supports several ways to obscure parts of an envelope while
 /// maintaining its semantic integrity and digest tree.
 export type ObscureAction =
-  { type: "elide" } | { type: "encrypt"; key: unknown } | { type: "compress" };
+  | { type: "elide" }
+  | { type: "encrypt"; key: unknown }
+  | { type: "compress" };
 
 /// Helper to create elide action
 export function elideAction(): ObscureAction {

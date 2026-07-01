@@ -300,7 +300,8 @@ export class Continuation {
 
     let validUntil: Date | undefined;
     const validUntilObj = envelope.optionalObjectForPredicate(VALID_UNTIL) as
-      EnvelopeExt | undefined;
+      | EnvelopeExt
+      | undefined;
     if (validUntilObj !== undefined) {
       const leafCbor = validUntilObj.asLeaf();
       if (leafCbor !== undefined) {

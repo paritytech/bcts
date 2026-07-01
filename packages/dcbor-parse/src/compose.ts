@@ -67,7 +67,8 @@ export function composeErrorMessage(error: ComposeError): string {
  * Corresponds to Rust `Result<T, Error>`
  */
 export type ComposeResult<T> =
-  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: ComposeError };
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: ComposeError };
 
 /**
  * Creates a successful compose result.

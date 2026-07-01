@@ -66,7 +66,8 @@ export type Error =
  * Matches Rust's Result<T, Error> pattern.
  */
 export type Result<T> =
-  { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: Error };
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: Error };
 
 /**
  * Creates a successful Result.

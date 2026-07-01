@@ -101,10 +101,12 @@ export function compileAsAtomic(
  */
 let patternMatchFn: ((pattern: Pattern, haystack: Envelope) => boolean) | undefined;
 let patternPathsWithCapturesFn:
-  ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>]) | undefined;
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
 let patternPathsFn: ((pattern: Pattern, haystack: Envelope) => Path[]) | undefined;
 let patternCompileFn:
-  ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void) | undefined;
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
 let patternIsComplexFn: ((pattern: Pattern) => boolean) | undefined;
 let patternToStringFn: ((pattern: Pattern) => string) | undefined;
 

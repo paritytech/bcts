@@ -16,7 +16,8 @@ import type { Path } from "../../format";
  * Pattern for matching boolean values in dCBOR.
  */
 export type BoolPattern =
-  { readonly variant: "Any" } | { readonly variant: "Value"; readonly value: boolean };
+  | { readonly variant: "Any" }
+  | { readonly variant: "Value"; readonly value: boolean };
 
 /**
  * Creates a BoolPattern that matches any boolean value.

@@ -27,9 +27,11 @@ export function registerTraversePatternFactory(
 
 // Late-binding dispatch functions to avoid circular dependency with Pattern
 let _patternPathsWithCaptures:
-  ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>]) | undefined;
+  | ((pattern: Pattern, haystack: Envelope) => [Path[], Map<string, Path[]>])
+  | undefined;
 let _patternCompile:
-  ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void) | undefined;
+  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
+  | undefined;
 let _patternIsComplex: ((pattern: Pattern) => boolean) | undefined;
 
 export function registerTraverseDispatchFunctions(

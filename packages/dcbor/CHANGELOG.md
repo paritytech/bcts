@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.0-beta.5] - 2026-07-01
+
+### Fixed
+
+- `ExactF64.exactFromU128` now uses a saturating float→int round-trip, so
+  `u128::MAX` is accepted (rounds to 2¹²⁸ and maps back), matching the Rust
+  reference and the sibling `exactFromU64`.
+
+### Added
+
+- Full Rust test-vector parity for `walk` (edge-type labels, root-array edge
+  ordering, single-level tagged, nested-structure visit counts) and `exact`
+  (`u128`/`i128` → `f32`/`f64` and `f64`→`u64`/`i64` boundary cases).
+
 ## [1.0.0-beta.4] - 2026-06-28
 
 ### Changed
