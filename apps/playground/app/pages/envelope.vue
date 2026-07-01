@@ -3562,7 +3562,7 @@ async function copyProof() {
               color="neutral"
               variant="ghost"
               size="sm"
-              @click="showTemplatesModal = true"
+              @click="() => { showTemplatesModal = true }"
             />
           </UTooltip>
           <!-- Phase 3: Import -->
@@ -3604,7 +3604,7 @@ async function copyProof() {
               color="neutral"
               variant="ghost"
               size="sm"
-              @click="showKeyManagementModal = true"
+              @click="() => { showKeyManagementModal = true }"
             />
           </UTooltip>
           <UTooltip text="Clear All">
@@ -3659,7 +3659,7 @@ async function copyProof() {
                     icon="i-heroicons-document-duplicate"
                     color="neutral"
                     variant="soft"
-                    @click="showTemplatesModal = true"
+                    @click="() => { showTemplatesModal = true }"
                   >
                     From Template
                   </UButton>
@@ -3800,7 +3800,7 @@ async function copyProof() {
                 <UIcon name="i-heroicons-arrow-path" class="w-3 h-3 mr-1" />
                 Replace
               </UButton>
-              <UButton size="xs" variant="soft" color="neutral" @click="showGeneratePanel = !showGeneratePanel">
+              <UButton size="xs" variant="soft" color="neutral" @click="() => { showGeneratePanel = !showGeneratePanel }">
                 <UIcon name="i-heroicons-wrench-screwdriver" class="w-3 h-3 mr-1" />
                 Generate
               </UButton>
@@ -3930,7 +3930,7 @@ async function copyProof() {
                   Obscured Nodes
                   <UBadge color="warning" variant="soft" size="xs" class="ml-1">{{ obscuredNodes.length }}</UBadge>
                 </h4>
-                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="showObscuredPanel = false" />
+                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="() => { showObscuredPanel = false }" />
               </div>
               <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 space-y-1">
                 <div v-for="(node, i) in obscuredNodes" :key="i" class="flex items-center gap-2 text-xs">
@@ -3954,7 +3954,7 @@ async function copyProof() {
             <div v-if="showGeneratePanel">
               <div class="flex items-center justify-between mb-2">
                 <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Generate Utilities</h4>
-                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="showGeneratePanel = false" />
+                <UButton icon="i-heroicons-x-mark" size="xs" color="neutral" variant="ghost" @click="() => { showGeneratePanel = false }" />
               </div>
               <div class="bg-gray-100 dark:bg-gray-800/50 rounded-lg p-3 space-y-3">
                 <div class="flex gap-2 flex-wrap">
@@ -4059,7 +4059,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showSubjectModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSubjectModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" @click="createSubject">
@@ -4184,7 +4184,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showAssertionModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showAssertionModal = false }">
                 Cancel
               </UButton>
               <UButton
@@ -4259,7 +4259,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showSaltModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSaltModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" @click="addSaltToNode">
@@ -4287,7 +4287,7 @@ async function copyProof() {
                   :color="elideMode === 'reveal' ? 'primary' : 'neutral'"
                   :variant="elideMode === 'reveal' ? 'solid' : 'soft'"
                   size="sm"
-                  @click="elideMode = 'reveal'"
+                  @click="() => { elideMode = 'reveal' }"
                 >
                   <UIcon name="i-heroicons-eye" class="w-4 h-4 mr-1" />
                   Reveal Selected
@@ -4296,7 +4296,7 @@ async function copyProof() {
                   :color="elideMode === 'remove' ? 'primary' : 'neutral'"
                   :variant="elideMode === 'remove' ? 'solid' : 'soft'"
                   size="sm"
-                  @click="elideMode = 'remove'"
+                  @click="() => { elideMode = 'remove' }"
                 >
                   <UIcon name="i-heroicons-eye-slash" class="w-4 h-4 mr-1" />
                   Hide Selected
@@ -4314,7 +4314,7 @@ async function copyProof() {
                   :color="elideAction === 'elide' ? 'primary' : 'neutral'"
                   :variant="elideAction === 'elide' ? 'solid' : 'soft'"
                   size="sm"
-                  @click="elideAction = 'elide'"
+                  @click="() => { elideAction = 'elide' }"
                 >
                   <UIcon name="i-heroicons-eye-slash" class="w-4 h-4 mr-1" />
                   Digest
@@ -4323,7 +4323,7 @@ async function copyProof() {
                   :color="elideAction === 'encrypt' ? 'primary' : 'neutral'"
                   :variant="elideAction === 'encrypt' ? 'solid' : 'soft'"
                   size="sm"
-                  @click="elideAction = 'encrypt'"
+                  @click="() => { elideAction = 'encrypt' }"
                 >
                   <UIcon name="i-heroicons-lock-closed" class="w-4 h-4 mr-1" />
                   Encrypt
@@ -4332,7 +4332,7 @@ async function copyProof() {
                   :color="elideAction === 'compress' ? 'primary' : 'neutral'"
                   :variant="elideAction === 'compress' ? 'solid' : 'soft'"
                   size="sm"
-                  @click="elideAction = 'compress'"
+                  @click="() => { elideAction = 'compress' }"
                 >
                   <UIcon name="i-heroicons-archive-box-arrow-down" class="w-4 h-4 mr-1" />
                   Compress
@@ -4371,7 +4371,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-4">
-              <UButton color="neutral" variant="ghost" @click="showElideSelectModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showElideSelectModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" @click="applySelectiveElision">
@@ -4448,7 +4448,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showRecipientsModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showRecipientsModal = false }">
                 Cancel
               </UButton>
               <!-- Decrypt button when already encrypted but all recipients unselected -->
@@ -4635,7 +4635,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end mt-6">
-              <UButton color="primary" @click="showKeyManagementModal = false">
+              <UButton color="primary" @click="() => { showKeyManagementModal = false }">
                 Done
               </UButton>
             </div>
@@ -4681,7 +4681,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showExportModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showExportModal = false }">
                 Close
               </UButton>
               <UButton color="neutral" variant="soft" :disabled="!hexOutput" @click="downloadExport">
@@ -4713,7 +4713,7 @@ async function copyProof() {
                     :color="importFormat === format ? 'primary' : 'neutral'"
                     :variant="importFormat === format ? 'solid' : 'soft'"
                     class="flex-1"
-                    @click="importFormat = format as ExportFormat"
+                    @click="() => { importFormat = format as ExportFormat }"
                   >
                     {{ format.toUpperCase() }}
                   </UButton>
@@ -4742,7 +4742,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showImportModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showImportModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" :disabled="!importInput.trim()" @click="importEnvelope">
@@ -4777,7 +4777,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end mt-6">
-              <UButton color="neutral" variant="ghost" @click="showTemplatesModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showTemplatesModal = false }">
                 Cancel
               </UButton>
             </div>
@@ -4803,7 +4803,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showTypeModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showTypeModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" :disabled="!typeValue.trim()" @click="addTypeToNode">
@@ -4854,7 +4854,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showAttachmentModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showAttachmentModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" :disabled="!attachmentPayload.trim() || !attachmentVendor.trim()" @click="addAttachmentToNode">
@@ -4964,7 +4964,7 @@ async function copyProof() {
             </template>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showProofModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showProofModal = false }">
                 Close
               </UButton>
               <UButton color="primary" :disabled="!proofOutput" @click="copyProof">
@@ -5016,7 +5016,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end mt-6">
-              <UButton color="neutral" variant="ghost" @click="showQRModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showQRModal = false }">
                 Close
               </UButton>
             </div>
@@ -5063,7 +5063,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showSignModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSignModal = false }">
                 Cancel
               </UButton>
               <UButton
@@ -5107,7 +5107,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showPasswordEncryptModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showPasswordEncryptModal = false }">
                 Cancel
               </UButton>
               <UButton
@@ -5171,7 +5171,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showSealModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSealModal = false }">
                 Cancel
               </UButton>
               <UButton
@@ -5278,7 +5278,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-4">
-              <UButton color="neutral" variant="ghost" @click="showSskrSplitModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSskrSplitModal = false }">
                 Close
               </UButton>
               <UButton color="primary" @click="performSskrSplit">
@@ -5320,7 +5320,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-4">
-              <UButton color="neutral" variant="ghost" @click="showSskrJoinModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showSskrJoinModal = false }">
                 Cancel
               </UButton>
               <UButton color="primary" @click="performSskrJoin">
@@ -5363,7 +5363,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
-              <UButton color="neutral" variant="ghost" @click="showVerifyModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showVerifyModal = false }">
                 Close
               </UButton>
             </div>
@@ -5544,7 +5544,7 @@ async function copyProof() {
               <div v-else />
 
               <div class="flex gap-2">
-                <UButton color="neutral" variant="ghost" @click="showWizardModal = false">
+                <UButton color="neutral" variant="ghost" @click="() => { showWizardModal = false }">
                   Cancel
                 </UButton>
                 <UButton
@@ -5590,7 +5590,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showUnelideModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showUnelideModal = false }">Cancel</UButton>
               <UButton color="primary" :disabled="!unelideInput.trim()" @click="performUnelide">
                 <UIcon name="i-heroicons-eye" class="w-4 h-4 mr-1" />
                 Unelide
@@ -5618,7 +5618,7 @@ async function copyProof() {
                   :color="decryptMode === 'symmetric' ? 'primary' : 'neutral'"
                   variant="soft"
                   size="sm"
-                  @click="decryptMode = 'symmetric'"
+                  @click="() => { decryptMode = 'symmetric' }"
                 >
                   Symmetric Key
                 </UButton>
@@ -5626,7 +5626,7 @@ async function copyProof() {
                   :color="decryptMode === 'password' ? 'primary' : 'neutral'"
                   variant="soft"
                   size="sm"
-                  @click="decryptMode = 'password'"
+                  @click="() => { decryptMode = 'password' }"
                 >
                   Password
                 </UButton>
@@ -5634,7 +5634,7 @@ async function copyProof() {
                   :color="decryptMode === 'recipient' ? 'primary' : 'neutral'"
                   variant="soft"
                   size="sm"
-                  @click="decryptMode = 'recipient'"
+                  @click="() => { decryptMode = 'recipient' }"
                 >
                   Recipient Key
                 </UButton>
@@ -5660,7 +5660,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showDecryptModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showDecryptModal = false }">Cancel</UButton>
               <UButton
                 color="primary"
                 :disabled="decryptMode === 'symmetric' ? !decryptKeyHex.trim() : decryptMode === 'password' ? !decryptPassword : !decryptRecipientId"
@@ -5690,7 +5690,7 @@ async function copyProof() {
                 :color="expressionMode === m ? 'primary' : 'neutral'"
                 variant="soft"
                 size="xs"
-                @click="expressionMode = m"
+                @click="() => { expressionMode = m }"
               >
                 {{ m.charAt(0).toUpperCase() + m.slice(1) }}
               </UButton>
@@ -5703,11 +5703,11 @@ async function copyProof() {
                 <div class="flex gap-2 mb-2">
                   <UButton
                     :color="exprFunctionType === 'named' ? 'primary' : 'neutral'"
-                    variant="soft" size="xs" @click="exprFunctionType = 'named'"
+                    variant="soft" size="xs" @click="() => { exprFunctionType = 'named' }"
                   >Named</UButton>
                   <UButton
                     :color="exprFunctionType === 'known' ? 'primary' : 'neutral'"
-                    variant="soft" size="xs" @click="exprFunctionType = 'known'"
+                    variant="soft" size="xs" @click="() => { exprFunctionType = 'known' }"
                   >Well-Known</UButton>
                 </div>
                 <UInput
@@ -5760,11 +5760,11 @@ async function copyProof() {
                 <div class="flex gap-2 mb-3">
                   <UButton
                     :color="responseIsSuccess ? 'success' : 'neutral'"
-                    variant="soft" size="sm" @click="responseIsSuccess = true"
+                    variant="soft" size="sm" @click="() => { responseIsSuccess = true }"
                   >Success</UButton>
                   <UButton
                     :color="!responseIsSuccess ? 'error' : 'neutral'"
-                    variant="soft" size="sm" @click="responseIsSuccess = false"
+                    variant="soft" size="sm" @click="() => { responseIsSuccess = false }"
                   >Failure</UButton>
                 </div>
                 <UInput
@@ -5792,7 +5792,7 @@ async function copyProof() {
             </p>
 
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showExpressionModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showExpressionModal = false }">Cancel</UButton>
               <UButton color="primary" @click="applyExpressionEnvelope">
                 <UIcon name="i-heroicons-code-bracket" class="w-4 h-4 mr-1" />
                 Create {{ expressionMode.charAt(0).toUpperCase() + expressionMode.slice(1) }}
@@ -5828,7 +5828,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showUnsealModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showUnsealModal = false }">Cancel</UButton>
               <UButton color="primary" :disabled="!unsealSignerKeyId || !unsealRecipientId" @click="performUnseal">
                 <UIcon name="i-heroicons-shield-check" class="w-4 h-4 mr-1" />
                 Unseal
@@ -5864,7 +5864,7 @@ async function copyProof() {
             </div>
 
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showWalkReplaceModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showWalkReplaceModal = false }">Cancel</UButton>
               <UButton color="primary" :disabled="!walkReplaceDigestHex.trim() || !walkReplaceEnvelopeInput.trim()" @click="performWalkReplace">
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-1" />
                 Replace

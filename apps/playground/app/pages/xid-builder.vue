@@ -1525,7 +1525,7 @@ defineShortcuts({
               color="neutral"
               variant="ghost"
               size="sm"
-              @click="showTemplatesModal = true"
+              @click="() => { showTemplatesModal = true }"
             />
           </UTooltip>
           <UTooltip text="Import XID from UR">
@@ -1639,7 +1639,7 @@ defineShortcuts({
                     icon="i-heroicons-squares-2x2"
                     color="neutral"
                     variant="soft"
-                    @click="showTemplatesModal = true"
+                    @click="() => { showTemplatesModal = true }"
                   >
                     Templates
                   </UButton>
@@ -2351,7 +2351,7 @@ defineShortcuts({
             </div>
 
             <div class="flex justify-end mt-6">
-              <UButton color="neutral" variant="ghost" @click="showQRModal = false">
+              <UButton color="neutral" variant="ghost" @click="() => { showQRModal = false }">
                 Close
               </UButton>
             </div>
@@ -2420,7 +2420,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showAddKeyModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showAddKeyModal = false }">Cancel</UButton>
               <UButton color="primary" @click="addNewKey">
                 <UIcon name="i-heroicons-key" class="w-4 h-4 mr-1" />
                 Generate Key
@@ -2443,7 +2443,7 @@ defineShortcuts({
             </div>
             <UAlert v-if="removeKeyError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="removeKeyError" class="mb-4" />
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showRemoveKeyConfirm = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showRemoveKeyConfirm = false }">Cancel</UButton>
               <UButton color="error" :disabled="!!removeKeyError" @click="executeRemoveKey">Remove</UButton>
             </div>
           </div>
@@ -2476,7 +2476,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showAddDelegateModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showAddDelegateModal = false }">Cancel</UButton>
               <UButton color="primary" @click="addNewDelegate">
                 <UIcon name="i-heroicons-user-plus" class="w-4 h-4 mr-1" />
                 Add Delegate
@@ -2499,7 +2499,7 @@ defineShortcuts({
             </div>
             <UAlert v-if="removeDelegateError" color="error" variant="soft" icon="i-heroicons-exclamation-triangle" :title="removeDelegateError" class="mb-4" />
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showRemoveDelegateConfirm = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showRemoveDelegateConfirm = false }">Cancel</UButton>
               <UButton color="error" :disabled="!!removeDelegateError" @click="executeRemoveDelegate">Remove</UButton>
             </div>
           </div>
@@ -2589,7 +2589,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showServiceModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showServiceModal = false }">Cancel</UButton>
               <UButton color="primary" @click="saveService">
                 <UIcon name="i-heroicons-server-stack" class="w-4 h-4 mr-1" />
                 {{ serviceModalMode === 'add' ? 'Add Service' : 'Save Changes' }}
@@ -2611,7 +2611,7 @@ defineShortcuts({
               {{ removeServiceTargetUri }}
             </div>
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showRemoveServiceConfirm = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showRemoveServiceConfirm = false }">Cancel</UButton>
               <UButton color="error" @click="executeRemoveService">Remove</UButton>
             </div>
           </div>
@@ -2676,7 +2676,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showNewXIDModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showNewXIDModal = false }">Cancel</UButton>
               <UButton color="primary" @click="createNewXID">
                 <UIcon name="i-heroicons-plus" class="w-4 h-4 mr-1" />
                 Create
@@ -2717,7 +2717,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showAdvanceProvenanceModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showAdvanceProvenanceModal = false }">Cancel</UButton>
               <UButton color="primary" @click="advanceProvenance">
                 <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 mr-1" />
                 Next Mark
@@ -2757,7 +2757,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showAddAttachmentModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showAddAttachmentModal = false }">Cancel</UButton>
               <UButton color="primary" @click="addAttachment">
                 <UIcon name="i-heroicons-paper-clip" class="w-4 h-4 mr-1" />
                 Add Attachment
@@ -2786,7 +2786,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showAddEdgeModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showAddEdgeModal = false }">Cancel</UButton>
               <UButton color="primary" @click="addEdge">
                 <UIcon name="i-heroicons-arrow-right" class="w-4 h-4 mr-1" />
                 Add Edge
@@ -2828,7 +2828,7 @@ defineShortcuts({
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-2">
-              <UButton color="neutral" variant="ghost" @click="showImportModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showImportModal = false }">Cancel</UButton>
               <UButton color="primary" @click="importDocument">
                 <UIcon name="i-heroicons-arrow-down-tray" class="w-4 h-4 mr-1" />
                 Import
@@ -2941,7 +2941,7 @@ defineShortcuts({
 
             <!-- Generate Button -->
             <div class="flex justify-end gap-2">
-              <UButton color="neutral" variant="ghost" @click="showExportModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showExportModal = false }">Cancel</UButton>
               <UButton color="primary" @click="executeExport">
                 <UIcon name="i-heroicons-arrow-up-tray" class="w-4 h-4 mr-1" />
                 Generate Export
@@ -2990,7 +2990,7 @@ defineShortcuts({
             </div>
 
             <div class="flex justify-end">
-              <UButton color="neutral" variant="ghost" @click="showShareModal = false">Close</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showShareModal = false }">Close</UButton>
             </div>
           </div>
         </template>
@@ -3024,7 +3024,7 @@ defineShortcuts({
             </div>
 
             <div class="flex justify-end">
-              <UButton color="neutral" variant="ghost" @click="showTemplatesModal = false">Cancel</UButton>
+              <UButton color="neutral" variant="ghost" @click="() => { showTemplatesModal = false }">Cancel</UButton>
             </div>
           </div>
         </template>
