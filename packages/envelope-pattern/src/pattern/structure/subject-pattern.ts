@@ -25,8 +25,7 @@ export let createStructureSubjectPattern: ((pattern: SubjectPattern) => Pattern)
 // register the compile dispatcher (which lives in `pattern/index.ts`)
 // during module initialisation.
 let dispatchPatternCompile:
-  | ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void)
-  | undefined;
+  ((pattern: Pattern, code: Instr[], literals: Pattern[], captures: string[]) => void) | undefined;
 let dispatchPatternToString: ((pattern: Pattern) => string) | undefined;
 
 export function registerSubjectPatternFactory(factory: (pattern: SubjectPattern) => Pattern): void {
@@ -47,8 +46,7 @@ export function registerSubjectPatternDispatch(dispatch: {
  * Corresponds to the Rust `SubjectPattern` enum in subject_pattern.rs
  */
 export type SubjectPatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "Pattern"; readonly pattern: Pattern };
+  { readonly type: "Any" } | { readonly type: "Pattern"; readonly pattern: Pattern };
 
 /**
  * Pattern for matching subjects in envelopes.

@@ -31,8 +31,7 @@ export function registerPredicatePatternFactory(
  * Corresponds to the Rust `PredicatePattern` enum in predicate_pattern.rs
  */
 export type PredicatePatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "Pattern"; readonly pattern: Pattern };
+  { readonly type: "Any" } | { readonly type: "Pattern"; readonly pattern: Pattern };
 
 /**
  * Pattern for matching predicates in envelopes.

@@ -32,8 +32,7 @@ export function registerMapPatternFactory(factory: (pattern: MapPattern) => Patt
  * Corresponds to the Rust `MapPattern` enum in map_pattern.rs
  */
 export type MapPatternType =
-  | { readonly type: "Any" }
-  | { readonly type: "Interval"; readonly interval: Interval };
+  { readonly type: "Any" } | { readonly type: "Interval"; readonly interval: Interval };
 
 /**
  * Pattern for matching map values in envelope leaf nodes.

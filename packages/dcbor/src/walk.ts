@@ -89,8 +89,7 @@ export const edgeLabel = (edge: EdgeTypeVariant): string | undefined => {
  * Can be either a single CBOR value or a key-value pair from a map.
  */
 export type WalkElement =
-  | { type: "single"; cbor: Cbor }
-  | { type: "keyvalue"; key: Cbor; value: Cbor };
+  { type: "single"; cbor: Cbor } | { type: "keyvalue"; key: Cbor; value: Cbor };
 
 /**
  * Helper functions for WalkElement
