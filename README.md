@@ -1,4 +1,4 @@
-> ⚠️ **Deprecation notice**: This library is being deprecated in favor of the new official TypeScript packages from Blockchain Commons.
+> ⚠️ **Deprecation notice**: This library is being deprecated in favor of the new official TypeScript packages from [Blockchain Commons](https://github.com/BlockchainCommons).
 > You can migrate to the new packages by replacing the org name of each package from "@bcts" to "@blockchaincommons".
 > Keep in mind that some API's may have changed. We recommend looking at `MIGRATION.md` in each repository to see what changed.
 
