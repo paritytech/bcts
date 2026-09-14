@@ -1,3 +1,7 @@
+> ⚠️ **Deprecation notice**: This library is being deprecated in favor of the new official TypeScript packages from Blockchain Commons.
+> You can migrate to the new packages by replacing the org name of each package from "@bcts" to "@blockchaincommons".
+> Keep in mind that some API's may have changed. We recommend looking at `MIGRATION.md` in each repository to see what changed.
+
 # BCTS - Blockchain Commons for TypeScript
 
 [![Version](https://img.shields.io/badge/version-1.0.0--beta.6-green)](https://github.com/paritytech/bcts/releases)
@@ -8,7 +12,7 @@
 
 🔷 **Community Implementation:** This is a TypeScript port of the Blockchain Commons' open specifications and implementations.
 
-> ⚠️ **Disclaimer:** This is a project in active development. It has not been audited, APIs and interfaces are subject to change.
+> ⚠️ **Disclaimer:** This is a project in active development. It has not been audited; APIs and interfaces are subject to change.
 
 ## Overview
 
