@@ -77,10 +77,10 @@
     "@types/qrcode-generator": "^1.0.6",
     "commander": "^15.0.0",
     "eslint": "^10.8.0",
-    "prettier": "^3.9.6",
-    "tsdown": "^0.22.14",
+    "prettier": "^3.9.8",
+    "tsdown": "^0.23.0",
     "typedoc": "^0.28.20",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }
