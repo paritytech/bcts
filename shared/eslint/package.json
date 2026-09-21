@@ -18,7 +18,7 @@
     "@vercel/style-guide": "^6.0.0",
     "@vue/eslint-config-typescript": "^14.9.0",
     "eslint-config-turbo": "^2.10.7",
-    "typescript": "6.0.3"
+    "typescript": "7.0.2"
   },
   "peerDependencies": {
     "eslint": "^10.8.0",

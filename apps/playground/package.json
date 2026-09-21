@@ -38,12 +38,12 @@
     "@iconify-json/simple-icons": "^1.2.92",
     "@nuxt/eslint": "^1.16.0",
     "@nuxthub/core": "0.10.8",
-    "@nuxtjs/seo": "5.3.6",
+    "@nuxtjs/seo": "5.3.16",
     "@types/node": "^26.1.2",
     "eslint": "^10.8.0",
     "nuxt": "^4.5.1",
-    "nuxt-gtag": "4.1.0",
-    "typescript": "^6.0.3",
+    "nuxt-gtag": "5.0.0",
+    "typescript": "^7.0.2",
     "vue-tsc": "^3.3.8",
     "wrangler": "^4.115.0"
   }
